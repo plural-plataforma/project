@@ -1,0 +1,32 @@
+{
+  "name": "plural-plataforma",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "workspaces": {
+    "apps": [
+      "web",
+      "mobile"
+    ],
+    "packages": [
+      "utils",
+      "types"
+    ]
+  },
+  "scripts": {
+    "start:api": "dotnet run --project apps/server/api --launch-profile http",
+    "start:web": "vite --host --port 4200 apps/web",
+    "start:mobile": "expo start --dev-client -c",
+    "build": "nx build"
+  },
+  "devDependencies": {
+    "@nx/js": "^19.0.0",
+    "@nx/react": "^19.0.0",
+    "@nx/react-native": "^19.0.0",
+    "eslint": "^9.8.0",
+    "eslint-plugin-import": "2.31.0",
+    "nx": "^19.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^7.1.5"
+  }
+}

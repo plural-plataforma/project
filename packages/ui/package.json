@@ -1,0 +1,10 @@
+{
+  "name": "@plural-plataforma/ui",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "source": "src/index.ts",
+  "private": true,
+  "scripts": {
+    "build": "tsc && vite build --config vite.config.lib.ts"
+  }
+}

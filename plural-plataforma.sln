@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "server", "server", "{762CE181-B567-DC4E-7B44-930860771A9A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "api", "apps\server\api\api.csproj", "{66E28FD7-FE23-A6EF-81F9-C77929784792}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{66E28FD7-FE23-A6EF-81F9-C77929784792}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66E28FD7-FE23-A6EF-81F9-C77929784792}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66E28FD7-FE23-A6EF-81F9-C77929784792}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66E28FD7-FE23-A6EF-81F9-C77929784792}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{762CE181-B567-DC4E-7B44-930860771A9A} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{66E28FD7-FE23-A6EF-81F9-C77929784792} = {762CE181-B567-DC4E-7B44-930860771A9A}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {669CB0C0-B0A4-4468-91D8-559B874FC7C8}
+	EndGlobalSection
+EndGlobal
