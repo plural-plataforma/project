@@ -36,3 +36,14 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+#ASP.NET
+/apps/api/bin/
+/apps/api/obj/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates 
+
+*.log

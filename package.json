@@ -7,12 +7,13 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --parallel --filter=api --filter=web --filter=mobile",
+    "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "turbo": "latest",
     "typescript": "5.9.2"
