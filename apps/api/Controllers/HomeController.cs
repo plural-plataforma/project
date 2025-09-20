@@ -4,6 +4,8 @@ using api.Models;
 
 namespace api.Controllers;
 
+[ApiController]
+[Route("[controller]")]
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
@@ -13,19 +15,15 @@ public class HomeController : Controller
         _logger = logger;
     }
 
-    public IActionResult Index()
-    {
-        return View();
-    }
 
-    public IActionResult Privacy()
+    // GET /home
+    /// <summary>
+    /// Retorna uma mensagem de teste.
+    /// </summary>
+    /// <returns>PrimeiroEndpoint</returns>
+    [HttpGet]
+    public IActionResult Get()
     {
-        return View();
-    }
-
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        return Ok("PrimeiroEndpoint");
     }
 }

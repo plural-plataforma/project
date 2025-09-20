@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\project\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -38,7 +42,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -49,25 +53,34 @@
               "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "HomeController.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Controllers\\HomeController.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Controllers\\HomeController.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Controllers\\HomeController.cs",
+              "RelativeToolTip": "apps\\api\\Controllers\\HomeController.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAABQAAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-19T21:37:23.965Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\project\\apps\\api\\Program.cs",
               "RelativeDocumentMoniker": "apps\\api\\Program.cs",
               "ToolTip": "C:\\project\\apps\\api\\Program.cs",
               "RelativeToolTip": "apps\\api\\Program.cs",
-              "ViewState": "AgIAAB0AAAAAAAAAAAAowDEAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAAAoAAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-18T20:58:42.543Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\project\\apps\\api\\appsettings.json",
               "RelativeDocumentMoniker": "apps\\api\\appsettings.json",
@@ -75,38 +88,35 @@
               "RelativeToolTip": "apps\\api\\appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-09-18T20:58:34.813Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-18T20:58:34.813Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "Responsavel.cs",
               "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Responsavel.cs",
               "RelativeDocumentMoniker": "apps\\api\\Models\\Responsavel.cs",
               "ToolTip": "C:\\project\\apps\\api\\Models\\Responsavel.cs",
               "RelativeToolTip": "apps\\api\\Models\\Responsavel.cs",
-              "ViewState": "AgIAACsAAAAAAAAAAAAiwCYAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAACsAAAAAAAAAAAA2wCYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-18T20:46:07.341Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-18T20:46:07.341Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "Aluno.cs",
               "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Aluno.cs",
               "RelativeDocumentMoniker": "apps\\api\\Models\\Aluno.cs",
               "ToolTip": "C:\\project\\apps\\api\\Models\\Aluno.cs",
               "RelativeToolTip": "apps\\api\\Models\\Aluno.cs",
-              "ViewState": "AgIAADsAAAAAAAAAAAAAAEUAAAAgAAAAAAAAAA==",
+              "ViewState": "AgIAADgAAAAAAAAAAIBRwEUAAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-18T20:36:26.51Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-18T20:36:26.51Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "Escola.cs",
               "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Escola.cs",
               "RelativeDocumentMoniker": "apps\\api\\Models\\Escola.cs",
@@ -114,12 +124,11 @@
               "RelativeToolTip": "apps\\api\\Models\\Escola.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAATAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-16T23:24:02.696Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-16T23:24:02.696Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "Professor.cs",
               "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Professor.cs",
               "RelativeDocumentMoniker": "apps\\api\\Models\\Professor.cs",
@@ -127,12 +136,11 @@
               "RelativeToolTip": "apps\\api\\Models\\Professor.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAUAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-16T23:11:23.93Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-16T23:11:23.93Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "AppDbContext.cs",
               "DocumentMoniker": "C:\\project\\apps\\api\\Data\\AppDbContext.cs",
               "RelativeDocumentMoniker": "apps\\api\\Data\\AppDbContext.cs",
@@ -140,8 +148,7 @@
               "RelativeToolTip": "apps\\api\\Data\\AppDbContext.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAApAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-16T23:10:19.499Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-16T23:10:19.499Z"
             }
           ]
         }
