@@ -3,6 +3,7 @@ namespace api.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+[Table("escolas")]
 public class Escola
 {
     [Key]
