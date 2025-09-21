@@ -3,36 +3,28 @@
   "WorkspaceRootPath": "C:\\project\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\controllers\\autenticacaocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\controllers\\autenticacaocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\services\\autenticacaoservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\services\\autenticacaoservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\dtos\\autenticacao\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\dtos\\autenticacao\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\models\\responsavel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\models\\responsavel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\dtos\\autenticacao\\registrodto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\dtos\\autenticacao\\registrodto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\models\\professor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\models\\professor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\models\\escola.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\models\\escola.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\models\\aluno.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\models\\aluno.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\models\\responsavel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\models\\responsavel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -42,8 +34,22 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 5,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Responsavel.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Responsavel.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Models\\Responsavel.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Models\\Responsavel.cs",
+              "RelativeToolTip": "apps\\api\\Models\\Responsavel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-21T16:18:27.767Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
@@ -54,77 +60,55 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "HomeController.cs",
-              "DocumentMoniker": "C:\\project\\apps\\api\\Controllers\\HomeController.cs",
-              "RelativeDocumentMoniker": "apps\\api\\Controllers\\HomeController.cs",
-              "ToolTip": "C:\\project\\apps\\api\\Controllers\\HomeController.cs",
-              "RelativeToolTip": "apps\\api\\Controllers\\HomeController.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAABQAAAAlAAAAAAAAAA==",
+              "DocumentIndex": 2,
+              "Title": "LoginDTO.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\DTOs\\Autenticacao\\LoginDTO.cs",
+              "RelativeDocumentMoniker": "apps\\api\\DTOs\\Autenticacao\\LoginDTO.cs",
+              "ToolTip": "C:\\project\\apps\\api\\DTOs\\Autenticacao\\LoginDTO.cs",
+              "RelativeToolTip": "apps\\api\\DTOs\\Autenticacao\\LoginDTO.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAApAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-19T21:37:23.965Z",
+              "WhenOpened": "2025-09-21T18:18:47.813Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\project\\apps\\api\\Program.cs",
-              "RelativeDocumentMoniker": "apps\\api\\Program.cs",
-              "ToolTip": "C:\\project\\apps\\api\\Program.cs",
-              "RelativeToolTip": "apps\\api\\Program.cs",
-              "ViewState": "AgIAAAkAAAAAAAAAAAAAAAoAAAAgAAAAAAAAAA==",
+              "Title": "AutenticacaoService.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Services\\AutenticacaoService.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Services\\AutenticacaoService.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Services\\AutenticacaoService.cs",
+              "RelativeToolTip": "apps\\api\\Services\\AutenticacaoService.cs",
+              "ViewState": "AgIAAEEAAAAAAAAAAAAUwFcAAABDAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-18T20:58:42.543Z",
+              "WhenOpened": "2025-09-21T18:15:27.739Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\project\\apps\\api\\appsettings.json",
-              "RelativeDocumentMoniker": "apps\\api\\appsettings.json",
-              "ToolTip": "C:\\project\\apps\\api\\appsettings.json",
-              "RelativeToolTip": "apps\\api\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-09-18T20:58:34.813Z"
+              "DocumentIndex": 0,
+              "Title": "AutenticacaoController.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Controllers\\AutenticacaoController.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Controllers\\AutenticacaoController.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Controllers\\AutenticacaoController.cs",
+              "RelativeToolTip": "apps\\api\\Controllers\\AutenticacaoController.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAcwCYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-21T18:15:12.894Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "Responsavel.cs",
-              "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Responsavel.cs",
-              "RelativeDocumentMoniker": "apps\\api\\Models\\Responsavel.cs",
-              "ToolTip": "C:\\project\\apps\\api\\Models\\Responsavel.cs",
-              "RelativeToolTip": "apps\\api\\Models\\Responsavel.cs",
-              "ViewState": "AgIAACsAAAAAAAAAAAA2wCYAAAAAAAAAAAAAAA==",
+              "Title": "RegistroDTO.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "RelativeDocumentMoniker": "apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "ToolTip": "C:\\project\\apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "RelativeToolTip": "apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-18T20:46:07.341Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Aluno.cs",
-              "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Aluno.cs",
-              "RelativeDocumentMoniker": "apps\\api\\Models\\Aluno.cs",
-              "ToolTip": "C:\\project\\apps\\api\\Models\\Aluno.cs",
-              "RelativeToolTip": "apps\\api\\Models\\Aluno.cs",
-              "ViewState": "AgIAADgAAAAAAAAAAIBRwEUAAAAgAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-18T20:36:26.51Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Escola.cs",
-              "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Escola.cs",
-              "RelativeDocumentMoniker": "apps\\api\\Models\\Escola.cs",
-              "ToolTip": "C:\\project\\apps\\api\\Models\\Escola.cs",
-              "RelativeToolTip": "apps\\api\\Models\\Escola.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAATAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-16T23:24:02.696Z"
+              "WhenOpened": "2025-09-21T18:15:10.704Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -134,21 +118,10 @@
               "RelativeDocumentMoniker": "apps\\api\\Models\\Professor.cs",
               "ToolTip": "C:\\project\\apps\\api\\Models\\Professor.cs",
               "RelativeToolTip": "apps\\api\\Models\\Professor.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAUAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-16T23:11:23.93Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "AppDbContext.cs",
-              "DocumentMoniker": "C:\\project\\apps\\api\\Data\\AppDbContext.cs",
-              "RelativeDocumentMoniker": "apps\\api\\Data\\AppDbContext.cs",
-              "ToolTip": "C:\\project\\apps\\api\\Data\\AppDbContext.cs",
-              "RelativeToolTip": "apps\\api\\Data\\AppDbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAApAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-16T23:10:19.499Z"
+              "WhenOpened": "2025-09-21T18:15:02.716Z",
+              "EditorCaption": ""
             }
           ]
         }

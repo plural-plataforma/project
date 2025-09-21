@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace api.Models
 {
+    [Table("responsaveis")]
     public class Responsavel
     {
         [Key]
@@ -11,20 +12,7 @@ namespace api.Models
 
         [Required]
         [StringLength(100)]
-        public string Nome { get; set; }
-
-        [Required]
-        [StringLength(100)]
-        public string Sobrenome { get; set; }
-
-        [Required]
-        [StringLength(30)]
-        [EmailAddress]
-        public string Email { get; set; }
-
-        [Required]
-        [StringLength(256)]
-        public string Senha { get; set; }
+        public string NomeCompleto { get; set; }
 
         [StringLength(9)]
         public string Cep { get; set; }
