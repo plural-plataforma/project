@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useEffect } from 'react' // Correção: removido 'use' inválido
 import { useRouter } from 'expo-router'
 import Login from './auth/login'
@@ -22,4 +23,20 @@ export default function Index() {
 
   // Renderiza o componente Login por padrão (se não redirecionado)
   return <Login />
+=======
+import { Text, View } from 'react-native'
+
+export default function Index() {
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}
+    >
+      <Text>hello world</Text>
+    </View>
+  )
+>>>>>>> 4a54cb1 (refactor: reseat-project [PLUR-14])
 }

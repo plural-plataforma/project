@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Stack } from 'expo-router'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
@@ -29,4 +30,10 @@ export default function RootLayout() {
       <Stack.Screen name="dashboard" options={{ headerShown: false }} />
     </Stack>
   )
+=======
+import { Stack } from "expo-router";
+
+export default function RootLayout() {
+  return <Stack />;
+>>>>>>> 4a54cb1 (refactor: reseat-project [PLUR-14])
 }
