@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { useEffect } from 'react' // Correção: removido 'use' inválido
 import { useRouter } from 'expo-router'
 import Login from './auth/login'
@@ -29,18 +30,50 @@ import { Text, View } from 'react-native'
 =======
 import { Button, Text, View } from 'react-native'
 >>>>>>> acf38d1 (fix: configuration expo router [PLUR-14])
+=======
+import * as React from 'react'
+import { BottomNavigation, Text } from 'react-native-paper'
+
+const MusicRoute = () => <Text>Music</Text>
+
+const AlbumsRoute = () => <Text>Albums</Text>
+
+const RecentsRoute = () => <Text>Recents</Text>
+
+const NotificationsRoute = () => <Text>Notifications</Text>
+>>>>>>> 174b1ae (feat: using react-native-paper ui [PLUR-14])
 
 export default function Index() {
+  const [index, setIndex] = React.useState(0)
+  const [routes] = React.useState([
+    {
+      key: 'music',
+      title: 'Favorites',
+      focusedIcon: 'heart',
+      unfocusedIcon: 'heart-outline'
+    },
+    { key: 'albums', title: 'Albums', focusedIcon: 'album' },
+    { key: 'recents', title: 'Recents', focusedIcon: 'history' },
+    {
+      key: 'notifications',
+      title: 'Notifications',
+      focusedIcon: 'bell',
+      unfocusedIcon: 'bell-outline'
+    }
+  ])
+
+  const renderScene = BottomNavigation.SceneMap({
+    music: MusicRoute,
+    albums: AlbumsRoute,
+    recents: RecentsRoute,
+    notifications: NotificationsRoute
+  })
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-    >
-      <Button title="Hello, world!" onPress={() => alert('Button pressed!')} />
-    </View>
+    <BottomNavigation
+      navigationState={{ index, routes }}
+      onIndexChange={setIndex}
+      renderScene={renderScene}
+    />
   )
 >>>>>>> 4a54cb1 (refactor: reseat-project [PLUR-14])
 }
