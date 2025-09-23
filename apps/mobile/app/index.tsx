@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { useEffect } from 'react' // Correção: removido 'use' inválido
 import { useRouter } from 'expo-router'
 import Login from './auth/login'
@@ -25,6 +26,9 @@ export default function Index() {
   return <Login />
 =======
 import { Text, View } from 'react-native'
+=======
+import { Button, Text, View } from 'react-native'
+>>>>>>> acf38d1 (fix: configuration expo router [PLUR-14])
 
 export default function Index() {
   return (
@@ -35,7 +39,7 @@ export default function Index() {
         alignItems: 'center'
       }}
     >
-      <Text>hello world</Text>
+      <Button title="Hello, world!" onPress={() => alert('Button pressed!')} />
     </View>
   )
 >>>>>>> 4a54cb1 (refactor: reseat-project [PLUR-14])

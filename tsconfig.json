@@ -4,14 +4,22 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
+<<<<<<< HEAD
       "@/*": [
         "apps/*"
       ]
+=======
+      "@/*": ["apps/*"]
+>>>>>>> acf38d1 (fix: configuration expo router [PLUR-14])
     }
   },
   "include": [
     "apps/**/*",
+<<<<<<< HEAD
    "packages/**/*",
+=======
+    "packages/**/*",
+>>>>>>> acf38d1 (fix: configuration expo router [PLUR-14])
     ".expo/types/**/*.ts"
   ]
 }

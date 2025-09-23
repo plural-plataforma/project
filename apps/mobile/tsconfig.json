@@ -1,6 +1,7 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
+<<<<<<< HEAD
     "strict": true,
     "jsx": "react-native",
     "esModuleInterop": true,
@@ -9,6 +10,10 @@
     "paths": {
       "@/*": ["../../*"],
       "packages/ui/components/*": ["../../packages/ui/components/*"]
+=======
+    "paths": {
+      "@/*": ["./*"]
+>>>>>>> acf38d1 (fix: configuration expo router [PLUR-14])
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "expo.d.ts"]
