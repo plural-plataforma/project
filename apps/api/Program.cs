@@ -39,11 +39,20 @@ builder.Services.AddAuthentication(options =>
 
 // Add services to the container.
 builder.Services.AddScoped<AutenticacaoService>();
+builder.Services.AddScoped<ProfessorService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
 {
     x.SwaggerDoc("v1", new OpenApiInfo{Title = "Plural API", Version = "v1"});
+    x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        In = ParameterLocation.Header,  
+        Description = "Insira o token JWT no formato: 'Bearer {seu token aqui}'"
+    });
 });
 
 
