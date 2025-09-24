@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { Stack } from 'expo-router'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
@@ -36,4 +37,10 @@ import { Stack } from "expo-router";
 export default function RootLayout() {
   return <Stack />;
 >>>>>>> 4a54cb1 (refactor: reseat-project [PLUR-14])
+=======
+import { Stack } from 'expo-router'
+
+export default function RootLayout() {
+  return <Stack screenOptions={{ headerShown: false }} />
+>>>>>>> 61d5e4d (feat: implementação do BarNavigation [PLR-14])
 }
