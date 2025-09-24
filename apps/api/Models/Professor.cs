@@ -33,7 +33,7 @@ namespace api.Models
     [MaxLength(40)]
     public string? Cidade { get; set; }
 
-    public int? Telefone { get; set; }
+    public string? Telefone { get; set; }
 
     [MaxLength(500)]
     public string? Disciplinas { get; set; }
