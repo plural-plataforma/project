@@ -1,110 +1,86 @@
 import * as React from 'react'
-import { View, StyleSheet } from 'react-native'
-import { BottomNavigation, Text } from 'react-native-paper'
+import { View, Image, StyleSheet } from 'react-native'
+import { Card, Text } from 'react-native-paper'
 import { StatusBar } from 'expo-status-bar'
-import { text } from 'stream/consumers'
-
-const DashboardRoute = () => <Text>dashboard</Text>
-
-const AlunosRoute = () => <Text>Alunos</Text>
-
-const PlanejamentoRoute = () => <Text>Planejamento</Text>
-
-const ReportsRoute = () => <Text>Reports</Text>
-
+import { List } from 'phosphor-react-native'
 export default function Index() {
-  const [index, setIndex] = React.useState(0)
-  const [routes] = React.useState([
-    {
-      key: 'dashboard',
-      title: 'Dashboard',
-      focusedIcon: 'home-variant',
-      unfocusedIcon: 'home-variant-outline'
-    },
-    {
-      key: 'alunos',
-      title: 'Alunos',
-      focusedIcon: 'account-multiple',
-      unfocusedIcon: 'account-multiple-outline'
-    },
-    {
-      key: 'planejamento',
-      title: 'Planejamento',
-      focusedIcon: 'calendar-month',
-      unfocusedIcon: 'calendar-month-outline'
-    },
-    {
-      key: 'reports',
-      title: 'Reports',
-      focusedIcon: 'chart-box-multiple',
-      unfocusedIcon: 'chart-box-multiple-outline'
-    }
-  ])
-
-  const renderScene = BottomNavigation.SceneMap({
-    dashboard: DashboardRoute,
-    alunos: AlunosRoute,
-    planejamento: PlanejamentoRoute,
-    reports: ReportsRoute
-  })
   return (
-    <View style={styles.app}>
-      <View style={styles.container}>
-        <StatusBar />
-        <View style={styles.header}>
-          <View style={styles.headerLeft} />
-          <View style={styles.headerRight} />
+    <View style={styles.container}>
+      <StatusBar />
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Image
+            source={require('../assets/images/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.text}>
+            Plural <Text style={styles.textSecondary}>PLATAFORMA</Text>
+          </Text>
+        </View>
+        <View style={styles.headerRight}>
+          <List size={24} color="#193656" />
         </View>
       </View>
-      <BottomNavigation
-        navigationState={{ index, routes }}
-        onIndexChange={setIndex}
-        renderScene={renderScene}
-        sceneAnimationEnabled={false}
-        shifting={false}
-        barStyle={styles.barNav}
-        inactiveColor="#000000"
-        activeColor="#0D141C"
-        activeIndicatorStyle={{ backgroundColor: 'none' }}
-      />
+      <View style={{ flex: 1 }}>
+        <Card
+          style={{
+            height: 136,
+            margin: 16,
+            padding: 16,
+            backgroundColor: '#FF0000'
+          }}
+        >
+          <Text>Bem-vindo à Plural Plataforma!</Text>
+        </Card>
+      </View>
     </View>
   )
 }
 
 export const styles = StyleSheet.create({
-  app: {
-    flex: 1,
-    paddingTop: 20
-  },
   container: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20
+    flex: 1,
+    backgroundColor: '#fff'
   },
-  barNav: {
-    backgroundColor: '#FFBE33',
-    height: 68,
-    width: 380,
-    alignSelf: 'center',
-    marginBottom: 10,
-    borderRadius: 35
-  },
+
   header: {
-    marginTop: 20,
-    marginBottom: 20,
+    backgroundColor: '#FFBE33',
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    height: 60,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4
   },
   headerLeft: {
-    flexDirection: 'row'
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   headerRight: {
-    flexDirection: 'row'
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   text: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#0D141C',
-    lineHeight: 29
+    color: '#193656',
+    fontFamily: 'Nunito_700Bold'
+  },
+  textSecondary: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#193656',
+    fontFamily: 'Nunito_400Regular',
+    textTransform: 'uppercase'
+  },
+  logo: {
+    width: 42.79,
+    height: 33.65,
+    marginRight: 10
   }
 })
