@@ -1,6 +1,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { useEffect } from 'react' // Correção: removido 'use' inválido
 import { useRouter } from 'expo-router'
 import Login from './auth/login'
@@ -88,51 +89,33 @@ export default function Index() {
     </View>
   )
 >>>>>>> 4a54cb1 (refactor: reseat-project [PLUR-14])
+=======
+import Login from './auth/login'
+import { use, useEffect } from 'react'
+import { useRouter } from 'expo-router'
+
+export default function Index() {
+  const router = useRouter()
+  useEffect(() => {
+    // Aqui você pode adicionar lógica para verificar se o usuário está autenticado
+    // e redirecioná-lo para a tela apropriada.
+    const timeout = setTimeout(() => {
+      // Simulando uma verificação de autenticação
+      const isAuthenticated = true // Altere isso conforme sua lógica de autenticação real
+      if (isAuthenticated) {
+        router.navigate('/tabs/dashboard')
+        // Redirecionar para a tela principal (por exemplo, 'alunos')
+        // navigation.navigate('alunos'); // Descomente e ajuste conforme sua navegação
+      } else {
+        return <Login />
+        // Redirecionar para a tela de login
+        // navigation.navigate('login'); // Descomente e ajuste conforme sua navegação
+      }
+    }, 1000) // Simula um atraso de 1 segundo
+
+    return () => clearTimeout(timeout) // Limpa o timeout se o componente for desmontado
+  }, [])
+
+  return <Login />
+>>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
 }
-
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff'
-  },
-
-  header: {
-    backgroundColor: '#FFBE33',
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 60,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  text: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#193656',
-    fontFamily: 'Nunito_700Bold'
-  },
-  textSecondary: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: '#193656',
-    fontFamily: 'Nunito_400Regular',
-    textTransform: 'uppercase'
-  },
-  logo: {
-    width: 42.79,
-    height: 33.65,
-    marginRight: 10
-  }
-})

@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+import FontAwesome from '@expo/vector-icons/FontAwesome'
+>>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
 import { Tabs } from 'expo-router'
 import {
   Calendar,

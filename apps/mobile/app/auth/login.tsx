@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
 import { View, StyleSheet, Text } from 'react-native'
 import {
@@ -81,3 +82,10 @@ const styles = StyleSheet.create({
 })
 
 export default Login
+=======
+import { Text } from 'react-native'
+
+export default function Login() {
+  return <Text>Login</Text>
+}
+>>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   Button,
   CheckboxWithLabel,
@@ -93,3 +94,10 @@ export const styles = StyleSheet.create({
   },
   checkboxRow: {}
 })
+=======
+import { Text } from 'react-native'
+
+export default function SignUp() {
+  return <Text>SignUp</Text>
+}
+>>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
