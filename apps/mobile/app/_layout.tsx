@@ -1,32 +1,32 @@
-import { Stack } from 'expo-router';
-import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { Stack } from 'expo-router'
+import { useFonts } from 'expo-font'
+import * as SplashScreen from 'expo-splash-screen'
+import { useEffect } from 'react'
 
 // Impede que a tela de splash desapareça antes das fontes carregarem
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    'Nunito_400Regular': require('../assets/fonts/Nunito-Regular.ttf'),
-    'Nunito_700Bold': require('../assets/fonts/Nunito-Bold.ttf'),
-  });
+    Nunito_400Regular: require('../assets/fonts/Nunito-Regular.ttf'),
+    Nunito_700Bold: require('../assets/fonts/Nunito-Bold.ttf')
+  })
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
       // Esconde a tela de splash quando as fontes estiverem prontas
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync()
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError])
 
   // Não renderiza nada até que as fontes estejam carregadas
   if (!fontsLoaded && !fontError) {
-    return null;
+    return null
   }
 
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="dashboard" options={{ headerShown: false }} />
     </Stack>
-  );
+  )
 }
