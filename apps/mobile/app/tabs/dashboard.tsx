@@ -3,6 +3,7 @@ import { View, Image, StyleSheet } from 'react-native'
 import { Card, Text } from 'react-native-paper'
 import { StatusBar } from 'expo-status-bar'
 import { List } from 'phosphor-react-native'
+import { colors } from '../../../../packages/ui/theme/theme'
 export default function Dashboard() {
   return (
     <View style={styles.container}>
@@ -19,7 +20,7 @@ export default function Dashboard() {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <List size={24} color="#193656" />
+          <List size={24} color={colors.primary} />
         </View>
       </View>
       <View style={{ flex: 1 }}>
@@ -41,11 +42,11 @@ export default function Dashboard() {
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff'
+    backgroundColor: colors.background
   },
 
   header: {
-    backgroundColor: '#FFBE33',
+    backgroundColor: colors.tertiary,
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -68,13 +69,13 @@ export const styles = StyleSheet.create({
   text: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#193656',
+    color: colors.primary,
     fontFamily: 'Nunito_700Bold'
   },
   textSecondary: {
     fontSize: 16,
     fontWeight: '400',
-    color: '#193656',
+    color: colors.primary,
     fontFamily: 'Nunito_400Regular',
     textTransform: 'uppercase'
   },
