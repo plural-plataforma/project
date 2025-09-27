@@ -7,6 +7,9 @@ Bem-vindo ao repositório `plural-plataforma`, um **monorepo** gerenciado com [T
 A estrutura do monorepo é organizada da seguinte forma:
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> dc9820c (feat: ajustes no commit anterior [PLUR-23])
 - `/monorepo`
   - `/apps`
     - `/api`: API backend
@@ -17,6 +20,7 @@ A estrutura do monorepo é organizada da seguinte forma:
     - `/eslint-config`: Configurações de ESLint compartilhadas
     - `/typescript-config`: Configurações de TypeScript compartilhadas
     - `/ui`: Componentes de UI reutilizáveis
+<<<<<<< HEAD
 =======
 /monorepo
 ├── /apps
@@ -29,6 +33,8 @@ A estrutura do monorepo é organizada da seguinte forma:
 │ ├── /typescript-config # Configurações de TypeScript compartilhadas
 │ ├── /ui # Componentes de UI reutilizáveis
 >>>>>>> bf71cd9 (feat: orientações de uso do repositório do monorepo para dev [PLUR-23])
+=======
+>>>>>>> dc9820c (feat: ajustes no commit anterior [PLUR-23])
 
 Cada pasta em `/apps` e `/packages` contém um projeto ou pacote independente com instruções específicas em seu próprio `README.md` (se disponível).
 
