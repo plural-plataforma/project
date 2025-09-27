@@ -9,7 +9,7 @@ export default function Index() {
     // e redirecioná-lo para a tela apropriada.
     const timeout = setTimeout(() => {
       // Simulando uma verificação de autenticação
-      const isAuthenticated = true // Altere isso conforme sua lógica de autenticação real
+      const isAuthenticated = false // Altere isso conforme sua lógica de autenticação real
       if (isAuthenticated) {
         router.navigate('/tabs/dashboard')
         // Redirecionar para a tela principal (por exemplo, 'alunos')
