@@ -1,135 +1,94 @@
-# Turborepo starter
+# Plural Plataforma
 
-This Turborepo starter is maintained by the Turborepo core team.
+Bem-vindo ao repositório `plural-plataforma`, um **monorepo** gerenciado com [TurboRepo](https://turbo.build/repo) que contém múltiplos projetos e pacotes, incluindo aplicações e bibliotecas compartilhadas. Este README fornece instruções para configurar, desenvolver e contribuir com o repositório.
 
-## Using this example
+## Estrutura do Repositório
 
-Run the following command:
+A estrutura do monorepo é organizada da seguinte forma:
 
-```sh
-npx create-turbo@latest
+/monorepo
+├── /apps
+│ ├── /api # API backend
+│ ├── /mobile # Aplicação mobile
+│ ├── /web # Aplicação web
+├── /node_modules # Dependências globais (gerenciadas pelo TurboRepo)
+├── /packages
+│ ├── /eslint-config # Configurações de ESLint compartilhadas
+│ ├── /typescript-config # Configurações de TypeScript compartilhadas
+│ ├── /ui # Componentes de UI reutilizáveis
+
+Cada pasta em `/apps` e `/packages` contém um projeto ou pacote independente com instruções específicas em seu próprio `README.md` (se disponível).
+
+## Pré-requisitos
+
+Para trabalhar neste monorepo, você precisará das seguintes ferramentas instaladas:
+
+- [Node.js](https://nodejs.org/) (versão 18.x ou superior, recomendada pela TurboRepo)
+- [NPM](https://www.npmjs.com/) ou [Yarn](https://yarnpkg.com/) (versão compatível com TurboRepo)
+- [TurboRepo CLI](https://turbo.build/repo/docs/installation) (instale globalmente com `npm install -g turbo`)
+- Um editor de código como [VS Code](https://code.visualstudio.com/)
+
+Certifique-se de clonar o repositório:
+
+```bash
+git clone https://github.com/plural-plataforma/project.git
+cd project
 ```
 
-## What's inside?
+## Configuração do Ambiente
 
-This Turborepo includes the following packages/apps:
+### 1. Instale o TurboRepo (se ainda não instalado)
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+npm install -g turbo
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### 2. Instale as dependências
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+- Na raiz do repositório, execute:
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+  ```bash
+  npm install
+  ```
 
-### Develop
+Isso instalará todas as dependências dos pacotes em /apps e /packages usando o cache do TurboRepo.
 
-To develop all apps and packages, run the following command:
+### 3. Configure variáveis de ambiente
 
-```
-cd my-turborepo
+- Copie o arquivo .env.example (se existir) para .env e ajuste as variáveis conforme necessário:
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+  ```bash
+  cp .env.example .env
+  ```
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+### 4. Inicie o desenvolvimento
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+- Para iniciar todos os projetos em modo de desenvolvimento paralelo:
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+  ```bash
+  npm run dev
+  ```
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+- Ou inicie um projeto específico, por exemplo, o app web:
 
-### Remote Caching
+  ```bash
+  turbo run dev --filter=web
+  ```
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+## Scripts Disponíveis
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+O `package.json` define os seguintes scripts no monorepo:
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+`npm run build`: Compila todos os projetos.
 
-```
-cd my-turborepo
+`npm run dev`: Inicia todos os projetos em modo de desenvolvimento paralelo.
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
+`npm run lint`: Executa verificações de lint em todos os pacotes.
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
+`npm run format`: Formata os arquivos .ts, .tsx e .md com Prettier.
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+`npm run check-types`: Verifica os tipos TypeScript em todos os pacotes.
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+Para scripts específicos de um pacote ou app, consulte o README.md na pasta correspondente (ex.: /apps/web/README.md).
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+Esse repositório está com `Automerge de Pull Requests`, isso quer dizer que ao solicitar uma pull request já executa um merge e ao aprovar a pull já é excluida a branch criada pelo Jira e mergeado automaticamente com a branch `staging`.
