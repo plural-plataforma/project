@@ -6,16 +6,16 @@ Bem-vindo ao repositório `plural-plataforma`, um **monorepo** gerenciado com [T
 
 A estrutura do monorepo é organizada da seguinte forma:
 
-/monorepo
-├── /apps
-│ ├── /api # API backend
-│ ├── /mobile # Aplicação mobile
-│ ├── /web # Aplicação web
-├── /node_modules # Dependências globais (gerenciadas pelo TurboRepo)
-├── /packages
-│ ├── /eslint-config # Configurações de ESLint compartilhadas
-│ ├── /typescript-config # Configurações de TypeScript compartilhadas
-│ ├── /ui # Componentes de UI reutilizáveis
+- `/monorepo`
+  - `/apps`
+    - `/api`: API backend
+    - `/mobile`: Aplicação mobile
+    - `/web`: Aplicação web
+  - `/node_modules`: Dependências globais (gerenciadas pelo TurboRepo)
+  - `/packages`
+    - `/eslint-config`: Configurações de ESLint compartilhadas
+    - `/typescript-config`: Configurações de TypeScript compartilhadas
+    - `/ui`: Componentes de UI reutilizáveis
 
 Cada pasta em `/apps` e `/packages` contém um projeto ou pacote independente com instruções específicas em seu próprio `README.md` (se disponível).
 
