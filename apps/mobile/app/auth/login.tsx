@@ -17,7 +17,7 @@ const Login: React.FC<LoginProps> = () => {
   return (
     <View style={styles.appContainer}>
       <View style={styles.container}>
-        <Logo />
+        <Logo width={248} height={87.29} />
         <Text style={styles.text}>Seja bem vindo!</Text>
         <InputField label="E-mail" placeholder="Informe seu e-mail" />
         <InputField
@@ -43,6 +43,8 @@ const Login: React.FC<LoginProps> = () => {
           onPress={() => {
             navigate('auth/signUp')
           }}
+          labelQuestion="Não tem uma conta?"
+          labelAction="Inscreva-se"
         />
       </View>
     </View>

@@ -8,7 +8,7 @@ export default function Index() {
   useEffect(() => {
     // Simula uma verificação de autenticação com atraso
     const timeout = setTimeout(() => {
-      const isAuthenticated = false // Substitua por sua lógica real de autenticação
+      const isAuthenticated = true // Substitua por sua lógica real de autenticação
       if (isAuthenticated) {
         router.push('/tabs/dashboard') // Redireciona para a dashboard se autenticado
       } else {

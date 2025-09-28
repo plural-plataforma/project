@@ -3,15 +3,21 @@ import { Text, TouchableOpacity, View, StyleSheet } from 'react-native'
 
 interface SignupLinkProps {
   onPress: () => void
+  labelQuestion?: string
+  labelAction?: string
 }
 
-const SignupLink: React.FC<SignupLinkProps> = ({ onPress }) => {
+const SignupLink: React.FC<SignupLinkProps> = ({
+  onPress,
+  labelQuestion,
+  labelAction
+}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>
-        Não tem uma conta?{' '}
+        {labelQuestion}{' '}
         <TouchableOpacity onPress={onPress}>
-          <Text style={styles.link}>Inscreva-se</Text>
+          <Text style={styles.link}>{labelAction}</Text>
         </TouchableOpacity>
       </Text>
     </View>

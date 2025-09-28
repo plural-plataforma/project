@@ -1,8 +1,11 @@
 import {
+  AuthButton,
   Button,
   CheckboxWithLabel,
+  DividerWithText,
   InputField,
-  Logo
+  Logo,
+  SignupLink
 } from '@/packages/ui/components'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
 import { navigate } from 'expo-router/build/global-state/routing'
@@ -16,7 +19,7 @@ export default function SignUp() {
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
-            navigate('auth/login')
+            navigate('./login')
           }}
         >
           <CaretLeft
@@ -25,7 +28,7 @@ export default function SignUp() {
             style={{ margin: 8, marginRight: 4, marginLeft: 4 }}
           />
         </TouchableOpacity>
-        <Logo />
+        <Logo width={172} height={60.54} />
       </View>
       <View style={styles.groupContainer}>
         <Text style={styles.title}>Crie sua conta</Text>
@@ -50,6 +53,22 @@ export default function SignUp() {
           onPress={() => {}}
           buttonColor={{ backgroundColor: colors.tertiary }}
         ></Button>
+        <View style={styles.authSection}>
+          <DividerWithText text="Entre com" />
+          <AuthButton
+            title="Google"
+            onPress={() => {}}
+            iconName="google"
+            isGoogle={true}
+          />
+          <SignupLink
+            onPress={() => {
+              navigate('auth/signUp')
+            }}
+            labelQuestion="Já tem uma conta?"
+            labelAction="Entrar"
+          />
+        </View>
       </View>
     </View>
   )
@@ -57,15 +76,13 @@ export default function SignUp() {
 
 export const styles = StyleSheet.create({
   appContainer: {
-    flex: 1,
-    margin: 12
+    flex: 1
   },
   appTopBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 40,
     gap: 30,
-    paddingBottom: 30,
     paddingHorizontal: 12
   },
   button: {
@@ -80,7 +97,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8
   },
   groupContainer: {
-    width: '72%',
+    width: '90%',
     alignSelf: 'center'
   },
   title: {
@@ -91,5 +108,8 @@ export const styles = StyleSheet.create({
     fontWeight: '400' as const,
     fontFamily: 'Nunito_400Regular'
   },
-  checkboxRow: {}
+  checkboxRow: {},
+  authSection: {
+    alignItems: 'center'
+  }
 })

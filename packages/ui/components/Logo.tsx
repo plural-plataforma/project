@@ -1,18 +1,19 @@
 import { Image, StyleSheet } from 'react-native'
-
-const Logo: React.FC = () => {
+interface LogoProps {
+  width?: number
+  height?: number
+}
+const Logo: React.FC<LogoProps> = ({ width, height }) => {
   return (
     <Image
       source={require('../assets/images/logo-plural-plataforma.png')}
-      style={styles.logo}
+      style={[styles.logo, { width: width, height: height }]}
     />
   )
 }
 
 const styles = StyleSheet.create({
   logo: {
-    width: 248,
-    height: 87.29,
     alignSelf: 'center',
     resizeMode: 'contain'
   }

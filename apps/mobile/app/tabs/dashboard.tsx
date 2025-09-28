@@ -4,6 +4,7 @@ import { Card, Text } from 'react-native-paper'
 import { StatusBar } from 'expo-status-bar'
 import { List } from 'phosphor-react-native'
 import { colors } from '../../../../packages/ui/theme/theme'
+
 export default function Dashboard() {
   return (
     <View style={styles.container}>
@@ -19,9 +20,7 @@ export default function Dashboard() {
             Plural <Text style={styles.textSecondary}>PLATAFORMA</Text>
           </Text>
         </View>
-        <View style={styles.headerRight}>
-          <List size={24} color={colors.primary} />
-        </View>
+        <View style={styles.headerRight}></View>
       </View>
       <View style={{ flex: 1 }}>
         <Card
