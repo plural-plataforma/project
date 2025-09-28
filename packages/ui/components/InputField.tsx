@@ -33,7 +33,10 @@ const styles = StyleSheet.create({
   label: {
     color: colors.primary,
     marginHorizontal: 12,
+<<<<<<< HEAD
     marginBottom: 4,
+=======
+>>>>>>> 8db791c (feat: criação da tela de Sign Up [PLUR-19])
     fontSize: fontSizes.base,
     fontFamily: 'Nunito_400Regular'
   },
@@ -44,8 +47,12 @@ const styles = StyleSheet.create({
     color: colors.primary,
     borderColor: colors.primary,
     borderWidth: 1,
+<<<<<<< HEAD
     marginHorizontal: 12,
     margin: 12,
+=======
+    marginHorizontal: 12, // mantém só a margem lateral
+>>>>>>> 8db791c (feat: criação da tela de Sign Up [PLUR-19])
     borderRadius: 8,
     fontFamily: 'Nunito_400Regular'
   }
