@@ -13,7 +13,7 @@ const CheckboxWithLabel: React.FC<CheckboxWithLabelProps> = ({
 }) => {
   return (
     <TouchableOpacity style={styles.checkboxContainer} onPress={onPress}>
-      <CheckCircle size={32} color={colors.primary} />
+      <CheckCircle size={20} color={colors.primary} />
       <Text style={styles.label}>{label}</Text>
     </TouchableOpacity>
   )

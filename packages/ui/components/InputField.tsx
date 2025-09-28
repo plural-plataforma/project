@@ -27,7 +27,8 @@ const InputField: React.FC<InputFieldProps> = ({
 const styles = StyleSheet.create({
   container: {
     margin: 0,
-    padding: 0
+    padding: 0,
+    marginBottom: 8
   },
   label: {
     color: colors.primary,
@@ -43,6 +44,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     borderColor: colors.primary,
     borderWidth: 1,
+    marginHorizontal: 12,
     margin: 12,
     borderRadius: 8,
     fontFamily: 'Nunito_400Regular'
