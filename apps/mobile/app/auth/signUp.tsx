@@ -28,7 +28,7 @@ export default function SignUp() {
             style={{ margin: 8, marginRight: 4, marginLeft: 4 }}
           />
         </TouchableOpacity>
-        <Logo />
+        <Logo width={172} height={60.54} />
       </View>
       <View style={styles.groupContainer}>
         <Text style={styles.title}>Crie sua conta</Text>
@@ -76,15 +76,13 @@ export default function SignUp() {
 
 export const styles = StyleSheet.create({
   appContainer: {
-    flex: 1,
-    margin: 12
+    flex: 1
   },
   appTopBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 40,
     gap: 30,
-    paddingBottom: 30,
     paddingHorizontal: 12
   },
   button: {
@@ -99,7 +97,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8
   },
   groupContainer: {
-    width: '72%',
+    width: '90%',
     alignSelf: 'center'
   },
   title: {
