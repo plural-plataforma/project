@@ -9,6 +9,7 @@ import {
   Logo,
   DividerWithText
 } from '@/packages/ui/components'
+import { navigate } from 'expo-router/build/global-state/routing'
 
 interface LoginProps {}
 
@@ -33,12 +34,16 @@ const Login: React.FC<LoginProps> = () => {
       <View style={styles.authSection}>
         <DividerWithText text="Entre com" />
         <AuthButton
-          title="Continuar com Google"
+          title="Google"
           onPress={() => {}}
           iconName="google"
           isGoogle={true}
         />
-        <SignupLink onPress={() => {}} />
+        <SignupLink
+          onPress={() => {
+            navigate('auth/signUp')
+          }}
+        />
       </View>
     </View>
   )
@@ -49,11 +54,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     backgroundColor: colors.background
-  } as const,
+  },
   container: {
     width: '72%',
     alignSelf: 'center'
-  } as const,
+  },
   text: {
     color: colors.primary,
     paddingTop: 20,
@@ -61,7 +66,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xxxl,
     fontWeight: '400' as const,
     fontFamily: 'Nunito_400Regular'
-  } as const,
+  },
   checkboxRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -69,10 +74,10 @@ const styles = StyleSheet.create({
     width: '90%',
     margin: 0,
     padding: 0
-  } as const,
+  },
   authSection: {
     alignItems: 'center'
-  } as const
+  }
 })
 
 export default Login
