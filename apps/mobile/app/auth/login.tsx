@@ -1,4 +1,13 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+import { Text } from 'react-native'
+
+export default function Login() {
+  return <Text>Login</Text>
+}
+=======
+>>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
 import { View, StyleSheet, Text } from 'react-native'
 import {
@@ -82,6 +91,7 @@ const styles = StyleSheet.create({
 })
 
 export default Login
+<<<<<<< HEAD
 =======
 import { Text } from 'react-native'
 
@@ -89,3 +99,6 @@ export default function Login() {
   return <Text>Login</Text>
 }
 >>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
+=======
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
+>>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872

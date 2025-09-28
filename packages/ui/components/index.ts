@@ -9,4 +9,8 @@ export { default as DividerWithText } from './DividerWithText'
 export { default as Button } from './Button'
 =======
 export { default as Button } from './Button'
+<<<<<<< HEAD
 >>>>>>> 8db791c (feat: criação da tela de Sign Up [PLUR-19])
+=======
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
+>>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872

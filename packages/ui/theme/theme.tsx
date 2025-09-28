@@ -25,9 +25,17 @@ export const fontSizes = {
   lg: 18,
   xl: 20,
 <<<<<<< HEAD
+<<<<<<< HEAD
   xxl: 24,
   xxxl: 30
 =======
   xxl: 24
 >>>>>>> de10d88 (feat: configuração do arquivo de theme [PLUR-14])
+=======
+  xxl: 24
+=======
+  xxl: 24,
+  xxxl: 30
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
+>>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872
 }
