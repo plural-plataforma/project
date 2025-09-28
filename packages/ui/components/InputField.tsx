@@ -33,6 +33,10 @@ const styles = StyleSheet.create({
   label: {
     color: colors.primary,
     marginHorizontal: 12,
+<<<<<<< HEAD
+=======
+    marginBottom: 4,
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
     fontSize: fontSizes.base,
     fontFamily: 'Nunito_400Regular'
   },
@@ -43,7 +47,12 @@ const styles = StyleSheet.create({
     color: colors.primary,
     borderColor: colors.primary,
     borderWidth: 1,
+<<<<<<< HEAD
     marginHorizontal: 12, // mantém só a margem lateral
+=======
+    marginHorizontal: 12,
+    margin: 12,
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
     borderRadius: 8,
     fontFamily: 'Nunito_400Regular'
   }

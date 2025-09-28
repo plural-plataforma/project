@@ -4,12 +4,22 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
+<<<<<<< HEAD
       "@/*": ["apps/*"]
+=======
+      "@/*": [
+        "apps/*"
+      ]
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
     }
   },
   "include": [
     "apps/**/*",
+<<<<<<< HEAD
     "packages/**/*",
+=======
+   "packages/**/*",
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
     ".expo/types/**/*.ts"
   ]
 }

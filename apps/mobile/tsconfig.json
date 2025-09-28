@@ -1,14 +1,20 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+<<<<<<< HEAD
     "paths": {
       "@/*": ["./*"]
+=======
+    "strict": true,
+    "jsx": "react-native",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../*"],
+      "packages/ui/components/*": ["../../packages/ui/components/*"]
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", "expo.d.ts"]
 }

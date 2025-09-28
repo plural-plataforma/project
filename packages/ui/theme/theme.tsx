@@ -24,5 +24,10 @@ export const fontSizes = {
   md: 16,
   lg: 18,
   xl: 20,
+<<<<<<< HEAD
   xxl: 24
+=======
+  xxl: 24,
+  xxxl: 30
+>>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
 }
