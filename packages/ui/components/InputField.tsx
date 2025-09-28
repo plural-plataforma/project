@@ -33,16 +33,7 @@ const styles = StyleSheet.create({
   label: {
     color: colors.primary,
     marginHorizontal: 12,
-<<<<<<< HEAD
-<<<<<<< HEAD
     marginBottom: 4,
-=======
->>>>>>> 8db791c (feat: criação da tela de Sign Up [PLUR-19])
-=======
-=======
-    marginBottom: 4,
->>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
->>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872
     fontSize: fontSizes.base,
     fontFamily: 'Nunito_400Regular'
   },
@@ -53,20 +44,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
     borderColor: colors.primary,
     borderWidth: 1,
-<<<<<<< HEAD
-<<<<<<< HEAD
     marginHorizontal: 12,
     margin: 12,
-=======
-    marginHorizontal: 12, // mantém só a margem lateral
->>>>>>> 8db791c (feat: criação da tela de Sign Up [PLUR-19])
-=======
-    marginHorizontal: 12, // mantém só a margem lateral
-=======
-    marginHorizontal: 12,
-    margin: 12,
->>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
->>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872
     borderRadius: 8,
     fontFamily: 'Nunito_400Regular'
   }

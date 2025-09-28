@@ -1,14 +1,7 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
 import { Stack } from 'expo-router'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
-<<<<<<< HEAD
 
 // Impede que a tela de splash desapareça antes das fontes carregarem
 SplashScreen.preventAutoHideAsync()
@@ -36,55 +29,4 @@ export default function RootLayout() {
       <Stack.Screen name="dashboard" options={{ headerShown: false }} />
     </Stack>
   )
-=======
-import { Stack } from "expo-router";
-
-export default function RootLayout() {
-  return <Stack />;
->>>>>>> 4a54cb1 (refactor: reseat-project [PLUR-14])
-=======
-import { Stack } from 'expo-router'
-
-export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />
->>>>>>> 61d5e4d (feat: implementação do BarNavigation [PLR-14])
-=======
-import { Stack } from 'expo-router';
-import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-=======
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
-
-// Impede que a tela de splash desapareça antes das fontes carregarem
-SplashScreen.preventAutoHideAsync()
-
-export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Nunito_400Regular: require('../assets/fonts/Nunito-Regular.ttf'),
-    Nunito_700Bold: require('../assets/fonts/Nunito-Bold.ttf')
-  })
-
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      // Esconde a tela de splash quando as fontes estiverem prontas
-      SplashScreen.hideAsync()
-    }
-  }, [fontsLoaded, fontError])
-
-  // Não renderiza nada até que as fontes estejam carregadas
-  if (!fontsLoaded && !fontError) {
-    return null
-  }
-
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-    </Stack>
-<<<<<<< HEAD
-  );
->>>>>>> 48f7331 (feat: implentação do AppBat, fontes, icones e bibliotecas [PLUR-14])
-=======
-  )
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
 }

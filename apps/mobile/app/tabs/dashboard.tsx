@@ -3,14 +3,8 @@ import { View, Image, StyleSheet } from 'react-native'
 import { Card, Text } from 'react-native-paper'
 import { StatusBar } from 'expo-status-bar'
 import { List } from 'phosphor-react-native'
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { colors } from '../../../../packages/ui/theme/theme'
-=======
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
-=======
-import { colors } from '../../../../packages/ui/theme/theme'
->>>>>>> de10d88 (feat: configuração do arquivo de theme [PLUR-14])
+
 export default function Dashboard() {
   return (
     <View style={styles.container}>
@@ -26,17 +20,7 @@ export default function Dashboard() {
             Plural <Text style={styles.textSecondary}>PLATAFORMA</Text>
           </Text>
         </View>
-        <View style={styles.headerRight}>
-<<<<<<< HEAD
-<<<<<<< HEAD
-          <List size={24} color={colors.primary} />
-=======
-          <List size={24} color="#193656" />
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
-=======
-          <List size={24} color={colors.primary} />
->>>>>>> de10d88 (feat: configuração do arquivo de theme [PLUR-14])
-        </View>
+        <View style={styles.headerRight}></View>
       </View>
       <View style={{ flex: 1 }}>
         <Card
@@ -57,27 +41,11 @@ export default function Dashboard() {
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-<<<<<<< HEAD
-<<<<<<< HEAD
     backgroundColor: colors.background
   },
 
   header: {
     backgroundColor: colors.tertiary,
-=======
-    backgroundColor: '#fff'
-  },
-
-  header: {
-    backgroundColor: '#FFBE33',
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
-=======
-    backgroundColor: colors.background
-  },
-
-  header: {
-    backgroundColor: colors.tertiary,
->>>>>>> de10d88 (feat: configuração do arquivo de theme [PLUR-14])
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -100,29 +68,13 @@ export const styles = StyleSheet.create({
   text: {
     fontSize: 20,
     fontWeight: '700',
-<<<<<<< HEAD
-<<<<<<< HEAD
     color: colors.primary,
-=======
-    color: '#193656',
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
-=======
-    color: colors.primary,
->>>>>>> de10d88 (feat: configuração do arquivo de theme [PLUR-14])
     fontFamily: 'Nunito_700Bold'
   },
   textSecondary: {
     fontSize: 16,
     fontWeight: '400',
-<<<<<<< HEAD
-<<<<<<< HEAD
     color: colors.primary,
-=======
-    color: '#193656',
->>>>>>> e49611b (feat: Navegação por tabs e stacks [PLUR-14])
-=======
-    color: colors.primary,
->>>>>>> de10d88 (feat: configuração do arquivo de theme [PLUR-14])
     fontFamily: 'Nunito_400Regular',
     textTransform: 'uppercase'
   },

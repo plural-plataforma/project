@@ -4,38 +4,14 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-<<<<<<< HEAD
-<<<<<<< HEAD
       "@/*": [
         "apps/*"
       ]
-=======
-      "@/*": ["apps/*"]
->>>>>>> acf38d1 (fix: configuration expo router [PLUR-14])
-=======
-      "@/*": ["apps/*"]
-=======
-      "@/*": [
-        "apps/*"
-      ]
->>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
->>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872
     }
   },
   "include": [
     "apps/**/*",
-<<<<<<< HEAD
-<<<<<<< HEAD
    "packages/**/*",
-=======
-    "packages/**/*",
->>>>>>> acf38d1 (fix: configuration expo router [PLUR-14])
-=======
-    "packages/**/*",
-=======
-   "packages/**/*",
->>>>>>> 51fe25d65a4986d951f44b633b0b17e73155ce4d
->>>>>>> 8bc3cf46c6ab5a7ec409f80bd03f4f9bbeb71872
     ".expo/types/**/*.ts"
   ]
 }

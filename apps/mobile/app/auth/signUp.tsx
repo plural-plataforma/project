@@ -1,8 +1,11 @@
 import {
+  AuthButton,
   Button,
   CheckboxWithLabel,
+  DividerWithText,
   InputField,
-  Logo
+  Logo,
+  SignupLink
 } from '@/packages/ui/components'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
 import { navigate } from 'expo-router/build/global-state/routing'
@@ -50,6 +53,22 @@ export default function SignUp() {
           onPress={() => {}}
           buttonColor={{ backgroundColor: colors.tertiary }}
         ></Button>
+        <View style={styles.authSection}>
+          <DividerWithText text="Entre com" />
+          <AuthButton
+            title="Google"
+            onPress={() => {}}
+            iconName="google"
+            isGoogle={true}
+          />
+          <SignupLink
+            onPress={() => {
+              navigate('auth/signUp')
+            }}
+            labelQuestion="Já tem uma conta?"
+            labelAction="Entrar"
+          />
+        </View>
       </View>
     </View>
   )
@@ -91,5 +110,8 @@ export const styles = StyleSheet.create({
     fontWeight: '400' as const,
     fontFamily: 'Nunito_400Regular'
   },
-  checkboxRow: {}
+  checkboxRow: {},
+  authSection: {
+    alignItems: 'center'
+  }
 })
