@@ -29,7 +29,7 @@ export default function SignUp() {
           <TouchableOpacity
             style={styles.button}
             onPress={() => {
-              navigate('./login')
+              router.back()
             }}
           >
             <CaretLeft

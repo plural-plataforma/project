@@ -11,10 +11,11 @@ import {
 } from '@/packages/ui/components'
 import { navigate } from 'expo-router/build/global-state/routing'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
-
+import { useRouter } from 'expo-router'
 interface LoginProps {}
 
 const Login: React.FC<LoginProps> = () => {
+  const router = useRouter()
   return (
     <SafeAreaView style={styles.appContainer}>
       <View style={styles.container}>
@@ -42,7 +43,7 @@ const Login: React.FC<LoginProps> = () => {
         />
         <SignupLink
           onPress={() => {
-            navigate('auth/signUp')
+            router.push('/(auth)/signUp/page')
           }}
           labelQuestion="Não tem uma conta?"
           labelAction="Inscreva-se"

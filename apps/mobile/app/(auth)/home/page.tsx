@@ -16,14 +16,14 @@ export default function Home() {
 
         <TouchableOpacity
           style={[styles.button, styles.primary]}
-          onPress={() => router.push('/auth/login')}
+          onPress={() => router.push('(auth)/login/page')}
         >
           <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.secondary]}
-          onPress={() => router.push('/auth/signUp')}
+          onPress={() => router.push('(auth)/signUp/page')}
         >
           <Text style={[styles.buttonText, { color: '#333' }]}>
             Criar Conta
