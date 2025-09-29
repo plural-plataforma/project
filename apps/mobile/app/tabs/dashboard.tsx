@@ -1,9 +1,10 @@
 import * as React from 'react'
-import { View, Image, StyleSheet } from 'react-native'
+import { View, Image, StyleSheet, ScrollView } from 'react-native'
 import { Card, Text } from 'react-native-paper'
 import { StatusBar } from 'expo-status-bar'
 import { List } from 'phosphor-react-native'
 import { colors } from '../../../../packages/ui/theme/theme'
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 
 export default function Dashboard() {
   return (
@@ -22,18 +23,62 @@ export default function Dashboard() {
         </View>
         <View style={styles.headerRight}></View>
       </View>
-      <View style={{ flex: 1 }}>
-        <Card
-          style={{
-            height: 136,
-            margin: 16,
-            padding: 16,
-            backgroundColor: '#FF0000'
-          }}
-        >
-          <Text>Bem-vindo à Plural Plataforma!</Text>
-        </Card>
-      </View>
+      <SafeAreaProvider>
+        <SafeAreaView edges={['top']}>
+          <ScrollView>
+            <Card
+              style={{
+                height: 136,
+                margin: 16,
+                padding: 16,
+                backgroundColor: '#FF0000'
+              }}
+            >
+              <Text>Bem-vindo à Plural Plataforma!</Text>
+            </Card>
+            <Card
+              style={{
+                height: 136,
+                margin: 16,
+                padding: 16,
+                backgroundColor: '#FF0000'
+              }}
+            >
+              <Text>Bem-vindo à Plural Plataforma!</Text>
+            </Card>
+            <Card
+              style={{
+                height: 136,
+                margin: 16,
+                padding: 16,
+                backgroundColor: '#FF0000'
+              }}
+            >
+              <Text>Bem-vindo à Plural Plataforma!</Text>
+            </Card>
+            <Card
+              style={{
+                height: 136,
+                margin: 16,
+                padding: 16,
+                backgroundColor: '#FF0000'
+              }}
+            >
+              <Text>Bem-vindo à Plural Plataforma!</Text>
+            </Card>
+            <Card
+              style={{
+                height: 136,
+                margin: 16,
+                padding: 16,
+                backgroundColor: '#FF0000'
+              }}
+            >
+              <Text>Bem-vindo à Plural Plataforma!</Text>
+            </Card>
+          </ScrollView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </View>
   )
 }

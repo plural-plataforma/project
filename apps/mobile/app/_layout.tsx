@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 // Impede que a tela de splash desapareça antes das fontes carregarem
 SplashScreen.preventAutoHideAsync()
@@ -25,8 +26,14 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-    </Stack>
+    <SafeAreaProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/home" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/signUp" options={{ headerShown: false }} />
+      </Stack>
+    </SafeAreaProvider>
   )
 }

@@ -2,11 +2,18 @@ import { Image, StyleSheet } from 'react-native'
 interface LogoProps {
   width?: number
   height?: number
+  href?: keyof typeof logos
 }
-const Logo: React.FC<LogoProps> = ({ width, height }) => {
+
+const logos = {
+  'logo-padrao': require('../assets/images/logo-plural-plataforma.png'),
+  'logo-contrast': require('../assets/images/logo-plural-plataforma-contrast.png')
+}
+
+const Logo: React.FC<LogoProps> = ({ width, height, href = 'logo-padrao' }) => {
   return (
     <Image
-      source={require('../assets/images/logo-plural-plataforma.png')}
+      source={logos[href]}
       style={[styles.logo, { width: width, height: height }]}
     />
   )
@@ -15,7 +22,8 @@ const Logo: React.FC<LogoProps> = ({ width, height }) => {
 const styles = StyleSheet.create({
   logo: {
     alignSelf: 'center',
-    resizeMode: 'contain'
+    resizeMode: 'contain',
+    marginVertical: 20
   }
 })
 

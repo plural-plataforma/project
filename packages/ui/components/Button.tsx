@@ -35,8 +35,7 @@ const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    marginLeft: 12,
-    marginRight: 12,
+    margin: 12,
     height: 55,
     width: '90%',
     justifyContent: 'center',
@@ -48,7 +47,6 @@ const styles = StyleSheet.create({
     marginRight: 8
   },
   buttonText: {
-    color: colors.background,
     fontSize: fontSizes.base,
     fontFamily: 'Nunito_700Bold'
   }

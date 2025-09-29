@@ -1,5 +1,5 @@
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
-import { View, StyleSheet, Text } from 'react-native'
+import { View, StyleSheet, Text, ScrollView } from 'react-native'
 import {
   InputField,
   LinkButton,
@@ -10,12 +10,14 @@ import {
   DividerWithText
 } from '@/packages/ui/components'
 import { navigate } from 'expo-router/build/global-state/routing'
-
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
+import { useRouter } from 'expo-router'
 interface LoginProps {}
 
 const Login: React.FC<LoginProps> = () => {
+  const router = useRouter()
   return (
-    <View style={styles.appContainer}>
+    <SafeAreaView style={styles.appContainer}>
       <View style={styles.container}>
         <Logo width={248} height={87.29} />
         <Text style={styles.text}>Seja bem vindo!</Text>
@@ -41,13 +43,13 @@ const Login: React.FC<LoginProps> = () => {
         />
         <SignupLink
           onPress={() => {
-            navigate('auth/signUp')
+            router.push('/(auth)/signUp/page')
           }}
           labelQuestion="Não tem uma conta?"
           labelAction="Inscreva-se"
         />
       </View>
-    </View>
+    </SafeAreaView>
   )
 }
 
