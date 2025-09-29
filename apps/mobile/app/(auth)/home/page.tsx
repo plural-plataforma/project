@@ -1,7 +1,9 @@
 // app/home.tsx
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, Image, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
+import { colors } from '@/packages/ui/theme/theme'
+import { Button, Logo } from '@/packages/ui/components'
 
 export default function Home() {
   const router = useRouter()
@@ -9,26 +11,52 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Bem-vindo 👋</Text>
-        <Text style={styles.subtitle}>
-          Acesse sua conta ou crie uma nova para começar
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.button, styles.primary]}
-          onPress={() => router.push('(auth)/login/page')}
-        >
-          <Text style={styles.buttonText}>Entrar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.secondary]}
-          onPress={() => router.push('(auth)/signUp/page')}
-        >
-          <Text style={[styles.buttonText, { color: '#333' }]}>
-            Criar Conta
+        <Image
+          source={require('../../../../../packages/ui/assets/images/home_people.png')}
+          style={{ width: '120%', height: '56%' }}
+        />
+        <Logo width={279.64} height={98.42} href="logo-contrast" />
+        <View style={styles.slugan}>
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: 24,
+              fontWeight: '700'
+            }}
+          >
+            Onde cada <Text style={{ color: '#A786B6' }}>aluno</Text> importa,
+            cada <Text style={{ color: '#A786B6' }}>progresso</Text> conta.
           </Text>
-        </TouchableOpacity>
+        </View>
+        <Button
+          title="Acessar"
+          buttonColor={{
+            color: colors.textPrimary,
+            backgroundColor: colors.textPrimary
+          }}
+          textColor={[
+            styles.buttonText,
+            {
+              color: colors.textSecondary
+            }
+          ]}
+          onPress={() => router.push('(auth)/login/page')}
+        />
+
+        <Button
+          title="Criar Conta"
+          buttonColor={{
+            color: colors.textPrimary,
+            backgroundColor: colors.background
+          }}
+          textColor={[
+            styles.buttonText,
+            {
+              color: colors.textPrimary
+            }
+          ]}
+          onPress={() => router.push('(auth)/signUp/page')}
+        />
       </View>
     </SafeAreaView>
   )
@@ -37,7 +65,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff'
+    backgroundColor: colors.tertiary
   },
   content: {
     flex: 1,
@@ -56,6 +84,11 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 40
   },
+  slugan: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10
+  },
   button: {
     width: '80%',
     padding: 16,
@@ -63,15 +96,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16
   },
-  primary: {
-    backgroundColor: '#007bff'
-  },
-  secondary: {
-    backgroundColor: '#f2f2f2'
-  },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff'
+    fontWeight: '600'
   }
 })
