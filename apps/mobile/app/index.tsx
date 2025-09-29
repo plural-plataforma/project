@@ -1,25 +1,14 @@
-import { useEffect } from 'react' // Correção: removido 'use' inválido
+// app/index.tsx
 import { useRouter } from 'expo-router'
-import Login from './auth/login'
+import { useEffect } from 'react'
 
 export default function Index() {
   const router = useRouter()
 
   useEffect(() => {
-    // Simula uma verificação de autenticação com atraso
-    const timeout = setTimeout(() => {
-      const isAuthenticated = true // Substitua por sua lógica real de autenticação
-      if (isAuthenticated) {
-        router.push('/tabs/dashboard') // Redireciona para a dashboard se autenticado
-      } else {
-        // Não retorna JSX aqui; o componente já renderiza <Login /> por padrão
-      }
-    }, 1000) // Atraso de 1 segundo
+    // Exemplo: sempre vai para Home primeiro
+    router.replace('/home')
+  }, [router])
 
-    // Limpa o timeout se o componente for desmontado
-    return () => clearTimeout(timeout)
-  }, [router]) // Inclui router como dependência
-
-  // Renderiza o componente Login por padrão (se não redirecionado)
-  return <Login />
+  return null
 }

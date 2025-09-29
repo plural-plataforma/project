@@ -15,7 +15,8 @@ const Logo: React.FC<LogoProps> = ({ width, height }) => {
 const styles = StyleSheet.create({
   logo: {
     alignSelf: 'center',
-    resizeMode: 'contain'
+    resizeMode: 'contain',
+    marginVertical: 20
   }
 })
 
