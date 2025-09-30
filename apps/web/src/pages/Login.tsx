@@ -4,7 +4,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // simulação de login (apenas console)
+  // simulação de login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // console.log("Login com:", email, password);
