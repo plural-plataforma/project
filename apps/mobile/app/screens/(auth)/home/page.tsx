@@ -12,7 +12,7 @@ export default function Home() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Image
-          source={require('../../../../../packages/ui/assets/images/home_people.png')}
+          source={require('@/packages/ui/assets/images/home_people.png')}
           style={{ width: '120%', height: '56%' }}
         />
         <Logo width={279.64} height={98.42} href="logo-contrast" />
@@ -40,7 +40,7 @@ export default function Home() {
               color: colors.textSecondary
             }
           ]}
-          onPress={() => router.push('(auth)/login/page')}
+          onPress={() => router.push('screens/(auth)/login/page')}
         />
 
         <Button
@@ -55,7 +55,7 @@ export default function Home() {
               color: colors.textPrimary
             }
           ]}
-          onPress={() => router.push('(auth)/signUp/page')}
+          onPress={() => router.push('screens/(auth)/signUp/page')}
         />
       </View>
     </SafeAreaView>

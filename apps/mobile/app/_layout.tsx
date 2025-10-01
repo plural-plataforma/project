@@ -9,8 +9,9 @@ SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Nunito_400Regular: require('../assets/fonts/Nunito-Regular.ttf'),
-    Nunito_700Bold: require('../assets/fonts/Nunito-Bold.ttf')
+    //'assets/fonts/Nunito-Regular.ttf'
+    Nunito_400Regular: require('@/packages/ui/assets/fonts/Nunito-Regular.ttf'),
+    Nunito_700Bold: require('@/packages/ui/assets/fonts/Nunito-Bold.ttf')
   })
 
   useEffect(() => {

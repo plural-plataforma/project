@@ -7,7 +7,7 @@ export default function Index() {
 
   useEffect(() => {
     // Exemplo: sempre vai para Home primeiro
-    router.replace('/(auth)/home/page')
+    router.replace('screens/home/page')
   }, [router])
 
   return null

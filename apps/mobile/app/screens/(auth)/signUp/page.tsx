@@ -8,20 +8,45 @@ import {
   SignupLink
 } from '@/packages/ui/components'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
+import CustomButton from '@app/components/CustomButton'
+import { register } from '@app/services/auth'
+import { RegisterCredentials } from '@app/types/auth'
 import { useRouter } from 'expo-router'
-import { navigate } from 'expo-router/build/global-state/routing'
 import { CaretLeft } from 'phosphor-react-native'
+import { useState } from 'react'
 import {
   StyleSheet,
   TouchableOpacity,
   View,
   Text,
-  ScrollView
+  ScrollView,
+  Alert
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function SignUp() {
+  const [credentials, setCredentials] = useState<RegisterCredentials>({
+    email: '',
+    senha: '',
+    nomeCompleto: ''
+  })
+  const [error, setError] = useState<string>('')
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  const handleRegister = async () => {
+    setLoading(true)
+    console.log(credentials)
+    try {
+      await register(credentials)
+      Alert.alert('Sucesso', 'Login realizado!')
+      router.replace('/')
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
   return (
     <SafeAreaView style={styles.appContainer}>
       <ScrollView>
@@ -45,12 +70,29 @@ export default function SignUp() {
           <InputField
             label="Nome de usuário"
             placeholder="Seu nome de usuário"
+            value={credentials.nomeCompleto}
+            onChangeText={text =>
+              setCredentials({ ...credentials, nomeCompleto: text })
+            }
           />
-          <InputField label="Email" placeholder="Seu e-mail" />
+          <InputField
+            label="Email"
+            placeholder="Seu e-mail"
+            value={credentials.email}
+            onChangeText={text =>
+              setCredentials({ ...credentials, email: text })
+            }
+            keyboardType="email-address"
+          />
 
           <InputField
             label="Senha"
             placeholder="Informe sua senha"
+            value={credentials.senha}
+            onChangeText={text =>
+              setCredentials({ ...credentials, senha: text })
+            }
+            keyboardType="email-address"
             secureTextEntry={true}
           />
           <InputField
@@ -61,11 +103,14 @@ export default function SignUp() {
           <View style={styles.checkboxRow}>
             <CheckboxWithLabel label="Aceito os termos e a política de privacidade" />
           </View>
-          <Button
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <CustomButton
             title="Cadastrar"
-            onPress={() => {}}
+            onPress={handleRegister}
             buttonColor={{ backgroundColor: colors.tertiary }}
-          ></Button>
+            disabled={loading}
+            loading={loading}
+          />
           <View style={styles.authSection}>
             <DividerWithText text="Entre com" />
             <AuthButton
@@ -125,5 +170,6 @@ export const styles = StyleSheet.create({
   checkboxRow: {},
   authSection: {
     alignItems: 'center'
-  }
+  },
+  error: { color: 'red', marginBottom: 10 }
 })
