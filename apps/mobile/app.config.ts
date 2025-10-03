@@ -1,24 +1,23 @@
 import { config } from 'dotenv'
-import { ConfigContext, ExpoConfig } from 'expo/config'
+import { ExpoConfig } from '@expo/config-types'
 import path from 'path'
 
-// Carrega o .env da raiz do monorepo
 config({ path: path.resolve(__dirname, '../../.env') })
 
-export default ({ config }: ConfigContext): ExpoConfig => {
-  console.log('API_URL carregada no app.config.ts:', process.env.API_URL) // Adiciona log para depuração
+export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
+  console.log('API_URL carregada no app.config.ts:', process.env.API_URL)
+
   return {
     ...config,
-    expo: {
-      ...(config.expo || {}),
-      name: 'Plural-App',
-      slug: 'Plural-App',
-      extra: {
-        API_URL: process.env.API_URL || 'http://localhost:5145/api/'
-      },
-      expoRouter: {
-        root: './app/screens'
-      }
-    }
-  } as ExpoConfig
+    name: 'Plural-App',
+    slug: 'Plural-App',
+    extra: {
+      API_URL: process.env.API_URL || 'http://localhost:5145/api/',
+      INITIAL_API_TOKEN: process.env.INITIAL_API_TOKEN
+    },
+    experiments: {
+      typedRoutes: true
+    },
+    plugins: ['expo-router']
+  }
 }

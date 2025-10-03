@@ -1,6 +1,5 @@
 import {
   AuthButton,
-  Button,
   CheckboxWithLabel,
   DividerWithText,
   InputField,
@@ -8,9 +7,9 @@ import {
   SignupLink
 } from '@/packages/ui/components'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
-import CustomButton from '@app/components/CustomButton'
-import { register } from '@app/services/auth'
-import { RegisterCredentials } from '@app/types/auth'
+import CustomButton from '@src/components/CustomButton'
+import { register as authRegister } from '../../services/auth'
+import { RegisterCredentials } from '../../types/auth'
 import { useRouter } from 'expo-router'
 import { CaretLeft } from 'phosphor-react-native'
 import { useState } from 'react'
@@ -23,6 +22,7 @@ import {
   Alert
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useAuth } from '../../context/AuthContext'
 
 export default function SignUp() {
   const [credentials, setCredentials] = useState<RegisterCredentials>({
@@ -33,14 +33,16 @@ export default function SignUp() {
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { login } = useAuth()
 
   const handleRegister = async () => {
     setLoading(true)
     console.log(credentials)
     try {
-      await register(credentials)
+      const response = await authRegister(credentials) // Seu auth.login
+      login(response.token) // Set no context
       Alert.alert('Sucesso', 'Login realizado!')
-      router.replace('/')
+      router.replace('/dashboard') // Ou deixe o context redirecionar
     } catch (err) {
       setError((err as Error).message)
     } finally {

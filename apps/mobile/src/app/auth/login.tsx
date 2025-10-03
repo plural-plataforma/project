@@ -12,9 +12,10 @@ import {
 } from '@/packages/ui/components'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { login } from '../../../services/auth'
-import { LoginCredentials } from '../../../types/auth'
-import CustomButton from '@app/components/CustomButton'
+import { login as authLogin } from '../../services/auth'
+import { LoginCredentials } from '../../types/auth'
+import CustomButton from '../../components/CustomButton'
+import { useAuth } from '../../context/AuthContext'
 
 export default function LoginScreen() {
   const [credentials, setCredentials] = useState<LoginCredentials>({
@@ -24,18 +25,33 @@ export default function LoginScreen() {
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { login } = useAuth()
 
   const handleLogin = async () => {
     setLoading(true)
-    console.log(credentials)
+    setError('') // Limpa erro anterior
+    console.log('🔍 Iniciando login com credenciais:', credentials) // Log das creds
+
     try {
-      await login(credentials)
+      // 1. Chame o SERVICE de auth (espera LoginCredentials)
+      console.log('📤 Chamando authLogin do serviço...') // Antes da chamada
+      const response = await authLogin(credentials) // Renomeado para evitar shadow
+      console.log('✅ Resposta do authLogin:', response) // Log da resposta completa
+      // 2. Após sucesso, chame o CONTEXT login SÓ com o token (string)
+      console.log('🔑 Chamando context.login com token:', response.token) // Confirma token
+      login(response.token) // Aqui: passa APENAS o token, não credentials!
+      console.log('🎉 Context login chamado, isLoggedIn deve ser true agora') // Confirma estado
       Alert.alert('Sucesso', 'Login realizado!')
-      router.replace('/')
+      console.log('➡️ Navegando para /dashboard...') // Antes do replace
+      router.replace('/dashboard') // Ou deixe o context redirecionar
+      console.log('🚀 Navegação executada!') // Se chegou aqui
     } catch (err) {
+      console.error('❌ Erro no handleLogin:', err) // Log detalhado do erro
       setError((err as Error).message)
+      Alert.alert('Erro', (err as Error).message) // Mostra no Alert para UX
     } finally {
       setLoading(false)
+      console.log('🏁 Fim do handleLogin, loading=false') // Sempre loga
     }
   }
 
@@ -83,7 +99,7 @@ export default function LoginScreen() {
         />
         <SignupLink
           onPress={() => {
-            router.push('screens/(auth)/signUp/page')
+            router.push('/auth/signUp')
           }}
           labelQuestion="Não tem uma conta?"
           labelAction="Inscreva-se"

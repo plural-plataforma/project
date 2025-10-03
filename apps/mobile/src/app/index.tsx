@@ -1,11 +1,10 @@
-// app/home.tsx
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { View, Text, Image, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { colors } from '@/packages/ui/theme/theme'
 import { Button, Logo } from '@/packages/ui/components'
 
-export default function Home() {
+export default function Index() {
   const router = useRouter()
 
   return (
@@ -40,7 +39,7 @@ export default function Home() {
               color: colors.textSecondary
             }
           ]}
-          onPress={() => router.push('screens/(auth)/login/page')}
+          onPress={() => router.push('auth/login')}
         />
 
         <Button
@@ -55,7 +54,7 @@ export default function Home() {
               color: colors.textPrimary
             }
           ]}
-          onPress={() => router.push('screens/(auth)/signUp/page')}
+          onPress={() => router.push('auth/signUp')}
         />
       </View>
     </SafeAreaView>
