@@ -12,7 +12,7 @@ import {
 } from '@/packages/ui/components'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { login as authLogin } from '../../services/auth'
+import { login as authLogin } from '../../services/auth' // authLogin é o service
 import { LoginCredentials } from '../../types/auth'
 import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
@@ -25,7 +25,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const { login } = useAuth()
+  const { login } = useAuth() // Context login espera string (token)
 
   const handleLogin = async () => {
     setLoading(true)
@@ -37,9 +37,17 @@ export default function LoginScreen() {
       console.log('📤 Chamando authLogin do serviço...') // Antes da chamada
       const response = await authLogin(credentials) // Renomeado para evitar shadow
       console.log('✅ Resposta do authLogin:', response) // Log da resposta completa
-      // 2. Após sucesso, chame o CONTEXT login SÓ com o token (string)
+
+      // FIX: Checagem para token (satisfaz TS e cobre edge cases)
+      if (!response.token) {
+        const msg = 'Token não recebido da API. Tente novamente.'
+        console.error('❌ Sem token na resposta:', response)
+        throw new Error(msg)
+      }
+
+      // 2. Após sucesso, chame o CONTEXT login SÓ com o token (agora string garantido)
       console.log('🔑 Chamando context.login com token:', response.token) // Confirma token
-      login(response.token) // Aqui: passa APENAS o token, não credentials!
+      login(response.token) // Agora OK: TS sabe que é string
       console.log('🎉 Context login chamado, isLoggedIn deve ser true agora') // Confirma estado
       Alert.alert('Sucesso', 'Login realizado!')
       console.log('➡️ Navegando para /dashboard...') // Antes do replace
@@ -47,8 +55,9 @@ export default function LoginScreen() {
       console.log('🚀 Navegação executada!') // Se chegou aqui
     } catch (err) {
       console.error('❌ Erro no handleLogin:', err) // Log detalhado do erro
-      setError((err as Error).message)
-      Alert.alert('Erro', (err as Error).message) // Mostra no Alert para UX
+      const errorMsg = (err as Error).message
+      setError(errorMsg)
+      Alert.alert('Erro', errorMsg) // Mostra no Alert para UX
     } finally {
       setLoading(false)
       console.log('🏁 Fim do handleLogin, loading=false') // Sempre loga

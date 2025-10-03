@@ -81,10 +81,8 @@ export const login = async (
     if (!token) {
       throw new Error('Token não retornado pela API')
     }
-    console.log('🔑 Salvando token no AsyncStorage...') // Antes de salvar
     await AsyncStorage.setItem('authToken', token)
-    console.log('✅ Token salvo! Retornando response') // Confirma
-    return { success: true, token }
+    return { success: true, token } // token: string (obrigatório aqui)
   } catch (error) {
     console.error('❌ Erro no login do auth.ts:', error) // Log full error
     const axiosError = error as AxiosError<ApiError>
@@ -100,22 +98,80 @@ export const login = async (
     throw new Error(msg)
   }
 }
-
 export const register = async (
   credentials: RegisterCredentials
 ): Promise<AuthResponse> => {
+  let token: string | undefined = undefined
+  let autoLogin = false
+
   try {
     if (!credentials.email || !credentials.senha || !credentials.nomeCompleto) {
       throw new Error('E-mail, senha e nome completo são obrigatórios')
     }
-    // O interceptor cuida do INITIAL_TOKEN automaticamente
+    console.log('📤 Enviando POST para Autenticacao/registro com:', credentials)
     const response = await api.post('Autenticacao/registro', credentials)
-    const { token } = response.data
-    await AsyncStorage.setItem('authToken', token)
-    return { success: true, token }
+    console.log('✅ Resposta do registro:', response.data)
+
+    // Checa se é 200 OK
+    if (response.data.status === 200) {
+      const dataAcess = {
+        email: response.data.email,
+        senha: response.data.senha // Use com cuidado: senha plain-text!
+      }
+      console.log('🔄 Iniciando auto-login com dados cadastrados:', {
+        email: dataAcess.email
+      })
+
+      try {
+        // Chama login com os dados do registro
+        const result = await login(dataAcess) // Corrigi: 'result' em vez de 'return'
+        token = result.token
+
+        if (token) {
+          console.log('🔑 Salvando token no AsyncStorage...')
+          await AsyncStorage.setItem('authToken', token)
+          autoLogin = true
+          console.log('✅ Token salvo! Auto-login ativado.')
+        } else {
+          console.log('⚠️ Login OK, mas sem token retornado.')
+        }
+      } catch (loginError) {
+        // Se auto-login falhar, logue mas não quebre o registro
+        console.error('❌ Erro no auto-login após registro:', loginError)
+        console.log(
+          '⚠️ Registro OK, mas auto-login falhou. Usuário deve logar manualmente.'
+        )
+        autoLogin = false // Mantém false
+      }
+    } else {
+      // Se não for 200, joga erro
+      throw new Error(`Status inesperado no registro: ${response.data.status}`)
+    }
+
+    return { success: true, token, autoLogin }
   } catch (error) {
+    console.error('❌ Erro no register:', error)
     const axiosError = error as AxiosError<ApiError>
-    throw new Error(axiosError.response?.data.message || 'Falha no registro')
+    let msg = 'Falha no registro'
+
+    if (axiosError.response?.status === 400) {
+      const data = axiosError.response.data
+      if (Array.isArray(data)) {
+        msg = data
+          .map(
+            (err: any) => err.description || err.message || 'Erro desconhecido'
+          )
+          .join('\n')
+        console.log('🔍 Erros de validação capturados:', data)
+      } else {
+        msg = (data as any)?.message || msg
+      }
+    } else {
+      msg = axiosError.response?.data?.message || axiosError.message || msg
+    }
+
+    console.log('📊 Mensagem de erro final:', msg)
+    throw new Error(msg)
   }
 }
 

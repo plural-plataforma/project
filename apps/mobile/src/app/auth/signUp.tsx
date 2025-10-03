@@ -7,7 +7,7 @@ import {
   SignupLink
 } from '@/packages/ui/components'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
-import CustomButton from '@src/components/CustomButton'
+import CustomButton from '../../components/CustomButton'
 import { register as authRegister } from '../../services/auth'
 import { RegisterCredentials } from '../../types/auth'
 import { useRouter } from 'expo-router'
@@ -31,24 +31,74 @@ export default function SignUp() {
     nomeCompleto: ''
   })
   const [error, setError] = useState<string>('')
+  const [errosValidacao, setErrosValidacao] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
 
   const handleRegister = async () => {
     setLoading(true)
-    console.log(credentials)
+    setError('')
+    setErrosValidacao([])
+    console.log('🔥 handleRegister chamado com:', credentials)
+
+    // Validação frontend opcional
+    if (credentials.senha.length < 8) {
+      setError('Senha deve ter pelo menos 8 caracteres')
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await authRegister(credentials) // Seu auth.login
-      login(response.token) // Set no context
-      Alert.alert('Sucesso', 'Login realizado!')
-      router.replace('/dashboard') // Ou deixe o context redirecionar
+      const response = await authRegister(credentials)
+      console.log('✅ Registro retornou:', response)
+
+      if (response.success) {
+        if (response.autoLogin && response.token) {
+          // Auto-login: salva no context e vai pro dashboard
+          login(response.token)
+          Alert.alert('Sucesso!', 'Conta criada e login realizado!')
+          router.replace('/dashboard')
+        } else {
+          // Sem token: sucesso no cadastro, mas redireciona pro login
+          Alert.alert(
+            'Cadastro Realizado!',
+            'Agora faça login com seu e-mail e senha para acessar a app.',
+            [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
+          )
+        }
+      } else {
+        throw new Error('Falha inesperada no registro')
+      }
     } catch (err) {
-      setError((err as Error).message)
+      const mensagem = (err as Error).message
+      console.error('❌ Erro no handleRegister:', err)
+
+      if (mensagem.includes('\n')) {
+        const listaErros = mensagem.split('\n').filter(Boolean)
+        setErrosValidacao(listaErros)
+        Alert.alert('Erros de Validação', mensagem, [{ text: 'OK' }])
+      } else {
+        setError(mensagem)
+      }
     } finally {
       setLoading(false)
     }
   }
+
+  // Render de erros: lista vermelha abaixo dos inputs (melhor que só uma Text)
+  const renderErros = () => {
+    if (errosValidacao.length === 0 && !error) return null
+    return (
+      <View style={styles.errosContainer}>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {errosValidacao.map((erro, index) => (
+          <Text key={index} style={styles.errorItem}>{`• ${erro}`}</Text>
+        ))}
+      </View>
+    )
+  }
+
   return (
     <SafeAreaView style={styles.appContainer}>
       <ScrollView>
@@ -105,7 +155,7 @@ export default function SignUp() {
           <View style={styles.checkboxRow}>
             <CheckboxWithLabel label="Aceito os termos e a política de privacidade" />
           </View>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {renderErros()}
           <CustomButton
             title="Cadastrar"
             onPress={handleRegister}
@@ -173,5 +223,14 @@ export const styles = StyleSheet.create({
   authSection: {
     alignItems: 'center'
   },
-  error: { color: 'red', marginBottom: 10 }
+  error: { color: 'red', marginBottom: 10 },
+  errosContainer: {
+    marginTop: 5,
+    paddingHorizontal: 10
+  },
+  errorItem: {
+    color: 'red',
+    fontSize: 14,
+    marginBottom: 3
+  }
 })

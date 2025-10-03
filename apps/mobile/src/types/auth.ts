@@ -9,7 +9,8 @@ export interface RegisterCredentials extends LoginCredentials {
 
 export interface AuthResponse {
   success: boolean
-  token: string
+  token?: string
+  autoLogin?: boolean
 }
 
 export interface ApiError {
