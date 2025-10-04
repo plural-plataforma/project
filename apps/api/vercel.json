@@ -11,5 +11,10 @@
       "src": "/(.*)",
       "dest": "/"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.dll": {
+      "runtime": "dotnet8"
+    }
+  }
 }
