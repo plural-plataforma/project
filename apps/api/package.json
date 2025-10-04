@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "dotnet watch run --project api.csproj",
-    "build": "dotnet build",
+    "build": "dotnet publish",
     "migrate": "dotnet ef migrations add InitialCreate --project .",
     "database-update": "dotnet ef database update --project ."
   }

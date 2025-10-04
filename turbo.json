@@ -10,6 +10,12 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "apps/api/bin/**", "apps/api/obj/**"]
     },
-    "lint": {}
+    "lint": {},
+   "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "bin/**"]  
+  } 
   }
+}
 }
