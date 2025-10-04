@@ -14,7 +14,7 @@
    "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "bin/**"]  
+      "outputs": ["dist/**", "bin/**", ".vercel/output/**"]
   } 
   }
 }

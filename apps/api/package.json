@@ -3,8 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "dotnet watch run --project api.csproj",
-    "build": "dotnet publish",
+    "build": "dotnet publish -c Release -o ./dist",
     "migrate": "dotnet ef migrations add InitialCreate --project .",
     "database-update": "dotnet ef database update --project ."
+  },
+  "devDependencies": {
+    "@vercel/dotnet": "^3.0.0"  
   }
 }
