@@ -1,3 +1,4 @@
+using DotNetEnv;
 using System.Text;
 using api.Models;
 using api.Services;
@@ -10,9 +11,29 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("AppDbContext")));
+// Carrega .env da raiz do Turborepo
+Env.TraversePath().Load();
+builder.Configuration.AddEnvironmentVariables();
 
+// Validações básicas das vars do .env
+var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("DB_PASSWORD não encontrada no .env");
+var hostSupabase = builder.Configuration["HOST_SUPABASE"] ?? throw new InvalidOperationException("HOST_SUPABASE não encontrada no .env");
+var apiUrl = builder.Configuration["API_URL"] ?? throw new InvalidOperationException("API_URL não encontrada no .env");
+
+// Monte connection string com substituições do .env
+var baseConnectionString = builder.Configuration.GetConnectionString("AppDbContext")
+    ?? throw new InvalidOperationException("AppDbContext não encontrada no appsettings.json");
+var connectionString = baseConnectionString
+    .Replace("{HOST_SUPABASE}", hostSupabase)
+    .Replace("{DB_PASSWORD}", dbPassword);
+
+Console.WriteLine($"🔧 Connection String montada (parcial): Host={hostSupabase}, Password={dbPassword.Substring(0, 5)}...");  // Log para debug (remova em prod)
+
+// Registra DbContext com a string montada
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+// Identity
 builder.Services.AddIdentity<Usuario, IdentityRole>().AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -44,25 +65,23 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
 {
-    x.SwaggerDoc("v1", new OpenApiInfo{Title = "Plural API", Version = "v1"});
+    x.SwaggerDoc("v1", new OpenApiInfo { Title = "Plural API", Version = "v1" });
     x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
-        In = ParameterLocation.Header,  
+        In = ParameterLocation.Header,
         Description = "Insira o token JWT no formato: 'Bearer {seu token aqui}'"
     });
 });
 
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 else
@@ -82,11 +101,11 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+app.MapStaticAssets();  // Se customizado, ok
 
 app.MapControllers();
 
-
+// Check de conexão (melhorado)
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -94,7 +113,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         context.Database.CanConnect();
-        Console.WriteLine("Conex�o com o banco de dados estabelecida com sucesso.");
+        Console.WriteLine("Conex�o com o banco de dados estabelecida com sucesso.");
     }
     catch (Exception ex)
     {

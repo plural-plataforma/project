@@ -3,7 +3,8 @@
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["API_URL", "DB_PASSWORD", "HOST_SUPABASE", "JWTSETTINGS__SECRET","ASPNETCORE_ENVIRONMENT"]
     },
     "build": {
       "dependsOn": ["^build"],
