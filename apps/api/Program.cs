@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Carrega .env da raiz do Turborepo
 Env.TraversePath().Load();
 builder.Configuration.AddEnvironmentVariables();
+builder.Environment.EnvironmentName = "Development"; // Adicione no início do Program.cs
 
 // Validações básicas das vars do .env
 var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("DB_PASSWORD não encontrada no .env");
@@ -26,7 +27,7 @@ var connectionString = baseConnectionString
     .Replace("{HOST_SUPABASE}", hostSupabase)
     .Replace("{DB_PASSWORD}", dbPassword);
 
-Console.WriteLine($"🔧 Connection String montada (parcial): Host={hostSupabase}, Password={dbPassword.Substring(0, 5)}...");  // Log para debug (remova em prod)
+Console.WriteLine($"🔧 Connection String montada (parcial): Host={hostSupabase}, Password={dbPassword}");  // Log para debug (remova em prod)
 
 // Registra DbContext com a string montada
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -94,7 +95,7 @@ else
 
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthentication();
