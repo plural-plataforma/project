@@ -18,7 +18,6 @@ builder.Configuration.AddEnvironmentVariables();
 // Validações básicas das vars do .env
 var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("DB_PASSWORD não encontrada no .env");
 var hostSupabase = builder.Configuration["HOST_SUPABASE"] ?? throw new InvalidOperationException("HOST_SUPABASE não encontrada no .env");
-var apiUrl = builder.Configuration["API_URL"] ?? throw new InvalidOperationException("API_URL não encontrada no .env");
 
 // Monte connection string com substituições do .env
 var baseConnectionString = builder.Configuration.GetConnectionString("AppDbContext")
