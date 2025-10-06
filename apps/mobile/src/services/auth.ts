@@ -92,9 +92,10 @@ export const login = async (
 
 export const register = async (
   credentials: RegisterCredentials
-): Promise<AuthResponse> => {
+): Promise<AuthResponse & { message?: string }> => {
   let token: string | undefined = undefined;
   let autoLogin = false;
+  let message: string | undefined;
 
   try {
     if (!credentials.email || !credentials.senha || !credentials.nomeCompleto) {
@@ -102,10 +103,16 @@ export const register = async (
     }
     console.log('📤 Enviando POST para Autenticacao/registro com:', credentials);
     const response = await api.post('Autenticacao/registro', credentials);
-    console.log('✅ Resposta do registro:', response.data);
+    console.log('✅ Resposta bruta do registro:', response.data);
 
-    // Verifica sucesso com base no status HTTP e mensagem
-    if (response.status === 200 && response.data.message === 'Usuário criado com sucesso') {
+    // Validação baseada no status HTTP 200
+    if (response.status === 200) {
+      // Tenta extrair a mensagem da resposta
+      message = typeof response.data === 'string' 
+        ? response.data 
+        : (response.data.message || 'Usuário criado com sucesso');
+      console.log('🔍 Mensagem extraída da resposta:', message);
+
       console.log('🔄 Iniciando auto-login com dados cadastrados:', {
         email: credentials.email
       });
@@ -131,7 +138,7 @@ export const register = async (
       throw new Error(`Status inesperado no registro: ${response.status}`);
     }
 
-    return { success: true, token, autoLogin };
+    return { success: true, token, autoLogin, message };
   } catch (error) {
     console.error('❌ Erro no register:', error);
     const axiosError = error as AxiosError<ApiError>;
