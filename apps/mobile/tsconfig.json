@@ -7,15 +7,32 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      
-      "@/*": ["../../*"],
-      "@*": ["./*"],
-      "packages/ui/components/*": ["../../packages/ui/components/*"],
-      "app": ["apps/mobile/src/*"],
-      "-types":["types/*"]
-
+      "@/*": [
+        "../../*"
+      ],
+      "@*": [
+        "./*"
+      ],
+      "packages/ui/components/*": [
+        "../../packages/ui/components/*"
+      ],
+      "app": [
+        "apps/mobile/src/*"
+      ],
+      "-types": [
+        "src/types/*"
+      ]
     },
-    "types": ["react-native", "@types/react-native",]
+    "types": [
+      "react-native",
+      "@types/react-native"
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/types/expo.d.ts"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "src/types/expo.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }

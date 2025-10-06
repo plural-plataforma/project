@@ -3,12 +3,19 @@
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["API_URL", "DB_PASSWORD", "HOST_SUPABASE", "JWTSETTINGS__SECRET","ASPNETCORE_ENVIRONMENT"]
     },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "apps/api/bin/**", "apps/api/obj/**"]
     },
-    "lint": {}
+    "lint": {},
+   "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "bin/**", ".vercel/output/**"]
+  } 
   }
+}
 }
