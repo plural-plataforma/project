@@ -14,20 +14,19 @@ var builder = WebApplication.CreateBuilder(args);
 // Carrega .env da raiz do Turborepo
 Env.TraversePath().Load();
 builder.Configuration.AddEnvironmentVariables();
-builder.Environment.EnvironmentName = "Development"; // Adicione no início do Program.cs
 
 // Validações básicas das vars do .env
 var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("DB_PASSWORD não encontrada no .env");
-var hostSupabase = builder.Configuration["HOST_SUPABASE"] ?? throw new InvalidOperationException("HOST_SUPABASE não encontrada no .env");
+var userId = builder.Configuration["USER_ID"] ?? throw new InvalidOperationException("USER_ID não encontrada no .env");
+var serverUrl = builder.Configuration["SERVER_URL"] ?? throw new InvalidOperationException("SERVER_URL não encontrada no .env");
 
 // Monte connection string com substituições do .env
 var baseConnectionString = builder.Configuration.GetConnectionString("AppDbContext")
     ?? throw new InvalidOperationException("AppDbContext não encontrada no appsettings.json");
 var connectionString = baseConnectionString
-    .Replace("{HOST_SUPABASE}", hostSupabase)
-    .Replace("{DB_PASSWORD}", dbPassword);
-
-Console.WriteLine($"🔧 Connection String montada (parcial): Host={hostSupabase}, Password={dbPassword}");  // Log para debug (remova em prod)
+    .Replace("{USER_ID}", userId)
+    .Replace("{DB_PASSWORD}", dbPassword)
+    .Replace("{SERVER_URL}", serverUrl);
 
 // Registra DbContext com a string montada
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -81,6 +80,7 @@ var app = builder.Build();
 // Pipeline
 if (!app.Environment.IsDevelopment())
 {
+    app.UseHttpsRedirection();
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
@@ -95,7 +95,7 @@ else
 
 }
 
-//app.UseHttpsRedirection();
+
 app.UseRouting();
 
 app.UseAuthentication();

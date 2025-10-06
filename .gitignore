@@ -11,8 +11,9 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
-apps/api/.vs
-apps/api/Properties/
+apps/api/.vs/*
+apps/api/Properties/*
+.vs/*
 
 #Arquivo de publicação
 *.pubxml

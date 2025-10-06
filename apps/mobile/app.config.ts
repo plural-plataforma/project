@@ -1,23 +1,64 @@
-import { config } from 'dotenv'
+import { config as dotenvConfig } from 'dotenv'
 import { ExpoConfig } from '@expo/config-types'
 import path from 'path'
 
-config({ path: path.resolve(__dirname, '../../.env') })
+dotenvConfig({ path: path.resolve(__dirname, '../../.env') })
 
-export default ({ config }: { config: ExpoConfig }): ExpoConfig => {
-  console.log('API_URL carregada no app.config.ts:', process.env.API_URL)
+const API_URL = process.env.API_URL || 'http://localhost:5145/api/'
 
-  return {
-    ...config,
-    name: 'Plural-App',
-    slug: 'Plural-App',
-    extra: {
-      API_URL: process.env.API_URL || 'http://localhost:5145/api/',
-      INITIAL_API_TOKEN: process.env.INITIAL_API_TOKEN
+const config: ExpoConfig = {
+  name: 'Plural-App',
+  slug: 'testes-plural',
+  version: '1.0.0',
+  orientation: 'portrait',
+  icon: '../../packages/ui/assets/images/icon.png',
+  scheme: 'Plural-App',
+  userInterfaceStyle: 'automatic',
+  newArchEnabled: true,
+  owner: 'plural-teste', // ✅ Adicionado aqui
+  ios: {
+    supportsTablet: true,
+  },
+  android: {
+    edgeToEdgeEnabled: true,
+    predictiveBackGestureEnabled: false,
+    package: 'com.creis.mobile',
+    adaptiveIcon: {
+      backgroundColor: '#ffffff',
+      foregroundImage: '../../packages/ui/assets/images/android-icon-foreground.png',
+      backgroundImage: '../../packages/ui/assets/images/android-icon-background.png',
+      monochromeImage: '../../packages/ui/assets/images/android-icon-monochrome.png',
     },
-    experiments: {
-      typedRoutes: true
+  },
+  web: {
+    output: 'static',
+    favicon: '../../packages/ui/assets/images/favicon.png',
+  },
+  plugins: [
+    'expo-router',
+    [
+      'expo-splash-screen',
+      {
+        image: '../../packages/ui/assets/images/splash-icon.png',
+        imageWidth: 200,
+        resizeMode: 'contain',
+        backgroundColor: '#ffffff',
+        dark: {
+          backgroundColor: '#000000',
+        },
+      },
+    ],
+  ],
+  experiments: {
+    typedRoutes: true,
+    reactCompiler: true,
+  },
+  extra: {
+    API_URL,
+    eas: {
+      projectId: '82f15ca1-a3ee-452c-b3a3-518bea07ec15',
     },
-    plugins: ['expo-router']
-  }
+  },
 }
+
+export default config

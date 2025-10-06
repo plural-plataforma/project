@@ -6,7 +6,7 @@ declare module 'expo-constants' {
   interface ExpoConfig {
     extra: {
       API_URL: string
-      INITIAL_API_TOKEN?: string
+      JWTSETTINGS__SECRET?: string
     }
   }
 }
