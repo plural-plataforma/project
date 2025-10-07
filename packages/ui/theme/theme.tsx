@@ -6,7 +6,9 @@ export const colors = {
   textPrimary: '#276678',
   textSecondary: '#ffffff',
   success: '#28a745',
-  danger: '#dc3545'
+  danger: '#dc3545',
+  black:'#262626',
+  blackOff:'#404040'
 }
 
 export const spacing = {

@@ -1,11 +1,14 @@
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { View, Text, Image, StyleSheet } from 'react-native'
+import { View, Text, Image, StyleSheet, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { colors } from '@/packages/ui/theme/theme'
 import { Button, Logo } from '@/packages/ui/components'
 
+
 export default function Index() {
   const router = useRouter()
+  
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,7 +42,7 @@ export default function Index() {
               color: colors.textSecondary
             }
           ]}
-          onPress={() => router.push('auth/login')}
+          onPress={() => router.push('/auth/login')}
         />
 
         <Button
@@ -54,7 +57,7 @@ export default function Index() {
               color: colors.textPrimary
             }
           ]}
-          onPress={() => router.push('auth/signUp')}
+          onPress={() => router.push('/auth/signUp')}
         />
       </View>
     </SafeAreaView>

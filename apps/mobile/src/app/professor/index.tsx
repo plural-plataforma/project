@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,191 +8,171 @@ import {
   Image,
   Alert,
   StyleSheet,
+  Dimensions,
   Switch,
-  Dimensions
-} from 'react-native'
-import { useRouter } from 'expo-router'
-import { Camera } from 'phosphor-react-native' // Removido UploadSimple se não usado
-import * as ImagePicker from 'expo-image-picker'
-import Header from '../../components/Header'
-import { Picker as RNPicker } from '@react-native-picker/picker' // Alias para evitar conflito
-import { colors } from '@/packages/ui/theme/theme'
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Camera } from 'phosphor-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import Header from '../../components/Header';
+import { Picker as RNPicker } from '@react-native-picker/picker';
+import { colors } from '@/packages/ui/theme/theme';
+import { Professor } from '@src/types/professor';
+import { buscarProfessor, atualizarProfessor } from '../../services/professorService';
+import { isCadastroCompleto } from '../../utils/professorUtils';
 
-const { width } = Dimensions.get('window')
-const screenWidth = width - 40 // Padding lateral
+const { width } = Dimensions.get('window');
+const screenWidth = width - 40; // Padding lateral
+
+// Lista de áreas de ensino
+const areasEnsino = [
+  'Matemática',
+  'Português',
+  'História',
+  'Geografia',
+  'Biologia',
+  'Física',
+  'Química',
+  'Inglês',
+  'Educação Física',
+  'Artes',
+];
+
+// Lista de UFs
+const ufs = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+];
+
+// Mapa de cidades por UF (exemplo simples; expanda conforme necessário)
+const cidadesPorUf: { [key: string]: string[] } = {
+  SP: ['São Paulo', 'Campinas', 'Santos', 'Ribeirão Preto', 'Sorocaba'],
+  RJ: ['Rio de Janeiro', 'Niterói', 'Duque de Caxias'],
+  MG: ['Belo Horizonte', 'Uberlândia', 'Juiz de Fora'],
+  // Adicione mais UFs conforme necessário
+};
+
 
 export default function CadastroProfessor() {
-  const router = useRouter()
-  const [fotoUri, setFotoUri] = useState<string | null>(null)
-  const [areaEnsino, setAreaEnsino] = useState('')
-  const [niveisEnsino, setNiveisEnsino] = useState({
-    fundamentalI: false,
-    fundamentalII: false,
-    medio: false,
-    eja: false
-  })
-  const [nomeEscola, setNomeEscola] = useState('')
-  const [uf, setUf] = useState('')
-  const [cidade, setCidade] = useState('')
-  const [estado, setEstado] = useState('')
-  const [sobreVoce, setSobreVoce] = useState('')
-  const [aceitaTermos, setAceitaTermos] = useState(false)
-  const [caracteresRestantes, setCaracteresRestantes] = useState(950)
-  const [nomeProfessor, setNomeProfessor] = useState('')
+  const router = useRouter();
+  const [professor, setProfessor] = useState<Professor>({
+    nomeCompleto: '',
+    cep: '',
+    logradouro: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    estado: '',
+    cidade: '',
+    telefone: '',
+    disciplinas: '',
+    nivelEnsino: '',
+    sobre: '',
+    isCheckTerms: false,
+    escolas: [],
+  });
+  const [fotoUri, setFotoUri] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || ['Ivoti'] : ['Selecione UF primeiro'];
 
-  // Lista de áreas de ensino (exemplo; ajuste com dados reais)
-  const areasEnsino = [
-    'Matemática',
-    'Português',
-    'História',
-    'Geografia',
-    'Biologia',
-    'Física',
-    'Química',
-    'Inglês',
-    'Educação Física',
-    'Artes'
-  ]
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await buscarProfessor();
+        const updatedProfessor = {
+          ...data.objeto,
+          escolas: Array.isArray(data.objeto.escolas) ? data.objeto.escolas : data.objeto.escolas ? [data.objeto.escolas] : [],
+        };
+        console.log(updatedProfessor)
+        setProfessor(updatedProfessor);
+      } catch (error) {
+        console.error('Erro ao carregar dados do professor:', error);
+        Alert.alert('Erro', 'Não foi possível carregar seus dados.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  // Lista de UFs
-  const ufs = [
-    'AC',
-    'AL',
-    'AP',
-    'AM',
-    'BA',
-    'CE',
-    'DF',
-    'ES',
-    'GO',
-    'MA',
-    'MT',
-    'MS',
-    'MG',
-    'PA',
-    'PB',
-    'PR',
-    'PE',
-    'PI',
-    'RJ',
-    'RN',
-    'RS',
-    'RO',
-    'RR',
-    'SC',
-    'SP',
-    'SE',
-    'TO'
-  ]
-
-  // Mapa de estados para UFs (para seleção)
-  const estadosPorUf: { [key: string]: string } = {
-    AC: 'Acre',
-    AL: 'Alagoas',
-    AP: 'Amapá',
-    AM: 'Amazonas',
-    BA: 'Bahia',
-    CE: 'Ceará',
-    DF: 'Distrito Federal',
-    ES: 'Espírito Santo',
-    GO: 'Goiás',
-    MA: 'Maranhão',
-    MT: 'Mato Grosso',
-    MS: 'Mato Grosso do Sul',
-    MG: 'Minas Gerais',
-    PA: 'Pará',
-    PB: 'Paraíba',
-    PR: 'Paraná',
-    PE: 'Pernambuco',
-    PI: 'Piauí',
-    RJ: 'Rio de Janeiro',
-    RN: 'Rio Grande do Norte',
-    RS: 'Rio Grande do Sul',
-    RO: 'Rondônia',
-    RR: 'Roraima',
-    SC: 'Santa Catarina',
-    SP: 'São Paulo',
-    SE: 'Sergipe',
-    TO: 'Tocantins'
-  }
-
-  // Lista de cidades filtrada por UF (exemplo simples; use API para real)
-  const cidadesPorUf: { [key: string]: string[] } = {
-    SP: ['São Paulo', 'Campinas', 'Santos', 'Ribeirão Preto', 'Sorocaba'],
-    RJ: ['Rio de Janeiro', 'Niterói', 'Duque de Caxias'],
-    MG: ['Belo Horizonte', 'Uberlândia', 'Juiz de Fora']
-    // Adicione mais UFs conforme necessário
-    // Default para outros
-  }
-  const cidadesDisponiveis = cidadesPorUf[uf] || ['Selecione UF primeiro']
-
-  // Função para selecionar foto
   const selecionarFoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permissão negada',
-        'Precisamos de acesso à galeria para foto.'
-      )
-      return
+      Alert.alert('Permissão negada', 'Precisamos de acesso à galeria para foto.');
+      return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 1
-    })
+      quality: 1,
+    });
 
     if (!result.canceled) {
-      setFotoUri(result.assets[0].uri)
+      setFotoUri(result.assets[0].uri);
     }
-  }
+  };
 
-  // Função para contar caracteres
-  const handleSobreVoceChange = (text: string) => {
-    if (text.length <= 950) {
-      setSobreVoce(text)
-      setCaracteresRestantes(950 - text.length)
-    }
-  }
-
-  // Função para submeter form (ajuste validação para combos)
-  const handleConcluir = () => {
-    if (!aceitaTermos) {
+  const handleConcluir = async () => {
+    if (!professor.isCheckTerms) {
       Alert.alert(
         'Atenção',
         'Você deve aceitar os Termos de Uso e Política de Privacidade.'
-      )
-      return
+      );
+      return;
     }
     if (
-      !areaEnsino ||
-      Object.values(niveisEnsino).some(Boolean) === false || // Pelo menos um nível selecionado
-      !nomeEscola ||
-      !uf ||
-      !cidade ||
-      !estado ||
-      !sobreVoce.trim()
+      !professor.disciplinas ||
+      !professor.escolas ||
+      !professor.estado ||
+      !professor.cidade ||
+      !professor.sobre?.trim()
     ) {
-      Alert.alert('Erro', 'Preencha todos os campos obrigatórios (*).')
-      return
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios (*).');
+      return;
     }
-    // Chame service/hook aqui
-    Alert.alert('Sucesso', 'Cadastro concluído! Redirecionando...')
-    router.push('/dashboard')
-  }
 
-  // Toggle para checkboxes de nível
-  const toggleNivel = (nivel: keyof typeof niveisEnsino) => {
-    setNiveisEnsino(prev => ({ ...prev, [nivel]: !prev[nivel] }))
-  }
+    try {
+      setLoading(true);
+      await atualizarProfessor(professor);
+      if (isCadastroCompleto(professor)) {
+        Alert.alert('Sucesso', 'Cadastro concluído com sucesso!');
+        router.push('/dashboard');
+      } else {
+        Alert.alert('Aviso', 'Preencha todos os campos obrigatórios.');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar professor:', error);
+      Alert.alert('Erro', 'Não foi possível salvar os dados.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleNivel = (nivel: string) => {
+    setProfessor((prev) => ({
+      ...prev,
+      nivelEnsino: prev.nivelEnsino
+        ? prev.nivelEnsino.includes(nivel)
+          ? prev.nivelEnsino.replace(nivel, '').replace(/,\s*$/, '')
+          : `${prev.nivelEnsino}, ${nivel}`
+        : nivel,
+    }));
+  };
+
+  const handleEscolasChange = (text: string) => {
+    const escolasArray = text.split(',').map((item) => item.trim()).filter((item) => item.length > 0);
+    setProfessor({ ...professor, escolas: escolasArray });
+  };
+
+  if (loading) return <ActivityIndicator size="large" color={colors.primary} />;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Header title="Cadastro" onBack={() => router.back()} />
 
-      {/* Header com progresso */}
       <View style={styles.header}>
         <View style={styles.progressContainer}>
           <View
@@ -200,7 +180,7 @@ export default function CadastroProfessor() {
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
-              width: '100%'
+              width: '100%',
             }}
           >
             <Text style={styles.progressText}>Progresso</Text>
@@ -212,7 +192,6 @@ export default function CadastroProfessor() {
         </View>
       </View>
 
-      {/* Instrução */}
       <View>
         <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
         <Text style={styles.obsInstrucao}>
@@ -221,7 +200,6 @@ export default function CadastroProfessor() {
         </Text>
       </View>
 
-      {/* Foto */}
       <TouchableOpacity style={styles.fotoContainer} onPress={selecionarFoto}>
         <View style={styles.fotoCircle}>
           {fotoUri ? (
@@ -233,92 +211,98 @@ export default function CadastroProfessor() {
         <Text style={styles.fotoLabel}>Escolher foto</Text>
       </TouchableOpacity>
 
-      {/* Escola */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nome</Text>
         <TextInput
           style={styles.input}
           placeholder="Seu nome"
-          value={nomeProfessor}
-          onChangeText={setNomeProfessor}
+          value={professor.nomeCompleto || ''}
+          onChangeText={(text) =>
+            setProfessor({ ...professor, nomeCompleto: text })
+          }
         />
       </View>
-      {/* Área de ensino - Picker */}
+
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Área de ensino</Text>
         <View style={styles.pickerContainer}>
           <RNPicker
-            selectedValue={areaEnsino}
-            onValueChange={itemValue => setAreaEnsino(itemValue)}
+            selectedValue={professor.disciplinas}
+            onValueChange={(itemValue) =>
+              setProfessor({ ...professor, disciplinas: itemValue })
+            }
             style={styles.picker}
             dropdownIconColor="#999"
-            mode="dropdown" // Para iOS/Android dropdown
+            mode="dropdown"
           >
             <RNPicker.Item label="Selecione sua área" value="" />
-            {areasEnsino.map(area => (
+            {areasEnsino.map((area) => (
               <RNPicker.Item key={area} label={area} value={area} />
             ))}
           </RNPicker>
         </View>
       </View>
+
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nome</Text>
+        <Text style={styles.label}>Escola/Instituição</Text>
         <TextInput
           style={styles.input}
           placeholder="Nome da escola onde leciona"
-          value={nomeEscola}
-          onChangeText={setNomeEscola}
+          value={professor.escolas?.join(', ') || ''}
+          onChangeText={handleEscolasChange}
         />
       </View>
 
-      {/* Nível de ensino - Checkboxes (já ok) */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nível de ensino</Text>
         <View style={styles.checkboxContainer}>
           <TouchableOpacity
             style={styles.checkbox}
-            onPress={() => toggleNivel('fundamentalI')}
+            onPress={() => toggleNivel('Fundamental I')}
           >
             <View
               style={[
                 styles.checkboxBox,
-                niveisEnsino.fundamentalI && styles.checkboxChecked
+                professor.nivelEnsino?.includes('Fundamental I') &&
+                  styles.checkboxChecked,
               ]}
             />
             <Text>Fundamental I</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.checkbox}
-            onPress={() => toggleNivel('fundamentalII')}
+            onPress={() => toggleNivel('Fundamental II')}
           >
             <View
               style={[
                 styles.checkboxBox,
-                niveisEnsino.fundamentalII && styles.checkboxChecked
+                professor.nivelEnsino?.includes('Fundamental II') &&
+                  styles.checkboxChecked,
               ]}
             />
             <Text>Fundamental II</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.checkbox}
-            onPress={() => toggleNivel('medio')}
+            onPress={() => toggleNivel('Ensino Médio')}
           >
             <View
               style={[
                 styles.checkboxBox,
-                niveisEnsino.medio && styles.checkboxChecked
+                professor.nivelEnsino?.includes('Ensino Médio') &&
+                  styles.checkboxChecked,
               ]}
             />
             <Text>Ensino Médio</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.checkbox}
-            onPress={() => toggleNivel('eja')}
+            onPress={() => toggleNivel('EJA')}
           >
             <View
               style={[
                 styles.checkboxBox,
-                niveisEnsino.eja && styles.checkboxChecked
+                professor.nivelEnsino?.includes('EJA') && styles.checkboxChecked,
               ]}
             />
             <Text>EJA</Text>
@@ -326,56 +310,43 @@ export default function CadastroProfessor() {
         </View>
       </View>
 
-      {/* Escola */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Escola/Instituição</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nome da escola onde leciona"
-          value={nomeEscola}
-          onChangeText={setNomeEscola}
-        />
-      </View>
-
-      {/* UF */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Estado</Text>
-
-        <View style={styles.row}>
-          {/* Estado */}
-          <View style={styles.pickerSmallContainer}>
-            <RNPicker
-              selectedValue={uf}
-              onValueChange={itemValue => {
-                setUf(itemValue)
-                setCidade('') // Reset cidade ao mudar UF
-              }}
-              style={[styles.pickerSmall, styles.input]}
-              itemStyle={styles.pickerItem}
-              dropdownIconColor="#999"
-              mode="dropdown"
-            >
-              <RNPicker.Item label="UF" value="" />
-              {ufs.map(ufItem => (
-                <RNPicker.Item key={ufItem} label={ufItem} value={ufItem} />
-              ))}
-            </RNPicker>
-          </View>
-        </View>
-        {/* Cidade */}
-        <Text style={styles.label}>Cidade</Text>
         <View style={styles.pickerSmallContainer}>
           <RNPicker
-            selectedValue={cidade}
-            onValueChange={itemValue => setCidade(itemValue)}
+            selectedValue={professor.estado}
+            onValueChange={(itemValue) =>
+              setProfessor({ ...professor, estado: itemValue, cidade: '' })
+            }
             style={[styles.pickerSmall, styles.input]}
             itemStyle={styles.pickerItem}
             dropdownIconColor="#999"
             mode="dropdown"
-            enabled={!!uf} // Desabilita se UF não selecionado
           >
-            <RNPicker.Item label="Sua cidade" value="" />
-            {cidadesDisponiveis.map(cidadeItem => (
+            <RNPicker.Item label="UF" value="" />
+            {ufs.map((ufItem) => (
+              <RNPicker.Item key={ufItem} label={ufItem} value={ufItem} />
+            ))}
+          </RNPicker>
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Cidade</Text>
+        <View style={styles.pickerSmallContainer}>
+          <RNPicker
+            selectedValue={professor.cidade}
+            onValueChange={(itemValue) =>
+              setProfessor({ ...professor, cidade: itemValue })
+            }
+            style={[styles.pickerSmall, styles.input]}
+            itemStyle={styles.pickerItem}
+            dropdownIconColor="#999"
+            mode="dropdown"
+            enabled={!!professor.estado}
+          >
+            <RNPicker.Item label="Qual cidade" value="" />
+            {cidadesDisponiveis.map((cidadeItem) => (
               <RNPicker.Item
                 key={cidadeItem}
                 label={cidadeItem}
@@ -386,7 +357,6 @@ export default function CadastroProfessor() {
         </View>
       </View>
 
-      {/* Sobre você */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Sobre você</Text>
         <TextInput
@@ -394,31 +364,36 @@ export default function CadastroProfessor() {
           placeholder="Conte um pouco sobre sua experiência e metodologia de ensino."
           multiline
           maxLength={950}
-          value={sobreVoce}
-          onChangeText={handleSobreVoceChange}
+          value={professor.sobre || ''}
+          onChangeText={(text) =>
+            setProfessor({ ...professor, sobre: text })
+          }
           textAlignVertical="top"
         />
         <Text style={styles.contador}>
-          {caracteresRestantes} caracteres restantes
+          {950 - (professor.sobre?.length || 0)} caracteres restantes
         </Text>
       </View>
 
-      {/* Termos */}
       <View style={styles.inputGroup}>
         <View style={styles.checkboxRow}>
-          <Switch value={aceitaTermos} onValueChange={setAceitaTermos} />
+          <Switch
+            value={professor.isCheckTerms || false}
+            onValueChange={(value) =>
+              setProfessor({ ...professor, isCheckTerms: value })
+            }
+          />
           <Text style={styles.checkboxLabel}>
             Aceito os Termos de Uso e Política de Privacidade da plataforma
           </Text>
         </View>
       </View>
 
-      {/* Botão */}
-      <TouchableOpacity style={styles.button} onPress={handleConcluir}>
+      <TouchableOpacity style={[styles.button, {paddingBottom:100}]} onPress={handleConcluir}>
         <Text style={styles.buttonText}>Concluir Cadastro</Text>
       </TouchableOpacity>
     </ScrollView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({

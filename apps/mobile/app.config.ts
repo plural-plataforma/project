@@ -34,6 +34,7 @@ const config: ExpoConfig = {
     output: 'static',
     favicon: '../../packages/ui/assets/images/favicon.png',
   },
+  
   plugins: [
     'expo-router',
     [

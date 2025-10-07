@@ -11,7 +11,7 @@ import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' }
 });
