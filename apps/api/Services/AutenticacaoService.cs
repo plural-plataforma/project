@@ -26,32 +26,49 @@ namespace api.Services
 
         public async Task<IdentityResult> Registro(RegistroDTO registroDto)
         {
-            int? perfilId = null;
-
-            Professor professor = new Professor { NomeCompleto = registroDto.NomeCompleto };
-            _contexto.Professores.Add(professor);
-            await _contexto.SaveChangesAsync();
-            perfilId = professor.ID;
-
-            Usuario usuarioApp = new Usuario
+            using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
-                UserName = registroDto.Email,
-                Email = registroDto.Email,
-                ProfessorId = perfilId
-            };
+                try
+                {
+                    int? perfilId = null;
 
-            var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
+                    Professor professor = new Professor { NomeCompleto = registroDto.NomeCompleto };
+                    _contexto.Professores.Add(professor);
+                    await _contexto.SaveChangesAsync();
+                    perfilId = professor.ID;
 
-            if(!result.Succeeded) return result;
+                    Usuario usuarioApp = new Usuario
+                    {
+                        UserName = registroDto.Email,
+                        Email = registroDto.Email,
+                        ProfessorId = perfilId,
+                        AceitouTermos = registroDto.AceitouTermos
+                    };
 
-            if(!await _tipo.RoleExistsAsync("Professor"))
-            {
-                await _tipo.CreateAsync(new IdentityRole("Professor"));
+                    var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
+
+                    if (!result.Succeeded)
+                    {
+                        await transacao.RollbackAsync();
+                        return result;
+                    }
+
+                    if (!await _tipo.RoleExistsAsync("Professor"))
+                    {
+                        await _tipo.CreateAsync(new IdentityRole("Professor"));
+                    }
+
+                    await _usuario.AddToRoleAsync(usuarioApp, "Professor");
+
+                    return IdentityResult.Success;
+                }
+                catch (Exception)
+                {
+
+                    await transacao.RollbackAsync();
+                    throw;
+                }
             }
-
-            await _usuario.AddToRoleAsync(usuarioApp, "Professor");
-
-            return IdentityResult.Success;
         }
 
         public async Task<string?> Login(LoginDTO loginDto)
@@ -74,7 +91,7 @@ namespace api.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuracao["JwtSettings:Secret"]));
+            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")));
             var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(

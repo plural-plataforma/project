@@ -3,6 +3,30 @@
   "WorkspaceRootPath": "E:\\repos\\plural-plataforma\\",
   "Documents": [
     {
+<<<<<<< HEAD
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\controllers\\autenticacaocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\controllers\\autenticacaocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\dtos\\autenticacao\\registrodto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\dtos\\autenticacao\\registrodto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\services\\autenticacaoservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\services\\autenticacaoservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\models\\usuario.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\models\\usuario.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|c:\\project\\apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+=======
       "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|e:\\repos\\plural-plataforma\\apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -13,6 +37,7 @@
     {
       "AbsoluteMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|e:\\repos\\plural-plataforma\\apps\\api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{3FC7EC71-31D1-712E-1320-384AD08193E8}|apps\\api\\api.csproj|solutionrelative:apps\\api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+>>>>>>> staging
     }
   ],
   "DocumentGroupContainers": [
@@ -69,6 +94,81 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+<<<<<<< HEAD
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\project\\apps\\api\\appsettings.json",
+              "RelativeDocumentMoniker": "apps\\api\\appsettings.json",
+              "ToolTip": "C:\\project\\apps\\api\\appsettings.json",
+              "RelativeToolTip": "apps\\api\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-10-08T00:11:41.672Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Usuario.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Models\\Usuario.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Models\\Usuario.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Models\\Usuario.cs",
+              "RelativeToolTip": "apps\\api\\Models\\Usuario.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-08T00:04:43.597Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "RegistroDTO.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "RelativeDocumentMoniker": "apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "ToolTip": "C:\\project\\apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "RelativeToolTip": "apps\\api\\DTOs\\Autenticacao\\RegistroDTO.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-08T00:03:40.034Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Program.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Program.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Program.cs",
+              "RelativeToolTip": "apps\\api\\Program.cs",
+              "ViewState": "AgIAACQAAAAAAAAAAAAAAC4AAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-07T23:31:37.167Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AutenticacaoService.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Services\\AutenticacaoService.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Services\\AutenticacaoService.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Services\\AutenticacaoService.cs",
+              "RelativeToolTip": "apps\\api\\Services\\AutenticacaoService.cs",
+              "ViewState": "AgIAAA4AAAAAAAAAAADwvyEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-07T23:26:25.046Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AutenticacaoController.cs",
+              "DocumentMoniker": "C:\\project\\apps\\api\\Controllers\\AutenticacaoController.cs",
+              "RelativeDocumentMoniker": "apps\\api\\Controllers\\AutenticacaoController.cs",
+              "ToolTip": "C:\\project\\apps\\api\\Controllers\\AutenticacaoController.cs",
+              "RelativeToolTip": "apps\\api\\Controllers\\AutenticacaoController.cs",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAWwCEAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-07T23:26:20.756Z",
+=======
               "Title": "Program.cs",
               "DocumentMoniker": "E:\\repos\\plural-plataforma\\apps\\api\\Program.cs",
               "RelativeDocumentMoniker": "apps\\api\\Program.cs",
@@ -77,6 +177,7 @@
               "ViewState": "AgIAAAsAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-05T14:46:15.812Z",
+>>>>>>> staging
               "EditorCaption": ""
             }
           ]
