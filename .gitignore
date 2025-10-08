@@ -11,10 +11,13 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
-.vs/
+apps/api/.vs/*
+apps/api/Properties/*
+.vs/*
 
 #Arquivo de publicação
 *.pubxml
+
 
 # Testing
 coverage

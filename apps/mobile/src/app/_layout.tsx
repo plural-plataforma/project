@@ -3,14 +3,16 @@ import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { AuthProvider } from '../context/AuthContext'
 
 // Impede que a tela de splash desapareça antes das fontes carregarem
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Nunito_400Regular: require('../assets/fonts/Nunito-Regular.ttf'),
-    Nunito_700Bold: require('../assets/fonts/Nunito-Bold.ttf')
+    //'assets/fonts/Nunito-Regular.ttf'
+    Nunito_400Regular: require('@/packages/ui/assets/fonts/Nunito-Regular.ttf'),
+    Nunito_700Bold: require('@/packages/ui/assets/fonts/Nunito-Bold.ttf')
   })
 
   useEffect(() => {
@@ -27,13 +29,9 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/home" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/signUp" options={{ headerShown: false }} />
-      </Stack>
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </AuthProvider>
     </SafeAreaProvider>
   )
 }
