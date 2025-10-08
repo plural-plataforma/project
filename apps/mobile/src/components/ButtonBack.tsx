@@ -33,18 +33,15 @@ appTopBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 14,
-    gap: 16,
   },
   button:{
      backgroundColor: '#fff',
-     marginHorizontal: 12,
     borderWidth: 1,
     alignItems: 'center',
     width:38,
     height: 40.140846252441406,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    opacity: 0.7,
+    borderColor: colors.secondary,
+    borderRadius: 8
   },
 buttonBack: {
    

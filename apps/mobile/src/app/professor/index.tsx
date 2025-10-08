@@ -14,16 +14,21 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Camera } from 'phosphor-react-native';
-import * as ImagePicker from 'expo-image-picker';
+
 import Header from '../../components/Header';
 import { Picker as RNPicker } from '@react-native-picker/picker';
-import { colors } from '@/packages/ui/theme/theme';
+import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import { Professor } from '@src/types/professor';
 import { buscarProfessor, atualizarProfessor } from '../../services/professorService';
 import { isCadastroCompleto } from '../../utils/professorUtils';
+import ProfilePhoto from '@src/components/ProfilePhoto';
+import ProgressFill from '@src/components/ProgressFill';
+import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
+import CustomButton from '@src/components/CustomButton';
+import SectionGroup from '@src/components/SectionGroup';
 
-const { width } = Dimensions.get('window');
-const screenWidth = width - 40; // Padding lateral
+
+
 
 // Lista de áreas de ensino
 const areasEnsino = [
@@ -71,9 +76,9 @@ export default function CadastroProfessor() {
     isCheckTerms: false,
     escolas: [],
   });
-  const [fotoUri, setFotoUri] = useState<string | null>(null);
+  
   const [loading, setLoading] = useState<boolean>(true);
-const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || ['Ivoti'] : ['Selecione UF primeiro'];
+  const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || ['Ivoti'] : ['Selecione UF primeiro'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,24 +101,7 @@ const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || 
     fetchData();
   }, []);
 
-  const selecionarFoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permissão negada', 'Precisamos de acesso à galeria para foto.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setFotoUri(result.assets[0].uri);
-    }
-  };
+  
 
   const handleConcluir = async () => {
     if (!professor.isCheckTerms) {
@@ -162,6 +150,9 @@ const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || 
     }));
   };
 
+  const renderErros = () => {
+      
+    };
   const handleEscolasChange = (text: string) => {
     const escolasArray = text.split(',').map((item) => item.trim()).filter((item) => item.length > 0);
     setProfessor({ ...professor, escolas: escolasArray });
@@ -171,27 +162,11 @@ const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || 
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Header title="Cadastro" onBack={() => router.back()} />
+      <Header title="Perfil do Professor" onBack={() => router.back()} />
 
-      <View style={styles.header}>
-        <View style={styles.progressContainer}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%',
-            }}
-          >
-            <Text style={styles.progressText}>Progresso</Text>
-            <Text style={styles.progressLabel}>3 de 4</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View style={styles.progressFill} />
-          </View>
-        </View>
-      </View>
-
+      {/** Progresso */}
+      <ProgressFill />
+      {/** Explicação quando perfil não estiver completo */}
       <View>
         <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
         <Text style={styles.obsInstrucao}>
@@ -200,17 +175,16 @@ const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || 
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.fotoContainer} onPress={selecionarFoto}>
-        <View style={styles.fotoCircle}>
-          {fotoUri ? (
-            <Image source={{ uri: fotoUri }} style={styles.fotoImage} />
-          ) : (
-            <Camera size={40} color="#999" />
-          )}
-        </View>
-        <Text style={styles.fotoLabel}>Escolher foto</Text>
-      </TouchableOpacity>
+      {/** Upload Foto */}
+      <ProfilePhoto />
 
+      
+      {/* Dados Pessoais */}
+  <SectionGroup title='Dados Pessoais'>
+   
+    <InputField label={'Nome'} placeholder={'Digite o nome'}></InputField> 
+    
+  </SectionGroup>
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nome</Text>
         <TextInput
@@ -376,22 +350,22 @@ const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || 
       </View>
 
       <View style={styles.inputGroup}>
-        <View style={styles.checkboxRow}>
-          <Switch
-            value={professor.isCheckTerms || false}
-            onValueChange={(value) =>
-              setProfessor({ ...professor, isCheckTerms: value })
-            }
-          />
-          <Text style={styles.checkboxLabel}>
-            Aceito os Termos de Uso e Política de Privacidade da plataforma
-          </Text>
-        </View>
+       <View style={styles.checkboxRow}>
+            <CheckboxWithLabel label="Aceito os termos e a política de privacidade" //checked={credentials.isCheckTerms}
+            onPress={() =>{}}/>
       </View>
-
-      <TouchableOpacity style={[styles.button, {paddingBottom:100}]} onPress={handleConcluir}>
-        <Text style={styles.buttonText}>Concluir Cadastro</Text>
-      </TouchableOpacity>
+      </View>
+      {renderErros()}
+          <View style={styles.button}>
+          <CustomButton
+            title="Cadastrar"
+            onPress={handleConcluir}
+            buttonColor={{ backgroundColor: colors.primary2 }}
+            disabled={loading}
+            loading={loading}
+          />
+          </View>
+          
     </ScrollView>
   );
 }
@@ -405,73 +379,32 @@ const styles = StyleSheet.create({
     padding: 20
   },
   content: {
-    paddingBottom: 20,
+    paddingBottom: 100,
     paddingHorizontal: 20
   },
   header: {
     alignItems: 'center'
   },
-  progressContainer: {
-    alignItems: 'center',
-    width: screenWidth,
-    padding: 20
-  },
+
   progressText: {
     fontSize: 16,
     marginBottom: 5,
     fontFamily: 'Nunito_400Regular'
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    width: screenWidth,
-    overflow: 'hidden'
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#F59E0B',
-    width: '75%' // 3 de 4
-  },
-  progressLabel: {
-    fontSize: 14,
-    marginTop: 5,
-    color: '#666'
-  },
-  titleInstrucao: {
+   titleInstrucao: {
     textAlign: 'justify',
-    fontSize: 24,
-    marginBottom: 30,
+    fontSize: fontSizes.f24,
+    marginTop:17,
+    marginBottom: 8,
     lineHeight: 22,
+    color:colors.primary,
     fontFamily: 'Nunito_400Regular'
   },
   obsInstrucao: {
-    fontSize: 16,
+    fontSize: fontSizes.f16,
     lineHeight: 24,
-    color: '#666',
+    color:colors.primary,
     marginBottom: 30
-  },
-  fotoContainer: {
-    alignItems: 'center',
-    marginBottom: 30
-  },
-  fotoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  fotoImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60
-  },
-  fotoLabel: {
-    color: '#F59E0B',
-    fontWeight: '500'
   },
   inputGroup: {
     marginBottom: 20
@@ -565,9 +498,6 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   button: {
-    backgroundColor: colors.primary2,
-    padding: 16,
-    borderRadius: 8,
     alignItems: 'center',
     marginTop: 20
   },

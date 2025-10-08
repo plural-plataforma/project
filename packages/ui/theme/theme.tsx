@@ -1,7 +1,8 @@
 export const colors = {
   primary: '#276678',
-  secondary: '#276678',
-  primary2: '#FFBE33',
+  secondary: 'rgba(39, 102, 120, 0.42)',
+  primary2: 'rgba(255, 190, 51, 1)',
+  greyBlur: 'rgba(217, 217, 217, 0.24)',
   background: '#FFFFFF',
   textPrimary: '#276678',
   textSecondary: '#ffffff',

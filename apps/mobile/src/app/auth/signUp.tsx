@@ -28,8 +28,8 @@ export default function SignUp() {
   const [credentials, setCredentials] = useState<RegisterCredentials>({
     email: '',
     senha: '',
-    nomeCompleto: '',
-    isCheckTerms: false
+    nomeCompleto: ''
+    //,isCheckTerms: false
   });
   const [error, setError] = useState<string>('');
   const [errosValidacao, setErrosValidacao] = useState<string[]>([]);
@@ -52,11 +52,11 @@ const handleRegister = async () => {
   }
 
   //Aceite dos termos 
-  if (!credentials.isCheckTerms) {
-  Alert.alert('Atenção', 'Você precisa aceitar os termos para continuar.');
-  setLoading(false);
-  return;
-}
+  //if (!credentials.isCheckTerms) {
+  //Alert.alert('Atenção', 'Você precisa aceitar os termos para continuar.');
+  //setLoading(false);
+  //return;
+   // }
   try {
     const response = await authRegister(credentials);
     console.log('✅ Registro retornou:', response);
@@ -159,15 +159,13 @@ const handleRegister = async () => {
             keyboardType="email-address"
             secureTextEntry={true}
           />
-          <InputField
-            label="Escola/Instituição"
-            placeholder="Nome da Escola/Instituição"
-          />
+         
           <View style={styles.checkboxRow}>
-            <CheckboxWithLabel label="Aceito os termos e a política de privacidade" checked={credentials.isCheckTerms}onPress={() =>
+            <CheckboxWithLabel label="Aceito os termos e a política de privacidade" //checked={credentials.isCheckTerms}
+            onPress={() =>
     setCredentials(prev => ({
       ...prev,
-      termosAceitos: !prev.isCheckTerms
+      //termosAceitos: !prev.isCheckTerms
     }))
   }/>
           </View>
