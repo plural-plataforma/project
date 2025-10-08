@@ -15,21 +15,26 @@ export default function Index() {
       <View style={styles.content}>
         <Image
           source={require('@/packages/ui/assets/images/home_people.png')}
-          style={{ width: '120%', height: '56%' }}
+          style={{ width: '120%', height: '56%', alignSelf:'center' }}
         />
-        <Logo width={279.64} height={98.42} href="logo-contrast" />
+      <View style={{ width: "100%", flexDirection: "row", justifyContent: 'center', marginTop: 20 }}>
+        <Logo width={278} height={98} styles={{logo:{ alignSelf: 'center' }}}href="logo-contrast" />
+        </View>
         <View style={styles.slugan}>
           <Text
             style={{
               color: colors.textPrimary,
-              fontSize: 24,
-              fontWeight: '700'
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 32
             }}
           >
             Onde cada <Text style={{ color: '#A786B6' }}>aluno</Text> importa,
             cada <Text style={{ color: '#A786B6' }}>progresso</Text> conta.
           </Text>
         </View>
+
         <Button
           title="Acessar"
           buttonColor={{
@@ -67,13 +72,12 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.tertiary
+    backgroundColor: colors.primary2
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20
   },
   title: {
     fontSize: 28,
@@ -87,9 +91,10 @@ const styles = StyleSheet.create({
     marginBottom: 40
   },
   slugan: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10
+      marginTop: 16,
+  marginBottom: 24,
+  paddingHorizontal: 20,
+  alignItems: 'center'
   },
   button: {
     width: '80%',

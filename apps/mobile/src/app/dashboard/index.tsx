@@ -67,7 +67,7 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" backgroundColor={colors.tertiary} />
+      <StatusBar style="dark" backgroundColor={colors.primary2} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerLeft}>
           <Image
@@ -103,7 +103,7 @@ export default function Dashboard() {
       </View>
       <SafeAreaView edges={['top']}>
         <ScrollView>
-          { !cadastroCompleto && <NotificationBanner onPress={() => router.push('/professor')}/>}
+          { !cadastroCompleto && <View style={{padding:16}}><NotificationBanner onPress={() => router.push('/professor')}/></View>}
 
         </ScrollView>
       </SafeAreaView>
@@ -117,7 +117,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.primary2,
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',

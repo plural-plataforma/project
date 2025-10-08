@@ -1,4 +1,4 @@
-import { colors, fontSizes } from '../theme/theme'
+import { colors, fontSizes } from '../../../../packages/ui/theme/theme'
 import { Text, TextInput, View, StyleSheet, TextInputProps } from 'react-native'
 
 interface InputFieldProps extends TextInputProps {
@@ -13,39 +13,45 @@ const InputField: React.FC<InputFieldProps> = ({
 }) => {
   return (
     <View style={styles.container}>
+      <View style={styles.groupInput}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor={colors.secondary}
+        placeholderTextColor={'#ADAEBC'}
         {...props}
       />
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    margin: 0,
-    padding: 0,
-    marginBottom: 8
+    flex:1,
+    
+  },
+  groupInput:
+  {
+    width: "100%",
+    marginHorizontal: 8,
+    flex: 1
   },
   label: {
     color: colors.primary,
-    marginHorizontal: 12,
-    marginBottom: 4,
-    fontSize: fontSizes.base,
-    fontFamily: 'Nunito_400Regular'
+    marginBottom: 10,
+    fontSize: fontSizes.f14,
+    fontFamily: 'Nunito_400Regular',
+    paddingTop:10
   },
   input: {
     paddingLeft: 16,
     height: 55,
-    width: '90%',
     color: colors.primary,
     borderColor: colors.primary,
     borderWidth: 1,
-    marginHorizontal: 12,
-    margin: 12,
+    marginRight: 10,
+
     borderRadius: 8,
     fontFamily: 'Nunito_400Regular'
   }

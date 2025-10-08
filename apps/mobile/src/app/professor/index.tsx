@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   button: {
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.primary2,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',

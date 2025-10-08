@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: '#ffffff',
-    fontSize: fontSizes.lg,
+    fontSize: fontSizes.f18,
     fontFamily: 'Nunito_400Regular'
   },
   icon: {

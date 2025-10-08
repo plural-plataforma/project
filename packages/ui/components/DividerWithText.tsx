@@ -19,20 +19,22 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '72%',
-    alignSelf: 'center',
-    marginVertical: 40,
-    margin: 0
+    width: "100%",
+    maxWidth: "100%",
+    overflow: "hidden",
+    maxHeight: "100%",
+    marginBottom:30
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.secondary
+    backgroundColor: colors.secondary,
+    opacity:0.5
   },
   dividerText: {
     paddingHorizontal: 10,
     color: colors.primary,
-    fontSize: fontSizes.base,
+    fontSize: fontSizes.f14,
     fontFamily: 'Nunito_400Regular'
   }
 })

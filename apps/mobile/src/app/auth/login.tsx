@@ -66,9 +66,11 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.appContainer}>
+      <ScrollView>
       <View style={styles.container}>
         <Logo width={248} height={87.29} />
         <Text style={styles.text}>Seja bem vindo!</Text>
+        <View style={{flex:1, padding:0}}>
         <InputField
           label="E-mail"
           placeholder="Informe seu e-mail"
@@ -85,6 +87,7 @@ export default function LoginScreen() {
           secureTextEntry={true}
           autoCapitalize="none"
         />
+        </View>
         <View style={styles.checkboxRow}>
           <CheckboxWithLabel label="Lembrar-me" />
           <LinkButton title="Esqueci minha senha?" onPress={() => {}} />
@@ -92,11 +95,13 @@ export default function LoginScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <CustomButton
-          title="Entrar"
+          title="Entrar" 
           onPress={handleLogin}
           disabled={loading}
           loading={loading}
+         buttonColor={{ backgroundColor: colors.primary2 }}
         />
+
       </View>
       <View style={styles.authSection}>
         <DividerWithText text="Entre com" />
@@ -114,25 +119,26 @@ export default function LoginScreen() {
           labelAction="Inscreva-se"
         />
       </View>
+      </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   appContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    width: "100%",
+flex: 1,
     backgroundColor: colors.background
   },
   container: {
-    width: '72%',
-    alignSelf: 'center'
+    alignSelf: 'center', 
+    
   },
   text: {
     color: colors.primary,
-    paddingTop: 20,
+
     margin: 12,
-    fontSize: fontSizes.xxxl,
+    fontSize: fontSizes.f30,
     fontWeight: '400' as const,
     fontFamily: 'Nunito_400Regular'
   },

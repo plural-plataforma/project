@@ -1,14 +1,13 @@
 export const colors = {
-  primary: '#193656',
-  secondary: '#A9BDD2',
-  tertiary: '#FFBE33',
+  primary: '#276678',
+  secondary: '#276678',
+  primary2: '#FFBE33',
   background: '#FFFFFF',
   textPrimary: '#276678',
   textSecondary: '#ffffff',
   success: '#28a745',
-  danger: '#dc3545',
-  black:'#262626',
-  blackOff:'#404040'
+  danger: '#FF0000',
+  
 }
 
 export const spacing = {
@@ -20,12 +19,12 @@ export const spacing = {
 }
 
 export const fontSizes = {
-  xs: 10,
-  sm: 12,
-  base: 14,
-  md: 16,
-  lg: 18,
-  xl: 20,
-  xxl: 24,
-  xxxl: 30
+  f10: 10,
+  f12: 12,
+  f14: 14,
+  f16: 16,
+  f18: 18,
+  f20: 20,
+  f24: 24,
+  f30: 30
 }

@@ -31,12 +31,13 @@ const styles = StyleSheet.create({
   },
   text: {
     color: colors.primary,
-    fontSize: fontSizes.md,
-    fontFamily: 'Nunito_400Regular'
+    fontSize: fontSizes.f14,
+    fontFamily: 'Nunito_400Regular',
+    textAlign: "left"
   },
   link: {
     color: colors.primary,
-    fontSize: fontSizes.md,
+    fontSize: fontSizes.f14,
     fontWeight: '700',
     fontFamily: 'Nunito_400Regular'
   }

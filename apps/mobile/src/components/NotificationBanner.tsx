@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { colors, fontSizes } from '@/packages/ui/theme/theme'; // Ajuste o caminho conforme necessário
 import { Warning } from 'phosphor-react-native';
 import CustomButton from './CustomButton';
@@ -10,65 +10,113 @@ interface NotificationBannerProps {
 
 const NotificationBanner: React.FC<NotificationBannerProps> = ({ onPress }) => {
   return (
-    <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Warning size={24} color={colors.danger} />
-        <View style={styles.texts}>
-            <Text style={styles.text}>Finalize seu cadastro!</Text>
-            <Text style={styles.textSecondary}>Conclua a configuração do seu perfil para acessar todos os recursos da plataforma</Text>
-        </View>
-        </View>
- <CustomButton style={styles.button}  title={'Concluir agora'} onPress={onPress} />
-    </View>
-  );
+   <SafeAreaView style={styles.viewBg}>
+<View style={[styles.view, styles.viewBg]}>
+<View style={[styles.div, styles.divLayout]}>
+<Warning style={styles.iIcon} size={18} weight='fill'/>
+<View style={[styles.sectionDiv, styles.buttonLayout]}>
+<Text style={[styles.finalizeSeuCadastro, styles.concluirAgoraTypo]}>Finalize seu cadastro!</Text>
+<Text style={[styles.concluaAConfigurao, styles.concluaAConfiguraoFlexBox]}>Conclua a configuração do seu perfil para acessar todos os recursos da plataforma</Text>
+<TouchableOpacity style={[styles.button, styles.buttonLayout]}>
+<Text style={[styles.concluirAgora, styles.concluirAgoraTypo]} onPress={onPress}>Concluir agora</Text>
+</TouchableOpacity>
+</View>
+</View>
+</View>
+</SafeAreaView>);
 };
-
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFD4D4',
-    borderRadius: 8,
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: 10,
-    margin: 10,
-    
-    borderColor: '#ef5350', // Cor da borda vermelha
-    borderLeftWidth: 6, // Borda mais grossa no lado esquerdo
-    // Sombra para iOS
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    paddingTop:10,
-    paddingBottom:10,
-  },
-  texts:{
-    flex: 1,
-    fontFamily: 'Nunito_400Regular',
-    textAlign: 'left',
-    paddingHorizontal:10
-  },
-  text: {
-    fontSize: fontSizes.base,
-    color: colors.black,
-  },
-  textSecondary:{
-    fontSize: fontSizes.sm,
-    color:colors.blackOff,
-    paddingTop:5,
-    paddingBottom:5
-  },
-  button: {
-    backgroundColor: colors.black,
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    width:'100%',
-    alignItems:'center'
-  },
+section: {
+flex: 1,
+backgroundColor: "#ffd4d4",
+},
+viewBg: {
+backgroundColor: "#ffd4d4",
+flex: 1,
+borderRadius:8
+},
+divLayout: {
+height: 104,
+backgroundColor: "rgba(0, 0, 0, 0)"
+},
+buttonLayout: {
+width: 292,
+position: "absolute"
+},
+concluirAgoraTypo: {
+height: 20,
+fontSize: 14,
+fontFamily: "Inter-Regular",
+position: "absolute"
+},
+concluaAConfiguraoFlexBox: {
+textAlign: "left",
+left: 0
+},
+view: {
+width: "100%",
+borderStyle: "solid",
+borderColor: "rgba(255, 0, 0, 0.76)",
+borderLeftWidth: 4,
+height: 136
+},
+div: {
+top: 16,
+left: 20,
+width: 322,
+position: "absolute",
+height: 104,
+backgroundColor: "rgba(0, 0, 0, 0)"
+},
+iIcon: {
+top: 4,
+width: 18,
+height: 18,
+color: colors.danger,
+left: 0,
+position: "absolute"
+},
+sectionDiv: {
+left: 30,
+top: 0,
+height: 104,
+backgroundColor: "rgba(0, 0, 0, 0)"
+},
+finalizeSeuCadastro: {
+lineHeight: 20,
+color: colors.primary,
+width: 186,
+textAlign: "left",
+fontWeight: "600",
+left: 0,
+top: 0
+},
+concluaAConfigurao: {
+top: 24,
+fontSize: 12,
+lineHeight: 16,
+color: colors.primary,
+width: 291,
+height: 32,
+fontFamily: "Inter-Regular",
+textAlign: "left",
+position: "absolute"
+},
+button: {
+top: 68,
+left: -1,
+borderRadius: 8,
+backgroundColor: "#276678",
+height: 36
+},
+concluirAgora: {
+marginLeft: -76,
+top: 9,
+left: "50%",
+textAlign: "center",
+width: 152,
+color: "#fff"
+}
 });
 
 export default NotificationBanner;

@@ -1,4 +1,4 @@
-export { default as InputField } from './InputField'
+export { default as InputField } from '../../../apps/mobile/src/components/InputField'
 export { default as LinkButton } from './LinkButton'
 export { default as CheckboxWithLabel } from './CheckboxWithLabel'
 export { default as AuthButton } from './AuthButton'
