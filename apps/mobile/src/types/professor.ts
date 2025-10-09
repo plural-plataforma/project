@@ -1,18 +1,19 @@
 export interface Professor {
-  nomeCompleto: string | null;
-  cep: string | null;
-  logradouro: string | null;
-  numero: string | null;
-  complemento: string | null;
-  bairro: string | null;
-  estado: string | null;
-  cidade: string | null;
-  telefone: string | null;
-  disciplinas: string | null;
-  nivelEnsino: string | null;
-  sobre: string | null;
-  isCheckTerms: boolean | null;
-  escolas?: string[] | null;
+  nomeCompleto: string;
+  email: string;
+  cep: string ;
+  logradouro: string;
+  numero: number ;
+  complemento: string;
+  bairro: string;
+  estado: string;
+  cidade: string;
+  telefone: string;
+  disciplinas: string;
+  nivelEnsino: string;
+  sobre: string;
+  aceitouTermos: boolean;
+  escolas?: string[];
 }
 
 export interface ProfessorResponse {

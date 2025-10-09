@@ -2,6 +2,7 @@ import { Alert, StyleSheet, TouchableOpacity, View, Image, Text } from "react-na
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from "react";
 import { Camera } from "phosphor-react-native";
+import { colors } from "@/packages/ui/theme/theme";
 
 export default function ProfilePhoto(){
 const [fotoUri, setFotoUri] = useState<string | null>(null);
@@ -31,7 +32,7 @@ const [fotoUri, setFotoUri] = useState<string | null>(null);
           {fotoUri ? (
             <Image source={{ uri: fotoUri }} style={styles.fotoImage} />
           ) : (
-            <Camera size={40} color="#999" />
+            <Camera size={32} weight="fill" color={colors.primary}/>
           )}
         </View>
         <Text style={styles.fotoLabel}>Escolher foto</Text>
@@ -45,8 +46,8 @@ export const styles = StyleSheet.create({
     marginBottom: 30
   },
     fotoCircle: {
-    width: 120,
-    height: 120,
+    width: 96,
+    height: 96,
     borderRadius: 60,
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',

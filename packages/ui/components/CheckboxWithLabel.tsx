@@ -4,7 +4,7 @@ import { CheckCircle } from 'phosphor-react-native'
 
 interface CheckboxWithLabelProps {
   label: string
-  checked?: boolean
+  checked: boolean
   onPress?: () => void
 }
 

@@ -8,6 +8,7 @@ export const colors = {
   textSecondary: '#ffffff',
   success: '#28a745',
   danger: '#FF0000',
+  placeholder: '#ADAEBC'
   
 }
 

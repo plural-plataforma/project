@@ -5,7 +5,7 @@ export interface LoginCredentials {
 
 export interface RegisterCredentials extends LoginCredentials {
   nomeCompleto: string
-  //isCheckTerms: boolean
+  aceitouTermos: boolean
 }
 
 export interface AuthResponse {

@@ -8,7 +8,7 @@ import {
 } from '@/packages/ui/components'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
 import CustomButton from '../../components/CustomButton'
-import {login as authLogin, register as authRegister } from '../../services/auth'
+import { login as authLogin, register as authRegister } from '../../services/auth'
 import { LoginCredentials, RegisterCredentials } from '../../types/auth'
 import { useRouter } from 'expo-router'
 import { CaretLeft } from 'phosphor-react-native'
@@ -28,8 +28,8 @@ export default function SignUp() {
   const [credentials, setCredentials] = useState<RegisterCredentials>({
     email: '',
     senha: '',
-    nomeCompleto: ''
-    //,isCheckTerms: false
+    nomeCompleto: '',
+    aceitouTermos: false
   });
   const [error, setError] = useState<string>('');
   const [errosValidacao, setErrosValidacao] = useState<string[]>([]);
@@ -38,77 +38,77 @@ export default function SignUp() {
   const { login } = useAuth();
   const [termosAceitos, setTermosAceitos] = useState(false);
 
-const handleRegister = async () => {
-  setLoading(true);
-  setError('');
-  setErrosValidacao([]);
-  console.log('🔥 handleRegister chamado com:', credentials);
+  const handleRegister = async () => {
+    setLoading(true);
+    setError('');
+    setErrosValidacao([]);
+    console.log('🔥 handleRegister chamado com:', credentials);
 
-  // Validação frontend opcional
-  if (credentials.senha.length < 8) {
-    setError('Senha deve ter pelo menos 8 caracteres');
-    setLoading(false);
-    return;
-  }
+    // Validação frontend opcional
+    if (credentials.senha.length < 8) {
+      setError('Senha deve ter pelo menos 8 caracteres');
+      setLoading(false);
+      return;
+    }
 
-  //Aceite dos termos 
-  //if (!credentials.isCheckTerms) {
-  //Alert.alert('Atenção', 'Você precisa aceitar os termos para continuar.');
-  //setLoading(false);
-  //return;
-   // }
-  try {
-    const response = await authRegister(credentials);
-    console.log('✅ Registro retornou:', response);
+    //Aceite dos termos 
+    if (!credentials.aceitouTermos) {
+      Alert.alert('Atenção', 'Você precisa aceitar os termos para continuar.');
+      setLoading(false);
+      return;
+    }
+    try {
+      const response = await authRegister(credentials);
+      console.log('✅ Registro retornou:', response);
 
-    if (response.success) {
-      // Exibe a mensagem da API em um alerta usando as credenciais originais
-      Alert.alert(
-        'Sucesso!',
-        response.message || 'Usuário criado com sucesso',
-        [
-          {
-            text: 'OK',
-            onPress: async () => {
-              try {
-                // Usa as credenciais originais para login
-                const loginResult = await authLogin({
-                  email: credentials.email,
-                  senha: credentials.senha
-                });
-                if (loginResult.token) {
-                  login(loginResult.token); // Passa apenas string
-                  console.log('🔑 Login bem-sucedido, redirecionando para /dashboard');
-                  router.replace('/dashboard');
-                } else {
-                  throw new Error('Token não recebido após login.');
+      if (response.success) {
+        // Exibe a mensagem da API em um alerta usando as credenciais originais
+        Alert.alert(
+          'Sucesso!',
+          response.message || 'Usuário criado com sucesso',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                try {
+                  // Usa as credenciais originais para login
+                  const loginResult = await authLogin({
+                    email: credentials.email,
+                    senha: credentials.senha
+                  });
+                  if (loginResult.token) {
+                    login(loginResult.token); // Passa apenas string
+                    console.log('🔑 Login bem-sucedido, redirecionando para /dashboard');
+                    router.replace('/dashboard');
+                  } else {
+                    throw new Error('Token não recebido após login.');
+                  }
+                } catch (loginError) {
+                  console.error('❌ Erro no login após registro:', loginError);
+                  Alert.alert('Erro', 'Falha ao realizar login após registro. Tente novamente.');
                 }
-              } catch (loginError) {
-                console.error('❌ Erro no login após registro:', loginError);
-                Alert.alert('Erro', 'Falha ao realizar login após registro. Tente novamente.');
               }
             }
-          }
-        ]
-      );
-    } else {
-      throw new Error('Falha inesperada no registro');
-    }
-  } catch (err) {
-    const mensagem = (err as Error).message;
-    console.error('❌ Erro no handleRegister:', err);
+          ]
+        );
+      } else {
+        throw new Error('Falha inesperada no registro');
+      }
+    } catch (err) {
+      const mensagem = (err as Error).message;
+      console.error('❌ Erro no handleRegister:', err);
 
-    if (mensagem.includes('\n')) {
-      const listaErros = mensagem.split('\n').filter(Boolean);
-      setErrosValidacao(listaErros);
-      Alert.alert('Erros de Validação', mensagem, [{ text: 'OK' }]);
-    } else {
-      setError(mensagem);
+      if (mensagem.includes('\n')) {
+        const listaErros = mensagem.split('\n').filter(Boolean);
+        setErrosValidacao(listaErros);
+        Alert.alert('Erros de Validação', mensagem, [{ text: 'OK' }]);
+      } else {
+        setError(mensagem);
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Render de erros: lista vermelha abaixo dos inputs
   const renderErros = () => {
@@ -127,8 +127,8 @@ const handleRegister = async () => {
     <SafeAreaView style={styles.appContainer}>
       <ScrollView >
         <View style={styles.appHeader}>
-        <ButtonBack />
-          <Logo styles={{logo:styles.logo}} width={172} height={60.54}/>
+          <ButtonBack />
+          <Logo styles={{ logo: styles.logo }} width={172} height={60.54} />
         </View>
         <View style={styles.groupContainer}>
           <Text style={styles.title}>Crie sua conta</Text>
@@ -157,33 +157,29 @@ const handleRegister = async () => {
               setCredentials({ ...credentials, senha: text })
             }
             keyboardType="email-address"
-            secureTextEntry={true}
           />
-         
+
           <View style={styles.checkboxRow}>
-            <CheckboxWithLabel label="Aceito os termos e a política de privacidade" //checked={credentials.isCheckTerms}
-            onPress={() =>
-    setCredentials(prev => ({
-      ...prev,
-      //termosAceitos: !prev.isCheckTerms
-    }))
-  }/>
+            <CheckboxWithLabel
+              label="Aceito os termos e a política de privacidade"
+              checked={credentials.aceitouTermos}
+              onPress={() => setCredentials(prev => ({ ...prev, aceitouTermos: !prev.aceitouTermos }))} />
           </View>
           {renderErros()}
           <View style={styles.button}>
-          <CustomButton
-            title="Cadastrar"
-            onPress={handleRegister}
-            buttonColor={{ backgroundColor: colors.primary2 }}
-            disabled={loading}
-            loading={loading}
-          />
+            <CustomButton
+              title="Cadastrar"
+              onPress={handleRegister}
+              buttonColor={{ backgroundColor: colors.primary2 }}
+              disabled={loading}
+              loading={loading}
+            />
           </View>
           <View style={styles.authSection}>
             <DividerWithText text="Entre com" />
             <AuthButton
               title="Google"
-              onPress={() => {}}
+              onPress={() => { }}
               iconName="google"
               isGoogle={true}
             />
@@ -193,7 +189,7 @@ const handleRegister = async () => {
               }}
               labelQuestion="Já tem uma conta?"
               labelAction="Entrar"
-              
+
             />
           </View>
         </View>
@@ -206,20 +202,20 @@ export const styles = StyleSheet.create({
   appContainer: {
     flex: 1,
     alignSelf: 'center',
-    marginTop:37,
+    marginTop: 37
   },
-appHeader:{
-  flexDirection:'row'
-},
-  button:{
-    margin:9
+  appHeader: {
+    flexDirection: 'row'
   },
-    logo:{
-    flex:1
+  button: {
+    margin: 9
+  },
+  logo: {
+    flex: 1
   },
   groupContainer: {
     width: '100%',
-    marginTop:57,
+    marginTop: 57,
   },
   title: {
     color: colors.primary,
@@ -231,8 +227,8 @@ appHeader:{
   checkboxRow: {},
   authSection: {
     alignItems: 'center',
-    flex:1,
-    marginTop:20
+    flex: 1,
+    marginTop: 20
   },
   error: { color: 'red', marginBottom: 10 },
   errosContainer: {

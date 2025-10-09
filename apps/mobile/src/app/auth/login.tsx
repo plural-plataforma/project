@@ -89,7 +89,7 @@ export default function LoginScreen() {
         />
         </View>
         <View style={styles.checkboxRow}>
-          <CheckboxWithLabel label="Lembrar-me" />
+          <CheckboxWithLabel label="Lembrar-me" checked={true} onPress={() => {}}/>
           <LinkButton title="Esqueci minha senha?" onPress={() => {}} />
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
