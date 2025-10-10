@@ -48,7 +48,7 @@ namespace api.Models
 
     public byte[]? Foto { get; set; }
 
-    public ICollection<Escola> Escolas { get; set; }
+    public ICollection<Escola>? Escolas { get; set; }
 
     }
 }

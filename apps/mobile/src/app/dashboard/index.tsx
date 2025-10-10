@@ -21,6 +21,7 @@ import { SignOut } from 'phosphor-react-native';
 import { Professor } from '@src/types/professor';
 import { buscarProfessor } from '@src/services/professorService';
 import { isCadastroCompleto } from '@src/utils/professorUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -30,37 +31,31 @@ export default function Dashboard() {
   const [cadastroCompleto, setCadastroCompleto] = useState(false);
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  
 
-    useEffect(() => {
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const data = await buscarProfessor();
+        console.log('✅ Dados recebidos:', data);
         setProfessor(data.objeto);
         setCadastroCompleto(isCadastroCompleto(data.objeto));
-        //setCadastroCompleto(true);
-      } catch (error) {
-        console.error('Erro ao carregar dados do professor:', error);
-        Alert.alert('Erro', 'Não foi possível carregar os dados do professor.');
+      } catch (error: any) {
+        console.error('❌ Erro ao carregar dados do professor:', error.message);
+        if (error.message.includes('401')) {
+          Alert.alert('Sessão Expirada', 'Por favor, faça login novamente.');
+          await AsyncStorage.removeItem('authToken');
+          router.push('/auth/login');
+        } else {
+          Alert.alert('Erro', 'Não foi possível carregar os dados do professor.');
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
-
-  
-  useEffect(() => {
-     //setCadastroCompleto(true);
-    console.log(
-      `🔍 useEffect: authLoading=${authLoading}, isLoggedIn=${isLoggedIn}`
-    );
-   
-    if (!authLoading && !isLoggedIn) {
-      console.log('🚀 useEffect detectou !isLoggedIn, redirecionando...');
-    }
-  }, [isLoggedIn, authLoading]);
+  }, [router]);
 
   if (authLoading)
     return <ActivityIndicator size="large" color={colors.primary} />;
@@ -80,22 +75,22 @@ export default function Dashboard() {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => {
-              console.log('🖱️ Botão Sair clicado!');
-              Alert.alert(
-                'Sair da conta?',
-                'Isso invalidará sua sessão e você precisará fazer login novamente.',
-                [
-                  { text: 'Cancelar', style: 'cancel' },
-                  {
-                    text: 'Sair',
-                    onPress: () => {
-                      console.log('✅ Confirmação de sair aceita!');
-                      signOut();
-                    },
+            console.log('🖱️ Botão Sair clicado!');
+            Alert.alert(
+              'Sair da conta?',
+              'Isso invalidará sua sessão e você precisará fazer login novamente.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Sair',
+                  onPress: () => {
+                    console.log('✅ Confirmação de sair aceita!');
+                    signOut();
                   },
-                ]
-              );
-            }}
+                },
+              ]
+            );
+          }}
             disabled={logoutLoading}>
             <SignOut size={32} />
           </TouchableOpacity>
@@ -103,7 +98,7 @@ export default function Dashboard() {
       </View>
       <SafeAreaView edges={['top']}>
         <ScrollView>
-          { !cadastroCompleto && <View style={{padding:16}}><NotificationBanner onPress={() => router.push('/professor')}/></View>}
+          {!cadastroCompleto && <View style={{ padding: 16 }}><NotificationBanner onPress={() => router.push('/professor')} /></View>}
 
         </ScrollView>
       </SafeAreaView>
@@ -131,7 +126,7 @@ export const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    
+
   },
   headerRight: {
     flexDirection: 'row',
@@ -142,7 +137,7 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
     fontFamily: 'Nunito_700Bold',
-    paddingInlineStart:10,
+    paddingInlineStart: 10,
   },
   textSecondary: {
     fontSize: 16,

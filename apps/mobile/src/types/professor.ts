@@ -1,8 +1,8 @@
 export interface Professor {
   nomeCompleto: string;
-  email: string;
-  cep: string ;
-  logradouro: string;
+  email?: string;
+  cep?: string ;
+  logradouro?: string;
   numero: number ;
   complemento: string;
   bairro: string;
@@ -13,7 +13,9 @@ export interface Professor {
   nivelEnsino: string;
   sobre: string;
   aceitouTermos: boolean;
-  escolas?: string[];
+  isCheckTerms: boolean;
+
+  escolas: string[];
 }
 
 export interface ProfessorResponse {

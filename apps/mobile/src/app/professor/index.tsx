@@ -2,24 +2,19 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  TextInput,
   ScrollView,
-  Image,
   Alert,
   StyleSheet,
-  Dimensions,
-  Switch,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, Camera, GraduationCap, User } from 'phosphor-react-native';
+import { Bell, Camera, GraduationCap, User, Trash } from 'phosphor-react-native';
 import { fetchCepData } from '../../services/validateCep';
 import { fetchEstados, fetchMunicipios } from '../../services/locationsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Header from '../../components/Header';
-import { Picker as RNPicker } from '@react-native-picker/picker';
 import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import { Professor } from '@src/types/professor';
 import { buscarProfessor, atualizarProfessor } from '../../services/professorService';
@@ -29,6 +24,8 @@ import ProgressFill from '@src/components/ProgressFill';
 import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import SectionGroup from '@src/components/SectionGroup';
+import { signOut } from '@src/services/auth';
+import ItemButton from '@src/components/ItemButton';
 
 // Lista de áreas de ensino
 const areasEnsino = [
@@ -42,6 +39,11 @@ const areasEnsino = [
   'Inglês',
   'Educação Física',
   'Artes',
+];
+
+const escolasMock = [
+  'Escola A',
+  'Escola B',
 ];
 
 export default function CadastroProfessor() {
@@ -60,8 +62,9 @@ export default function CadastroProfessor() {
     disciplinas: '',
     nivelEnsino: '',
     sobre: '',
+    isCheckTerms: false,
     aceitouTermos: false,
-    escolas: [],
+    escolas: [], // Default to empty array to avoid undefined
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [cepLoading, setCepLoading] = useState<boolean>(false);
@@ -81,12 +84,10 @@ export default function CadastroProfessor() {
           return;
         }
 
-        // Fetch states
         const estadosData = await fetchEstados();
         const formattedUfs = estadosData.map(uf => ({ label: uf.nome, value: uf.sigla }));
         setUfs(formattedUfs);
 
-        // Pre-fetch municipalities for RS as an example
         const municipiosData = await fetchMunicipios('RS');
         const cidadesRS = municipiosData.map(m => m.nome);
         setCidadesPorUf(prev => ({ ...prev, RS: cidadesRS }));
@@ -101,13 +102,14 @@ export default function CadastroProfessor() {
         console.error('Erro ao carregar dados iniciais:', error.message);
         if (error.message.includes('401')) {
           Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
-          router.push('/login');
+          router.push('/auth/login');
         } else {
           Alert.alert('Erro', 'Não foi possível carregar os dados. Preencha manualmente.');
           setProfessor((prev) => ({
             ...prev,
             estado: 'SP',
             cidade: 'São Paulo',
+            escolas: [], // Default to empty array on error
           }));
         }
       } finally {
@@ -133,7 +135,6 @@ export default function CadastroProfessor() {
           cidade: cepData.city || '',
         }));
 
-        // Fetch municipalities for the new state if not already loaded
         if (cepData.state && !cidadesPorUf[cepData.state]) {
           const municipiosData = await fetchMunicipios(cepData.state);
           const cidades = municipiosData.map(m => m.nome);
@@ -177,9 +178,7 @@ export default function CadastroProfessor() {
       await atualizarProfessor(professor);
       if (isCadastroCompleto(professor)) {
         Alert.alert('Sucesso', 'Cadastro concluído com sucesso!');
-        router.push('/dashboard');
-      } else {
-        Alert.alert('Aviso', 'Preencha todos os campos obrigatórios.');
+        router.back();
       }
     } catch (error: any) {
       console.error('Erro ao atualizar professor:', error.message);
@@ -218,11 +217,20 @@ export default function CadastroProfessor() {
     }));
   };
 
-  const renderErros = () => {};
+  const addEscola = (value: string) => {
+    if (value && typeof value === 'string' && !professor.escolas.includes(value)) {
+      setProfessor((prev) => ({
+        ...prev,
+        escolas: [...(prev.escolas || []), value],
+      }));
+    }
+  };
 
-  const handleEscolasChange = (text: string) => {
-    const escolasArray = text.split(',').map((item) => item.trim()).filter((item) => item.length > 0);
-    setProfessor({ ...professor, escolas: escolasArray });
+  const removeEscola = (escolaToRemove: string) => {
+    setProfessor((prev) => ({
+      ...prev,
+      escolas: (prev.escolas || []).filter((escola) => escola !== escolaToRemove),
+    }));
   };
 
   if (loading) return <ActivityIndicator size="large" color={colors.primary} />;
@@ -230,7 +238,6 @@ export default function CadastroProfessor() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Header title="Perfil do Professor" onBack={() => router.back()} />
-
       <ProgressFill />
       <View>
         <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
@@ -238,8 +245,6 @@ export default function CadastroProfessor() {
           Conclua a configuração do seu perfil para acessar todos os recursos da plataforma
         </Text>
       </View>
-
-      {/**<ProfilePhoto />*/}
 
       <SectionGroup title="Dados Pessoais" icon={<User size={16} weight="fill" color={colors.primary} />}>
         <InputField
@@ -257,6 +262,7 @@ export default function CadastroProfessor() {
         <InputField
           label="Telefone"
           placeholder="(00) 00000-0000"
+          mask='phone'
           value={professor.telefone || ''}
           onChangeText={(value) => setProfessor({ ...professor, telefone: value })}
         />
@@ -274,11 +280,44 @@ export default function CadastroProfessor() {
           value={professor.cep || ''}
           onChangeText={handleCepChange}
           editable={!cepLoading}
+          mask="cep"
+        />
+        <InputField
+          label="Estado"
+          placeholder="Informe o estado"
+          options={ufs}
+          selectedValue={professor.estado || ''}
+          onValueChange={(value) => {
+            const stateValue = value?.toString() || ''; // Garante que seja string
+            setProfessor({ ...professor, estado: stateValue, cidade: '' });
+            if (stateValue && !cidadesPorUf[stateValue]) {
+              fetchMunicipios(stateValue).then(municipiosData => {
+                const cidades = municipiosData.map(m => m.nome);
+                setCidadesPorUf(prev => ({ ...prev, [stateValue]: cidades }));
+              }).catch(err => console.error('Erro ao carregar cidades:', err));
+            }
+          }}
+        />
+        <InputField
+          label="Cidade"
+          placeholder="Informe a cidade"
+          options={cidadesDisponiveis.map((cidade) => ({ label: cidade, value: cidade }))}
+          selectedValue={professor.cidade || ''}
+          onValueChange={(value) => {
+            const cityValue = value?.toString() || ''; // Garante que seja string
+            setProfessor({ ...professor, cidade: cityValue });
+          }}
         />
         {cepLoading && <ActivityIndicator size="small" color={colors.primary} />}
         <InputField
-          label="Logradouro"
-          placeholder="Digite o logradouro"
+          label="Bairro"
+          placeholder="Digite o bairro"
+          value={professor.bairro || ''}
+          onChangeText={(value) => setProfessor({ ...professor, bairro: value })}
+        />
+        <InputField
+          label="Endereço"
+          placeholder="Digite o endereço"
           value={professor.logradouro || ''}
           onChangeText={(value) => setProfessor({ ...professor, logradouro: value })}
         />
@@ -298,51 +337,38 @@ export default function CadastroProfessor() {
           onChangeText={(value) => setProfessor({ ...professor, complemento: value })}
         />
         <InputField
-          label="Bairro"
-          placeholder="Digite o bairro"
-          value={professor.bairro || ''}
-          onChangeText={(value) => setProfessor({ ...professor, bairro: value })}
+          label="Sobre você"
+          placeholder="Conte um pouco sobre sua experiência metodologia de ensino..."
+          value={professor.sobre || ''}
+          onChangeText={(value) => setProfessor({ ...professor, sobre: value })}
         />
+      </SectionGroup>
+
+      <SectionGroup title="Dados Profissionais" icon={<GraduationCap size={16} weight="fill" color={colors.primary} />}>
         <InputField
-          label="Estado"
-          placeholder="Informe o estado"
-          options={ufs}
-          selectedValue={professor.estado || ''}
+          label="Escola/Instituição vinculada"
+          placeholder="Selecione uma escola"
+          options={escolasMock.map((escola) => ({ label: escola, value: escola }))}
+          selectedValue={''} // Reseta após seleção
           onValueChange={(value) => {
-            setProfessor({ ...professor, estado: value, cidade: '' }); // Reset cidade when estado changes
-            if (value && !cidadesPorUf[value]) {
-              fetchMunicipios(value).then(municipiosData => {
-                const cidades = municipiosData.map(m => m.nome);
-                setCidadesPorUf(prev => ({ ...prev, [value]: cidades }));
-              }).catch(err => console.error('Erro ao carregar cidades:', err));
+            if (value && typeof value === 'string') {
+              addEscola(value);
             }
           }}
         />
-        <InputField
-          label="Cidade"
-          placeholder="Informe a cidade"
-          options={cidadesDisponiveis.map((cidade) => ({ label: cidade, value: cidade }))}
-          selectedValue={professor.cidade || ''}
-          onValueChange={(value) => setProfessor({ ...professor, cidade: value })}
-        />
+        {professor.escolas.map((escola, index) => (
+          <ItemButton key={index} escola={escola} onRemove={removeEscola} />
+        ))}
       </SectionGroup>
-      <SectionGroup title="Dados Profissionais" icon={<GraduationCap size={16} weight="fill"  color={colors.primary} />}>
-      <InputField
-          label="Cidade"
-          placeholder="Informe a cidade"
-          options={cidadesDisponiveis.map((cidade) => ({ label: cidade, value: cidade }))}
-          selectedValue={professor.cidade || ''}
-          onValueChange={(value) => setProfessor({ ...professor, cidade: value })}
-        />
-      </SectionGroup>
-      <SectionGroup title="Preferências" icon={<Bell size={16} weight="fill"   color={colors.primary} />}>
-      
-       </SectionGroup>
+
+      <SectionGroup title="Preferências" icon={<Bell size={16} weight="fill" color={colors.primary} />} />
+
       <View style={styles.checkboxRow}>
         <CheckboxWithLabel
           label="Aceito os termos e a política de privacidade"
           checked={professor.aceitouTermos}
-          onPress={() => setProfessor(prev => ({ ...prev, aceitouTermos: !prev.aceitouTermos }))} />
+          onPress={() => setProfessor(prev => ({ ...prev, aceitouTermos: !prev.aceitouTermos }))}
+        />
       </View>
       <View style={styles.button}>
         <CustomButton
@@ -368,14 +394,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
     paddingHorizontal: 20,
   },
-  header: {
-    alignItems: 'center',
-  },
-  progressText: {
-    fontSize: 16,
-    marginBottom: 5,
-    fontFamily: 'Nunito_400Regular',
-  },
   titleInstrucao: {
     textAlign: 'justify',
     fontSize: fontSizes.f24,
@@ -391,84 +409,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: 30,
   },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#FAFAFA',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    backgroundColor: '#FAFAFA',
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    fontSize: 16,
-  },
-  pickerSmallContainer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    backgroundColor: '#FAFAFA',
-    overflow: 'hidden',
-  },
-  pickerSmall: {
-    height: 50,
-    fontSize: 16,
-  },
-  pickerItem: {
-    fontSize: 16,
-  },
-  checkboxContainer: {
-    gap: 10,
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#DDD',
-    borderRadius: 4,
-  },
-  checkboxChecked: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  inputSmall: {
-    flex: 1,
-  },
-  textarea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  contador: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
-    marginTop: 5,
-  },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -478,13 +418,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontFamily: 'Nunito_700Bold',
-  },
 });
-
-function signOut() {
-  throw new Error('Function not implemented.');
-}

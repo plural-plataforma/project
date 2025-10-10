@@ -9,7 +9,7 @@ import {
 } from '../types/auth';
 import Constants from 'expo-constants';
 
-const API_URL = Constants.expoConfig?.extra?.API_URL;
+const API_URL = Constants.expoConfig?.extra?.API_URL?.replace(/\/+$/, '') || 'http://localhost:5145/api/';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -42,13 +42,27 @@ api.interceptors.request.use(
 );
 
 // Interceptor de resposta para logout em 401
-api.interceptors.response.use(
-  response => response,
-  async (error: AxiosError<ApiError>) => {
-    if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('authToken');
-      // Opcional: router.replace('/login')
+api.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    const userToken = await AsyncStorage.getItem('authToken');
+    console.log('🔍 Interceptor: userToken existe?', !!userToken);
+    console.log('🔑 Token completo:', userToken);
+    if (userToken) {
+      config.headers.Authorization = `Bearer ${userToken}`;
+      console.log('✅ Adicionando userToken ao header:', config.url);
+    } else {
+      console.warn('⚠️ Nenhum token (user) adicionado! API pode falhar.', config.url);
+      delete config.headers.Authorization;
     }
+    console.log('📤 Config final do request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    });
+    return config;
+  },
+  error => {
+    console.error('❌ Erro no interceptor request:', error);
     return Promise.reject(error);
   }
 );
@@ -64,15 +78,29 @@ export const login = async (
       console.error('❌ Validação falhou:', msg);
       throw new Error(msg);
     }
-    console.log('📤 Enviando POST para Autenticacao/login...');
-    const response = await api.post('Autenticacao/login', credentials);
-    console.log('✅ Resposta completa da API:', response);
-    console.log('📄 Response.data:', response.data);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credentials.email)) {
+      throw new Error('E-mail inválido');
+    }
+    if (credentials.senha.length < 8) {
+      throw new Error('Senha deve ter pelo menos 8 caracteres');
+    }
+    const payload = { email: credentials.email, senha: credentials.senha };
+    console.log('📤 Enviando POST para Autenticacao/login com payload:', JSON.stringify(payload));
+    const response = await api.post('Autenticacao/login', payload);
+    console.log('✅ Resposta completa da API:', response.data);
     const { token } = response.data;
     if (!token) {
       throw new Error('Token não retornado pela API');
     }
+    console.log('🔐 Tentando salvar token no AsyncStorage:', token);
     await AsyncStorage.setItem('authToken', token);
+    const savedToken = await AsyncStorage.getItem('authToken');
+    console.log('🔑 Token salvo no AsyncStorage:', savedToken);
+    if (savedToken !== token) {
+      console.error('⚠️ Token salvo difere do retornado:', { savedToken, token });
+    } else {
+      console.log('✅ Token salvo com sucesso!');
+    }
     return { success: true, token };
   } catch (error) {
     console.error('❌ Erro no login do auth.ts:', error);
@@ -84,7 +112,8 @@ export const login = async (
     console.log('📊 Detalhes do erro Axios:', {
       status: axiosError.response?.status,
       data: axiosError.response?.data,
-      url: axiosError.config?.url
+      url: axiosError.config?.url,
+      requestPayload: JSON.stringify(credentials)
     });
     throw new Error(msg);
   }
@@ -108,8 +137,8 @@ export const register = async (
     // Validação baseada no status HTTP 200
     if (response.status === 200) {
       // Tenta extrair a mensagem da resposta
-      message = typeof response.data === 'string' 
-        ? response.data 
+      message = typeof response.data === 'string'
+        ? response.data
         : (response.data.message || 'Usuário criado com sucesso');
       console.log('🔍 Mensagem extraída da resposta:', message);
 
@@ -168,11 +197,11 @@ export const getToken = async (): Promise<string | null> => {
 };
 
 // Função logout atualizada: Invalida no servidor e limpa local (com fallback)
-export const logout = async (): Promise<void> => {
+export const signOut = async (): Promise<void> => {
   console.log('🔥 logout() do auth.ts chamado!');
   try {
     console.log('📤 Tentando invalidar no servidor...');
-    // await api.post('Autenticacao/logout');
+     await api.post('Autenticacao/login');
     console.log('✅ Token invalidado no servidor!');
   } catch (error) {
     console.error('❌ Erro ao invalidar token no servidor:', error);
