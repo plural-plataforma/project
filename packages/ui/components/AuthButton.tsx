@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   button: {
     marginLeft: 12,
     marginRight: 12,
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.primary2,
     height: 55,
     width: '90%',
     justifyContent: 'center',
@@ -59,12 +59,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.background,
-    fontSize: fontSizes.base,
+    fontSize: fontSizes.f10,
     fontFamily: 'Nunito_700Bold'
   },
   googleButtonText: {
     color: colors.primary,
-    fontSize: fontSizes.base,
+    fontSize: fontSizes.f10,
     fontFamily: 'Nunito_700Bold'
   }
 })

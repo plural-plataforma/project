@@ -23,7 +23,7 @@ namespace api.Controllers
             _usuario = usuario;
         }
 
-        [HttpPost("atualizar")]
+        [HttpPatch("atualizar")]
         public async Task<IActionResult> Atualizar([FromBody] ProfessorDTO professor)
         {
             var usuario = await _usuario.GetUserAsync(User);

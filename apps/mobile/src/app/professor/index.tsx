@@ -1,604 +1,421 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  TextInput,
   ScrollView,
-  Image,
   Alert,
   StyleSheet,
-  Switch,
-  Dimensions
-} from 'react-native'
-import { useRouter } from 'expo-router'
-import { Camera } from 'phosphor-react-native' // Removido UploadSimple se não usado
-import * as ImagePicker from 'expo-image-picker'
-import Header from '../../components/Header'
-import { Picker as RNPicker } from '@react-native-picker/picker' // Alias para evitar conflito
-import { colors } from '@/packages/ui/theme/theme'
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Bell, Camera, GraduationCap, User, Trash } from 'phosphor-react-native';
+import { fetchCepData } from '../../services/validateCep';
+import { fetchEstados, fetchMunicipios } from '../../services/locationsService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width } = Dimensions.get('window')
-const screenWidth = width - 40 // Padding lateral
+import Header from '../../components/Header';
+import { colors, fontSizes } from '@/packages/ui/theme/theme';
+import { Professor } from '@src/types/professor';
+import { buscarProfessor, atualizarProfessor } from '../../services/professorService';
+import { isCadastroCompleto } from '../../utils/professorUtils';
+import ProfilePhoto from '@src/components/ProfilePhoto';
+import ProgressFill from '@src/components/ProgressFill';
+import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
+import CustomButton from '@src/components/CustomButton';
+import SectionGroup from '@src/components/SectionGroup';
+import { signOut } from '@src/services/auth';
+import ItemButton from '@src/components/ItemButton';
+
+// Lista de áreas de ensino
+const areasEnsino = [
+  'Matemática',
+  'Português',
+  'História',
+  'Geografia',
+  'Biologia',
+  'Física',
+  'Química',
+  'Inglês',
+  'Educação Física',
+  'Artes',
+];
+
+const escolasMock = [
+  'Escola A',
+  'Escola B',
+];
 
 export default function CadastroProfessor() {
-  const router = useRouter()
-  const [fotoUri, setFotoUri] = useState<string | null>(null)
-  const [areaEnsino, setAreaEnsino] = useState('')
-  const [niveisEnsino, setNiveisEnsino] = useState({
-    fundamentalI: false,
-    fundamentalII: false,
-    medio: false,
-    eja: false
-  })
-  const [nomeEscola, setNomeEscola] = useState('')
-  const [uf, setUf] = useState('')
-  const [cidade, setCidade] = useState('')
-  const [estado, setEstado] = useState('')
-  const [sobreVoce, setSobreVoce] = useState('')
-  const [aceitaTermos, setAceitaTermos] = useState(false)
-  const [caracteresRestantes, setCaracteresRestantes] = useState(950)
-  const [nomeProfessor, setNomeProfessor] = useState('')
+  const router = useRouter();
+  const [professor, setProfessor] = useState<Professor>({
+    nomeCompleto: '',
+    email: '',
+    cep: '',
+    logradouro: '',
+    numero: 0,
+    complemento: '',
+    bairro: '',
+    estado: '',
+    cidade: '',
+    telefone: '',
+    disciplinas: '',
+    nivelEnsino: '',
+    sobre: '',
+    isCheckTerms: false,
+    aceitouTermos: false,
+    escolas: [], // Default to empty array to avoid undefined
+  });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [cepLoading, setCepLoading] = useState<boolean>(false);
+  const [ufs, setUfs] = useState<{ label: string; value: string }[]>([]);
+  const [cidadesPorUf, setCidadesPorUf] = useState<{ [key: string]: string[] }>({});
+  const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || ['Selecione o estado primeiro'] : ['Selecione o estado primeiro'];
 
-  // Lista de áreas de ensino (exemplo; ajuste com dados reais)
-  const areasEnsino = [
-    'Matemática',
-    'Português',
-    'História',
-    'Geografia',
-    'Biologia',
-    'Física',
-    'Química',
-    'Inglês',
-    'Educação Física',
-    'Artes'
-  ]
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        const token = await AsyncStorage.getItem('authToken');
+        if (!token) {
+          console.warn('⚠️ Nenhum token encontrado. Usuário não autenticado.');
+          Alert.alert('Aviso', 'Por favor, faça login para carregar seus dados.');
+          setLoading(false);
+          return;
+        }
 
-  // Lista de UFs
-  const ufs = [
-    'AC',
-    'AL',
-    'AP',
-    'AM',
-    'BA',
-    'CE',
-    'DF',
-    'ES',
-    'GO',
-    'MA',
-    'MT',
-    'MS',
-    'MG',
-    'PA',
-    'PB',
-    'PR',
-    'PE',
-    'PI',
-    'RJ',
-    'RN',
-    'RS',
-    'RO',
-    'RR',
-    'SC',
-    'SP',
-    'SE',
-    'TO'
-  ]
+        const estadosData = await fetchEstados();
+        const formattedUfs = estadosData.map(uf => ({ label: uf.nome, value: uf.sigla }));
+        setUfs(formattedUfs);
 
-  // Mapa de estados para UFs (para seleção)
-  const estadosPorUf: { [key: string]: string } = {
-    AC: 'Acre',
-    AL: 'Alagoas',
-    AP: 'Amapá',
-    AM: 'Amazonas',
-    BA: 'Bahia',
-    CE: 'Ceará',
-    DF: 'Distrito Federal',
-    ES: 'Espírito Santo',
-    GO: 'Goiás',
-    MA: 'Maranhão',
-    MT: 'Mato Grosso',
-    MS: 'Mato Grosso do Sul',
-    MG: 'Minas Gerais',
-    PA: 'Pará',
-    PB: 'Paraíba',
-    PR: 'Paraná',
-    PE: 'Pernambuco',
-    PI: 'Piauí',
-    RJ: 'Rio de Janeiro',
-    RN: 'Rio Grande do Norte',
-    RS: 'Rio Grande do Sul',
-    RO: 'Rondônia',
-    RR: 'Roraima',
-    SC: 'Santa Catarina',
-    SP: 'São Paulo',
-    SE: 'Sergipe',
-    TO: 'Tocantins'
-  }
+        const municipiosData = await fetchMunicipios('RS');
+        const cidadesRS = municipiosData.map(m => m.nome);
+        setCidadesPorUf(prev => ({ ...prev, RS: cidadesRS }));
 
-  // Lista de cidades filtrada por UF (exemplo simples; use API para real)
-  const cidadesPorUf: { [key: string]: string[] } = {
-    SP: ['São Paulo', 'Campinas', 'Santos', 'Ribeirão Preto', 'Sorocaba'],
-    RJ: ['Rio de Janeiro', 'Niterói', 'Duque de Caxias'],
-    MG: ['Belo Horizonte', 'Uberlândia', 'Juiz de Fora']
-    // Adicione mais UFs conforme necessário
-    // Default para outros
-  }
-  const cidadesDisponiveis = cidadesPorUf[uf] || ['Selecione UF primeiro']
+        const data = await buscarProfessor();
+        const updatedProfessor = {
+          ...data.objeto,
+          escolas: Array.isArray(data.objeto.escolas) ? data.objeto.escolas : data.objeto.escolas ? [data.objeto.escolas] : [],
+        };
+        setProfessor(updatedProfessor);
+      } catch (error: any) {
+        console.error('Erro ao carregar dados iniciais:', error.message);
+        if (error.message.includes('401')) {
+          Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
+          router.push('/auth/login');
+        } else {
+          Alert.alert('Erro', 'Não foi possível carregar os dados. Preencha manualmente.');
+          setProfessor((prev) => ({
+            ...prev,
+            estado: 'SP',
+            cidade: 'São Paulo',
+            escolas: [], // Default to empty array on error
+          }));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, []);
 
-  // Função para selecionar foto
-  const selecionarFoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (status !== 'granted') {
-      Alert.alert(
-        'Permissão negada',
-        'Precisamos de acesso à galeria para foto.'
-      )
-      return
+  const handleCepChange = async (text: string) => {
+    const cepClean = text.replace(/[^0-9]/g, '');
+    setProfessor({ ...professor, cep: cepClean });
+
+    if (cepClean.length === 8) {
+      setCepLoading(true);
+      try {
+        const cepData = await fetchCepData(cepClean);
+        setProfessor((prev) => ({
+          ...prev,
+          logradouro: cepData.street || '',
+          bairro: cepData.neighborhood || '',
+          estado: cepData.state || '',
+          cidade: cepData.city || '',
+        }));
+
+        if (cepData.state && !cidadesPorUf[cepData.state]) {
+          const municipiosData = await fetchMunicipios(cepData.state);
+          const cidades = municipiosData.map(m => m.nome);
+          setCidadesPorUf(prev => ({ ...prev, [cepData.state]: cidades }));
+        }
+      } catch (error: any) {
+        console.error('Erro ao buscar CEP:', error);
+        if (error.name === 'BadRequestError') {
+          Alert.alert('Erro de Validação', error.message);
+        } else if (error.name === 'NotFoundError') {
+          Alert.alert('Erro', 'CEP não encontrado.');
+        } else if (error.name === 'InternalError') {
+          Alert.alert('Erro', 'Erro interno no serviço de CEP.');
+        } else {
+          Alert.alert('Erro', error.message || 'Não foi possível buscar o endereço.');
+        }
+      } finally {
+        setCepLoading(false);
+      }
+    }
+  };
+
+  const handleConcluir = async () => {
+    console.log('Professor state:', professor);
+    if (!professor.aceitouTermos) {
+      Alert.alert('Atenção', 'Você deve aceitar os Termos de Uso e Política de Privacidade.');
+      return;
+    }
+    if (!professor.estado || !professor.cidade || !professor.cep || professor.cep.length !== 8) {
+      console.log('Validation failed for:', {
+        estado: professor.estado,
+        cidade: professor.cidade,
+        cep: professor.cep,
+      });
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios (*), incluindo um CEP válido de 8 dígitos.');
+      return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1
-    })
-
-    if (!result.canceled) {
-      setFotoUri(result.assets[0].uri)
+    try {
+      setLoading(true);
+      await atualizarProfessor(professor);
+      if (isCadastroCompleto(professor)) {
+        Alert.alert('Sucesso', 'Cadastro concluído com sucesso!');
+        router.back();
+      }
+    } catch (error: any) {
+      console.error('Erro ao atualizar professor:', error.message);
+      if (error.message.includes('401') || error.message.includes('Token de autenticação não encontrado')) {
+        Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
+        Alert.alert(
+          'Sair da conta?',
+          'Isso invalidará sua sessão e você precisará fazer login novamente.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Sair',
+              onPress: () => {
+                console.log('✅ Confirmação de sair aceita!');
+                signOut();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Erro', 'Não foi possível salvar os dados.');
+      }
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  // Função para contar caracteres
-  const handleSobreVoceChange = (text: string) => {
-    if (text.length <= 950) {
-      setSobreVoce(text)
-      setCaracteresRestantes(950 - text.length)
-    }
-  }
+  const toggleNivel = (nivel: string) => {
+    setProfessor((prev) => ({
+      ...prev,
+      nivelEnsino: prev.nivelEnsino
+        ? prev.nivelEnsino.includes(nivel)
+          ? prev.nivelEnsino.replace(nivel, '').replace(/,\s*$/, '')
+          : `${prev.nivelEnsino}, ${nivel}`
+        : nivel,
+    }));
+  };
 
-  // Função para submeter form (ajuste validação para combos)
-  const handleConcluir = () => {
-    if (!aceitaTermos) {
-      Alert.alert(
-        'Atenção',
-        'Você deve aceitar os Termos de Uso e Política de Privacidade.'
-      )
-      return
+  const addEscola = (value: string) => {
+    if (value && typeof value === 'string' && !professor.escolas.includes(value)) {
+      setProfessor((prev) => ({
+        ...prev,
+        escolas: [...(prev.escolas || []), value],
+      }));
     }
-    if (
-      !areaEnsino ||
-      Object.values(niveisEnsino).some(Boolean) === false || // Pelo menos um nível selecionado
-      !nomeEscola ||
-      !uf ||
-      !cidade ||
-      !estado ||
-      !sobreVoce.trim()
-    ) {
-      Alert.alert('Erro', 'Preencha todos os campos obrigatórios (*).')
-      return
-    }
-    // Chame service/hook aqui
-    Alert.alert('Sucesso', 'Cadastro concluído! Redirecionando...')
-    router.push('/dashboard')
-  }
+  };
 
-  // Toggle para checkboxes de nível
-  const toggleNivel = (nivel: keyof typeof niveisEnsino) => {
-    setNiveisEnsino(prev => ({ ...prev, [nivel]: !prev[nivel] }))
-  }
+  const removeEscola = (escolaToRemove: string) => {
+    setProfessor((prev) => ({
+      ...prev,
+      escolas: (prev.escolas || []).filter((escola) => escola !== escolaToRemove),
+    }));
+  };
+
+  if (loading) return <ActivityIndicator size="large" color={colors.primary} />;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Header title="Cadastro" onBack={() => router.back()} />
-
-      {/* Header com progresso */}
-      <View style={styles.header}>
-        <View style={styles.progressContainer}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%'
-            }}
-          >
-            <Text style={styles.progressText}>Progresso</Text>
-            <Text style={styles.progressLabel}>3 de 4</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View style={styles.progressFill} />
-          </View>
-        </View>
-      </View>
-
-      {/* Instrução */}
+      <Header title="Perfil do Professor" onBack={() => router.back()} />
+      <ProgressFill />
       <View>
         <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
         <Text style={styles.obsInstrucao}>
-          Conclua a configuração do seu perfil para acessar todos os recursos da
-          plataforma
+          Conclua a configuração do seu perfil para acessar todos os recursos da plataforma
         </Text>
       </View>
 
-      {/* Foto */}
-      <TouchableOpacity style={styles.fotoContainer} onPress={selecionarFoto}>
-        <View style={styles.fotoCircle}>
-          {fotoUri ? (
-            <Image source={{ uri: fotoUri }} style={styles.fotoImage} />
-          ) : (
-            <Camera size={40} color="#999" />
-          )}
-        </View>
-        <Text style={styles.fotoLabel}>Escolher foto</Text>
-      </TouchableOpacity>
+      <SectionGroup title="Dados Pessoais" icon={<User size={16} weight="fill" color={colors.primary} />}>
+        <InputField
+          label="Nome"
+          placeholder="Digite o nome"
+          value={professor.nomeCompleto || ''}
+          onChangeText={(value) => setProfessor({ ...professor, nomeCompleto: value })}
+        />
+        <InputField
+          label="E-mail"
+          placeholder="Digite o e-mail"
+          value={professor.email || ''}
+          onChangeText={(value) => setProfessor({ ...professor, email: value })}
+        />
+        <InputField
+          label="Telefone"
+          placeholder="(00) 00000-0000"
+          mask='phone'
+          value={professor.telefone || ''}
+          onChangeText={(value) => setProfessor({ ...professor, telefone: value })}
+        />
+        <InputField
+          label="Sexo"
+          placeholder="Selecione o sexo"
+          options={[
+            { label: 'Feminino', value: 'F' },
+            { label: 'Masculino', value: 'M' },
+          ]}
+        />
+        <InputField
+          label="CEP"
+          placeholder="Informe o CEP"
+          value={professor.cep || ''}
+          onChangeText={handleCepChange}
+          editable={!cepLoading}
+          mask="cep"
+        />
+        <InputField
+          label="Estado"
+          placeholder="Informe o estado"
+          options={ufs}
+          selectedValue={professor.estado || ''}
+          onValueChange={(value) => {
+            const stateValue = value?.toString() || ''; // Garante que seja string
+            setProfessor({ ...professor, estado: stateValue, cidade: '' });
+            if (stateValue && !cidadesPorUf[stateValue]) {
+              fetchMunicipios(stateValue).then(municipiosData => {
+                const cidades = municipiosData.map(m => m.nome);
+                setCidadesPorUf(prev => ({ ...prev, [stateValue]: cidades }));
+              }).catch(err => console.error('Erro ao carregar cidades:', err));
+            }
+          }}
+        />
+        <InputField
+          label="Cidade"
+          placeholder="Informe a cidade"
+          options={cidadesDisponiveis.map((cidade) => ({ label: cidade, value: cidade }))}
+          selectedValue={professor.cidade || ''}
+          onValueChange={(value) => {
+            const cityValue = value?.toString() || ''; // Garante que seja string
+            setProfessor({ ...professor, cidade: cityValue });
+          }}
+        />
+        {cepLoading && <ActivityIndicator size="small" color={colors.primary} />}
+        <InputField
+          label="Bairro"
+          placeholder="Digite o bairro"
+          value={professor.bairro || ''}
+          onChangeText={(value) => setProfessor({ ...professor, bairro: value })}
+        />
+        <InputField
+          label="Endereço"
+          placeholder="Digite o endereço"
+          value={professor.logradouro || ''}
+          onChangeText={(value) => setProfessor({ ...professor, logradouro: value })}
+        />
+        <InputField
+          label="Número"
+          placeholder="Digite o número"
+          value={professor.numero ? professor.numero.toString() : ''}
+          onChangeText={(value) => {
+            const numValue = value === '' ? 0 : parseInt(value) || 0;
+            setProfessor({ ...professor, numero: numValue });
+          }}
+        />
+        <InputField
+          label="Complemento"
+          placeholder="Digite o complemento"
+          value={professor.complemento || ''}
+          onChangeText={(value) => setProfessor({ ...professor, complemento: value })}
+        />
+        <InputField
+          label="Sobre você"
+          placeholder="Conte um pouco sobre sua experiência metodologia de ensino..."
+          value={professor.sobre || ''}
+          onChangeText={(value) => setProfessor({ ...professor, sobre: value })}
+        />
+      </SectionGroup>
 
-      {/* Escola */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nome</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Seu nome"
-          value={nomeProfessor}
-          onChangeText={setNomeProfessor}
+      <SectionGroup title="Dados Profissionais" icon={<GraduationCap size={16} weight="fill" color={colors.primary} />}>
+        <InputField
+          label="Escola/Instituição vinculada"
+          placeholder="Selecione uma escola"
+          options={escolasMock.map((escola) => ({ label: escola, value: escola }))}
+          selectedValue={''} // Reseta após seleção
+          onValueChange={(value) => {
+            if (value && typeof value === 'string') {
+              addEscola(value);
+            }
+          }}
+        />
+        {professor.escolas.map((escola, index) => (
+          <ItemButton key={index} escola={escola} onRemove={removeEscola} />
+        ))}
+      </SectionGroup>
+
+      <SectionGroup title="Preferências" icon={<Bell size={16} weight="fill" color={colors.primary} />} />
+
+      <View style={styles.checkboxRow}>
+        <CheckboxWithLabel
+          label="Aceito os termos e a política de privacidade"
+          checked={professor.aceitouTermos}
+          onPress={() => setProfessor(prev => ({ ...prev, aceitouTermos: !prev.aceitouTermos }))}
         />
       </View>
-      {/* Área de ensino - Picker */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Área de ensino</Text>
-        <View style={styles.pickerContainer}>
-          <RNPicker
-            selectedValue={areaEnsino}
-            onValueChange={itemValue => setAreaEnsino(itemValue)}
-            style={styles.picker}
-            dropdownIconColor="#999"
-            mode="dropdown" // Para iOS/Android dropdown
-          >
-            <RNPicker.Item label="Selecione sua área" value="" />
-            {areasEnsino.map(area => (
-              <RNPicker.Item key={area} label={area} value={area} />
-            ))}
-          </RNPicker>
-        </View>
-      </View>
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nome</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nome da escola onde leciona"
-          value={nomeEscola}
-          onChangeText={setNomeEscola}
+      <View style={styles.button}>
+        <CustomButton
+          title="Concluir Cadastro"
+          onPress={handleConcluir}
+          buttonColor={{ backgroundColor: colors.primary2 }}
+          disabled={loading}
+          loading={loading}
         />
       </View>
-
-      {/* Nível de ensino - Checkboxes (já ok) */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nível de ensino</Text>
-        <View style={styles.checkboxContainer}>
-          <TouchableOpacity
-            style={styles.checkbox}
-            onPress={() => toggleNivel('fundamentalI')}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                niveisEnsino.fundamentalI && styles.checkboxChecked
-              ]}
-            />
-            <Text>Fundamental I</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.checkbox}
-            onPress={() => toggleNivel('fundamentalII')}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                niveisEnsino.fundamentalII && styles.checkboxChecked
-              ]}
-            />
-            <Text>Fundamental II</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.checkbox}
-            onPress={() => toggleNivel('medio')}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                niveisEnsino.medio && styles.checkboxChecked
-              ]}
-            />
-            <Text>Ensino Médio</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.checkbox}
-            onPress={() => toggleNivel('eja')}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                niveisEnsino.eja && styles.checkboxChecked
-              ]}
-            />
-            <Text>EJA</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Escola */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Escola/Instituição</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nome da escola onde leciona"
-          value={nomeEscola}
-          onChangeText={setNomeEscola}
-        />
-      </View>
-
-      {/* UF */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Estado</Text>
-
-        <View style={styles.row}>
-          {/* Estado */}
-          <View style={styles.pickerSmallContainer}>
-            <RNPicker
-              selectedValue={uf}
-              onValueChange={itemValue => {
-                setUf(itemValue)
-                setCidade('') // Reset cidade ao mudar UF
-              }}
-              style={[styles.pickerSmall, styles.input]}
-              itemStyle={styles.pickerItem}
-              dropdownIconColor="#999"
-              mode="dropdown"
-            >
-              <RNPicker.Item label="UF" value="" />
-              {ufs.map(ufItem => (
-                <RNPicker.Item key={ufItem} label={ufItem} value={ufItem} />
-              ))}
-            </RNPicker>
-          </View>
-        </View>
-        {/* Cidade */}
-        <Text style={styles.label}>Cidade</Text>
-        <View style={styles.pickerSmallContainer}>
-          <RNPicker
-            selectedValue={cidade}
-            onValueChange={itemValue => setCidade(itemValue)}
-            style={[styles.pickerSmall, styles.input]}
-            itemStyle={styles.pickerItem}
-            dropdownIconColor="#999"
-            mode="dropdown"
-            enabled={!!uf} // Desabilita se UF não selecionado
-          >
-            <RNPicker.Item label="Sua cidade" value="" />
-            {cidadesDisponiveis.map(cidadeItem => (
-              <RNPicker.Item
-                key={cidadeItem}
-                label={cidadeItem}
-                value={cidadeItem}
-              />
-            ))}
-          </RNPicker>
-        </View>
-      </View>
-
-      {/* Sobre você */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Sobre você</Text>
-        <TextInput
-          style={[styles.textarea, styles.input]}
-          placeholder="Conte um pouco sobre sua experiência e metodologia de ensino."
-          multiline
-          maxLength={950}
-          value={sobreVoce}
-          onChangeText={handleSobreVoceChange}
-          textAlignVertical="top"
-        />
-        <Text style={styles.contador}>
-          {caracteresRestantes} caracteres restantes
-        </Text>
-      </View>
-
-      {/* Termos */}
-      <View style={styles.inputGroup}>
-        <View style={styles.checkboxRow}>
-          <Switch value={aceitaTermos} onValueChange={setAceitaTermos} />
-          <Text style={styles.checkboxLabel}>
-            Aceito os Termos de Uso e Política de Privacidade da plataforma
-          </Text>
-        </View>
-      </View>
-
-      {/* Botão */}
-      <TouchableOpacity style={styles.button} onPress={handleConcluir}>
-        <Text style={styles.buttonText}>Concluir Cadastro</Text>
-      </TouchableOpacity>
     </ScrollView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  // ... (mantenha os estilos anteriores)
   container: {
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    padding: 20
+    padding: 20,
   },
   content: {
-    paddingBottom: 20,
-    paddingHorizontal: 20
-  },
-  header: {
-    alignItems: 'center'
-  },
-  progressContainer: {
-    alignItems: 'center',
-    width: screenWidth,
-    padding: 20
-  },
-  progressText: {
-    fontSize: 16,
-    marginBottom: 5,
-    fontFamily: 'Nunito_400Regular'
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    width: screenWidth,
-    overflow: 'hidden'
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#F59E0B',
-    width: '75%' // 3 de 4
-  },
-  progressLabel: {
-    fontSize: 14,
-    marginTop: 5,
-    color: '#666'
+    paddingBottom: 100,
+    paddingHorizontal: 20,
   },
   titleInstrucao: {
     textAlign: 'justify',
-    fontSize: 24,
-    marginBottom: 30,
+    fontSize: fontSizes.f24,
+    marginTop: 17,
+    marginBottom: 8,
     lineHeight: 22,
-    fontFamily: 'Nunito_400Regular'
+    color: colors.primary,
+    fontFamily: 'Nunito_400Regular',
   },
   obsInstrucao: {
-    fontSize: 16,
+    fontSize: fontSizes.f16,
     lineHeight: 24,
-    color: '#666',
-    marginBottom: 30
-  },
-  fotoContainer: {
-    alignItems: 'center',
-    marginBottom: 30
-  },
-  fotoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  fotoImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60
-  },
-  fotoLabel: {
-    color: '#F59E0B',
-    fontWeight: '500'
-  },
-  inputGroup: {
-    marginBottom: 20
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 5
-  },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#FAFAFA'
-  },
-  // Estilos para Picker
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    backgroundColor: '#FAFAFA',
-    overflow: 'hidden' // Para bordas arredondadas no dropdown
-  },
-  picker: {
-    height: 50, // Altura fixa para simular input
-    fontSize: 16
-  },
-  pickerSmallContainer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    backgroundColor: '#FAFAFA',
-    overflow: 'hidden'
-  },
-  pickerSmall: {
-    height: 50,
-    fontSize: 16
-  },
-  pickerItem: {
-    fontSize: 16
-  },
-  checkboxContainer: {
-    gap: 10
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#DDD',
-    borderRadius: 4
-  },
-  checkboxChecked: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B'
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10
-  },
-  inputSmall: {
-    flex: 1
-  },
-  textarea: {
-    height: 100,
-    textAlignVertical: 'top'
-  },
-  contador: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
-    marginTop: 5
+    color: colors.primary,
+    marginBottom: 30,
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10
-  },
-  checkboxLabel: {
-    flex: 1,
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20
+    gap: 10,
   },
   button: {
-    backgroundColor: colors.tertiary,
-    padding: 16,
-    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 20
+    marginTop: 20,
   },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontFamily: 'Nunito_700Bold'
-  }
-})
+});

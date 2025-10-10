@@ -16,6 +16,7 @@ import { login as authLogin } from '../../services/auth' // authLogin é o servi
 import { LoginCredentials } from '../../types/auth'
 import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function LoginScreen() {
   const [credentials, setCredentials] = useState<LoginCredentials>({
@@ -28,111 +29,122 @@ export default function LoginScreen() {
   const { login } = useAuth() // Context login espera string (token)
 
   const handleLogin = async () => {
-    setLoading(true)
-    setError('') // Limpa erro anterior
-    console.log('🔍 Iniciando login com credenciais:', credentials) // Log das creds
+    setLoading(true);
+    setError(''); // Limpa erro anterior
+    console.log('🔍 Iniciando login com credenciais:', credentials);
 
     try {
-      // 1. Chame o SERVICE de auth (espera LoginCredentials)
-      console.log('📤 Chamando authLogin do serviço...') // Antes da chamada
-      const response = await authLogin(credentials) // Renomeado para evitar shadow
-      console.log('✅ Resposta do authLogin:', response) // Log da resposta completa
+      console.log('📤 Chamando authLogin do serviço...');
+      const response = await authLogin(credentials);
+      console.log('✅ Resposta do authLogin:', response);
 
-      // FIX: Checagem para token (satisfaz TS e cobre edge cases)
       if (!response.token) {
-        const msg = 'Token não recebido da API. Tente novamente.'
-        console.error('❌ Sem token na resposta:', response)
-        throw new Error(msg)
+        const msg = 'Token não recebido da API. Tente novamente.';
+        console.error('❌ Sem token na resposta:', response);
+        throw new Error(msg);
       }
 
-      // 2. Após sucesso, chame o CONTEXT login SÓ com o token (agora string garantido)
-      console.log('🔑 Chamando context.login com token:', response.token) // Confirma token
-      login(response.token) // Agora OK: TS sabe que é string
-      console.log('🎉 Context login chamado, isLoggedIn deve ser true agora') // Confirma estado
-      Alert.alert('Sucesso', 'Login realizado!')
-      console.log('➡️ Navegando para /dashboard...') // Antes do replace
-      router.replace('/dashboard') // Ou deixe o context redirecionar
-      console.log('🚀 Navegação executada!') // Se chegou aqui
+      console.log('🔑 Chamando context.login com token:', response.token);
+      login(response.token);
+      console.log('🎉 Context login chamado, isLoggedIn deve ser true agora');
+
+      // Verifica se o token foi salvo antes de navegar
+      const savedToken = await AsyncStorage.getItem('authToken');
+      if (!savedToken || savedToken !== response.token) {
+        console.error('⚠️ Token não salvo ou difere:', { savedToken, expected: response.token });
+        throw new Error('Falha ao salvar o token.');
+      }
+
+      Alert.alert('Sucesso', 'Login realizado!');
+      console.log('➡️ Navegando para /dashboard...');
+      router.replace('/dashboard');
+      console.log('🚀 Navegação executada!');
     } catch (err) {
-      console.error('❌ Erro no handleLogin:', err) // Log detalhado do erro
-      const errorMsg = (err as Error).message
-      setError(errorMsg)
-      Alert.alert('Erro', errorMsg) // Mostra no Alert para UX
+      console.error('❌ Erro no handleLogin:', err);
+      const errorMsg = (err as Error).message;
+      setError(errorMsg);
+      Alert.alert('Erro', errorMsg);
     } finally {
-      setLoading(false)
-      console.log('🏁 Fim do handleLogin, loading=false') // Sempre loga
+      setLoading(false);
+      console.log('🏁 Fim do handleLogin, loading=false');
     }
-  }
+  };
 
   return (
     <SafeAreaView style={styles.appContainer}>
-      <View style={styles.container}>
-        <Logo width={248} height={87.29} />
-        <Text style={styles.text}>Seja bem vindo!</Text>
-        <InputField
-          label="E-mail"
-          placeholder="Informe seu e-mail"
-          value={credentials.email}
-          onChangeText={text => setCredentials({ ...credentials, email: text })}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <InputField
-          label="Senha"
-          placeholder="Informe sua senha"
-          value={credentials.senha}
-          onChangeText={text => setCredentials({ ...credentials, senha: text })}
-          secureTextEntry={true}
-          autoCapitalize="none"
-        />
-        <View style={styles.checkboxRow}>
-          <CheckboxWithLabel label="Lembrar-me" />
-          <LinkButton title="Esqueci minha senha?" onPress={() => {}} />
-        </View>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+      <ScrollView>
+        <View style={styles.container}>
+          <Logo width={248} height={87.29} />
+          <Text style={styles.text}>Seja bem vindo!</Text>
+          <View style={{ flex: 1, padding: 0 }}>
+            <InputField
+              label="E-mail"
+              placeholder="Informe seu e-mail"
+              value={credentials.email}
+              onChangeText={text => setCredentials({ ...credentials, email: text })}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <InputField
+              label="Senha"
+              placeholder="Informe sua senha"
+              value={credentials.senha}
+              onChangeText={text => setCredentials({ ...credentials, senha: text })}
+              secureTextEntry={true}
+              autoCapitalize="none"
+            />
+          </View>
+          <View style={styles.checkboxRow}>
+            <CheckboxWithLabel label="Lembrar-me" checked={true} onPress={() => { }} />
+            <LinkButton title="Esqueci minha senha?" onPress={() => { }} />
+          </View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <CustomButton
-          title="Entrar"
-          onPress={handleLogin}
-          disabled={loading}
-          loading={loading}
-        />
-      </View>
-      <View style={styles.authSection}>
-        <DividerWithText text="Entre com" />
-        <AuthButton
-          title="Google"
-          onPress={() => {}}
-          iconName="google"
-          isGoogle={true}
-        />
-        <SignupLink
-          onPress={() => {
-            router.push('/auth/signUp')
-          }}
-          labelQuestion="Não tem uma conta?"
-          labelAction="Inscreva-se"
-        />
-      </View>
+          <CustomButton
+            title="Entrar"
+            onPress={handleLogin}
+            disabled={loading}
+            loading={loading}
+            buttonColor={{ backgroundColor: colors.primary2 }}
+          />
+
+        </View>
+        <View style={styles.authSection}>
+          <DividerWithText text="Entre com" />
+          <AuthButton
+            title="Google"
+            onPress={() => { }}
+            iconName="google"
+            isGoogle={true}
+          />
+          <SignupLink
+            onPress={() => {
+              router.push('/auth/signUp')
+            }}
+            labelQuestion="Não tem uma conta?"
+            labelAction="Inscreva-se"
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   appContainer: {
+    width: "100%",
     flex: 1,
-    justifyContent: 'center',
     backgroundColor: colors.background
   },
   container: {
-    width: '72%',
-    alignSelf: 'center'
+    alignSelf: 'center',
+
   },
   text: {
     color: colors.primary,
-    paddingTop: 20,
+
     margin: 12,
-    fontSize: fontSizes.xxxl,
+    fontSize: fontSizes.f30,
     fontWeight: '400' as const,
     fontFamily: 'Nunito_400Regular'
   },

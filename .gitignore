@@ -13,11 +13,13 @@ node_modules
 .env.production.local
 apps/api/.vs/*
 apps/api/Properties/*
-.vs/*
+.vs/
+.vscode/
+.qodo/
+*.suo
 
 #Arquivo de publicação
 *.pubxml
-
 
 # Testing
 coverage

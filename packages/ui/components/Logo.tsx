@@ -1,8 +1,14 @@
-import { Image, StyleSheet } from 'react-native'
+import { Image, StyleProp, TextStyle, ViewStyle , ImageStyle} from 'react-native'
+
 interface LogoProps {
   width?: number
   height?: number
   href?: keyof typeof logos
+  styles?: {
+    view?: StyleProp<ViewStyle>;
+    text?: StyleProp<TextStyle>;
+    logo?: StyleProp<ImageStyle>;
+  };
 }
 
 const logos = {
@@ -10,21 +16,14 @@ const logos = {
   'logo-contrast': require('../assets/images/logo-plural-plataforma-contrast.png')
 }
 
-const Logo: React.FC<LogoProps> = ({ width, height, href = 'logo-padrao' }) => {
+const Logo: React.FC<LogoProps> = ({ width, height, href = 'logo-padrao', styles = {} }) => {
   return (
     <Image
       source={logos[href]}
-      style={[styles.logo, { width: width, height: height }]}
+      style={[styles.logo,{flex:1,
+    resizeMode: 'contain', width: width, height: height }]}
     />
   )
 }
-
-const styles = StyleSheet.create({
-  logo: {
-    alignSelf: 'center',
-    resizeMode: 'contain',
-    marginVertical: 20
-  }
-})
 
 export default Logo

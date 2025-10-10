@@ -19,6 +19,13 @@ builder.Configuration.AddEnvironmentVariables();
 var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("DB_PASSWORD não encontrada no .env");
 var userId = builder.Configuration["USER_ID"] ?? throw new InvalidOperationException("USER_ID não encontrada no .env");
 var serverUrl = builder.Configuration["SERVER_URL"] ?? throw new InvalidOperationException("SERVER_URL não encontrada no .env");
+var jwtSecret = builder.Configuration["JWT_SECRET"] ?? throw new InvalidOperationException("JWT_SECRET não encontrada no .env");
+
+// Carrega appsettings.json e substitui placeholders
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+var appSettings = builder.Configuration.GetSection("JwtSettings");
+var secret = appSettings["Secret"].Replace("{JWT_SECRET}", jwtSecret); // Substitui o placeholder
+appSettings["Secret"] = secret; // Atualiza a configuração
 
 // Monte connection string com substituições do .env
 var baseConnectionString = builder.Configuration.GetConnectionString("AppDbContext")
@@ -35,8 +42,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Identity
 builder.Services.AddIdentity<Usuario, IdentityRole>().AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
-
-
 
 var chave = Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Secret"]);
 
@@ -92,16 +97,14 @@ else
         x.SwaggerEndpoint("swagger/v1/swagger.json", "Plural API");
         x.RoutePrefix = string.Empty;
     });
-
 }
-
 
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();  // Se customizado, ok
+app.MapStaticAssets(); // Se customizado, ok
 
 app.MapControllers();
 
@@ -113,7 +116,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         context.Database.CanConnect();
-        Console.WriteLine("Conex�o com o banco de dados estabelecida com sucesso.");
+        Console.WriteLine("Conexão com o banco de dados estabelecida com sucesso.");
     }
     catch (Exception ex)
     {
@@ -122,5 +125,3 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-
-
