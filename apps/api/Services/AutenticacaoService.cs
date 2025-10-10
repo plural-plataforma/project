@@ -60,6 +60,7 @@ namespace api.Services
 
                     await _usuario.AddToRoleAsync(usuarioApp, "Professor");
 
+                    await transacao.CommitAsync();
                     return IdentityResult.Success;
                 }
                 catch (Exception)
