@@ -15,6 +15,9 @@ namespace api.DTOs.Autenticacao
         [StringLength(256)]
         public string NomeCompleto { get; set; }
 
+        [Required(ErrorMessage = "É necessário aceitar os termos de uso")]
+        public bool AceitouTermos { get; set; }
+
 
     }
 }

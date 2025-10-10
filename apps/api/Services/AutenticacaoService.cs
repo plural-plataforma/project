@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace api.Services
 {
-    public class AutenticacaoService
+    public  class AutenticacaoService
     {
         private readonly UserManager<Usuario> _usuario;
         private readonly RoleManager<IdentityRole> _tipo;
@@ -18,49 +18,62 @@ namespace api.Services
 
         public AutenticacaoService(UserManager<Usuario> usuario, RoleManager<IdentityRole> tipo, AppDbContext contexto, IConfiguration configuracao)
         {
-            _usuario = usuario ?? throw new ArgumentNullException(nameof(usuario));
-            _tipo = tipo ?? throw new ArgumentNullException(nameof(tipo));
-            _contexto = contexto ?? throw new ArgumentNullException(nameof(contexto));
-            _configuracao = configuracao ?? throw new ArgumentNullException(nameof(configuracao));
+            _usuario = usuario;
+            _tipo = tipo;
+            _contexto = contexto;
+            _configuracao = configuracao;
         }
 
         public async Task<IdentityResult> Registro(RegistroDTO registroDto)
         {
-            if (registroDto == null) throw new ArgumentNullException(nameof(registroDto));
-
-            int? perfilId = null;
-
-            Professor professor = new Professor { NomeCompleto = registroDto.NomeCompleto };
-            _contexto.Professores.Add(professor);
-            await _contexto.SaveChangesAsync();
-            perfilId = professor.ID;
-
-            Usuario usuarioApp = new Usuario
+            using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
-                UserName = registroDto.Email,
-                Email = registroDto.Email,
-                ProfessorId = perfilId
-            };
+                try
+                {
+                    int? perfilId = null;
 
-            var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
+                    Professor professor = new Professor { NomeCompleto = registroDto.NomeCompleto };
+                    _contexto.Professores.Add(professor);
+                    await _contexto.SaveChangesAsync();
+                    perfilId = professor.ID;
 
-            if (!result.Succeeded) return result;
+                    Usuario usuarioApp = new Usuario
+                    {
+                        UserName = registroDto.Email,
+                        Email = registroDto.Email,
+                        ProfessorId = perfilId,
+                        AceitouTermos = registroDto.AceitouTermos
+                    };
 
-            if (!await _tipo.RoleExistsAsync("Professor"))
-            {
-                await _tipo.CreateAsync(new IdentityRole("Professor"));
+                    var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
+
+                    if (!result.Succeeded)
+                    {
+                        await transacao.RollbackAsync();
+                        return result;
+                    }
+
+                    if (!await _tipo.RoleExistsAsync("Professor"))
+                    {
+                        await _tipo.CreateAsync(new IdentityRole("Professor"));
+                    }
+
+                    await _usuario.AddToRoleAsync(usuarioApp, "Professor");
+
+                    await transacao.CommitAsync();
+                    return IdentityResult.Success;
+                }
+                catch (Exception)
+                {
+
+                    await transacao.RollbackAsync();
+                    throw;
+                }
             }
-
-            await _usuario.AddToRoleAsync(usuarioApp, "Professor");
-
-            return IdentityResult.Success;
         }
 
         public async Task<string?> Login(LoginDTO loginDto)
         {
-            if (loginDto == null || string.IsNullOrEmpty(loginDto.Email) || string.IsNullOrEmpty(loginDto.Senha))
-                return null;
-
             var usuario = await _usuario.FindByEmailAsync(loginDto.Email);
             if (usuario == null) return null;
 
@@ -79,18 +92,14 @@ namespace api.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var secret = _configuracao["JwtSettings:Secret"];
-            if (string.IsNullOrEmpty(secret))
-                throw new ArgumentNullException(nameof(secret), "JWT Secret is not configured.");
-
-            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")));
             var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
                 issuer: _configuracao["JwtSettings:Issuer"],
                 audience: _configuracao["JwtSettings:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(int.Parse(_configuracao["JwtSettings:ExpirationMinutes"] ?? "180")), // Use minutes from config
+                expires: DateTime.Now.AddHours(3),
                 signingCredentials: credenciais
             );
 
