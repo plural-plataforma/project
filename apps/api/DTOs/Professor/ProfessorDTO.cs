@@ -40,8 +40,11 @@ namespace api.DTOs.Professor
         [MaxLength(500)]
         public string? Sobre { get; set; }
 
-        public bool? IsCheckTerms { get; set; }
+        public bool? AceitouTermos { get; set; }
 
-        public ICollection<Escola>? Escolas { get; set; }
+        public string? Email { get; set; }
+
+        [MaxLength(1)]
+        public string? Sexo { get; set; }
     }
 }

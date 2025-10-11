@@ -10,10 +10,12 @@ namespace api.Services
     public class ProfessorService
     {
         private readonly AppDbContext _contexto;
+        private readonly UserManager<Usuario> _usuario;
 
-        public ProfessorService(AppDbContext contexto)
+        public ProfessorService(AppDbContext contexto, UserManager<Usuario> usuario)
         {
             _contexto = contexto;
+            _usuario = usuario;
         }
 
         public async Task<ServiceResponse<ProfessorDTO>> Atualizar(ProfessorDTO professorDto, int idProfessor)
@@ -88,6 +90,10 @@ namespace api.Services
                 {
                     professor.Sobre = professorDto.Sobre;
                 }
+                if (!string.IsNullOrEmpty(professorDto.Sexo))
+                {
+                    professor.Sexo = professorDto.Sexo.ToUpper();
+                }
 
                 await _contexto.SaveChangesAsync();
             }
@@ -101,12 +107,13 @@ namespace api.Services
             return resposta;
         }
 
-        public async Task<ServiceResponse<ProfessorDTO>> Buscar(int idProfessor)
+        public async Task<ServiceResponse<ProfessorDTO>> Buscar(Usuario usuario)
         {
             var resposta = new ServiceResponse<ProfessorDTO>();
+
             try
             {
-                Professor professor = await _contexto.Professores.FindAsync(idProfessor);
+                Professor professor = await _contexto.Professores.FindAsync(usuario.ProfessorId);
                 if (professor == null)
                 {
                     resposta.SetFalha("Professor não encontrado.");
@@ -116,6 +123,7 @@ namespace api.Services
                 var professorDto = new ProfessorDTO
                 {
                     NomeCompleto = professor.NomeCompleto,
+                    Sexo = professor.Sexo,
                     Cep = professor.Cep,
                     Logradouro = professor.Logradouro,
                     Numero = professor.Numero,
@@ -127,7 +135,8 @@ namespace api.Services
                     Disciplinas = professor.Disciplinas,
                     NivelEnsino = professor.NivelEnsino,
                     Sobre = professor.Sobre,
-                    IsCheckTerms = professor.IsCheckTerms
+                    AceitouTermos = usuario.AceitouTermos,
+                    Email = usuario.Email
                 };
                 resposta.AdicionaObjeto(professorDto);
             }
