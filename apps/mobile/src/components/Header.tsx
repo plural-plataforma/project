@@ -37,12 +37,12 @@ export default function Header({ title, onBack }: CadastroHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.view}>
-      {/* Back Button */}
-      <ButtonBack/>
-      {/* Título */}
-      <Text style={[styles.title, styles.groupIconPosition]}>{title}</Text>
+        {/* Back Button */}
+        <ButtonBack />
+        {/* Título */}
+        <Text style={[styles.title, styles.groupIconPosition]}>{title}</Text>
 
-      {/* Logo */}
+        {/* Logo */}
         <Image
           source={require('@/packages/ui/assets/images/logo-small.png')}
           style={[styles.groupIcon, styles.groupIconPosition]}
@@ -56,40 +56,41 @@ export default function Header({ title, onBack }: CadastroHeaderProps) {
 const styles = StyleSheet.create({
   header: {
     flex: 1,
-  marginTop: 29,
+    marginTop: 29,
+    marginBottom: 10,
   },
-  view:{
+  view: {
     height: 48,
-flex: 1
+    flex: 1
   },
-  
+
 
   groupIconPosition: {
-top: "0%",
-position: "absolute"
-},
-title: {
-  marginTop:20,
-left: "20%",
-fontWeight: '600',
-fontSize: fontSizes.f20,
-fontFamily: "Poppins-Regular",
-textAlign: "left",
-display: "flex",
-alignItems: "center",
-width: 220,
-color: colors.primary,
-height: "100%"
-},
+    top: "0%",
+    position: "absolute"
+  },
+  title: {
+    marginTop: 20,
+    left: "20%",
+    fontWeight: '600',
+    fontSize: fontSizes.f20,
+    fontFamily: "Poppins-Regular",
+    textAlign: "left",
+    display: "flex",
+    alignItems: "center",
+    width: 220,
+    color: colors.primary,
+    height: "100%"
+  },
 
-groupIcon: {
-    marginTop:16,
-height: "72.84%",
-width: "12.43%",
-right: "0%",
-left: "87.57%",
-maxHeight: "100%",
-overflow: "hidden",
-maxWidth: "100%"
-}
+  groupIcon: {
+    marginTop: 16,
+    height: "72.84%",
+    width: "12.43%",
+    right: "0%",
+    left: "87.57%",
+    maxHeight: "100%",
+    overflow: "hidden",
+    maxWidth: "100%"
+  }
 })
