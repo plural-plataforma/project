@@ -51,7 +51,7 @@ namespace api.Controllers
         public async Task<IActionResult> Buscar()
         {
             var usuario = await _usuario.GetUserAsync(User);
-            var resposta = await _professorService.Buscar((int)usuario.ProfessorId);
+            var resposta = await _professorService.Buscar(usuario);
             if (resposta.Sucesso)
             {
                 return Ok(resposta);

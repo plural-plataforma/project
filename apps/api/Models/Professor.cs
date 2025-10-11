@@ -48,6 +48,9 @@ namespace api.Models
 
     public byte[]? Foto { get; set; }
 
+    [MaxLength(1)]
+    public string? Sexo { get; set; }
+
     public ICollection<Escola>? Escolas { get; set; }
 
     }
