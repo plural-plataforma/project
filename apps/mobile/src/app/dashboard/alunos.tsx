@@ -1,6 +1,6 @@
 import { Text } from 'react-native'
-import AlunoProfileScreen from '../aluno/AlunoProfileScreen'
+import MeusAlunos from '../aluno/MeusAlunos'
 
 export default function Alunos() {
-  return <AlunoProfileScreen />
+  return <MeusAlunos />
 }

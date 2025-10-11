@@ -1,6 +1,6 @@
 import { colors, fontSizes } from '../../../../packages/ui/theme/theme';
 import { Text, TextInput, View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import MaskInput, { Masks } from 'react-native-mask-input';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { CaretDown } from 'phosphor-react-native';
@@ -18,12 +18,12 @@ interface InputFieldProps {
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'number-pad';
   style?: StyleProp<ViewStyle>;
   dropDownContainerStyle?: StyleProp<ViewStyle>;
-  openDropdown?: boolean;
-  onOpenDropdown?: () => void;
-  onFocusTextInput?: () => void;
 }
 
 const CPF_MASK = [/\d/, /\d/, /\d/, '.', /\d/, /\d/, /\d/, '.', /\d/, /\d/, /\d/, '-', /\d/, /\d/];
+
+// Contador global para zIndex único
+let zIndexCounter = 100000;
 
 const InputField: React.FC<InputFieldProps> = ({
   label,
@@ -38,14 +38,12 @@ const InputField: React.FC<InputFieldProps> = ({
   keyboardType,
   style,
   dropDownContainerStyle,
-  openDropdown,
-  onOpenDropdown,
-  onFocusTextInput,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [open, setOpen] = useState(false);
   const [localValue, setLocalValue] = useState<string | number | null>(selectedValue ?? null);
+  const zIndexRef = useRef(zIndexCounter--); // Gera um zIndex único e decrescente
 
   const getMask = (): (string | RegExp)[] | undefined => {
     switch (mask) {
@@ -60,35 +58,33 @@ const InputField: React.FC<InputFieldProps> = ({
     }
   };
 
-  const handleValueChange = (newValue: string | number | null) => {
+  const handleValueChange = useCallback((newValue: string | number | null) => {
     setLocalValue(newValue);
     if (onValueChange) {
       onValueChange(newValue);
     }
-  };
+    setOpen(false); // Fecha o dropdown após seleção
+  }, [onValueChange]);
+
+  const handleFocusTextInput = useCallback(() => {
+    setOpen(false); // Fecha o dropdown ao focar em um TextInput
+  }, []);
 
   if (options && options.length > 0) {
     return (
-      <View style={[styles.container, style]}>
+      <View style={[styles.container, style, { position: 'relative', zIndex: zIndexRef.current - 100, overflow: 'visible' }]}>
         <Text style={styles.label}>{label || ''}</Text>
         <View style={[styles.inputWrapper, isFocused && styles.inputFocused, { overflow: 'visible' }]}>
           <DropDownPicker
-            open={openDropdown ?? false}
+            open={open}
             value={localValue}
             items={options}
-            setOpen={(value) => {
-              const nextOpen = typeof value === "function" ? value(openDropdown ?? false) : value;
-              if (nextOpen) {
-                onOpenDropdown?.(); // Abre
-              } else {
-                onOpenDropdown?.(); // Fecha (se quiser controle externo)
-              }
-            }}
+            setOpen={setOpen}
             setValue={(callback) => {
               const newValue = typeof callback === 'function' ? callback(localValue) : callback;
-              handleValueChange(newValue);
-              setOpen(false); // ✅ Fecha dropdown após seleção
-              onOpenDropdown?.(); // ✅ Notifica que foi fechado (atualiza estado no pai)
+              if (newValue === null || typeof newValue === 'string' || typeof newValue === 'number') {
+                handleValueChange(newValue);
+              }
             }}
             placeholder={placeholder || 'Selecione uma opção'}
             onOpen={() => setIsFocused(true)}
@@ -98,16 +94,16 @@ const InputField: React.FC<InputFieldProps> = ({
             dropDownContainerStyle={[
               styles.dropdownContainer,
               dropDownContainerStyle,
-              // já com zIndex apropriado vindo de props
+              {
+                zIndex: zIndexRef.current,
+                elevation: 1000,
+                position: 'absolute',
+                top: 55,
+              },
             ]}
             textStyle={[
               styles.dropdownText,
-              {
-                color:
-                  isFocused || localValue
-                    ? colors.primary // ✅ Focado ou com valor → cor igual ao TextInput
-                    : colors.secondary, // Placeholder
-              },
+              { color: isFocused || localValue ? colors.primary : colors.secondary },
             ]}
             listItemLabelStyle={styles.listItemLabel}
             ArrowDownIconComponent={() => (
@@ -142,7 +138,7 @@ const InputField: React.FC<InputFieldProps> = ({
           style={[styles.input, isFocused && styles.inputFocused]}
           onFocus={() => {
             setIsFocused(true);
-            onFocusTextInput?.();
+            handleFocusTextInput();
           }}
           onBlur={() => setIsFocused(false)}
           keyboardType={keyboardType || 'numeric'}
@@ -157,7 +153,7 @@ const InputField: React.FC<InputFieldProps> = ({
           placeholderTextColor={colors.placeholder}
           onFocus={() => {
             setIsFocused(true);
-            onFocusTextInput?.();
+            handleFocusTextInput();
           }}
           onBlur={() => setIsFocused(false)}
           keyboardType={keyboardType}

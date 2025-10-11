@@ -76,7 +76,6 @@ export default function AlunoProfileScreen() {
   const cidadesDisponiveis = aluno.estado
     ? cidadesPorUf[aluno.estado] || ["Selecione o estado primeiro"]
     : ["Selecione o estado primeiro"];
-  const [openedDropdownIndex, setOpenedDropdownIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -165,7 +164,7 @@ export default function AlunoProfileScreen() {
     }
   };
 
-  const handleConcluir = async () => { };
+  const handleConcluir = async () => {};
 
   const sections = [
     {
@@ -304,18 +303,18 @@ export default function AlunoProfileScreen() {
           placeholder: "Informe o turno",
           options: [
             { label: "Manhã", value: 1 },
-            { label: "Tarde", value: 2 }
+            { label: "Tarde", value: 2 },
           ],
           selectedValue: aluno.turno || null,
           onValueChange: (value: string | number | null) =>
             setAluno({ ...aluno, turno: value ? Number(value) : 0 }),
         },
-           {
+        {
           label: "Escola/Instituição",
-          placeholder: "Informe a escola/institução",
+          placeholder: "Informe a escola/instituição",
           options: [
             { label: "Escola 1", value: 1 },
-            { label: "Escola 2", value: 2 }
+            { label: "Escola 2", value: 2 },
           ],
           selectedValue: aluno.escolas || null,
           onValueChange: (value: string | number | null) =>
@@ -325,8 +324,8 @@ export default function AlunoProfileScreen() {
           label: "Professor Responsável",
           placeholder: "Informe o professor",
           options: [
-            { label: "PROF 1", value: 1 },
-            { label: "Prof 2", value: 2 }
+            { label: "Prof 1", value: 1 },
+            { label: "Prof 2", value: 2 },
           ],
           selectedValue: aluno.idProfessor || null,
           onValueChange: (value: string | number | null) =>
@@ -401,65 +400,31 @@ export default function AlunoProfileScreen() {
 
   const renderItem = ({ item, index }: { item: typeof sections[number]; index: number }) => (
     <SectionGroup title={item.title} icon={item.icon}>
-      {item.fields.map((field, fieldIndex) => {
-        const isDropdown = "options" in field;
-        const uniqueIndex = `${index}-${fieldIndex}`;
-        const numericIndex = index * 10 + fieldIndex;
-        const dynamicZIndex = 100 - numericIndex;
-
-        return (
-          <InputField
-            key={fieldIndex}
-            label={field.label || ''}
-            placeholder={field.placeholder || ''}
-            {...(isDropdown
-              ? {
+      {item.fields.map((field, fieldIndex) => (
+        <InputField
+          key={fieldIndex}
+          label={field.label || ''}
+          placeholder={field.placeholder || ''}
+          {...("options" in field
+            ? {
                 options: field.options,
                 selectedValue: field.selectedValue,
-                onValueChange: (value) => {
-                  field.onValueChange?.(value);
-                  setOpenedDropdownIndex(null); // Fecha o dropdown após seleção
-                }
+                onValueChange: field.onValueChange,
               }
-              : {
+            : {
                 value: field.value || '',
                 onChangeText: field.onChangeText,
                 mask: field.mask,
                 editable: "editable" in field ? field.editable : true,
               })}
-            style={[styles.inputContainer, { zIndex: dynamicZIndex, position: 'relative' }]}
-            dropDownContainerStyle={
-              isDropdown
-                ? {
-                  zIndex: dynamicZIndex,
-                  elevation: 1000,
-                  position: 'absolute',
-                  top: 55,
-                }
-                : undefined
-            }
-            openDropdown={openedDropdownIndex === numericIndex}
-            onOpenDropdown={() => {
-              // Se clicar, define esse index como aberto ou fecha se já for o mesmo
-              setOpenedDropdownIndex((prev) =>
-                prev === numericIndex ? null : numericIndex
-              );
-            }}
-
-            onFocusTextInput={() => {
-              // fechar dropdowns se focar input de texto
-              setOpenedDropdownIndex(null);
-            }}
-          />
-        );
-      })}
-
+          style={styles.inputContainer}
+        />
+      ))}
       {item.title === "CEP" && cepLoading && (
         <ActivityIndicator size="small" color={colors.primary} />
       )}
     </SectionGroup>
   );
-
 
   return (
     <View style={{ flex: 1, zIndex: -1, backgroundColor: '#fff', overflow: 'visible' }}>
