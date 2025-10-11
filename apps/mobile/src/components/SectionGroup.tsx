@@ -10,7 +10,7 @@ interface SectionProps {
 }
 
 const SectionGroup: React.FC<SectionProps> = ({ title, children, icon }) => {
-  const [isOpen, setIsOpen] = useState(true); // Estado inicial como aberto
+  const [isOpen, setIsOpen] = useState(false); // Estado inicial como aberto
 
   return (
     <View style={styles.sectionContainer}>
