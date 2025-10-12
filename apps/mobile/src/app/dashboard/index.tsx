@@ -17,11 +17,12 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
 import NotificationBanner from './../../components/NotificationBanner';
-import { SignOut } from 'phosphor-react-native';
+import { Briefcase, FileText, SignOut, User } from 'phosphor-react-native';
 import { Professor } from '@src/types/professor';
 import { buscarProfessor } from '@src/services/professorService';
 import { isCadastroCompleto } from '@src/utils/professorUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SelectButton from '@src/components/SelectButton';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -92,7 +93,7 @@ export default function Dashboard() {
             );
           }}
             disabled={logoutLoading}>
-            <SignOut size={32} />
+            <SignOut size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -100,7 +101,41 @@ export default function Dashboard() {
         <ScrollView>
           {!cadastroCompleto && <View style={{ padding: 16 }}><NotificationBanner onPress={() => router.push('/professor')} /></View>}
 
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Minhas Tarefas</Text>
+            {/* Minhas Tarefas Section */}
+            <View style={styles.container}>
+              <View style={styles.sectionRow}>
+                <View style={styles.cell}>
+                  <SelectButton key="btnEscolas" onPress={() => router.push('/escolas/Escolas')} title="Escolas"
+                    iconLeft={<User size={16} color={colors.primary} />}
+                    buttonColor={colors.greyBlur} textColor={colors.primary} borderColor={colors.primary}
+                  />
+                </View>
+                <View style={styles.cell}>
+                  <SelectButton key="btnMeusAlunos" onPress={() => router.push('/aluno/MeusAlunos')} title="Meus Alunos"
+                    iconLeft={<User size={16} color={colors.primary} />}
+                    buttonColor={colors.greyBlur} textColor={colors.primary} borderColor={colors.primary}
+                  />
+                </View>
+              </View>
+             {/**  <View style={styles.sectionRow}>
+                <View style={styles.cell}>
+                  <Text style={styles.cellText}>3</Text>
+                </View>
+                <View style={styles.cell}>
+                  <SelectButton key="btnMeusAlunos" onPress={() => router.push('/aluno/MeusAlunos')} title="Meus Alunos"
+                    iconLeft={<User size={16} color={colors.primary} />}
+                    buttonColor={colors.greyBlur} textColor={colors.primary} borderColor={colors.primary}
+                  />
+                </View>
+               
+              </View> */}
+            </View>
+          </View>
         </ScrollView>
+
+        <Text style={{ textAlign: 'center', padding: 16, color: colors.secondary, fontFamily: 'Nunito_400Regular' }}>© 2024 Plural. Todos os direitos reservados.</Text>
       </SafeAreaView>
     </View>
   );
@@ -150,5 +185,41 @@ export const styles = StyleSheet.create({
     width: 42.79,
     height: 33.65,
     marginBottom: 10
+  },
+  sectionHeader: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: colors.background
+  },
+  section: {
+    marginBottom: 16,
+    flex: 1,
+    flexDirection: 'row',
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+
+  row: {
+
+  },
+  cell: {
+    flex: 1,
+    padding: 10,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cellText: {
+    fontSize: 16,
+    color: colors.primary,
   },
 });
