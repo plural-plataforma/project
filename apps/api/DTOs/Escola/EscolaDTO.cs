@@ -31,3 +31,8 @@ public class EscolaDTO
     public string Cidade { get; set; }
 
 }
+
+public class EscolaBuscarDTO : EscolaDTO
+{
+    public int Id { get; set; }
+}

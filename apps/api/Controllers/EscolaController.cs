@@ -45,6 +45,32 @@ namespace api.Controllers
             }
         }
 
+        [HttpGet("buscar")]
+        public async Task<IActionResult> Buscar()
+        {
+            var resposta = await _escolaService.Buscar();
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+            else
+            {
+                return BadRequest(resposta);
+            }
+        }
 
+        [HttpGet("buscar/{id}")]
+        public async Task<IActionResult> Buscar(int id)
+        {
+            var resposta = await _escolaService.Buscar(id);
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+            else
+            {
+                return BadRequest(resposta);
+            }
+        }
     }
 }

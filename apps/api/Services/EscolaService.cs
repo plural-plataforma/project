@@ -27,7 +27,7 @@ namespace api.Services
                 try
                 {
                     Escola escola = new Escola
-                    { 
+                    {
                         NomeInstituicao = escolaDTO.NomeInstituicao,
                         Tipo = escolaDTO.Tipo,
                         Cep = escolaDTO.Cep,
@@ -57,5 +57,62 @@ namespace api.Services
 
         }
 
+        public async Task<ServiceResponse<List<EscolaBuscarDTO>>> Buscar()
+        {
+            var resposta = new ServiceResponse<List<EscolaBuscarDTO>>();
+            try
+            {
+                var escolas = _contexto.Escolas.Select(e => new EscolaBuscarDTO
+                {
+                    Id = e.ID,
+                    NomeInstituicao = e.NomeInstituicao,
+                    Tipo = e.Tipo,
+                    Cep = e.Cep,
+                    Logradouro = e.Logradouro,
+                    Numero = e.Numero,
+                    Complemento = e.Complemento,
+                    Bairro = e.Bairro,
+                    Estado = e.Estado,
+                    Cidade = e.Cidade
+                }).ToList();
+                resposta.AdicionaObjeto(escolas);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar escolas.");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<List<EscolaBuscarDTO>>> Buscar(int id)
+        {
+            var resposta = new ServiceResponse<List<EscolaBuscarDTO>>();
+            try
+            {
+                var escola = _contexto.Escolas.Select(e => new EscolaBuscarDTO
+                {
+                    Id = e.ID,
+                    NomeInstituicao = e.NomeInstituicao,
+                    Tipo = e.Tipo,
+                    Cep = e.Cep,
+                    Logradouro = e.Logradouro,
+                    Numero = e.Numero,
+                    Complemento = e.Complemento,
+                    Bairro = e.Bairro,
+                    Estado = e.Estado,
+                    Cidade = e.Cidade
+                }).Where(e => e.Id == id).ToList();
+                resposta.AdicionaObjeto(escola);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar escola.");
+                return resposta;
+            }
+        }
     }
 }
