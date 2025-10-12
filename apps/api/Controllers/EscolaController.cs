@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace api.Controllers
 {
-    //[Authorize(Roles = "Professor, Admin")]
+    [Authorize(Roles = "Professor, Admin")]
     [ApiController]
     [Route("api/[controller]")]
     public class EscolaController : ControllerBase
@@ -44,5 +44,7 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
         }
+
+
     }
 }
