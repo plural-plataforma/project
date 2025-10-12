@@ -282,6 +282,7 @@ export default function CadastroProfessor() {
           editable={!cepLoading}
           mask="cep"
         />
+         {cepLoading && <ActivityIndicator size="small" color={colors.primary} />}
         <InputField
           label="Estado"
           placeholder="Informe o estado"
@@ -308,7 +309,7 @@ export default function CadastroProfessor() {
             setProfessor({ ...professor, cidade: cityValue });
           }}
         />
-        {cepLoading && <ActivityIndicator size="small" color={colors.primary} />}
+       
         <InputField
           label="Bairro"
           placeholder="Digite o bairro"
