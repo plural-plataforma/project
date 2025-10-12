@@ -44,8 +44,6 @@ namespace api.Models
     [MaxLength(500)]
     public string? Sobre { get; set; }
 
-    public bool? IsCheckTerms { get; set; }
-
     public byte[]? Foto { get; set; }
 
     [MaxLength(1)]
