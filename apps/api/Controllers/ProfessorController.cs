@@ -61,5 +61,46 @@ namespace api.Controllers
                 return BadRequest(resposta);
             }
         }
+
+        [HttpPost("vincularescola")]
+        public async Task<IActionResult> VincularEscola([FromBody] VincularEscolaDTO vincularEscolaDTO)
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var idProfessor = (int)usuario.ProfessorId;
+            if (ModelState.IsValid)
+            {
+                var resposta = await _professorService.VincularEscola(vincularEscolaDTO.IdEscola, idProfessor);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+                else
+                {
+                    return BadRequest(resposta);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+        [HttpGet("buscarescolas")]
+        public async Task<IActionResult> BuscarEscolas()
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var idProfessor = (int)usuario.ProfessorId;
+            var resposta = await _professorService.BuscarEscolas(idProfessor);
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+            else
+            {
+                return BadRequest(resposta);
+            }
+        }
+
+
     }
 }

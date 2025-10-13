@@ -22,25 +22,6 @@ namespace api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("EscolaProfessor", b =>
-                {
-                    b.Property<int>("EscolasID")
-                        .HasColumnType("integer")
-                        .HasColumnName("escolasid");
-
-                    b.Property<int>("ProfessoresID")
-                        .HasColumnType("integer")
-                        .HasColumnName("professoresid");
-
-                    b.HasKey("EscolasID", "ProfessoresID")
-                        .HasName("pk_escolaprofessor");
-
-                    b.HasIndex("ProfessoresID")
-                        .HasDatabaseName("ix_escolaprofessor_professoresid");
-
-                    b.ToTable("escolasxprofessores", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -375,6 +356,27 @@ namespace api.Migrations
                     b.ToTable("escolas");
                 });
 
+            modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
+                {
+                    b.Property<int>("EscolaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("escolaid")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("ProfessorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("professorid")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("EscolaId", "ProfessorId")
+                        .HasName("pk_escolasxprofessores");
+
+                    b.HasIndex("ProfessorId")
+                        .HasDatabaseName("ix_escolasxprofessores_professorid");
+
+                    b.ToTable("escolasxprofessores");
+                });
+
             modelBuilder.Entity("api.Models.Professor", b =>
                 {
                     b.Property<int>("ID")
@@ -418,10 +420,6 @@ namespace api.Migrations
                         .HasColumnType("bytea")
                         .HasColumnName("foto");
 
-                    b.Property<bool?>("IsCheckTerms")
-                        .HasColumnType("boolean")
-                        .HasColumnName("ischeckterms");
-
                     b.Property<string>("Logradouro")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -443,7 +441,8 @@ namespace api.Migrations
                         .HasColumnName("numero");
 
                     b.Property<string>("Sexo")
-                        .HasColumnType("text")
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("sexo");
 
                     b.Property<string>("Sobre")
@@ -619,23 +618,6 @@ namespace api.Migrations
                     b.ToTable("aspnetusers", (string)null);
                 });
 
-            modelBuilder.Entity("EscolaProfessor", b =>
-                {
-                    b.HasOne("api.Models.Escola", null)
-                        .WithMany()
-                        .HasForeignKey("EscolasID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_escolaprofessor_escolas_escolasid");
-
-                    b.HasOne("api.Models.Professor", null)
-                        .WithMany()
-                        .HasForeignKey("ProfessoresID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_escolaprofessor_professores_professoresid");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -723,6 +705,27 @@ namespace api.Migrations
                     b.Navigation("Responsavel");
                 });
 
+            modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
+                {
+                    b.HasOne("api.Models.Escola", "Escola")
+                        .WithMany("EscolaXProfessores")
+                        .HasForeignKey("EscolaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_escolasxprofessores_escolas_escolaid");
+
+                    b.HasOne("api.Models.Professor", "Professor")
+                        .WithMany("EscolaXProfessores")
+                        .HasForeignKey("ProfessorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_escolasxprofessores_professores_professorid");
+
+                    b.Navigation("Escola");
+
+                    b.Navigation("Professor");
+                });
+
             modelBuilder.Entity("api.Models.Usuario", b =>
                 {
                     b.HasOne("api.Models.Professor", "Professor")
@@ -732,6 +735,16 @@ namespace api.Migrations
                         .HasConstraintName("fk_aspnetusers_professores_professorid");
 
                     b.Navigation("Professor");
+                });
+
+            modelBuilder.Entity("api.Models.Escola", b =>
+                {
+                    b.Navigation("EscolaXProfessores");
+                });
+
+            modelBuilder.Entity("api.Models.Professor", b =>
+                {
+                    b.Navigation("EscolaXProfessores");
                 });
 #pragma warning restore 612, 618
         }

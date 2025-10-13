@@ -35,5 +35,5 @@ public class Escola
     [MaxLength(40)]
     public string Cidade { get; set; }
 
-    public ICollection<Professor> Professores { get; set; }
+    public ICollection<EscolaXProfessor> EscolaXProfessores { get; set; }
 }

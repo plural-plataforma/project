@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using static api.Models.EscolaXProfessor;
 
 namespace api.Models
 { 
@@ -44,14 +45,12 @@ namespace api.Models
     [MaxLength(500)]
     public string? Sobre { get; set; }
 
-    public bool? IsCheckTerms { get; set; }
-
     public byte[]? Foto { get; set; }
 
     [MaxLength(1)]
     public string? Sexo { get; set; }
 
-    public ICollection<Escola>? Escolas { get; set; }
+    public ICollection<EscolaXProfessor>? EscolaXProfessores { get; set; }
 
     }
 }
