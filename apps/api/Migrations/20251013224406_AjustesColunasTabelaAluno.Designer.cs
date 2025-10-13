@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251013224406_AjustesColunasTabelaAluno")]
+    partial class AjustesColunasTabelaAluno
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -225,13 +228,17 @@ namespace api.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("estado");
 
-                    b.Property<int?>("IdEscola")
+                    b.Property<int>("IdEscola")
                         .HasColumnType("integer")
                         .HasColumnName("idescola");
 
                     b.Property<int>("IdProfessor")
                         .HasColumnType("integer")
                         .HasColumnName("idprofessor");
+
+                    b.Property<int>("IdResponsavel")
+                        .HasColumnType("integer")
+                        .HasColumnName("idresponsavel");
 
                     b.Property<string>("Logradouro")
                         .HasMaxLength(50)
@@ -270,6 +277,9 @@ namespace api.Migrations
 
                     b.HasIndex("IdProfessor")
                         .HasDatabaseName("ix_alunos_idprofessor");
+
+                    b.HasIndex("IdResponsavel")
+                        .HasDatabaseName("ix_alunos_idresponsavel");
 
                     b.ToTable("alunos");
                 });
@@ -664,6 +674,8 @@ namespace api.Migrations
                     b.HasOne("api.Models.Escola", "Escola")
                         .WithMany()
                         .HasForeignKey("IdEscola")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
                         .HasConstraintName("fk_alunos_escolas_idescola");
 
                     b.HasOne("api.Models.Professor", "Professor")
@@ -673,9 +685,18 @@ namespace api.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_alunos_professores_idprofessor");
 
+                    b.HasOne("api.Models.Responsavel", "Responsavel")
+                        .WithMany()
+                        .HasForeignKey("IdResponsavel")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_alunos_responsaveis_idresponsavel");
+
                     b.Navigation("Escola");
 
                     b.Navigation("Professor");
+
+                    b.Navigation("Responsavel");
                 });
 
             modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
