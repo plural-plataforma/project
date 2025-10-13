@@ -3,7 +3,7 @@ import {
   Calendar,
   House,
   PresentationChart,
-  Users
+  UserList
 } from 'phosphor-react-native'
 
 export default function TabsLayout() {
@@ -28,13 +28,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <House size={32} color={color} />
         }}
       />
-      <Tabs.Screen
-        name="alunos"
-        options={{
-          title: 'Alunos',
-          tabBarIcon: ({ color }) => <Users size={32} color={color} />
-        }}
-      />
+      
       <Tabs.Screen
         name="planejamento"
         options={{
@@ -49,6 +43,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <PresentationChart size={32} color={color} />
           )
+        }}
+      />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color }) => <UserList  size={32} color={color} />
         }}
       />
     </Tabs>

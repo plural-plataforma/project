@@ -44,6 +44,8 @@ export default function LoginScreen() {
         throw new Error(msg);
       }
 
+      await new Promise(resolve => setTimeout(resolve, 200)); // Aguarda estado propagar
+      router.replace('/dashboard');
       console.log('🔑 Chamando context.login com token:', response.token);
       login(response.token);
       console.log('🎉 Context login chamado, isLoggedIn deve ser true agora');

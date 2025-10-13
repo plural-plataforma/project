@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 
 interface SelectButtonProps extends TouchableOpacityProps {
-    title: string;
+    title?: string;
     disabled?: boolean;
     loading?: boolean;
     onPress: () => void;

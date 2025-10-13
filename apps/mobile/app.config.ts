@@ -12,7 +12,7 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   icon: '../../packages/ui/assets/images/icon.png',
-  scheme: 'Plural-App',
+  scheme: 'Plural Plataforma',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   owner: 'plural-teste', // ✅ Adicionado aqui

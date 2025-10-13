@@ -4,8 +4,6 @@ import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider } from '../context/AuthContext'
-import { Platform } from 'react-native'
-import * as NavigationBar from 'expo-navigation-bar'
 
 // Impede que a tela de splash desapareça antes das fontes carregarem
 SplashScreen.preventAutoHideAsync()
@@ -16,29 +14,22 @@ export default function RootLayout() {
     Nunito_700Bold: require('@/packages/ui/assets/fonts/Nunito-Bold.ttf')
   })
 
-  // ✅ SEMPRE fora de blocos condicionais
   useEffect(() => {
+    const timer = setTimeout(() => {
+      console.warn('Timeout: Fontes não carregaram em 5 segundos');
+      SplashScreen.hideAsync();
+    }, 5000);
+
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync()
-    }
-  }, [fontsLoaded, fontError])
-
-  // ✅ Também fora de qualquer if
-  useEffect(() => {
-    const hideNavigationBar = async () => {
-      if (Platform.OS === 'android') {
-        console.log('Tentando ocultar a barra de navegação no layout raiz...')
-        try {
-          await NavigationBar.setVisibilityAsync('hidden')
-          console.log('Barra de navegação ocultada com sucesso no layout raiz.')
-        } catch (error) {
-          console.error('Erro ao ocultar barra de navegação no layout raiz:', error)
-        }
-      }
+      clearTimeout(timer);
+      console.log('Fontes carregadas:', fontsLoaded, 'Erro:', fontError);
+      SplashScreen.hideAsync();
     }
 
-    hideNavigationBar()
-  }, [])
+    return () => clearTimeout(timer);
+  }, [fontsLoaded, fontError]);
+
+
 
   // Agora o condicional só faz o return
   if (!fontsLoaded && !fontError) {

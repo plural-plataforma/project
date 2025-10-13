@@ -1,4 +1,4 @@
-import { colors, fontSizes } from '../../../../packages/ui/theme/theme';
+import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import { Text, TextInput, View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useState, useRef, useCallback } from 'react';
 import MaskInput, { Masks } from 'react-native-mask-input';
@@ -18,6 +18,8 @@ interface InputFieldProps {
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'number-pad';
   style?: StyleProp<ViewStyle>;
   dropDownContainerStyle?: StyleProp<ViewStyle>;
+  editable?: boolean;
+  [key: string]: any; // Para aceitar outras props do TextInput
 }
 
 const CPF_MASK = [/\d/, /\d/, /\d/, '.', /\d/, /\d/, /\d/, '.', /\d/, /\d/, /\d/, '-', /\d/, /\d/];
@@ -38,6 +40,7 @@ const InputField: React.FC<InputFieldProps> = ({
   keyboardType,
   style,
   dropDownContainerStyle,
+  editable = true,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -157,6 +160,7 @@ const InputField: React.FC<InputFieldProps> = ({
           }}
           onBlur={() => setIsFocused(false)}
           keyboardType={keyboardType}
+          editable={editable}
           {...props}
         />
       )}

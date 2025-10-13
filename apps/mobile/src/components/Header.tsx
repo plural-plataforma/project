@@ -61,7 +61,8 @@ const styles = StyleSheet.create({
   },
   view: {
     height: 48,
-    flex: 1
+    flex: 1,
+    marginBottom: 10,
   },
 
 

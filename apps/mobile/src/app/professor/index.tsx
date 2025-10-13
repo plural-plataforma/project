@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   Alert,
   StyleSheet,
   ActivityIndicator,
@@ -13,21 +13,20 @@ import { Bell, Camera, GraduationCap, User, Trash } from 'phosphor-react-native'
 import { fetchCepData } from '../../services/validateCep';
 import { fetchEstados, fetchMunicipios } from '../../services/locationsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { buscarEscolas } from '../../services/escolasService';
 import Header from '../../components/Header';
 import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import { Professor } from '@src/types/professor';
-import { buscarProfessor, atualizarProfessor } from '../../services/professorService';
+import { Escola } from '@src/types/escolas';
+import { buscarProfessor, atualizarProfessor, vincularEscola, buscarEscolasProfessor } from '../../services/professorService';
 import { isCadastroCompleto } from '../../utils/professorUtils';
 import ProfilePhoto from '@src/components/ProfilePhoto';
 import ProgressFill from '@src/components/ProgressFill';
 import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import SectionGroup from '@src/components/SectionGroup';
-import { signOut } from '@src/services/auth';
 import ItemButton from '@src/components/ItemButton';
 
-// Lista de áreas de ensino
 const areasEnsino = [
   'Matemática',
   'Português',
@@ -41,15 +40,36 @@ const areasEnsino = [
   'Artes',
 ];
 
-const escolasMock = [
-  'Escola A',
-  'Escola B',
+const sexoOptions = [
+  { label: 'Feminino', value: 'F' },
+  { label: 'Masculino', value: 'M' },
 ];
+
+interface InputFieldConfig {
+  label: string;
+  key: keyof Professor;
+  placeholder: string;
+  mask?: 'cep' | 'phone' | 'cpf';
+  options?: { label: string; value: string | number }[];
+  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'number-pad';
+  onChange?: (value: string | number | null) => void;
+  isSpecial?: boolean;
+  editable?: boolean;
+}
+
+interface SectionData {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  fields?: InputFieldConfig[];
+  extraContent?: React.ReactNode;
+}
 
 export default function CadastroProfessor() {
   const router = useRouter();
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
+    sexo: '',
     email: '',
     cep: '',
     logradouro: '',
@@ -62,25 +82,53 @@ export default function CadastroProfessor() {
     disciplinas: '',
     nivelEnsino: '',
     sobre: '',
-    isCheckTerms: false,
     aceitouTermos: false,
-    escolas: [], // Default to empty array to avoid undefined
+    escolas: [],
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [cepLoading, setCepLoading] = useState<boolean>(false);
   const [ufs, setUfs] = useState<{ label: string; value: string }[]>([]);
   const [cidadesPorUf, setCidadesPorUf] = useState<{ [key: string]: string[] }>({});
+  const [escolas, setEscolas] = useState<Escola[]>([]);
   const cidadesDisponiveis = professor.estado ? cidadesPorUf[professor.estado] || ['Selecione o estado primeiro'] : ['Selecione o estado primeiro'];
+  const [completedSections, setCompletedSections] = useState<number>(0);
+  const totalSections = 4;
+  const [escolasLoading, setEscolasLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const calculateProgress = () => {
+      let completed = 0;
+      const dadosPessoaisCompleto =
+        professor.nomeCompleto &&
+        professor.sexo &&
+        professor.email &&
+        professor.telefone;
+      const dadosProfissionaisCompleto = professor.escolas?.length > 0;
+      const preferenciasCompleto = true;
+      const termosCompleto = professor.aceitouTermos;
+
+      if (dadosPessoaisCompleto) completed += 1;
+      if (dadosProfissionaisCompleto) completed += 1;
+      if (preferenciasCompleto) completed += 1;
+      if (termosCompleto) completed += 1;
+
+      setCompletedSections(completed);
+    };
+
+    calculateProgress();
+  }, [professor]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         setLoading(true);
+        setEscolasLoading(true);
         const token = await AsyncStorage.getItem('authToken');
         if (!token) {
           console.warn('⚠️ Nenhum token encontrado. Usuário não autenticado.');
           Alert.alert('Aviso', 'Por favor, faça login para carregar seus dados.');
           setLoading(false);
+          setEscolasLoading(false);
           return;
         }
 
@@ -92,14 +140,34 @@ export default function CadastroProfessor() {
         const cidadesRS = municipiosData.map(m => m.nome);
         setCidadesPorUf(prev => ({ ...prev, RS: cidadesRS }));
 
-        const data = await buscarProfessor();
-        const updatedProfessor = {
-          ...data.objeto,
-          escolas: Array.isArray(data.objeto.escolas) ? data.objeto.escolas : data.objeto.escolas ? [data.objeto.escolas] : [],
+        const escolasData = await buscarEscolas();
+        console.log('✅ Escolas recebidas:', escolasData);
+        if (!escolasData.length) {
+          Alert.alert('Aviso', 'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.');
+        }
+        setEscolas(escolasData);
+
+        const professorData = await buscarProfessor();
+        console.log('✅ Dados do professor recebidos:', professorData);
+        let updatedProfessor: Professor = {
+          ...professorData.objeto,
+          sexo: professorData.objeto.sexo && ['F', 'M'].includes(professorData.objeto.sexo) ? professorData.objeto.sexo : '',
+          escolas: [] as string[],
         };
+
+        try {
+          const linkedEscolas = await buscarEscolasProfessor();
+          console.log('✅ Escolas vinculadas recebidas:', linkedEscolas);
+          updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
+        } catch (error: any) {
+          console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message);
+          Alert.alert('Aviso', 'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.');
+        }
+
         setProfessor(updatedProfessor);
+        console.log('Professor state:', updatedProfessor);
       } catch (error: any) {
-        console.error('Erro ao carregar dados iniciais:', error.message);
+        console.error('❌ Erro ao carregar dados iniciais:', error.message);
         if (error.message.includes('401')) {
           Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
           router.push('/auth/login');
@@ -109,11 +177,13 @@ export default function CadastroProfessor() {
             ...prev,
             estado: 'SP',
             cidade: 'São Paulo',
-            escolas: [], // Default to empty array on error
+            sexo: '',
+            escolas: [],
           }));
         }
       } finally {
         setLoading(false);
+        setEscolasLoading(false);
       }
     };
     fetchInitialData();
@@ -159,62 +229,36 @@ export default function CadastroProfessor() {
 
   const handleConcluir = async () => {
     console.log('Professor state:', professor);
-    if (!professor.aceitouTermos) {
-      Alert.alert('Atenção', 'Você deve aceitar os Termos de Uso e Política de Privacidade.');
-      return;
-    }
-    if (!professor.estado || !professor.cidade || !professor.cep || professor.cep.length !== 8) {
-      console.log('Validation failed for:', {
-        estado: professor.estado,
-        cidade: professor.cidade,
-        cep: professor.cep,
-      });
-      Alert.alert('Erro', 'Preencha todos os campos obrigatórios (*), incluindo um CEP válido de 8 dígitos.');
+    if (!isCadastroCompleto(professor)) {
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios, incluindo pelo menos uma escola vinculada.');
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
       await atualizarProfessor(professor);
-      if (isCadastroCompleto(professor)) {
-        Alert.alert('Sucesso', 'Cadastro concluído com sucesso!');
-        router.back();
-      }
+      Alert.alert('Sucesso', 'Cadastro de professor salvo com sucesso!', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     } catch (error: any) {
-      console.error('Erro ao atualizar professor:', error.message);
-      if (error.message.includes('401') || error.message.includes('Token de autenticação não encontrado')) {
-        Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
+      console.error('Erro ao salvar professor:', error);
+      if (error.message.includes('erro ao vincular escolas')) {
         Alert.alert(
-          'Sair da conta?',
-          'Isso invalidará sua sessão e você precisará fazer login novamente.',
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Sair',
-              onPress: () => {
-                console.log('✅ Confirmação de sair aceita!');
-                signOut();
-              },
-            },
-          ]
+          'Aviso',
+          'Cadastro de professor salvo, mas não foi possível vincular as escolas: ' + error.message,
+          [{ text: 'OK', onPress: () => router.back() }],
         );
+      } else if (error.message.includes('401')) {
+        Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
+        router.push('/auth/login');
+      } else if (error.response?.status === 400) {
+        Alert.alert('Erro', 'Dados inválidos. Verifique os campos e tente novamente.');
       } else {
-        Alert.alert('Erro', 'Não foi possível salvar os dados.');
+        Alert.alert('Erro', 'Não foi possível salvar o cadastro. Tente novamente.');
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleNivel = (nivel: string) => {
-    setProfessor((prev) => ({
-      ...prev,
-      nivelEnsino: prev.nivelEnsino
-        ? prev.nivelEnsino.includes(nivel)
-          ? prev.nivelEnsino.replace(nivel, '').replace(/,\s*$/, '')
-          : `${prev.nivelEnsino}, ${nivel}`
-        : nivel,
-    }));
   };
 
   const addEscola = (value: string) => {
@@ -233,154 +277,299 @@ export default function CadastroProfessor() {
     }));
   };
 
+  const renderItems = (fields: InputFieldConfig[]) => {
+    return fields.map((field) => {
+      if (field.isSpecial && field.key === 'cep') {
+        return (
+          <View key={field.key}>
+            <InputField
+              label={field.label}
+              placeholder={field.placeholder}
+              value={professor[field.key] as string || ''}
+              onChangeText={handleCepChange}
+              editable={!cepLoading}
+              mask={field.mask}
+              keyboardType={field.keyboardType}
+            />
+            {cepLoading && <ActivityIndicator size="small" color={colors.primary} />}
+          </View>
+        );
+      }
+
+      if (field.isSpecial && field.key === 'estado') {
+        return (
+          <InputField
+            key={field.key}
+            label={field.label}
+            placeholder={field.placeholder}
+            options={ufs}
+            selectedValue={professor[field.key] as string || ''}
+            onValueChange={(value) => {
+              const stateValue = value?.toString() || '';
+              setProfessor({ ...professor, estado: stateValue, cidade: '' });
+              if (stateValue && !cidadesPorUf[stateValue]) {
+                fetchMunicipios(stateValue).then(municipiosData => {
+                  const cidades = municipiosData.map(m => m.nome);
+                  setCidadesPorUf(prev => ({ ...prev, [stateValue]: cidades }));
+                }).catch(err => console.error('Erro ao carregar cidades:', err));
+              }
+            }}
+          />
+        );
+      }
+
+      if (field.isSpecial && field.key === 'cidade') {
+        return (
+          <InputField
+            key={field.key}
+            label={field.label}
+            placeholder={field.placeholder}
+            options={cidadesDisponiveis.map((cidade) => ({ label: cidade, value: cidade }))}
+            selectedValue={professor[field.key] as string || ''}
+            onValueChange={(value) => {
+              const cityValue = value?.toString() || '';
+              setProfessor({ ...professor, cidade: cityValue });
+            }}
+          />
+        );
+      }
+
+      if (field.key === 'escolas') {
+        return (
+          <View key={field.key}>
+            <InputField
+              label={field.label}
+              placeholder={field.placeholder}
+              options={field.options}
+              selectedValue=""
+              onValueChange={(value) => {
+                if (value && typeof value === 'string') {
+                  addEscola(value);
+                }
+              }}
+              editable={field.editable}
+            />
+            {escolasLoading && <ActivityIndicator size="small" color={colors.primary} />}
+            {professor.escolas.map((escolaId, index) => {
+              const escola = escolas.find((e) => e.id!.toString() === escolaId);
+              return (
+                <ItemButton
+                  key={index}
+                  escola={escola?.nomeInstituicao || escolaId}
+                  onRemove={() => removeEscola(escolaId)}
+                />
+              );
+            })}
+          </View>
+        );
+      }
+
+      return (
+        <InputField
+          key={field.key}
+          label={field.label}
+          placeholder={field.placeholder}
+          value={
+            field.key === 'numero'
+              ? (professor[field.key] as number)?.toString() || ''
+              : field.key === 'sexo'
+              ? (professor[field.key] as string) || ''
+              : professor[field.key] as string || ''
+          }
+          onChangeText={(value) => {
+            if (field.key === 'numero') {
+              const numValue = value === '' ? 0 : parseInt(value) || 0;
+              setProfessor({ ...professor, [field.key]: numValue });
+            } else if (field.options && field.onChange) {
+              field.onChange(value);
+            } else {
+              setProfessor({ ...professor, [field.key]: value });
+            }
+          }}
+          mask={field.mask}
+          options={field.options}
+          keyboardType={field.keyboardType}
+          selectedValue={
+            field.key === 'sexo' ? (professor[field.key] as string) || '' : undefined
+          }
+          onValueChange={
+            field.key === 'sexo' && field.options
+              ? (value) => {
+                  const sexoValue = typeof value === 'string' ? value : '';
+                  setProfessor({ ...professor, sexo: sexoValue });
+                }
+              : undefined
+          }
+        />
+      );
+    });
+  };
+
+  const sections: SectionData[] = [
+    {
+      id: 'dados-pessoais',
+      title: 'Dados Pessoais',
+      icon: <User size={16} weight="fill" color={colors.primary} />,
+      fields: [
+        {
+          label: 'Nome',
+          key: 'nomeCompleto',
+          placeholder: 'Digite o nome',
+        },
+        {
+          label: 'E-mail',
+          key: 'email',
+          placeholder: 'Digite o e-mail',
+          keyboardType: 'email-address',
+        },
+        {
+          label: 'Telefone',
+          key: 'telefone',
+          placeholder: '(00) 00000-0000',
+          mask: 'phone',
+        },
+        {
+          label: 'Sexo',
+          key: 'sexo',
+          placeholder: 'Selecione o sexo',
+          options: sexoOptions,
+          onChange: (value) => {
+            const sexoValue = typeof value === 'string' ? value : '';
+            setProfessor({ ...professor, sexo: sexoValue });
+          },
+        },
+        {
+          label: 'CEP',
+          key: 'cep',
+          placeholder: 'Informe o CEP',
+          mask: 'cep',
+          isSpecial: true,
+        },
+        {
+          label: 'Estado',
+          key: 'estado',
+          placeholder: 'Informe o estado',
+          isSpecial: true,
+        },
+        {
+          label: 'Cidade',
+          key: 'cidade',
+          placeholder: 'Informe a cidade',
+          isSpecial: true,
+        },
+        {
+          label: 'Bairro',
+          key: 'bairro',
+          placeholder: 'Digite o bairro',
+        },
+        {
+          label: 'Endereço',
+          key: 'logradouro',
+          placeholder: 'Digite o endereço',
+        },
+        {
+          label: 'Número',
+          key: 'numero',
+          placeholder: 'Digite o número',
+          keyboardType: 'number-pad',
+        },
+        {
+          label: 'Complemento',
+          key: 'complemento',
+          placeholder: 'Digite o complemento',
+        },
+        {
+          label: 'Sobre você',
+          key: 'sobre',
+          placeholder: 'Conte um pouco sobre sua experiência metodologia de ensino...',
+        },
+      ],
+    },
+    {
+      id: 'dados-profissionais | professor',
+      title: 'Dados Profissionais',
+      icon: <GraduationCap size={16} weight="fill" color={colors.primary} />,
+      fields: [
+        {
+          label: 'Escola/Instituição vinculada',
+          key: 'escolas',
+          placeholder: escolasLoading ? 'Carregando escolas...' : 'Selecione uma escola',
+          options: escolasLoading || !escolas
+            ? []
+            : escolas
+                .filter((escola) => escola.nomeInstituicao && escola.id)
+                .map((escola) => ({
+                  label: escola.nomeInstituicao!,
+                  value: escola.id!.toString(),
+                })),
+          editable: !escolasLoading,
+        },
+      ],
+      extraContent: null,
+    },
+    {
+      id: 'preferencias',
+      title: 'Preferências',
+      icon: <Bell size={16} weight="fill" color={colors.primary} />,
+      fields: [],
+    },
+  ];
+
   if (loading) return <ActivityIndicator size="large" color={colors.primary} />;
 
+  const renderSection = ({ item }: { item: SectionData }) => (
+    <SectionGroup title={item.title} icon={item.icon}>
+      {item.fields && renderItems(item.fields)}
+      {item.extraContent}
+    </SectionGroup>
+  );
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Header title="Perfil do Professor" onBack={() => router.back()} />
-      <ProgressFill />
-      <View>
-        <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
-        <Text style={styles.obsInstrucao}>
-          Conclua a configuração do seu perfil para acessar todos os recursos da plataforma
-        </Text>
-      </View>
-
-      <SectionGroup title="Dados Pessoais" icon={<User size={16} weight="fill" color={colors.primary} />}>
-        <InputField
-          label="Nome"
-          placeholder="Digite o nome"
-          value={professor.nomeCompleto || ''}
-          onChangeText={(value) => setProfessor({ ...professor, nomeCompleto: value })}
-        />
-        <InputField
-          label="E-mail"
-          placeholder="Digite o e-mail"
-          value={professor.email || ''}
-          onChangeText={(value) => setProfessor({ ...professor, email: value })}
-        />
-        <InputField
-          label="Telefone"
-          placeholder="(00) 00000-0000"
-          mask='phone'
-          value={professor.telefone || ''}
-          onChangeText={(value) => setProfessor({ ...professor, telefone: value })}
-        />
-        <InputField
-          label="Sexo"
-          placeholder="Selecione o sexo"
-          options={[
-            { label: 'Feminino', value: 'F' },
-            { label: 'Masculino', value: 'M' },
-          ]}
-        />
-        <InputField
-          label="CEP"
-          placeholder="Informe o CEP"
-          value={professor.cep || ''}
-          onChangeText={handleCepChange}
-          editable={!cepLoading}
-          mask="cep"
-        />
-         {cepLoading && <ActivityIndicator size="small" color={colors.primary} />}
-        <InputField
-          label="Estado"
-          placeholder="Informe o estado"
-          options={ufs}
-          selectedValue={professor.estado || ''}
-          onValueChange={(value) => {
-            const stateValue = value?.toString() || ''; // Garante que seja string
-            setProfessor({ ...professor, estado: stateValue, cidade: '' });
-            if (stateValue && !cidadesPorUf[stateValue]) {
-              fetchMunicipios(stateValue).then(municipiosData => {
-                const cidades = municipiosData.map(m => m.nome);
-                setCidadesPorUf(prev => ({ ...prev, [stateValue]: cidades }));
-              }).catch(err => console.error('Erro ao carregar cidades:', err));
-            }
-          }}
-        />
-        <InputField
-          label="Cidade"
-          placeholder="Informe a cidade"
-          options={cidadesDisponiveis.map((cidade) => ({ label: cidade, value: cidade }))}
-          selectedValue={professor.cidade || ''}
-          onValueChange={(value) => {
-            const cityValue = value?.toString() || ''; // Garante que seja string
-            setProfessor({ ...professor, cidade: cityValue });
-          }}
-        />
-       
-        <InputField
-          label="Bairro"
-          placeholder="Digite o bairro"
-          value={professor.bairro || ''}
-          onChangeText={(value) => setProfessor({ ...professor, bairro: value })}
-        />
-        <InputField
-          label="Endereço"
-          placeholder="Digite o endereço"
-          value={professor.logradouro || ''}
-          onChangeText={(value) => setProfessor({ ...professor, logradouro: value })}
-        />
-        <InputField
-          label="Número"
-          placeholder="Digite o número"
-          value={professor.numero ? professor.numero.toString() : ''}
-          onChangeText={(value) => {
-            const numValue = value === '' ? 0 : parseInt(value) || 0;
-            setProfessor({ ...professor, numero: numValue });
-          }}
-        />
-        <InputField
-          label="Complemento"
-          placeholder="Digite o complemento"
-          value={professor.complemento || ''}
-          onChangeText={(value) => setProfessor({ ...professor, complemento: value })}
-        />
-        <InputField
-          label="Sobre você"
-          placeholder="Conte um pouco sobre sua experiência metodologia de ensino..."
-          value={professor.sobre || ''}
-          onChangeText={(value) => setProfessor({ ...professor, sobre: value })}
-        />
-      </SectionGroup>
-
-      <SectionGroup title="Dados Profissionais" icon={<GraduationCap size={16} weight="fill" color={colors.primary} />}>
-        <InputField
-          label="Escola/Instituição vinculada"
-          placeholder="Selecione uma escola"
-          options={escolasMock.map((escola) => ({ label: escola, value: escola }))}
-          selectedValue={''} // Reseta após seleção
-          onValueChange={(value) => {
-            if (value && typeof value === 'string') {
-              addEscola(value);
-            }
-          }}
-        />
-        {professor.escolas.map((escola, index) => (
-          <ItemButton key={index} escola={escola} onRemove={removeEscola} />
-        ))}
-      </SectionGroup>
-
-      <SectionGroup title="Preferências" icon={<Bell size={16} weight="fill" color={colors.primary} />} />
-
-      <View style={styles.checkboxRow}>
-        <CheckboxWithLabel
-          label="Aceito os termos e a política de privacidade"
-          checked={professor.aceitouTermos}
-          onPress={() => setProfessor(prev => ({ ...prev, aceitouTermos: !prev.aceitouTermos }))}
-        />
-      </View>
-      <View style={styles.button}>
-        <CustomButton
-          title="Concluir Cadastro"
-          onPress={handleConcluir}
-          buttonColor={{ backgroundColor: colors.primary2 }}
-          disabled={loading}
-          loading={loading}
-        />
-      </View>
-    </ScrollView>
+    <View style={styles.container}>
+      <FlatList
+        data={sections}
+        renderItem={renderSection}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <>
+            <Header title="Perfil do Professor" onBack={() => router.back()} />
+            {!isCadastroCompleto(professor) && (
+              <View>
+            <ProgressFill completedSections={completedSections} totalSections={totalSections} />
+           
+              <View>
+                <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
+                <Text style={styles.obsInstrucao}>
+                  Conclua a configuração do seu perfil para acessar todos os recursos da plataforma
+                </Text>
+              </View>
+              </View>
+            )}
+          </>
+        }
+        ListFooterComponent={
+          <>
+            <View style={styles.checkboxRow}>
+              <CheckboxWithLabel
+                label="Aceito os termos e a política de privacidade"
+                checked={professor.aceitouTermos}
+                onPress={() => setProfessor(prev => ({ ...prev, aceitouTermos: !prev.aceitouTermos }))}
+              />
+            </View>
+            <View style={styles.button}>
+              <CustomButton
+                title="Concluir Cadastro"
+                onPress={handleConcluir}
+                buttonColor={{ backgroundColor: colors.primary2 }}
+                disabled={loading}
+                loading={loading}
+              />
+            </View>
+          </>
+        }
+        contentContainerStyle={styles.content}
+      />
+    </View>
   );
 }
 
@@ -388,12 +577,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    padding: 20,
   },
   content: {
-    paddingBottom: 100,
     paddingHorizontal: 20,
+    paddingBottom: 100,
   },
   titleInstrucao: {
     textAlign: 'justify',
@@ -414,9 +601,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
+    marginVertical: 10,
   },
   button: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 10,
+    marginBottom: 20,
   },
 });
