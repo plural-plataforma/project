@@ -36,7 +36,7 @@ namespace api.Models
 
         public int Telefone { get; set; }
         public int IdProfessor { get; set; }
-        public int? IdEscola { get; set; }
+        public int IdEscola { get; set; }
 
         [StringLength(20)]
         public string? NivelEnsino { get; set; }

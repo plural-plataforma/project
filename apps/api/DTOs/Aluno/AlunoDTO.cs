@@ -32,8 +32,7 @@ namespace api.DTOs.Aluno
 
         public int? Telefone { get; set; }
 
-        public int? IdResponsavel { get; set; }
-        public int? IdEscola { get; set; }
+        public int IdEscola { get; set; }
 
         [StringLength(20)]
         public string? NivelEnsino { get; set; }
@@ -46,8 +45,9 @@ namespace api.DTOs.Aluno
 
     }
 
-    public class AlunoComId : AlunoDTO{
+    public class AlunoComIdDTO : AlunoDTO{
         [Required]
         public int Id { get; set; }
+
     }
 }

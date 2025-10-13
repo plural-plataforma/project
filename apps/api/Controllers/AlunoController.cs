@@ -70,12 +70,12 @@ namespace api.Controllers
             }
         }*/
 
-        /*
+        
         [HttpGet("buscar")]
         public async Task<IActionResult> Buscar()
         {
             var usuario = await _usuario.GetUserAsync(User);
-            var resposta = await _professorService.Buscar(usuario);
+            var resposta = await _alunoService.Buscar(usuario);
             if (resposta.Sucesso)
             {
                 return Ok(resposta);
@@ -86,35 +86,12 @@ namespace api.Controllers
             }
         }
 
-        [HttpPost("vincularescola")]
-        public async Task<IActionResult> VincularEscola([FromBody] VincularEscolaDTO vincularEscolaDTO)
+
+        [HttpGet("buscar/{idAluno}")]
+        public async Task<IActionResult> Buscar(int idAluno)
         {
             var usuario = await _usuario.GetUserAsync(User);
-            var idProfessor = (int)usuario.ProfessorId;
-            if (ModelState.IsValid)
-            {
-                var resposta = await _professorService.VincularEscola(vincularEscolaDTO.IdEscola, idProfessor);
-                if (resposta.Sucesso)
-                {
-                    return Ok(resposta);
-                }
-                else
-                {
-                    return BadRequest(resposta);
-                }
-            }
-            else
-            {
-                return BadRequest(ModelState);
-            }
-        }*/
-        /*
-        [HttpGet("buscarescolas")]
-        public async Task<IActionResult> BuscarEscolas()
-        {
-            var usuario = await _usuario.GetUserAsync(User);
-            var idProfessor = (int)usuario.ProfessorId;
-            var resposta = await _professorService.BuscarEscolas(idProfessor);
+            var resposta = await _alunoService.Buscar(usuario, idAluno);
             if (resposta.Sucesso)
             {
                 return Ok(resposta);
@@ -123,7 +100,7 @@ namespace api.Controllers
             {
                 return BadRequest(resposta);
             }
-        }*/
+        }
 
     }
 }

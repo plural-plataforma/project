@@ -1,5 +1,6 @@
 ﻿using api.DTOs.Aluno;
 using api.DTOs.Autenticacao;
+using api.DTOs.Escola;
 using api.Models;
 using api.Responses;
 using Data;
@@ -39,7 +40,7 @@ namespace api.Services
                         Estado = alunoDTO.Estado,
                         Cidade = alunoDTO.Cidade,
                         Telefone = alunoDTO.Telefone.HasValue ? (int)alunoDTO.Telefone : 0,
-                        IdEscola = alunoDTO.IdEscola.HasValue ? (int)alunoDTO.IdEscola : 0,
+                        IdEscola = alunoDTO.IdEscola,
                         NivelEnsino = alunoDTO.NivelEnsino,
                         Ano = alunoDTO.Ano,
                         Turno = alunoDTO.Turno,
@@ -154,49 +155,79 @@ namespace api.Services
             return resposta;
         }*/
 
-        /*
 
-        public async Task<ServiceResponse<AlunoDTO>> Buscar(Usuario usuario)
+
+        public async Task<ServiceResponse<List<AlunoComIdDTO>>> Buscar(Usuario usuario)
         {
-            var resposta = new ServiceResponse<AlunoDTO>();
-
+            var resposta = new ServiceResponse<List<AlunoComIdDTO>>();
             try
             {
-                Professor professor = await _contexto.Professores.FindAsync(usuario.ProfessorId);
-                if (professor == null)
-                {
-                    resposta.SetFalha("Professor não encontrado.");
-                    return resposta;
-                }
-
-                var professorDto = new AlunoDTO
-                {
-                    NomeCompleto = professor.NomeCompleto,
-                    Sexo = professor.Sexo,
-                    Cep = professor.Cep,
-                    Logradouro = professor.Logradouro,
-                    Numero = professor.Numero,
-                    Complemento = professor.Complemento,
-                    Bairro = professor.Bairro,
-                    Estado = professor.Estado,
-                    Cidade = professor.Cidade,
-                    Telefone = professor.Telefone,
-                    Disciplinas = professor.Disciplinas,
-                    NivelEnsino = professor.NivelEnsino,
-                    Sobre = professor.Sobre,
-                    AceitouTermos = usuario.AceitouTermos,
-                    Email = usuario.Email
-                };
-                resposta.AdicionaObjeto(professorDto);
-            }
-            catch (Exception ex)
-            {
-                resposta.SetFalha(ex.Message);
+                var alunos = _contexto.Alunos
+                    .Where(a => a.IdProfessor == usuario.ProfessorId)
+                    .Select(a => new AlunoComIdDTO
+                    {
+                        Id = a.Id,
+                        NomeCompleto = a.NomeCompleto,
+                        Cep = a.Cep,
+                        Logradouro = a.Logradouro,
+                        Numero = a.Numero,
+                        Complemento = a.Complemento,
+                        Bairro = a.Bairro,
+                        Estado = a.Estado,
+                        Cidade = a.Cidade,
+                        Telefone = a.Telefone,
+                        IdEscola = a.IdEscola,
+                        NivelEnsino = a.NivelEnsino,
+                        Ano = a.Ano,
+                        Turno = a.Turno
+                    })
+                    .ToList();
+                resposta.AdicionaObjeto(alunos);
+                resposta.Sucesso = true;
                 return resposta;
             }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar alunos.");
+                return resposta;
+            }
+        }
 
-            return resposta;
-        }*/
+        public async Task<ServiceResponse<AlunoComIdDTO>> Buscar(Usuario usuario, int idAluno)
+        {
+            var resposta = new ServiceResponse<AlunoComIdDTO>();
+            try
+            {
+                var aluno = _contexto.Alunos
+                    .Where(a => a.IdProfessor == usuario.ProfessorId && a.Id == idAluno)
+                    .Select(a => new AlunoComIdDTO
+                    {
+                        Id = a.Id,
+                        NomeCompleto = a.NomeCompleto,
+                        Cep = a.Cep,
+                        Logradouro = a.Logradouro,
+                        Numero = a.Numero,
+                        Complemento = a.Complemento,
+                        Bairro = a.Bairro,
+                        Estado = a.Estado,
+                        Cidade = a.Cidade,
+                        Telefone = a.Telefone,
+                        IdEscola = a.IdEscola,
+                        NivelEnsino = a.NivelEnsino,
+                        Ano = a.Ano,
+                        Turno = a.Turno
+                    })
+                    .FirstOrDefault();
+                resposta.AdicionaObjeto(aluno);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar aluno.");
+                return resposta;
+            }
+        }
         /*
         public async Task<ServiceResponse<bool>> VincularEscola(int idEscola, int idAluno)
         {
