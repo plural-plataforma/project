@@ -65,82 +65,81 @@ namespace api.Services
             }
 
         }
-        /*
-        public async Task<ServiceResponse<AlunoDTO>> Atualizar(AlunoDTO professorDto, int idProfessor)
+        
+        public async Task<ServiceResponse<AlunoComIdDTO>> Atualizar(Usuario usuario, AlunoComIdDTO alunoDTO)
         {
-            var resposta = new ServiceResponse<AlunoDTO>();
+            var resposta = new ServiceResponse<AlunoComIdDTO>();
 
             try
             {
-                Professor professor = await _contexto.Professores.FindAsync(idProfessor);
-                if (professor == null)
+                Aluno aluno = await _contexto.Alunos.FirstOrDefaultAsync(a => a.Id == alunoDTO.Id && a.IdProfessor == usuario.ProfessorId);
+                if (aluno == null)
                 {
-                    resposta.SetFalha("Professor não encontrado.");
+                    resposta.SetFalha("Aluno não encontrado.");
                     return resposta;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.NomeCompleto))
+                if (!string.IsNullOrEmpty(alunoDTO.NomeCompleto))
                 {
-                    professor.NomeCompleto = professorDto.NomeCompleto;
+                    aluno.NomeCompleto = alunoDTO.NomeCompleto;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Cep))
+                if (!string.IsNullOrEmpty(alunoDTO.Cep))
                 {
-                    professor.Cep = professorDto.Cep;
+                    aluno.Cep = alunoDTO.Cep;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Logradouro))
+                if (!string.IsNullOrEmpty(alunoDTO.Logradouro))
                 {
-                    professor.Logradouro = professorDto.Logradouro;
+                    aluno.Logradouro = alunoDTO.Logradouro;
                 }
 
-                if (professorDto.Numero.HasValue)
+                if (alunoDTO.Numero.HasValue)
                 {
-                    professor.Numero = professorDto.Numero;
+                    aluno.Numero = (int)alunoDTO.Numero;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Complemento))
+                if (!string.IsNullOrEmpty(alunoDTO.Complemento))
                 {
-                    professor.Complemento = professorDto.Complemento;
+                    aluno.Complemento = alunoDTO.Complemento;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Bairro))
+                if (!string.IsNullOrEmpty(alunoDTO.Bairro))
                 {
-                    professor.Bairro = professorDto.Bairro;
+                    aluno.Bairro = alunoDTO.Bairro;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Estado))
+                if (!string.IsNullOrEmpty(alunoDTO.Estado))
                 {
-                    professor.Estado = professorDto.Estado;
+                    aluno.Estado = alunoDTO.Estado;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Cidade))
+                if (!string.IsNullOrEmpty(alunoDTO.Cidade))
                 {
-                    professor.Cidade = professorDto.Cidade;
+                    aluno.Cidade = alunoDTO.Cidade;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Telefone))
+                if (alunoDTO.Telefone.HasValue)
                 {
-                    professor.Telefone = professorDto.Telefone;
+                    aluno.Telefone = (int)alunoDTO.Telefone;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.Disciplinas))
+                if (!string.IsNullOrEmpty(alunoDTO.NivelEnsino))
                 {
-                    professor.Disciplinas = professorDto.Disciplinas;
+                    aluno.NivelEnsino = alunoDTO.NivelEnsino;
                 }
 
-                if (!string.IsNullOrEmpty(professorDto.NivelEnsino))
+                if (!string.IsNullOrEmpty(alunoDTO.Ano))
                 {
-                    professor.NivelEnsino = professorDto.NivelEnsino;
+                    aluno.Ano = alunoDTO.Ano;
                 }
-
-                if (!string.IsNullOrEmpty(professorDto.Sobre))
+                if (!string.IsNullOrEmpty(alunoDTO.Turno))
                 {
-                    professor.Sobre = professorDto.Sobre;
+                    aluno.Turno = alunoDTO.Turno;
                 }
-                if (!string.IsNullOrEmpty(professorDto.Sexo))
+                if (alunoDTO.IdEscola != 0)
                 {
-                    professor.Sexo = professorDto.Sexo.ToUpper();
+                    aluno.IdEscola = alunoDTO.IdEscola;
                 }
 
                 await _contexto.SaveChangesAsync();
@@ -151,9 +150,9 @@ namespace api.Services
                 return resposta;
             }
 
-            resposta.AdicionaMensagem("Cadastro de professor atualizado com sucesso.");
+            resposta.AdicionaMensagem("Cadastro de aluno atualizado com sucesso.");
             return resposta;
-        }*/
+        }
 
 
 

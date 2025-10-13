@@ -45,16 +45,16 @@ namespace api.Controllers
             }
 
 
-        /*
+        
         [HttpPatch("atualizar")]
-        public async Task<IActionResult> Atualizar([FromBody] ProfessorDTO professor)
+        public async Task<IActionResult> Atualizar([FromBody] AlunoComIdDTO alunoDTO)
         {
             var usuario = await _usuario.GetUserAsync(User);
             var idProfessor = (int)usuario.ProfessorId;
 
             if (ModelState.IsValid)
             {
-                var resposta = await _professorService.Atualizar(professor, idProfessor);
+                var resposta = await _alunoService.Atualizar(usuario, alunoDTO);
                 if (resposta.Sucesso)
                 {
                     return Ok(resposta);
@@ -68,7 +68,7 @@ namespace api.Controllers
             {
                 return BadRequest(ModelState);
             }
-        }*/
+        }
 
         
         [HttpGet("buscar")]
