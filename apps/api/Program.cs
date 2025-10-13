@@ -66,6 +66,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<AutenticacaoService>();
 builder.Services.AddScoped<ProfessorService>();
 builder.Services.AddScoped<EscolaService>();
+builder.Services.AddScoped<AlunoService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>

@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251013224732_AjustesColunasTabelaAlunoForeignKey")]
+    partial class AjustesColunasTabelaAlunoForeignKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -233,6 +236,10 @@ namespace api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("idprofessor");
 
+                    b.Property<int?>("IdResponsavel")
+                        .HasColumnType("integer")
+                        .HasColumnName("idresponsavel");
+
                     b.Property<string>("Logradouro")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -270,6 +277,9 @@ namespace api.Migrations
 
                     b.HasIndex("IdProfessor")
                         .HasDatabaseName("ix_alunos_idprofessor");
+
+                    b.HasIndex("IdResponsavel")
+                        .HasDatabaseName("ix_alunos_idresponsavel");
 
                     b.ToTable("alunos");
                 });
@@ -673,9 +683,16 @@ namespace api.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_alunos_professores_idprofessor");
 
+                    b.HasOne("api.Models.Responsavel", "Responsavel")
+                        .WithMany()
+                        .HasForeignKey("IdResponsavel")
+                        .HasConstraintName("fk_alunos_responsaveis_idresponsavel");
+
                     b.Navigation("Escola");
 
                     b.Navigation("Professor");
+
+                    b.Navigation("Responsavel");
                 });
 
             modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
