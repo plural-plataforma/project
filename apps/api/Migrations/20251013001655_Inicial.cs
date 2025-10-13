@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     /// <inheritdoc />
-    public partial class criacaoBanco : Migration
+    public partial class Inicial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -53,20 +53,20 @@ namespace api.Migrations
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    nomecompleto = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    cep = table.Column<string>(type: "character varying(9)", maxLength: 9, nullable: false),
-                    logradouro = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    numero = table.Column<int>(type: "integer", nullable: false),
-                    complemento = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    bairro = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    estado = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    cidade = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    telefone = table.Column<int>(type: "integer", nullable: false),
-                    disciplinas = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    nivelensino = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    sobre = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    ischeckterms = table.Column<bool>(type: "boolean", nullable: false),
-                    foto = table.Column<byte[]>(type: "bytea", nullable: false)
+                    nomecompleto = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    cep = table.Column<string>(type: "character varying(9)", maxLength: 9, nullable: true),
+                    logradouro = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    numero = table.Column<int>(type: "integer", nullable: true),
+                    complemento = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    bairro = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    estado = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    cidade = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    telefone = table.Column<string>(type: "text", nullable: true),
+                    disciplinas = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    nivelensino = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    sobre = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    foto = table.Column<byte[]>(type: "bytea", nullable: true),
+                    sexo = table.Column<string>(type: "character varying(1)", maxLength: 1, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -121,6 +121,7 @@ namespace api.Migrations
                 {
                     id = table.Column<string>(type: "text", nullable: false),
                     professorid = table.Column<int>(type: "integer", nullable: true),
+                    aceitoutermos = table.Column<bool>(type: "boolean", nullable: false),
                     username = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     normalizedusername = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -145,30 +146,6 @@ namespace api.Migrations
                         principalTable: "professores",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "escolasxprofessores",
-                columns: table => new
-                {
-                    escolasid = table.Column<int>(type: "integer", nullable: false),
-                    professoresid = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_escolaprofessor", x => new { x.escolasid, x.professoresid });
-                    table.ForeignKey(
-                        name: "fk_escolaprofessor_escolas_escolasid",
-                        column: x => x.escolasid,
-                        principalTable: "escolas",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "fk_escolaprofessor_professores_professoresid",
-                        column: x => x.professoresid,
-                        principalTable: "professores",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -357,11 +334,6 @@ namespace api.Migrations
                 table: "aspnetusers",
                 column: "normalizedusername",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "ix_escolaprofessor_professoresid",
-                table: "escolasxprofessores",
-                column: "professoresid");
         }
 
         /// <inheritdoc />
@@ -384,9 +356,6 @@ namespace api.Migrations
 
             migrationBuilder.DropTable(
                 name: "aspnetusertokens");
-
-            migrationBuilder.DropTable(
-                name: "escolasxprofessores");
 
             migrationBuilder.DropTable(
                 name: "responsaveis");

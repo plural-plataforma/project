@@ -5,16 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Data
 {
- public class AppDbContext : IdentityDbContext<Usuario>
+    public class AppDbContext : IdentityDbContext<Usuario>
     {
-  public AppDbContext(DbContextOptions<AppDbContext> options)
-      : base(options) { }
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options) { }
 
-  public DbSet<Escola> Escolas { get; set; }
-  public DbSet<Professor> Professores { get; set; }
-  public DbSet<Aluno> Alunos { get; set; }
-  public DbSet<Responsavel> Responsaveis { get; set; }
-
+        public DbSet<Escola> Escolas { get; set; }
+        public DbSet<Professor> Professores { get; set; }
+        public DbSet<Aluno> Alunos { get; set; }
+        public DbSet<Responsavel> Responsaveis { get; set; }
+        public DbSet<EscolaXProfessor> EscolasXProfessores { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,18 +48,26 @@ namespace Data
             }
 
 
-            // Relacionamento N:N entre Escola e Professor para que crie uma tabela de junção
-            modelBuilder.Entity<Escola>()
-          .HasMany(e => e.Professores)
-          .WithMany(p => p.Escolas) 
-          .UsingEntity(j => j.ToTable("escolasxprofessores"));
+            modelBuilder.Entity<EscolaXProfessor>()
+          .HasKey(ep => new { ep.EscolaId, ep.ProfessorId });
 
-            modelBuilder.Entity<Usuario>().HasOne(u => u.Professor)
+            modelBuilder.Entity<EscolaXProfessor>()
+                .HasOne(ep => ep.Escola)
+                .WithMany(e => e.EscolaXProfessores)
+                .HasForeignKey(ep => ep.EscolaId);
+
+            modelBuilder.Entity<EscolaXProfessor>()
+                .HasOne(ep => ep.Professor)
+                .WithMany(p => p.EscolaXProfessores)
+                .HasForeignKey(ep => ep.ProfessorId);
+
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Professor)
                 .WithMany()
                 .HasForeignKey(u => u.ProfessorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-  }
+        }
 
- }
+    }
 }

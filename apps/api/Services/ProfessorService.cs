@@ -4,6 +4,9 @@ using api.Models;
 using api.Responses;
 using Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace api.Services
 {
@@ -146,6 +149,37 @@ namespace api.Services
                 return resposta;
             }
 
+            return resposta;
+        }
+
+        public async Task<ServiceResponse<bool>> VincularEscola(int idEscola, int idProfessor)
+        {
+            var escola = await _contexto.Escolas.FindAsync(idEscola);
+            var resposta = new ServiceResponse<bool>();
+            if (escola == null)
+            {
+                resposta.SetFalha("Escola não encontrada.");
+                return resposta;
+            }
+
+            bool jaVinculado = await _contexto.EscolasXProfessores
+           .AnyAsync(x => x.EscolaId == idEscola && x.ProfessorId == idProfessor);
+
+            if (jaVinculado)
+            {
+                resposta.SetFalha("Este professor já está vinculado a essa escola.");
+                return resposta;
+            }
+
+            var vinculo = new EscolaXProfessor
+            {
+                EscolaId = idEscola,
+                ProfessorId = idProfessor
+            };
+
+            _contexto.EscolasXProfessores.Add(vinculo);
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
             return resposta;
         }
     }
