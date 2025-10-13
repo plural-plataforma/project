@@ -184,14 +184,14 @@ namespace api.Services
             return resposta;
         }
 
-        public async Task<ServiceResponse<List<EscolaBuscarDTO>>> BuscarEscolas(int idProfessor)
+        public async Task<ServiceResponse<List<EscolaComIdDTO>>> BuscarEscolas(int idProfessor)
         {
-            var resposta = new ServiceResponse<List<EscolaBuscarDTO>>();
+            var resposta = new ServiceResponse<List<EscolaComIdDTO>>();
             try
             {
                 var escolas = _contexto.Escolas
                     .Where(e => e.EscolaXProfessores.Any(ep => ep.ProfessorId == idProfessor))
-                    .Select(e => new EscolaBuscarDTO
+                    .Select(e => new EscolaComIdDTO
                     {
                         Id = e.ID,
                         NomeInstituicao = e.NomeInstituicao,

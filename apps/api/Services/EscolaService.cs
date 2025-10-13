@@ -32,7 +32,7 @@ namespace api.Services
                         Tipo = escolaDTO.Tipo,
                         Cep = escolaDTO.Cep,
                         Logradouro = escolaDTO.Logradouro,
-                        Numero = escolaDTO.Numero,
+                        Numero = escolaDTO.Numero.HasValue ? (int)escolaDTO.Numero : 0,
                         Complemento = escolaDTO.Complemento,
                         Bairro = escolaDTO.Bairro,
                         Estado = escolaDTO.Estado,
@@ -57,12 +57,12 @@ namespace api.Services
 
         }
 
-        public async Task<ServiceResponse<List<EscolaBuscarDTO>>> Buscar()
+        public async Task<ServiceResponse<List<EscolaComIdDTO>>> Buscar()
         {
-            var resposta = new ServiceResponse<List<EscolaBuscarDTO>>();
+            var resposta = new ServiceResponse<List<EscolaComIdDTO>>();
             try
             {
-                var escolas = _contexto.Escolas.Select(e => new EscolaBuscarDTO
+                var escolas = _contexto.Escolas.Select(e => new EscolaComIdDTO
                 {
                     Id = e.ID,
                     NomeInstituicao = e.NomeInstituicao,
@@ -86,12 +86,12 @@ namespace api.Services
             }
         }
 
-        public async Task<ServiceResponse<List<EscolaBuscarDTO>>> Buscar(int id)
+        public async Task<ServiceResponse<List<EscolaComIdDTO>>> Buscar(int id)
         {
-            var resposta = new ServiceResponse<List<EscolaBuscarDTO>>();
+            var resposta = new ServiceResponse<List<EscolaComIdDTO>>();
             try
             {
-                var escola = _contexto.Escolas.Select(e => new EscolaBuscarDTO
+                var escola = _contexto.Escolas.Select(e => new EscolaComIdDTO
                 {
                     Id = e.ID,
                     NomeInstituicao = e.NomeInstituicao,
@@ -114,5 +114,76 @@ namespace api.Services
                 return resposta;
             }
         }
+
+        public async Task<ServiceResponse<EscolaComIdDTO>> Atualizar(EscolaComIdDTO escolaDTO)
+        {
+            var resposta = new ServiceResponse<EscolaComIdDTO>();
+
+            try
+            {
+                Escola escola = await _contexto.Escolas.FindAsync(escolaDTO.Id);
+                if (escola == null)
+                {
+                    resposta.SetFalha("Escola não encontrada.");
+                    return resposta;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.NomeInstituicao))
+                {
+                    escola.NomeInstituicao = escolaDTO.NomeInstituicao;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.Tipo))
+                {
+                    escola.Tipo = escolaDTO.Tipo;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.Cep))
+                {
+                    escola.Cep = escolaDTO.Cep;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.Logradouro))
+                {
+                    escola.Logradouro = escolaDTO.Logradouro;
+                }
+
+                if (escolaDTO.Numero.HasValue)
+                {
+                    escola.Numero = (int)escolaDTO.Numero;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.Complemento))
+                {
+                    escola.Complemento = escolaDTO.Complemento;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.Bairro))
+                {
+                    escola.Bairro = escolaDTO.Bairro;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.Estado))
+                {
+                    escola.Estado = escolaDTO.Estado;
+                }
+
+                if (!string.IsNullOrEmpty(escolaDTO.Cidade))
+                {
+                    escola.Cidade = escolaDTO.Cidade;
+                }
+
+                await _contexto.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha(ex.Message);
+                return resposta;
+            }
+
+            resposta.AdicionaMensagem("Cadastro de escola atualizado com sucesso.");
+            return resposta;
+        }
+
     }
 }

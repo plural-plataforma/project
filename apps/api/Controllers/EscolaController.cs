@@ -72,5 +72,26 @@ namespace api.Controllers
                 return BadRequest(resposta);
             }
         }
+
+        [HttpPatch("atualizar")]
+        public async Task<IActionResult> Atualizar([FromBody] EscolaComIdDTO escolaDTO)
+        {
+            if (ModelState.IsValid)
+            {
+                var resposta = await _escolaService.Atualizar(escolaDTO);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+                else
+                {
+                    return BadRequest(resposta);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
     }
 }
