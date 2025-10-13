@@ -84,5 +84,23 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
         }
+
+        [HttpGet("buscarescolas")]
+        public async Task<IActionResult> BuscarEscolas()
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var idProfessor = (int)usuario.ProfessorId;
+            var resposta = await _professorService.BuscarEscolas(idProfessor);
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+            else
+            {
+                return BadRequest(resposta);
+            }
+        }
+
+
     }
 }

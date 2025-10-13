@@ -1,4 +1,5 @@
 ﻿using api.DTOs.Autenticacao;
+using api.DTOs.Escola;
 using api.DTOs.Professor;
 using api.Models;
 using api.Responses;
@@ -181,6 +182,38 @@ namespace api.Services
             await _contexto.SaveChangesAsync();
             resposta.Sucesso = true;
             return resposta;
+        }
+
+        public async Task<ServiceResponse<List<EscolaBuscarDTO>>> BuscarEscolas(int idProfessor)
+        {
+            var resposta = new ServiceResponse<List<EscolaBuscarDTO>>();
+            try
+            {
+                var escolas = _contexto.Escolas
+                    .Where(e => e.EscolaXProfessores.Any(ep => ep.ProfessorId == idProfessor))
+                    .Select(e => new EscolaBuscarDTO
+                    {
+                        Id = e.ID,
+                        NomeInstituicao = e.NomeInstituicao,
+                        Tipo = e.Tipo,
+                        Cep = e.Cep,
+                        Logradouro = e.Logradouro,
+                        Numero = e.Numero,
+                        Complemento = e.Complemento,
+                        Bairro = e.Bairro,
+                        Estado = e.Estado,
+                        Cidade = e.Cidade
+                    })
+                    .ToList();
+                resposta.AdicionaObjeto(escolas);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar escolas.");
+                return resposta;
+            }
         }
     }
 }
