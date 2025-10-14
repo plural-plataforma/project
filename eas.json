@@ -1,0 +1,16 @@
+{
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "installCommand": "npm ci && node ./scripts/ensure-android-placeholders.js"
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "installCommand": "npm ci && node ./scripts/ensure-android-placeholders.js"
+    }
+  }
+}
