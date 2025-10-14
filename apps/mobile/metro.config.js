@@ -1,14 +1,23 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
-const config = getDefaultConfig(__dirname);
+// Start from Expo's default config and extend it safely
+const projectRoot = __dirname;
+const config = getDefaultConfig(projectRoot);
 
-// Adicione o alias para resolver pacotes fora da raiz
-config.resolver.extraNodeModules = {
-  '@': path.resolve(__dirname, '../../../../packages'), // Ajuste conforme a estrutura
-};
+// Resolve packages folder (adjust relative path if your monorepo layout differs)
+const packagesPath = path.resolve(projectRoot, '../../packages');
 
-// Inclua a pasta packages como parte do projeto
-config.watchFolders = [path.resolve(__dirname, '../../packages')];
+// Merge/extend extraNodeModules but avoid overwriting defaults
+config.resolver = config.resolver || {};
+config.resolver.extraNodeModules = Object.assign({}, config.resolver.extraNodeModules, {
+  '@': path.resolve(projectRoot, '../../../../packages'),
+});
+
+// Ensure the watchFolders includes Expo defaults plus our packages folder
+config.watchFolders = Array.isArray(config.watchFolders) ? config.watchFolders.slice() : [];
+if (!config.watchFolders.includes(packagesPath)) {
+  config.watchFolders.push(packagesPath);
+}
 
 module.exports = config;

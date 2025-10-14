@@ -1,21 +1,31 @@
-import { config as dotenvConfig } from 'dotenv'
 import { ExpoConfig } from '@expo/config-types'
 import path from 'path'
 
-dotenvConfig({ path: path.resolve(__dirname, '../../.env') })
+// Load .env if possible. During EAS config evaluation the builder may not have
+// all node_modules installed yet, so require('dotenv') can fail. Use a
+// defensive require so evaluation doesn't crash.
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const dotenv = require('dotenv')
+  if (dotenv && typeof dotenv.config === 'function') {
+    dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+  }
+} catch (e) {
+  // dotenv not available in the current environment; continue without it
+}
 
 const API_URL = process.env.API_URL || 'http://localhost:5145/api/'
 
 const config: ExpoConfig = {
   name: 'Plural-App',
-  slug: 'testes-plural',
+  slug: 'plural-teste',
   version: '1.0.0',
   orientation: 'portrait',
   icon: '../../packages/ui/assets/images/icon.png',
-  scheme: 'Plural Plataforma',
+  scheme: 'plural-plata',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
-  owner: 'plural-teste', // ✅ Adicionado aqui
+  owner: 'plural-plata', // ✅ Adicionado aqui
   ios: {
     supportsTablet: true,
   },
@@ -57,7 +67,7 @@ const config: ExpoConfig = {
   extra: {
     API_URL,
     eas: {
-      projectId: '82f15ca1-a3ee-452c-b3a3-518bea07ec15',
+      projectId: '289acc5b-f6fc-4d6f-a2b5-58e5c0b20bad',
     },
   },
 }
