@@ -53,5 +53,7 @@ namespace api.Models
         [ForeignKey("IdEscola")]
         public virtual Escola Escola { get; set; }
 
+        public ICollection<AlunosXPlanejamento> AlunosXPlanejamentos{ get; set; }
+
     }
 }
