@@ -16,7 +16,7 @@ public class Habilidade
 
     public string Descricao { get; set; }
 
-    public string Resumo { get; set; }
+    public string? Resumo { get; set; }
 
     public bool Ativo { get; set; }
     public ICollection<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
