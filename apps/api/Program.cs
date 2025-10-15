@@ -11,6 +11,21 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhost", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:8081",
+                "https://68ef01c7dc34b7e24e5960cb--leafy-donut-4f71a4.netlify.app",
+                "https://leafy-donut-4f71a4.netlify.app")
+            .AllowAnyHeader() 
+            .AllowAnyMethod()
+            .AllowCredentials(); 
+    });
+});
+
+
 // Carrega .env da raiz do Turborepo
 Env.TraversePath().Load();
 builder.Configuration.AddEnvironmentVariables();
@@ -102,7 +117,7 @@ else
 }
 
 app.UseRouting();
-
+app.UseCors("AllowLocalhost");
 app.UseAuthentication();
 app.UseAuthorization();
 
