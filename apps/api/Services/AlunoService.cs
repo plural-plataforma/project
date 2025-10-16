@@ -1,13 +1,9 @@
 ﻿using api.DTOs.Aluno;
-using api.DTOs.Autenticacao;
-using api.DTOs.Escola;
 using api.Models;
 using api.Responses;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
-using System.Diagnostics;
 
 namespace api.Services
 {
@@ -22,9 +18,9 @@ namespace api.Services
             _usuario = usuario;
         }
 
-        public async Task<ServiceResponse<AlunoDTO>> Cadastro(AlunoDTO alunoDTO, Usuario usuario)
+        public async Task<ServiceResponse<AlunoCadastroDTO>> Cadastro(AlunoCadastroDTO alunoDTO, Usuario usuario)
         {
-            var resposta = new ServiceResponse<AlunoDTO>();
+            var resposta = new ServiceResponse<AlunoCadastroDTO>();
             using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
                 try
@@ -66,9 +62,9 @@ namespace api.Services
 
         }
         
-        public async Task<ServiceResponse<AlunoComIdDTO>> Atualizar(Usuario usuario, AlunoComIdDTO alunoDTO)
+        public async Task<ServiceResponse<AlunoAtualizarDTO>> Atualizar(Usuario usuario, AlunoAtualizarDTO alunoDTO)
         {
-            var resposta = new ServiceResponse<AlunoComIdDTO>();
+            var resposta = new ServiceResponse<AlunoAtualizarDTO>();
 
             try
             {
@@ -139,7 +135,7 @@ namespace api.Services
                 }
                 if (alunoDTO.IdEscola != 0)
                 {
-                    aluno.IdEscola = alunoDTO.IdEscola;
+                    aluno.IdEscola = (int)alunoDTO.IdEscola;
                 }
 
                 await _contexto.SaveChangesAsync();
@@ -156,14 +152,14 @@ namespace api.Services
 
 
 
-        public async Task<ServiceResponse<List<AlunoComIdDTO>>> Buscar(Usuario usuario)
+        public async Task<ServiceResponse<List<AlunoBuscarDTO>>> Buscar(Usuario usuario)
         {
-            var resposta = new ServiceResponse<List<AlunoComIdDTO>>();
+            var resposta = new ServiceResponse<List<AlunoBuscarDTO>>();
             try
             {
                 var alunos = _contexto.Alunos
                     .Where(a => a.IdProfessor == usuario.ProfessorId)
-                    .Select(a => new AlunoComIdDTO
+                    .Select(a => new AlunoBuscarDTO
                     {
                         Id = a.Id,
                         NomeCompleto = a.NomeCompleto,
@@ -192,14 +188,14 @@ namespace api.Services
             }
         }
 
-        public async Task<ServiceResponse<AlunoComIdDTO>> Buscar(Usuario usuario, int idAluno)
+        public async Task<ServiceResponse<AlunoBuscarDTO>> Buscar(Usuario usuario, int idAluno)
         {
-            var resposta = new ServiceResponse<AlunoComIdDTO>();
+            var resposta = new ServiceResponse<AlunoBuscarDTO>();
             try
             {
                 var aluno = _contexto.Alunos
                     .Where(a => a.IdProfessor == usuario.ProfessorId && a.Id == idAluno)
-                    .Select(a => new AlunoComIdDTO
+                    .Select(a => new AlunoBuscarDTO
                     {
                         Id = a.Id,
                         NomeCompleto = a.NomeCompleto,

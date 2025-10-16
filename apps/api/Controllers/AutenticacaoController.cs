@@ -1,7 +1,6 @@
 ﻿using api.DTOs.Autenticacao;
 using api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace api.Controllers
 {

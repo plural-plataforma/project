@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251016212814_AjustesTabelasHabilidadesPlanejamentos")]
+    partial class AjustesTabelasHabilidadesPlanejamentos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -451,23 +454,27 @@ namespace api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("apelido");
 
-                    b.Property<DateOnly>("DataFim")
-                        .HasColumnType("date")
+                    b.Property<DateTime>("DataFim")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("datafim");
 
-                    b.Property<DateOnly>("DataInicio")
-                        .HasColumnType("date")
+                    b.Property<DateTime>("DataInicio")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("datainicio");
 
                     b.Property<int>("IdProfessor")
                         .HasColumnType("integer")
                         .HasColumnName("idprofessor");
 
+                    b.Property<int>("ProfessorID")
+                        .HasColumnType("integer")
+                        .HasColumnName("professorid");
+
                     b.HasKey("ID")
                         .HasName("pk_planejamentos");
 
-                    b.HasIndex("IdProfessor")
-                        .HasDatabaseName("ix_planejamentos_idprofessor");
+                    b.HasIndex("ProfessorID")
+                        .HasDatabaseName("ix_planejamentos_professorid");
 
                     b.ToTable("planejamentos");
                 });
@@ -858,10 +865,10 @@ namespace api.Migrations
                 {
                     b.HasOne("api.Models.Professor", "Professor")
                         .WithMany("Planejamentos")
-                        .HasForeignKey("IdProfessor")
+                        .HasForeignKey("ProfessorID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_planejamentos_professores_idprofessor");
+                        .HasConstraintName("fk_planejamentos_professores_professorid");
 
                     b.Navigation("Professor");
                 });

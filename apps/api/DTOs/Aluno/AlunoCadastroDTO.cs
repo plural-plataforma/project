@@ -1,15 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace api.Models
+namespace api.DTOs.Aluno
 {
-    [Table("alunos")]
-    public class Aluno
+    public class AlunoCadastroDTO
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
-
         [Required]
         [StringLength(256)]
         public string NomeCompleto { get; set; }
@@ -20,7 +14,7 @@ namespace api.Models
         [StringLength(50)]
         public string? Logradouro { get; set; }
 
-        public int Numero { get; set; }
+        public int? Numero { get; set; }
 
         [StringLength(100)]
         public string? Complemento { get; set; }
@@ -34,8 +28,9 @@ namespace api.Models
         [StringLength(40)]
         public string? Cidade { get; set; }
 
-        public int Telefone { get; set; }
-        public int IdProfessor { get; set; }
+        public int? Telefone { get; set; }
+
+        [Required]
         public int IdEscola { get; set; }
 
         [StringLength(20)]
@@ -46,14 +41,8 @@ namespace api.Models
 
         [StringLength(10)]
         public string? Turno { get; set; }
-
-        [ForeignKey("IdProfessor")]
-        public Professor Professor { get; set; }
-
-        [ForeignKey("IdEscola")]
-        public Escola Escola { get; set; }
-
-        public ICollection<AlunosXPlanejamento> AlunosXPlanejamentos{ get; set; }
-
     }
 }
+
+
+

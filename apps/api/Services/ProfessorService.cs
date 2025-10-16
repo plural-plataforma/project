@@ -1,13 +1,10 @@
-﻿using api.DTOs.Autenticacao;
-using api.DTOs.Escola;
+﻿using api.DTOs.Escola;
 using api.DTOs.Professor;
 using api.Models;
 using api.Responses;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
-using System.Diagnostics;
 
 namespace api.Services
 {

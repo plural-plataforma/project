@@ -1,12 +1,9 @@
-﻿using api.DTOs.Autenticacao;
-using api.DTOs.Escola;
-using api.DTOs.Professor;
+﻿using api.DTOs.Escola;
 using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace api.Controllers
 {

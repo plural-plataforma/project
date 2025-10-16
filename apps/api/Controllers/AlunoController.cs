@@ -1,5 +1,4 @@
 ﻿using api.DTOs.Aluno;
-using api.DTOs.Professor;
 using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -23,7 +22,7 @@ namespace api.Controllers
             }
 
             [HttpPost("cadastro")]
-            public async Task<IActionResult> Cadastro([FromBody] AlunoDTO alunoDTO)
+            public async Task<IActionResult> Cadastro([FromBody] AlunoCadastroDTO alunoDTO)
             {
                 var usuario = await _usuario.GetUserAsync(User);
                 if (ModelState.IsValid)
@@ -47,7 +46,7 @@ namespace api.Controllers
 
         
         [HttpPatch("atualizar")]
-        public async Task<IActionResult> Atualizar([FromBody] AlunoComIdDTO alunoDTO)
+        public async Task<IActionResult> Atualizar([FromBody] AlunoAtualizarDTO alunoDTO)
         {
             var usuario = await _usuario.GetUserAsync(User);
             var idProfessor = (int)usuario.ProfessorId;

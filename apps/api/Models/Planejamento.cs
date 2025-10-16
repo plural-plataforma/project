@@ -1,5 +1,4 @@
-﻿using api.Models;
-namespace api.Models;
+﻿namespace api.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -12,9 +11,14 @@ public class Planejamento
 
     public string Apelido { get; set; }
 
-    public DateTime DataInicio { get; set; }
+    public DateOnly DataInicio { get; set; }
 
-    public DateTime DataFim { get; set; }
+    public DateOnly DataFim { get; set; }
+    public int IdProfessor { get; set; }
+
+    [ForeignKey("IdProfessor")]
+    public Professor Professor { get; set; }
+
 
     public ICollection<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
     public ICollection<AlunosXPlanejamento> AlunosXPlanejamentos { get; set; }

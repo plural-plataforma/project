@@ -6,10 +6,10 @@ namespace api.Responses
     {
         public bool Sucesso { get; set; } = true;
 
-        public List<string> Mensagens { get; set; } = new List<string>();
+        public List<string> Mensagens { get; set; } = new();
 
         public T? Objeto { get; set; }
-        public List<T>? ListaObjetos { get; set; }
+        public List<T>? ListaObjetos { get; set; } = new();
 
         public void AdicionaMensagem(string mensagem)
         {
@@ -26,7 +26,7 @@ namespace api.Responses
             Objeto = objeto;
         }
 
-        public void AdicionaObjetos(T objetos)
+        public void AdicionaObjetos(IEnumerable<T> objetos)
         {
             ListaObjetos.AddRange(objetos);
         }

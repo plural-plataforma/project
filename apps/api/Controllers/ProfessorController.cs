@@ -1,11 +1,9 @@
-﻿using api.DTOs.Autenticacao;
-using api.DTOs.Professor;
+﻿using api.DTOs.Professor;
 using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace api.Controllers
 {
@@ -63,13 +61,13 @@ namespace api.Controllers
         }
 
         [HttpPost("vincularescola")]
-        public async Task<IActionResult> VincularEscola([FromBody] VincularEscolaDTO vincularEscolaDTO)
+        public async Task<IActionResult> VincularEscola([FromBody] ProfessorVincularEscolaDTO professorVincularEscolaDto)
         {
             var usuario = await _usuario.GetUserAsync(User);
             var idProfessor = (int)usuario.ProfessorId;
             if (ModelState.IsValid)
             {
-                var resposta = await _professorService.VincularEscola(vincularEscolaDTO.IdEscola, idProfessor);
+                var resposta = await _professorService.VincularEscola(professorVincularEscolaDto.IdEscola, idProfessor);
                 if (resposta.Sucesso)
                 {
                     return Ok(resposta);

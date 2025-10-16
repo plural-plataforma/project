@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using DotNetEnv;
 using System.Text;
 using api.Models;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +85,7 @@ builder.Services.AddScoped<ProfessorService>();
 builder.Services.AddScoped<EscolaService>();
 builder.Services.AddScoped<AlunoService>();
 builder.Services.AddScoped<HabilidadeService>();
+builder.Services.AddScoped<PlanejamentoService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>

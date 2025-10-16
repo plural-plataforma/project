@@ -1,12 +1,12 @@
-﻿using api.DTOs.Escola;
-using api.Models;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.Aluno
 {
-    public class AlunoDTO
+    public class AlunoAtualizarDTO
     {
+        [Required]
+        public int Id { get; set; }
+
         [StringLength(256)]
         public string? NomeCompleto { get; set; }
 
@@ -32,7 +32,7 @@ namespace api.DTOs.Aluno
 
         public int? Telefone { get; set; }
 
-        public int IdEscola { get; set; }
+        public int? IdEscola { get; set; }
 
         [StringLength(20)]
         public string? NivelEnsino { get; set; }
@@ -42,12 +42,5 @@ namespace api.DTOs.Aluno
 
         [StringLength(10)]
         public string? Turno { get; set; }
-
-    }
-
-    public class AlunoComIdDTO : AlunoDTO{
-        [Required]
-        public int Id { get; set; }
-
     }
 }
