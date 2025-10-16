@@ -1,5 +1,5 @@
-﻿using api.DTOs.Aluno;
-using api.DTOs.Professor;
+﻿using api.DTOs;
+using api.DTOs.Habilidade;
 using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -23,7 +23,7 @@ namespace api.Controllers
         }
 
         [HttpPost("cadastro")]
-        public async Task<IActionResult> Cadastro([FromBody] HabilidadeDTO habilidadeDTO)
+        public async Task<IActionResult> Cadastro([FromBody] HabilidadeCadastroDTO habilidadeDTO)
         {
             if (ModelState.IsValid)
             {
@@ -46,7 +46,7 @@ namespace api.Controllers
 
         
         [HttpPatch("atualizar")]
-        public async Task<IActionResult> Atualizar([FromBody] HabilidadeCompletoDTO habilidadeDTO)
+        public async Task<IActionResult> Atualizar([FromBody] HabilidadeAtualizarDTO habilidadeDTO)
         {
             if (ModelState.IsValid)
             {

@@ -1,7 +1,5 @@
-﻿using api.Models;
-namespace api.DTOs.Escola;
+﻿namespace api.DTOs.Escola;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 public class EscolaDTO
 {

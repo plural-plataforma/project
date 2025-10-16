@@ -1,6 +1,4 @@
-﻿using api.DTOs.Autenticacao;
-using api.DTOs.Escola;
-using api.DTOs.Professor;
+﻿using api.DTOs.Escola;
 using api.Models;
 using api.Responses;
 using Data;

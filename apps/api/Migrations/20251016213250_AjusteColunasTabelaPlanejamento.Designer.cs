@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251016213250_AjusteColunasTabelaPlanejamento")]
+    partial class AjusteColunasTabelaPlanejamento
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -451,12 +454,12 @@ namespace api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("apelido");
 
-                    b.Property<DateOnly>("DataFim")
-                        .HasColumnType("date")
+                    b.Property<DateTime>("DataFim")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("datafim");
 
-                    b.Property<DateOnly>("DataInicio")
-                        .HasColumnType("date")
+                    b.Property<DateTime>("DataInicio")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("datainicio");
 
                     b.Property<int>("IdProfessor")

@@ -1,4 +1,5 @@
-﻿using api.DTOs.Aluno;
+﻿using api.DTOs;
+using api.DTOs.Habilidade;
 using api.Models;
 using api.Responses;
 using Data;
@@ -18,9 +19,9 @@ namespace api.Services
             _usuario = usuario;
         }
 
-        public async Task<ServiceResponse<HabilidadeDTO>> Cadastro(HabilidadeDTO habilidadeDTO)
+        public async Task<ServiceResponse<HabilidadeCadastroDTO>> Cadastro(HabilidadeCadastroDTO habilidadeDTO)
         {
-            var resposta = new ServiceResponse<HabilidadeDTO>();
+            var resposta = new ServiceResponse<HabilidadeCadastroDTO>();
             using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
                 try
@@ -53,13 +54,13 @@ namespace api.Services
 
         }
 
-        public async Task<ServiceResponse<HabilidadeCompletoDTO>> Atualizar(HabilidadeCompletoDTO habilidadeDTO)
+        public async Task<ServiceResponse<HabilidadeAtualizarDTO>> Atualizar(HabilidadeAtualizarDTO habilidadeDTO)
         {
-            var resposta = new ServiceResponse<HabilidadeCompletoDTO>();
+            var resposta = new ServiceResponse<HabilidadeAtualizarDTO>();
 
             try
             {
-                Habilidade habilidade = await _contexto.Habilidades.FirstOrDefaultAsync(h => h.ID == habilidadeDTO.ID);
+                Habilidade habilidade = await _contexto.Habilidades.FirstOrDefaultAsync(h => h.Id == habilidadeDTO.Id);
                 if (habilidade == null)
                 {
                     resposta.SetFalha("Habilidade não encontrada.");
@@ -105,15 +106,15 @@ namespace api.Services
 
 
 
-        public async Task<ServiceResponse<List<HabilidadeCompletoDTO>>> Buscar()
+        public async Task<ServiceResponse<List<HabilidadeBuscarDTO>>> Buscar()
         {
-            var resposta = new ServiceResponse<List<HabilidadeCompletoDTO>>();
+            var resposta = new ServiceResponse<List<HabilidadeBuscarDTO>>();
             try
             {
                 var habilidade = _contexto.Habilidades.
-                    Select(h => new HabilidadeCompletoDTO
+                    Select(h => new HabilidadeBuscarDTO
                     {
-                        ID = h.ID,
+                        Id = h.Id,
                         NivelEnsino = h.NivelEnsino,
                         Tipo = h.Tipo,
                         Descricao= h.Descricao,
