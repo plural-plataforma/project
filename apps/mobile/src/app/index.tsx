@@ -7,7 +7,7 @@ import { Button, Logo } from '@/packages/ui/components'
 
 export default function Index() {
   const router = useRouter()
-  
+
 
 
   return (
@@ -15,19 +15,19 @@ export default function Index() {
       <View style={styles.content}>
         <Image
           source={require('@/packages/ui/assets/images/home_people.png')}
-          style={{ width: '120%', height: '56%', alignSelf:'center' }}
+          style={{ width: '120%', height: '56%', alignSelf: 'center' }}
         />
-      <View style={{ width: "100%", flexDirection: "row", justifyContent: 'center', marginTop: 20 }}>
-        <Logo width={278} height={98} styles={{logo:{ alignSelf: 'center' }}}href="logo-contrast" />
+        <View style={{ width: "100%", flexDirection: "row", justifyContent: 'center', marginTop: 20 }}>
+          <Logo width={278} height={98} styles={{ logo: { alignSelf: 'center' } }} href="logo-contrast" />
         </View>
         <View style={styles.slugan}>
           <Text
             style={{
               color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 32
+              fontSize: 24,
+              fontWeight: '700',
+              textAlign: 'center',
+              lineHeight: 32
             }}
           >
             Onde cada <Text style={{ color: '#A786B6' }}>aluno</Text> importa,
@@ -50,7 +50,7 @@ export default function Index() {
           onPress={() => router.push('/auth/login')}
         />
 
-        <Button
+        {/**    <Button
           title="Criar Conta"
           buttonColor={{
             color: colors.textPrimary,
@@ -64,6 +64,7 @@ export default function Index() {
           ]}
           onPress={() => router.push('/auth/signUp')}
         />
+         */}
       </View>
     </SafeAreaView>
   )
@@ -91,10 +92,10 @@ const styles = StyleSheet.create({
     marginBottom: 40
   },
   slugan: {
-      marginTop: 16,
-  marginBottom: 24,
-  paddingHorizontal: 20,
-  alignItems: 'center'
+    marginTop: 16,
+    marginBottom: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center'
   },
   button: {
     width: '80%',

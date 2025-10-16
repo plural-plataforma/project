@@ -1,6 +1,6 @@
 export interface Escola {
-  id?: number;
-  nomeInstituicao: string;
+  id: number;
+  nomeInstituicao?: string;
   tipo?: TipoEscola;
   cep?: string;
   logradouro?: string;

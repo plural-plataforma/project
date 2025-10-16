@@ -17,17 +17,21 @@ try {
 const API_URL = process.env.API_URL || 'http://localhost:5145/api/'
 
 const config: ExpoConfig = {
-  name: 'Plural-App',
-  slug: 'plural-teste',
+  name: 'plural-plataforma',
+  slug: 'plural-plataforma',
   version: '1.0.0',
   orientation: 'portrait',
   icon: '../../packages/ui/assets/images/icon.png',
-  scheme: 'plural-plata',
+  scheme: 'plural-plataforma',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
-  owner: 'plural-plata', // ✅ Adicionado aqui
+  owner: 'plural-plata', 
   ios: {
     supportsTablet: true,
+    bundleIdentifier: 'com.creis.mobile',
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false
+    }
   },
   android: {
     edgeToEdgeEnabled: true,

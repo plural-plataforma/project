@@ -177,6 +177,7 @@ export const signOut = async (): Promise<void> => {
 
     const remainingToken = await AsyncStorage.getItem('authToken');
     console.log(`✅ Storage limpo! Token restante: ${remainingToken || 'null'}`);
+    
   } catch (error) {
     console.error('❌ Erro ao limpar o AsyncStorage durante logout:', error);
   }

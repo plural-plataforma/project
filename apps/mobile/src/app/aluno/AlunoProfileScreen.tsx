@@ -21,7 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator, FlatList, View, StyleSheet } from "react-native";
 import { Alert } from "react-native";
 import ProfilePhoto from "@src/components/ProfilePhoto";
-import { atualizarAluno } from "@src/services/alunoService";
+import { cadastraAluno } from "@src/services/alunoService";
 
 // Tipos para os campos do InputField
 interface TextInputField {
@@ -77,6 +77,9 @@ export default function AlunoProfileScreen() {
     ? cidadesPorUf[aluno.estado] || ["Selecione o estado primeiro"]
     : ["Selecione o estado primeiro"];
 
+  // Allow manual editing of address fields by default. City search will only be enabled when state is provided.
+  const enderecoEnabled = true;
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -94,11 +97,8 @@ export default function AlunoProfileScreen() {
           label: uf.nome,
           value: uf.sigla,
         }));
-        setUfs(formattedUfs);
-
-        const municipiosData = await fetchMunicipios("RS");
-        const cidadesRS = municipiosData.map((m) => m.nome);
-        setCidadesPorUf((prev) => ({ ...prev, RS: cidadesRS }));
+    setUfs(formattedUfs);
+    // Do not prefill cidades for a specific UF here. We'll load municipios only when a UF is selected
       } catch (error: any) {
         console.error("Erro ao carregar dados iniciais:", error.message);
         if (error.message.includes("401")) {
@@ -112,10 +112,9 @@ export default function AlunoProfileScreen() {
             "Erro",
             "Não foi possível carregar os dados. Preencha manualmente."
           );
+          // Do not prefill estado/cidade when initial load fails; let user choose state first
           setAluno((prev) => ({
             ...prev,
-            estado: "SP",
-            cidade: "São Paulo",
             escolas: 0,
           }));
         }
@@ -134,19 +133,12 @@ export default function AlunoProfileScreen() {
       setCepLoading(true);
       try {
         const cepData = await fetchCepData(cepClean);
+        // Fill address fields from CEP, but do NOT override estado/cidade (to avoid amarra pelo CEP)
         setAluno((prev) => ({
           ...prev,
           logradouro: cepData.street || "",
           bairro: cepData.neighborhood || "",
-          estado: cepData.state || "",
-          cidade: cepData.city || "",
         }));
-
-        if (cepData.state && !cidadesPorUf[cepData.state]) {
-          const municipiosData = await fetchMunicipios(cepData.state);
-          const cidades = municipiosData.map((m) => m.nome);
-          setCidadesPorUf((prev) => ({ ...prev, [cepData.state]: cidades }));
-        }
       } catch (error: any) {
         console.error("Erro ao buscar CEP:", error);
         if (error.name === "BadRequestError") {
@@ -164,7 +156,38 @@ export default function AlunoProfileScreen() {
     }
   };
 
-  const handleConcluir = async () => {};
+  const handleConcluir = async () => {
+    // Basic client-side validation
+    if (!aluno.nomeCompleto || aluno.nomeCompleto.trim() === "") {
+      Alert.alert("Erro", "O nome do aluno é obrigatório.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload: Partial<Aluno> = { ...aluno };
+      const result = await cadastraAluno(payload);
+      console.log("✅ Aluno cadastrado:", result);
+      Alert.alert("Sucesso", "Aluno cadastrado com sucesso.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error: any) {
+      // Try to surface axios response data when available for easier debugging
+      if (error?.response) {
+        console.error("❌ Erro ao cadastrar aluno - response:", error.response);
+        const status = error.response.status;
+        const data = error.response.data;
+        const serverMessage = data?.message || JSON.stringify(data) || error.message;
+        Alert.alert("Erro", `(${status}) ${serverMessage}`);
+      } else {
+        console.error("❌ Erro ao cadastrar aluno:", error);
+        const message = error?.message || "Não foi possível cadastrar o aluno.";
+        Alert.alert("Erro", message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sections = [
     {
@@ -213,10 +236,11 @@ export default function AlunoProfileScreen() {
                 .catch((err) => console.error("Erro ao carregar cidades:", err));
             }
           },
+          editable: true,
         },
         {
           label: "Cidade",
-          placeholder: "Informe a cidade",
+          placeholder: aluno.estado ? 'Informe a cidade' : 'Selecione o estado primeiro',
           options: cidadesDisponiveis.map((cidade) => ({
             label: cidade,
             value: cidade,
@@ -226,18 +250,24 @@ export default function AlunoProfileScreen() {
             const cityValue = value?.toString() || "";
             setAluno({ ...aluno, cidade: cityValue });
           },
+          // Only enable the cidade search when an estado is selected
+          editable: Boolean(aluno.estado),
+          searchable: Boolean(aluno.estado),
+          searchPlaceholder: 'Digite para buscar a cidade',
         },
         {
           label: "Bairro",
           placeholder: "Digite o bairro",
           value: aluno.bairro || "",
           onChangeText: (value: string) => setAluno({ ...aluno, bairro: value }),
+          editable: enderecoEnabled,
         },
         {
           label: "Endereço",
           placeholder: "Digite o endereço",
           value: aluno.logradouro || "",
           onChangeText: (value: string) => setAluno({ ...aluno, logradouro: value }),
+          editable: enderecoEnabled,
         },
         {
           label: "Número",
@@ -247,12 +277,14 @@ export default function AlunoProfileScreen() {
             const numValue = value === "" ? 0 : parseInt(value) || 0;
             setAluno({ ...aluno, numero: numValue });
           },
+          editable: enderecoEnabled,
         },
         {
           label: "Complemento",
           placeholder: "Digite o complemento",
           value: aluno.complemento || "",
           onChangeText: (value: string) => setAluno({ ...aluno, complemento: value }),
+          editable: enderecoEnabled,
         },
       ],
     },
@@ -403,20 +435,9 @@ export default function AlunoProfileScreen() {
       {item.fields.map((field, fieldIndex) => (
         <InputField
           key={fieldIndex}
+          {...field}
           label={field.label || ''}
           placeholder={field.placeholder || ''}
-          {...("options" in field
-            ? {
-                options: field.options,
-                selectedValue: field.selectedValue,
-                onValueChange: field.onValueChange,
-              }
-            : {
-                value: field.value || '',
-                onChangeText: field.onChangeText,
-                mask: field.mask,
-                editable: "editable" in field ? field.editable : true,
-              })}
           style={styles.inputContainer}
         />
       ))}

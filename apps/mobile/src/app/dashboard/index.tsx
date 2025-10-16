@@ -4,7 +4,7 @@ import {
   Image,
   StyleSheet,
   ScrollView,
-  Alert,
+
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
@@ -22,6 +22,7 @@ import { Professor } from '@src/types/professor';
 import { buscarProfessor, buscarEscolasProfessor } from '@src/services/professorService';
 import { isCadastroCompleto } from '@src/utils/professorUtils';
 import SelectButton from '@src/components/SelectButton';
+import alert from '../../utils/alert';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -30,9 +31,9 @@ export default function Dashboard() {
   const [cadastroCompleto, setCadastroCompleto] = useState(false);
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
+  const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
 
-useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       if (dataFetched) {
         console.log('🔍 fetchData já executado, pulando...');
@@ -70,7 +71,11 @@ useEffect(() => {
           console.log('✅ Escolas carregadas:', updatedProfessor.escolas.length);
         } catch (error: any) {
           console.error('❌ Erro em buscarEscolasProfessor:', error.message);
-          Alert.alert('Aviso', 'Não foi possível carregar as escolas vinculadas.');
+          alert('Aviso', 'Não foi possível carregar as escolas vinculadas.', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'OK', onPress: () => ({}) }
+          ])
+
         }
 
         setProfessor(updatedProfessor);
@@ -80,10 +85,18 @@ useEffect(() => {
         console.error('❌ Erro geral em fetchData:', error.message, error);
         if (error.message.includes('401') || error.message.includes('Nenhum token')) {
           console.log('🔐 Sessão expirada ou sem token detectada, chamando signOut...');
-          Alert.alert('Sessão Expirada', 'Por favor, faça login novamente.');
-          await signOut();
+          alert('Sessão Expirada', 'Por favor, faça login novamente.', [
+            {
+              text: 'OK',
+              onPress: async () => {
+               await signOut();
+                router.replace('/auth/login');
+              }
+            }
+          ]);
+          
         } else {
-          Alert.alert('Erro', 'Não foi possível carregar os dados do professor.');
+          alert('Erro', 'Não foi possível carregar os dados do professor.');
         }
       } finally {
         console.log('🏁 fetchData finalizado, setLoading(false)');
@@ -112,7 +125,7 @@ useEffect(() => {
           <TouchableOpacity
             onPress={() => {
               console.log('🖱️ Botão Sair clicado!');
-              Alert.alert(
+              alert(
                 'Sair da conta?',
                 'Isso invalidará sua sessão e você precisará fazer login novamente.',
                 [
@@ -122,6 +135,7 @@ useEffect(() => {
                     onPress: async () => {
                       console.log('✅ Confirmação de sair aceita!');
                       await signOut();
+                      router.replace('/')
                     },
                   },
                 ]

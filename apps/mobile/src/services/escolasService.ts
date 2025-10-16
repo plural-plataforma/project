@@ -25,6 +25,7 @@ export const buscarEscolas = async (): Promise<Escola[]> => {
   }
 };
 
+
 export const atualizaEscolas = async (escolasData: Partial<Escola>): Promise<Escola> => {
   try {
     const response = await api.post<Escola>('/Escola/cadastro', escolasData);

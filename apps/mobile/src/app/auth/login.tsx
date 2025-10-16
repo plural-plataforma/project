@@ -7,7 +7,7 @@ import {
   CheckboxWithLabel,
   AuthButton,
   SignupLink,
-  Logo,
+  
   DividerWithText
 } from '@/packages/ui/components'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
@@ -17,7 +17,7 @@ import { LoginCredentials } from '../../types/auth'
 import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
+import Logo from '../../components/Logo'
 export default function LoginScreen() {
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
@@ -76,9 +76,11 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.appContainer}>
       <ScrollView>
         <View style={styles.container}>
+          <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 10 }}>
           <Logo width={248} height={87.29} />
+          </View>
           <Text style={styles.text}>Seja bem vindo!</Text>
-          <View style={{ flex: 1, padding: 0 }}>
+          <View style={{ padding: 0 }}>
             <InputField
               label="E-mail"
               placeholder="Informe seu e-mail"
@@ -96,10 +98,11 @@ export default function LoginScreen() {
               autoCapitalize="none"
             />
           </View>
-          <View style={styles.checkboxRow}>
+        {/**  <View style={styles.checkboxRow}>
             <CheckboxWithLabel label="Lembrar-me" checked={true} onPress={() => { }} />
             <LinkButton title="Esqueci minha senha?" onPress={() => { }} />
           </View>
+           */}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <CustomButton
@@ -111,7 +114,7 @@ export default function LoginScreen() {
           />
 
         </View>
-        <View style={styles.authSection}>
+      {/**  <View style={styles.authSection}>
           <DividerWithText text="Entre com" />
           <AuthButton
             title="Google"
@@ -127,6 +130,7 @@ export default function LoginScreen() {
             labelAction="Inscreva-se"
           />
         </View>
+         */}
       </ScrollView>
     </SafeAreaView>
   )
@@ -140,11 +144,12 @@ const styles = StyleSheet.create({
   },
   container: {
     alignSelf: 'center',
-
+    width: '90%', // ou o valor desejado
+    gap: 16 // <-- adicione isso
   },
   text: {
     color: colors.primary,
-
+    textAlign: 'center',
     margin: 12,
     fontSize: fontSizes.f30,
     fontWeight: '400' as const,

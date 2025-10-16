@@ -22,3 +22,10 @@ export interface Aluno {
   escolas: number; // Opcional
   idProfessor: number; // Opcional
 }
+
+export interface AlunoResponse {
+  sucesso: boolean;
+  mensagens: string[];
+  objeto: Aluno;
+  listaObjetos: Aluno[] | null;
+}
