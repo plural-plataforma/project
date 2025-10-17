@@ -25,7 +25,7 @@ const config: ExpoConfig = {
   scheme: 'plural-plataforma',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
-  owner: 'plural-plata', 
+  owner: 'plural-plata',
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.creis.mobile',
@@ -45,10 +45,11 @@ const config: ExpoConfig = {
     },
   },
   web: {
+    entryPoint: './web/index.tsx',
     output: 'static',
     favicon: '../../packages/ui/assets/images/favicon.png',
   },
-  
+
   plugins: [
     'expo-router',
     [

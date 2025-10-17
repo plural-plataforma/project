@@ -1,9 +1,9 @@
 import { colors, fontSizes } from '@/packages/ui/theme/theme';
-import { Text, TextInput, View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from 'react-native';
+import { Text, TextInput, View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity, Platform } from 'react-native';
 import { useState, useRef, useCallback } from 'react';
 import MaskInput, { Masks } from 'react-native-mask-input';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { CaretDown } from 'phosphor-react-native';
+import { CaretDown, X } from 'phosphor-react-native';
 import { Eye, EyeSlash } from 'phosphor-react-native'
 
 interface InputFieldProps {
@@ -21,12 +21,13 @@ interface InputFieldProps {
   dropDownContainerStyle?: StyleProp<ViewStyle>;
   editable?: boolean;
   [key: string]: any; // Para aceitar outras props do TextInput
+  error?: string;
 }
 
 const CPF_MASK = [/\d/, /\d/, /\d/, '.', /\d/, /\d/, /\d/, '.', /\d/, /\d/, /\d/, '-', /\d/, /\d/];
 
-// Contador global para zIndex único
-let zIndexCounter = 100000;
+// Contador global para zIndex único e crescente
+let zIndexCounter = 1000;
 
 const InputField: React.FC<InputFieldProps> = ({
   label,
@@ -42,13 +43,14 @@ const InputField: React.FC<InputFieldProps> = ({
   style,
   dropDownContainerStyle,
   editable = true,
+  error,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [open, setOpen] = useState(false);
   const [localValue, setLocalValue] = useState<string | number | null>(selectedValue ?? null);
-  const zIndexRef = useRef(zIndexCounter--); // Gera um zIndex único e decrescente
   const [showPassword, setShowPassword] = useState(false);
+  const zIndex = useRef<number>(zIndexCounter++).current;
 
   const {
     secureTextEntry: isSecure,
@@ -80,9 +82,65 @@ const InputField: React.FC<InputFieldProps> = ({
     setOpen(false); // Fecha o dropdown ao focar em um TextInput
   }, []);
 
-  if (options && options.length > 0) {
+  // Componente para Web: usa <select> nativo
+  const WebSelect = () => {
+    const selectRef = useRef<HTMLSelectElement>(null);
+    const selectColor = isFocused || localValue ? colors.primary : colors.secondary;
+    const handlePress = () => {
+      if (selectRef.current && editable) {
+        selectRef.current.click();
+        selectRef.current.focus();
+      }
+    };
+
     return (
-      <View style={[styles.container, style, { position: 'relative', zIndex: zIndexRef.current - 100, overflow: 'visible' }]}>
+      <TouchableOpacity
+        style={[styles.inputWrapper, isFocused && styles.inputFocused]}
+        onPress={handlePress}
+        disabled={!editable}
+        activeOpacity={1}
+      >
+        <select
+          ref={selectRef}
+          value={localValue?.toString() || ''}
+          onChange={(e) => handleValueChange(e.target.value || null)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          style={{
+            ...styles.webSelect,
+            color: selectColor,
+          }}
+        >
+          <option value="" disabled>
+            {placeholder || 'Selecione uma opção'}
+          </option>
+          {options?.map((option) => (
+            <option key={option.value.toString()} value={option.value.toString()}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <CaretDown
+          size={20}
+          color={isFocused ? colors.primary : colors.secondary}
+          style={styles.webSelectIcon}
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  if (options && options.length > 0) {
+    if (Platform.OS === 'web') {
+      return (
+        <View style={[styles.container, style]}>
+          <Text style={styles.label}>{label || ''}</Text>
+          <WebSelect />
+        </View>
+      );
+    }
+
+    return (
+      <View style={[styles.container, style, { position: 'relative', zIndex, overflow: 'visible' }]}>
         <Text style={styles.label}>{label || ''}</Text>
         <View style={[styles.inputWrapper, isFocused && styles.inputFocused, { overflow: 'visible' }]}>
           <DropDownPicker
@@ -96,34 +154,32 @@ const InputField: React.FC<InputFieldProps> = ({
                 handleValueChange(newValue);
               }
             }}
+            flatListProps={{
+              keyboardShouldPersistTaps: 'always',
+              initialNumToRender: 20,
+              nestedScrollEnabled: true,
+              scrollEnabled: true,
+            }}
             placeholder={placeholder || 'Selecione uma opção'}
             onOpen={() => setIsFocused(true)}
             onClose={() => setIsFocused(false)}
-            dropDownDirection="AUTO"
-            style={styles.dropdown}
-            dropDownContainerStyle={[
-              styles.dropdownContainer,
-              dropDownContainerStyle,
-              {
-                zIndex: zIndexRef.current,
-                elevation: 1000,
-                position: 'absolute',
-                top: 55,
-              },
-            ]}
+            listMode="FLATLIST"
+            dropDownContainerStyle={{
+              zIndex: zIndex + 1,
+              maxHeight: 300,
+            }}
+            style={{ flex: 1 }}
             textStyle={[
               styles.dropdownText,
               { color: isFocused || localValue ? colors.primary : colors.secondary },
             ]}
             listItemLabelStyle={styles.listItemLabel}
             ArrowDownIconComponent={() => (
-              <CaretDown
-                size={20}
-                color={isFocused ? colors.primary : colors.secondary}
-              />
+              <CaretDown size={20} color={isFocused ? colors.primary : colors.secondary} />
             )}
           />
         </View>
+        {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
     );
   }
@@ -154,6 +210,7 @@ const InputField: React.FC<InputFieldProps> = ({
           keyboardType={keyboardType || 'numeric'}
           {...props}
         />
+        
       ) : (
         <View style={[styles.inputWrapper, isFocused && styles.inputFocused]}>
           <TextInput
@@ -174,14 +231,15 @@ const InputField: React.FC<InputFieldProps> = ({
           />
 
           {isSecure && (
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePasswordContainer}>
               {showPassword ? (
                 <EyeSlash size={20} color={colors.primary} />
               ) : (
                 <Eye size={20} color={colors.primary} />
               )}
             </TouchableOpacity>
-          )}      </View>
+          )}
+        </View>
       )}
     </View>
   );
@@ -204,7 +262,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     borderColor: colors.secondary,
     borderWidth: 1.5,
-    marginRight: 10,
     backgroundColor: colors.background,
     borderRadius: 8,
     fontFamily: 'Nunito_400Regular',
@@ -225,8 +282,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: 8,
     width: '100%',
-    elevation: 20,
-    maxHeight: 300,
   },
   dropdownText: {
     color: colors.primary,
@@ -257,16 +312,38 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_400Regular',
     fontSize: fontSizes.f16,
     paddingVertical: 0,
-    
+
   },
 
-  togglePassword: {
+  togglePasswordContainer: {
     paddingHorizontal: 8,
     paddingVertical: 10,
-    color: colors.primary,
-    fontSize: fontSizes.f14,
-    fontFamily: 'Nunito_600SemiBold',
   },
+  // Novos estilos para Web
+  webSelect: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    fontSize: fontSizes.f16,
+    fontFamily: 'Nunito_400Regular',
+    color: colors.primary,
+    paddingVertical: 0,
+    ...(Platform.OS === 'web' && {
+      appearance: 'none' as const,
+      WebkitAppearance: 'none' as const,
+    }),
+  },
+  webSelectIcon: {
+    marginLeft: 8,
+    // No Web, o ícone fica ao lado para simular a seta
+  },
+  errorText: {
+  color: 'red',
+  fontSize: fontSizes.f12,
+  marginTop: 4,
+  fontFamily: 'Nunito_400Regular',
+},
 });
 
 export default InputField;

@@ -81,7 +81,7 @@ export default function MeusAlunos() {
     const renderAluno = ({ item }: { item: { id: number; name: string } }) => (
         <SelectButton
             key={item.id}
-            onPress={() => router.push('/aluno/AlunoProfileScreen')} // Idealmente, passar o ID do aluno: `/aluno/${item.id}`
+            onPress={() => router.push({ pathname: '/aluno/AlunoProfileScreen', params: { id: item.id } })}
             title={item.name}
             iconLeft={<User size={16} color={colors.primary} />}
             iconRight={<Eye size={16} color={colors.primary} />}
@@ -93,7 +93,7 @@ export default function MeusAlunos() {
 
     return (
         <View style={styles.container}>
-            <Header title="Meus Alunos" onBack={() => router.back()} />
+            <Header title="Meus Alunos" onBack={() => router.back()} fixed={true}/>
             <FlatList
                 data={alunosFiltrados}
                 renderItem={renderAluno}
@@ -108,13 +108,13 @@ export default function MeusAlunos() {
                                 selectedValue={selectedEscola}
                                 onValueChange={handleEscolaChange}
                                 placeholder="Selecione uma escola"
-                                style={{ flex: 1 }}
+                                style={{ flex: 1}}
                             />
                             {selectedEscola && (
                                 <CustomButton
                                     title="Limpar"
                                     onPress={clearFilter}
-                                    buttonColor={{ backgroundColor: colors.danger, marginLeft: 10, alignSelf: 'flex-end' }}
+                                    buttonColor={{ backgroundColor: colors.primary,  marginLeft: 10, alignSelf: 'center' }}
                                 />
                             )}
                         </View>
@@ -122,9 +122,7 @@ export default function MeusAlunos() {
                             title="+ Cadastrar Aluno"
                             onPress={() => router.push('/aluno/AlunoProfileScreen')}
                         />
-                        <View style={styles.listHeader}>
-                            <Text style={styles.listHeaderText}>Alunos</Text>
-                        </View>
+
                     </View>
                 }
                 ListEmptyComponent={
@@ -144,9 +142,9 @@ export default function MeusAlunos() {
 
 export const styles = StyleSheet.create({
     container: {
-        flex: 1,
         backgroundColor: colors.background,
         paddingHorizontal: 20,
+        paddingTop:70
     },
     content: {
         paddingBottom: 20,

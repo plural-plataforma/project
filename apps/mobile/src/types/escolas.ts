@@ -1,6 +1,6 @@
 export interface Escola {
   id: number;
-  nomeInstituicao?: string;
+  nomeInstituicao: string;
   tipo?: TipoEscola;
   cep?: string;
   logradouro?: string;
@@ -22,6 +22,6 @@ export enum TipoEscola {
 export interface EscolasResponse {
   sucesso: boolean;
   mensagens: string[];
-  objeto: Escola;
   listaObjetos: Escola[] | null;
+  objeto: Escola[] | null;
 }

@@ -32,7 +32,6 @@ export const styles = StyleSheet.create({
 appTopBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 14,
   },
   button:{
      backgroundColor: '#fff',

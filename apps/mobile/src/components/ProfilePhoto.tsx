@@ -1,8 +1,9 @@
-import { Alert, StyleSheet, TouchableOpacity, View, Image, Text } from "react-native"
+import { StyleSheet, TouchableOpacity, View, Image, Text } from "react-native"
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from "react";
 import { Camera } from "phosphor-react-native";
 import { colors } from "@/packages/ui/theme/theme";
+import Alert from '@blazejkustra/react-native-alert';
 
 export default function ProfilePhoto(){
 const [fotoUri, setFotoUri] = useState<string | null>(null);

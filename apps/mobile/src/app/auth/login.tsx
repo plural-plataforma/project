@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
-import { View, StyleSheet, Text, ScrollView, Alert } from 'react-native'
+import { View, StyleSheet, Text, ScrollView } from 'react-native'
 import {
   InputField,
   LinkButton,
   CheckboxWithLabel,
   AuthButton,
   SignupLink,
-  
+
   DividerWithText
 } from '@/packages/ui/components'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
@@ -18,6 +18,9 @@ import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Logo from '../../components/Logo'
+import { useCustomAlert } from '@src/hooks/useCustomAlert'
+
+
 export default function LoginScreen() {
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
@@ -27,6 +30,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth() // Context login espera string (token)
+  const { showAlert } = useCustomAlert();
 
   const handleLogin = async () => {
     setLoading(true);
@@ -57,7 +61,7 @@ export default function LoginScreen() {
         throw new Error('Falha ao salvar o token.');
       }
 
-      Alert.alert('Sucesso', 'Login realizado!');
+      showAlert('Sucesso', 'Login realizado!');
       console.log('➡️ Navegando para /dashboard...');
       router.replace('/dashboard');
       console.log('🚀 Navegação executada!');
@@ -65,7 +69,7 @@ export default function LoginScreen() {
       console.error('❌ Erro no handleLogin:', err);
       const errorMsg = (err as Error).message;
       setError(errorMsg);
-      Alert.alert('Erro', errorMsg);
+      showAlert('Erro', errorMsg);
     } finally {
       setLoading(false);
       console.log('🏁 Fim do handleLogin, loading=false');
@@ -77,7 +81,7 @@ export default function LoginScreen() {
       <ScrollView>
         <View style={styles.container}>
           <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 10 }}>
-          <Logo width={248} height={87.29} />
+            <Logo width={248} height={87.29} />
           </View>
           <Text style={styles.text}>Seja bem vindo!</Text>
           <View style={{ padding: 0 }}>
@@ -98,7 +102,7 @@ export default function LoginScreen() {
               autoCapitalize="none"
             />
           </View>
-        {/**  <View style={styles.checkboxRow}>
+          {/**  <View style={styles.checkboxRow}>
             <CheckboxWithLabel label="Lembrar-me" checked={true} onPress={() => { }} />
             <LinkButton title="Esqueci minha senha?" onPress={() => { }} />
           </View>
@@ -114,7 +118,7 @@ export default function LoginScreen() {
           />
 
         </View>
-      {/**  <View style={styles.authSection}>
+        {/**  <View style={styles.authSection}>
           <DividerWithText text="Entre com" />
           <AuthButton
             title="Google"

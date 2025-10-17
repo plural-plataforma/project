@@ -3,8 +3,7 @@ import {
   View,
   Image,
   StyleSheet,
-  ScrollView,
-
+  FlatList,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
@@ -17,12 +16,16 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
 import NotificationBanner from './../../components/NotificationBanner';
-import { Briefcase, FileText, SignOut, User } from 'phosphor-react-native';
+import { Backpack, NoteBlank, SignOut, Users } from 'phosphor-react-native';
 import { Professor } from '@src/types/professor';
 import { buscarProfessor, buscarEscolasProfessor } from '@src/services/professorService';
 import { isCadastroCompleto } from '@src/utils/professorUtils';
 import SelectButton from '@src/components/SelectButton';
 import alert from '../../utils/alert';
+
+interface SectionItem {
+  type: 'banner' | 'tasks';
+}
 
 export default function Dashboard() {
   const router = useRouter();
@@ -33,10 +36,93 @@ export default function Dashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
 
+  const sections: SectionItem[] = React.useMemo(() => {
+    return [
+      ...(!cadastroCompleto ? [{ type: 'banner' as const }] : []),
+      { type: 'tasks' as const },
+    ];
+  }, [cadastroCompleto]);
+
+  const renderItem = ({ item }: { item: SectionItem }) => {
+    if (item.type === 'banner') {
+      return (
+        <View style={{ padding: 16 }}>
+          <NotificationBanner onPress={() => router.push('/professor')} />
+        </View>
+      );
+    }
+
+    if (item.type === 'tasks') {
+      return (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Minhas Tarefas</Text>
+          <View style={styles.sectionRow}>
+            <View style={styles.cell}>
+              <SelectButton
+                key="btnEscolas"
+                onPress={() => router.push('/escolas/Escolas')}
+                title="Escolas"
+                iconLeft={<Backpack size={16} color={colors.primary} />}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+            <View style={styles.cell}>
+              <SelectButton
+                key="btnMeusAlunos"
+                onPress={() => router.push('/aluno/MeusAlunos')}
+                title="Meus Alunos"
+                iconLeft={<Users size={16} color={colors.primary} />}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+
+          </View>
+          <View style={styles.sectionRow}>
+            <View style={styles.cell}>
+              <SelectButton
+                key="btnPdi"
+                onPress={() => router.push('/planejamento/MeusPlanejamentos')}
+                title="PDI"
+                iconLeft={<NoteBlank size={16} color={colors.primary} />}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+            <View style={[styles.cell, {borderWidth: 0}]}>
+              <SelectButton
+                key="btnPdi"
+                onPress={() => ({})}
+                title=""
+                iconLeft={""}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+            
+          </View>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
+  const keyExtractor = (item: SectionItem) => item.type;
+
   useEffect(() => {
     const fetchData = async () => {
       if (dataFetched) {
-        console.log('🔍 fetchData já executado, pulando...');
+        //console.log('🔍 fetchData já executado, pulando...');
         return;
       }
       console.log('🔍 Dashboard fetchData iniciado. authLoading:', authLoading, 'isLoggedIn:', isLoggedIn);
@@ -79,6 +165,7 @@ export default function Dashboard() {
         }
 
         setProfessor(updatedProfessor);
+        console.log(professor)
         setCadastroCompleto(isCadastroCompleto(updatedProfessor));
         console.log('✅ fetchData concluído com sucesso');
       } catch (error: any) {
@@ -89,12 +176,12 @@ export default function Dashboard() {
             {
               text: 'OK',
               onPress: async () => {
-               await signOut();
+                await signOut();
                 router.replace('/auth/login');
               }
             }
           ]);
-          
+
         } else {
           alert('Erro', 'Não foi possível carregar os dados do professor.');
         }
@@ -148,42 +235,14 @@ export default function Dashboard() {
         </View>
       </View>
       <SafeAreaView edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {!cadastroCompleto && (
-            <View style={{ padding: 16 }}>
-              <NotificationBanner onPress={() => router.push('/professor')} />
-            </View>
-          )}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Minhas Tarefas</Text>
-            <View style={styles.sectionRow}>
-              <View style={styles.cell}>
-                <SelectButton
-                  key="btnEscolas"
-                  onPress={() => router.push('/escolas/Escolas')}
-                  title="Escolas"
-                  iconLeft={<User size={16} color={colors.primary} />}
-                  buttonColor={colors.greyBlur}
-                  textColor={colors.primary}
-                  borderColor={colors.primary}
-                  style={styles.button}
-                />
-              </View>
-              <View style={styles.cell}>
-                <SelectButton
-                  key="btnMeusAlunos"
-                  onPress={() => router.push('/aluno/MeusAlunos')}
-                  title="Meus Alunos"
-                  iconLeft={<User size={16} color={colors.primary} />}
-                  buttonColor={colors.greyBlur}
-                  textColor={colors.primary}
-                  borderColor={colors.primary}
-                  style={styles.button}
-                />
-              </View>
-            </View>
-          </View>
-        </ScrollView>
+        <FlatList
+          data={sections}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          scrollIndicatorInsets={{ right: 1 }}
+        />
         <Text
           style={{
             textAlign: 'center',
@@ -192,7 +251,7 @@ export default function Dashboard() {
             fontFamily: 'Nunito_400Regular',
           }}
         >
-          © 2024 Plural. Todos os direitos reservados.
+          © 2025 Plural. Todos os direitos reservados.
         </Text>
       </SafeAreaView>
     </View>
@@ -274,5 +333,7 @@ export const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 60,
+    flexDirection: 'row',
+    alignItems: 'center'
   },
 });

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  Alert,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
@@ -26,7 +25,9 @@ import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import SectionGroup from '@src/components/SectionGroup';
 import ItemButton from '@src/components/ItemButton';
+import Alert from '@blazejkustra/react-native-alert';
 
+const HEADER_HEIGHT = 55
 const areasEnsino = [
   'Matemática',
   'Português',
@@ -85,6 +86,7 @@ export default function CadastroProfessor() {
     aceitouTermos: false,
     escolas: [],
   });
+  const [errors, setErrors] = useState<{ [key: string]: string }>({}); // Novo: erros por campo
   const [loading, setLoading] = useState<boolean>(true);
   const [cepLoading, setCepLoading] = useState<boolean>(false);
   const [ufs, setUfs] = useState<{ label: string; value: string }[]>([]);
@@ -189,9 +191,49 @@ export default function CadastroProfessor() {
     fetchInitialData();
   }, []);
 
+  // Novo: Função para validar campo e atualizar erros
+  const validateField = (key: keyof Professor, value: string | number | null) => {
+    let newErrors = { ...errors };
+    delete newErrors[key as string]; // Limpa erro anterior
+
+    switch (key) {
+      case 'nomeCompleto':
+        if (!value || (value as string).trim().length < 2) {
+          newErrors['nomeCompleto'] = 'Nome deve ter pelo menos 2 caracteres';
+        }
+        break;
+      case 'email':
+        if (!value || !/^\S+@\S+\.\S+$/.test(value as string)) {
+          newErrors['email'] = 'E-mail inválido';
+        }
+        break;
+      case 'telefone':
+        if (!value || (value as string).replace(/\D/g, '').length < 10) {
+          newErrors['telefone'] = 'Telefone inválido';
+        }
+        break;
+      case 'sexo':
+        if (!value) {
+          newErrors['sexo'] = 'Selecione o sexo';
+        }
+        break;
+      case 'escolas':
+        if ((professor.escolas?.length || 0) === 0) {
+          newErrors['escolas'] = 'Vincule pelo menos uma escola';
+        }
+        break;
+      // Adicione mais validações conforme necessário (ex.: CEP, etc.)
+      default:
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
   const handleCepChange = async (text: string) => {
     const cepClean = text.replace(/[^0-9]/g, '');
     setProfessor({ ...professor, cep: cepClean });
+    validateField('cep', cepClean); // Valida CEP se necessário
 
     if (cepClean.length === 8) {
       setCepLoading(true);
@@ -229,6 +271,31 @@ export default function CadastroProfessor() {
 
   const handleConcluir = async () => {
     console.log('Professor state:', professor);
+    // Valida todos os campos antes de salvar
+    const requiredFields = ['nomeCompleto', 'email', 'telefone', 'sexo', 'escolas'] as (keyof Professor)[];
+    let hasErrors = false;
+    const newErrors: { [key: string]: string } = {};
+
+    requiredFields.forEach(key => {
+      const value = professor[key];
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        newErrors[key] = `${key} é obrigatório`;
+        hasErrors = true;
+      }
+    });
+
+    if (professor.escolas?.length === 0) {
+      newErrors['escolas'] = 'Vincule pelo menos uma escola';
+      hasErrors = true;
+    }
+
+    setErrors(newErrors);
+
+    if (hasErrors) {
+      Alert.alert('Validação', 'Corrija os erros nos campos destacados antes de continuar.');
+      return;
+    }
+
     if (!isCadastroCompleto(professor)) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios, incluindo pelo menos uma escola vinculada.');
       return;
@@ -267,6 +334,7 @@ export default function CadastroProfessor() {
         ...prev,
         escolas: [...(prev.escolas || []), value],
       }));
+      validateField('escolas', null); // Valida após adicionar (passa null para escolas)
     }
   };
 
@@ -275,10 +343,15 @@ export default function CadastroProfessor() {
       ...prev,
       escolas: (prev.escolas || []).filter((escola) => escola !== escolaToRemove),
     }));
+    validateField('escolas', null); // Revalida (passa null para escolas)
   };
 
   const renderItems = (fields: InputFieldConfig[]) => {
     return fields.map((field) => {
+      const fieldKey = field.key as string;
+      const fieldValue = professor[field.key];
+      const error = errors[fieldKey];
+
       if (field.isSpecial && field.key === 'cep') {
         return (
           <View key={field.key}>
@@ -286,10 +359,14 @@ export default function CadastroProfessor() {
               label={field.label}
               placeholder={field.placeholder}
               value={professor[field.key] as string || ''}
-              onChangeText={handleCepChange}
+              onChangeText={(value) => {
+                handleCepChange(value);
+                validateField(field.key, value); // Valida em tempo real
+              }}
               editable={!cepLoading}
               mask={field.mask}
               keyboardType={field.keyboardType}
+              error={error} // Novo: passa erro para InputField
             />
             {cepLoading && <ActivityIndicator size="small" color={colors.primary} />}
           </View>
@@ -307,6 +384,7 @@ export default function CadastroProfessor() {
             onValueChange={(value) => {
               const stateValue = value?.toString() || '';
               setProfessor({ ...professor, estado: stateValue, cidade: '' });
+              validateField(field.key, stateValue); // Valida em tempo real
               if (stateValue && !cidadesPorUf[stateValue]) {
                 fetchMunicipios(stateValue).then(municipiosData => {
                   const cidades = municipiosData.map(m => m.nome);
@@ -314,6 +392,7 @@ export default function CadastroProfessor() {
                 }).catch(err => console.error('Erro ao carregar cidades:', err));
               }
             }}
+            error={error} // Novo: passa erro para InputField
           />
         );
       }
@@ -329,7 +408,9 @@ export default function CadastroProfessor() {
             onValueChange={(value) => {
               const cityValue = value?.toString() || '';
               setProfessor({ ...professor, cidade: cityValue });
+              validateField(field.key, cityValue); // Valida em tempo real
             }}
+            error={error} // Novo: passa erro para InputField
           />
         );
       }
@@ -348,6 +429,7 @@ export default function CadastroProfessor() {
                 }
               }}
               editable={field.editable}
+              error={error} // Novo: passa erro para InputField
             />
             {escolasLoading && <ActivityIndicator size="small" color={colors.primary} />}
             {professor.escolas.map((escolaId, index) => {
@@ -380,10 +462,12 @@ export default function CadastroProfessor() {
             if (field.key === 'numero') {
               const numValue = value === '' ? 0 : parseInt(value) || 0;
               setProfessor({ ...professor, [field.key]: numValue });
+              validateField(field.key, numValue); // Valida em tempo real
             } else if (field.options && field.onChange) {
               field.onChange(value);
             } else {
               setProfessor({ ...professor, [field.key]: value });
+              validateField(field.key, value); // Valida em tempo real
             }
           }}
           mask={field.mask}
@@ -397,9 +481,11 @@ export default function CadastroProfessor() {
               ? (value) => {
                   const sexoValue = typeof value === 'string' ? value : '';
                   setProfessor({ ...professor, sexo: sexoValue });
+                  validateField('sexo', sexoValue); // Valida em tempo real
                 }
               : undefined
           }
+          error={error} // Novo: passa erro para InputField
         />
       );
     });
@@ -436,6 +522,7 @@ export default function CadastroProfessor() {
           onChange: (value) => {
             const sexoValue = typeof value === 'string' ? value : '';
             setProfessor({ ...professor, sexo: sexoValue });
+            validateField('sexo', sexoValue); // Valida em tempo real
           },
         },
         {
@@ -493,7 +580,7 @@ export default function CadastroProfessor() {
         {
           label: 'Escola/Instituição vinculada',
           key: 'escolas',
-          placeholder: escolasLoading ? 'Carregando escolas...' : 'Selecione uma escola',
+          placeholder: escolasLoading ? 'Carregando escolas...' : 'Informe a escola/instituição',
           options: escolasLoading || !escolas
             ? []
             : escolas
@@ -526,23 +613,22 @@ export default function CadastroProfessor() {
 
   return (
     <View style={styles.container}>
+      <Header title="Perfil do Professor" onBack={() => router.back()} fixed={true} />
       <FlatList
         data={sections}
         renderItem={renderSection}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
           <>
-            <Header title="Perfil do Professor" onBack={() => router.back()} />
             {!isCadastroCompleto(professor) && (
               <View>
-            <ProgressFill completedSections={completedSections} totalSections={totalSections} />
-           
-              <View>
-                <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
-                <Text style={styles.obsInstrucao}>
-                  Conclua a configuração do seu perfil para acessar todos os recursos da plataforma
-                </Text>
-              </View>
+                <ProgressFill completedSections={completedSections} totalSections={totalSections} />
+                <View>
+                  <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
+                  <Text style={styles.obsInstrucao}>
+                    Seu cadastro não está completo. Conclua a configuração do seu perfil para acessar todos os recursos da plataforma.
+                  </Text>
+                </View>
               </View>
             )}
           </>
@@ -581,6 +667,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingBottom: 100,
+    paddingTop: HEADER_HEIGHT + 20
   },
   titleInstrucao: {
     textAlign: 'justify',

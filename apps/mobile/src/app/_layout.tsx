@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider } from '../context/AuthContext'
+import { CustomAlert, useCustomAlert } from '@src/hooks/useCustomAlert'
 
 // Impede que a tela de splash desapareça antes das fontes carregarem
 SplashScreen.preventAutoHideAsync()
@@ -14,6 +15,8 @@ export default function RootLayout() {
     Nunito_700Bold: require('@/packages/ui/assets/fonts/Nunito-Bold.ttf')
   })
 
+  const { visible, config, handleDismiss } = useCustomAlert();
+  
   useEffect(() => {
     const timer = setTimeout(() => {
       console.warn('Timeout: Fontes não carregaram em 5 segundos');
@@ -40,6 +43,13 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <Stack screenOptions={{ headerShown: false }} />
+        <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
+      />
       </AuthProvider>
     </SafeAreaProvider>
   )
