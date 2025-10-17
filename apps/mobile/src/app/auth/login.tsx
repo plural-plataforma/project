@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { colors, fontSizes } from '@/packages/ui/theme/theme'
-import { View, StyleSheet, Text, ScrollView, Alert } from 'react-native'
+import { View, StyleSheet, Text, ScrollView } from 'react-native'
 import {
   InputField,
   LinkButton,
   CheckboxWithLabel,
   AuthButton,
   SignupLink,
-  Logo,
+
   DividerWithText
 } from '@/packages/ui/components'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
@@ -17,6 +17,9 @@ import { LoginCredentials } from '../../types/auth'
 import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import Logo from '../../components/Logo'
+import { useCustomAlert } from '@src/hooks/useCustomAlert'
+
 
 export default function LoginScreen() {
   const [credentials, setCredentials] = useState<LoginCredentials>({
@@ -27,6 +30,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth() // Context login espera string (token)
+  const { showAlert } = useCustomAlert();
 
   const handleLogin = async () => {
     setLoading(true);
@@ -44,6 +48,8 @@ export default function LoginScreen() {
         throw new Error(msg);
       }
 
+      await new Promise(resolve => setTimeout(resolve, 200)); // Aguarda estado propagar
+      router.replace('/dashboard');
       console.log('🔑 Chamando context.login com token:', response.token);
       login(response.token);
       console.log('🎉 Context login chamado, isLoggedIn deve ser true agora');
@@ -55,7 +61,7 @@ export default function LoginScreen() {
         throw new Error('Falha ao salvar o token.');
       }
 
-      Alert.alert('Sucesso', 'Login realizado!');
+      showAlert('Sucesso', 'Login realizado!');
       console.log('➡️ Navegando para /dashboard...');
       router.replace('/dashboard');
       console.log('🚀 Navegação executada!');
@@ -63,7 +69,7 @@ export default function LoginScreen() {
       console.error('❌ Erro no handleLogin:', err);
       const errorMsg = (err as Error).message;
       setError(errorMsg);
-      Alert.alert('Erro', errorMsg);
+      showAlert('Erro', errorMsg);
     } finally {
       setLoading(false);
       console.log('🏁 Fim do handleLogin, loading=false');
@@ -74,9 +80,11 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.appContainer}>
       <ScrollView>
         <View style={styles.container}>
-          <Logo width={248} height={87.29} />
+          <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 10 }}>
+            <Logo width={248} height={87.29} />
+          </View>
           <Text style={styles.text}>Seja bem vindo!</Text>
-          <View style={{ flex: 1, padding: 0 }}>
+          <View style={{ padding: 0 }}>
             <InputField
               label="E-mail"
               placeholder="Informe seu e-mail"
@@ -94,10 +102,11 @@ export default function LoginScreen() {
               autoCapitalize="none"
             />
           </View>
-          <View style={styles.checkboxRow}>
+          {/**  <View style={styles.checkboxRow}>
             <CheckboxWithLabel label="Lembrar-me" checked={true} onPress={() => { }} />
             <LinkButton title="Esqueci minha senha?" onPress={() => { }} />
           </View>
+           */}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <CustomButton
@@ -109,7 +118,7 @@ export default function LoginScreen() {
           />
 
         </View>
-        <View style={styles.authSection}>
+        {/**  <View style={styles.authSection}>
           <DividerWithText text="Entre com" />
           <AuthButton
             title="Google"
@@ -125,6 +134,7 @@ export default function LoginScreen() {
             labelAction="Inscreva-se"
           />
         </View>
+         */}
       </ScrollView>
     </SafeAreaView>
   )
@@ -138,11 +148,12 @@ const styles = StyleSheet.create({
   },
   container: {
     alignSelf: 'center',
-
+    width: '90%', // ou o valor desejado
+    gap: 16 // <-- adicione isso
   },
   text: {
     color: colors.primary,
-
+    textAlign: 'center',
     margin: 12,
     fontSize: fontSizes.f30,
     fontWeight: '400' as const,

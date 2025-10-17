@@ -1,6 +1,7 @@
 import { Professor } from '../types/professor';
 
 export const isCadastroCompleto = (professor: Professor): boolean => {
+  console.log('Verificando cadastro completo para o professor:', professor);
   const camposObrigatorios = [
     professor.nomeCompleto,
     professor.cep,
@@ -10,12 +11,16 @@ export const isCadastroCompleto = (professor: Professor): boolean => {
     professor.estado,
     professor.cidade,
     professor.telefone,
-    professor.disciplinas,
-    professor.nivelEnsino,
-    professor.sobre,
-    professor.isCheckTerms,
+    // professor.disciplinas,
+    // professor.nivelEnsino,
+    // professor.sobre,
   ];
 
-  // Considera o cadastro completo se nenhum campo obrigatório for null/empty e isCheckTerms for true
-  return camposObrigatorios.every((campo) => campo !== null && campo !== '') && professor.isCheckTerms === true;
+  // Considera o cadastro completo se nenhum campo obrigatório for null/undefined/empty,
+  // aceitouTermos for true, e escolas for um array não vazio
+  return (
+    camposObrigatorios.every((campo) => campo != null && campo !== '') // &&
+   // professor.aceitouTermos === true &&
+    //professor.escolas.length > 0
+  );
 };

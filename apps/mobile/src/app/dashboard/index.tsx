@@ -3,8 +3,7 @@ import {
   View,
   Image,
   StyleSheet,
-  ScrollView,
-  Alert,
+  FlatList,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
@@ -17,50 +16,185 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
 import NotificationBanner from './../../components/NotificationBanner';
-import { Briefcase, FileText, SignOut, User } from 'phosphor-react-native';
+import { Backpack, NoteBlank, SignOut, Users } from 'phosphor-react-native';
 import { Professor } from '@src/types/professor';
-import { buscarProfessor } from '@src/services/professorService';
+import { buscarProfessor, buscarEscolasProfessor } from '@src/services/professorService';
 import { isCadastroCompleto } from '@src/utils/professorUtils';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import SelectButton from '@src/components/SelectButton';
+import alert from '../../utils/alert';
+
+interface SectionItem {
+  type: 'banner' | 'tasks';
+}
 
 export default function Dashboard() {
   const router = useRouter();
-  const { isLoggedIn, loading: authLoading, logoutLoading } = useAuth();
-  const { signOut } = useAuth();
-  const insets = useSafeAreaInsets(); // Obtém as dimensões da área segura, incluindo a barra de status
+  const { isLoggedIn, loading: authLoading, logoutLoading, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const [cadastroCompleto, setCadastroCompleto] = useState(false);
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
 
+  const sections: SectionItem[] = React.useMemo(() => {
+    return [
+      ...(!cadastroCompleto ? [{ type: 'banner' as const }] : []),
+      { type: 'tasks' as const },
+    ];
+  }, [cadastroCompleto]);
+
+  const renderItem = ({ item }: { item: SectionItem }) => {
+    if (item.type === 'banner') {
+      return (
+        <View style={{ padding: 16 }}>
+          <NotificationBanner onPress={() => router.push('/professor')} />
+        </View>
+      );
+    }
+
+    if (item.type === 'tasks') {
+      return (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Minhas Tarefas</Text>
+          <View style={styles.sectionRow}>
+            <View style={styles.cell}>
+              <SelectButton
+                key="btnEscolas"
+                onPress={() => router.push('/escolas/Escolas')}
+                title="Escolas"
+                iconLeft={<Backpack size={16} color={colors.primary} />}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+            <View style={styles.cell}>
+              <SelectButton
+                key="btnMeusAlunos"
+                onPress={() => router.push('/aluno/MeusAlunos')}
+                title="Meus Alunos"
+                iconLeft={<Users size={16} color={colors.primary} />}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+
+          </View>
+          <View style={styles.sectionRow}>
+            <View style={styles.cell}>
+              <SelectButton
+                key="btnPdi"
+                onPress={() => router.push('/planejamento/MeusPlanejamentos')}
+                title="PDI"
+                iconLeft={<NoteBlank size={16} color={colors.primary} />}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+            <View style={[styles.cell, {borderWidth: 0}]}>
+              <SelectButton
+                key="btnPdi"
+                onPress={() => ({})}
+                title=""
+                iconLeft={""}
+                buttonColor={colors.greyBlur}
+                textColor={colors.primary}
+                borderColor={colors.primary}
+                style={styles.button}
+              />
+            </View>
+            
+          </View>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
+  const keyExtractor = (item: SectionItem) => item.type;
 
   useEffect(() => {
     const fetchData = async () => {
+      if (dataFetched) {
+        //console.log('🔍 fetchData já executado, pulando...');
+        return;
+      }
+      console.log('🔍 Dashboard fetchData iniciado. authLoading:', authLoading, 'isLoggedIn:', isLoggedIn);
       try {
-        setLoading(true);
+        setLoading(true); // Sempre no início
+        setDataFetched(true); // Marque como executado
+
+        if (authLoading) {
+          console.log('⏳ Aguardando authLoading...');
+          return;
+        }
+
+        if (!isLoggedIn) {
+          console.warn('⚠️ Usuário não está logado. Redirecionando para login...');
+          router.replace('/auth/login');
+          return; // Early return reforçado
+        }
+
+        console.log('📥 Buscando professor...');
         const data = await buscarProfessor();
-        console.log('✅ Dados recebidos:', data);
-        setProfessor(data.objeto);
-        setCadastroCompleto(isCadastroCompleto(data.objeto));
+        console.log('✅ Professor carregado:', data.objeto || 'sem ID');
+
+        let updatedProfessor: Professor = {
+          ...data.objeto,
+          escolas: [],
+        };
+
+        console.log('📥 Buscando escolas...');
+        try {
+          const linkedEscolas = await buscarEscolasProfessor();
+          updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
+          console.log('✅ Escolas carregadas:', updatedProfessor.escolas.length);
+        } catch (error: any) {
+          console.error('❌ Erro em buscarEscolasProfessor:', error.message);
+          alert('Aviso', 'Não foi possível carregar as escolas vinculadas.', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'OK', onPress: () => ({}) }
+          ])
+
+        }
+
+        setProfessor(updatedProfessor);
+        console.log(professor)
+        setCadastroCompleto(isCadastroCompleto(updatedProfessor));
+        console.log('✅ fetchData concluído com sucesso');
       } catch (error: any) {
-        console.error('❌ Erro ao carregar dados do professor:', error.message);
-        if (error.message.includes('401')) {
-          Alert.alert('Sessão Expirada', 'Por favor, faça login novamente.');
-          await AsyncStorage.removeItem('authToken');
-          router.push('/auth/login');
+        console.error('❌ Erro geral em fetchData:', error.message, error);
+        if (error.message.includes('401') || error.message.includes('Nenhum token')) {
+          console.log('🔐 Sessão expirada ou sem token detectada, chamando signOut...');
+          alert('Sessão Expirada', 'Por favor, faça login novamente.', [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await signOut();
+                router.replace('/auth/login');
+              }
+            }
+          ]);
+
         } else {
-          Alert.alert('Erro', 'Não foi possível carregar os dados do professor.');
+          alert('Erro', 'Não foi possível carregar os dados do professor.');
         }
       } finally {
+        console.log('🏁 fetchData finalizado, setLoading(false)');
         setLoading(false);
       }
     };
+
     fetchData();
-  }, [router]);
+  }, [authLoading, isLoggedIn, signOut, dataFetched]); // Inclua dataFetched para controle
 
-  if (authLoading)
-    return <ActivityIndicator size="large" color={colors.primary} />;
-
+  if (authLoading || loading) return <ActivityIndicator size="large" color={colors.primary} />;
   return (
     <View style={styles.container}>
       <StatusBar style="dark" backgroundColor={colors.primary2} />
@@ -75,67 +209,50 @@ export default function Dashboard() {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => {
-            console.log('🖱️ Botão Sair clicado!');
-            Alert.alert(
-              'Sair da conta?',
-              'Isso invalidará sua sessão e você precisará fazer login novamente.',
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Sair',
-                  onPress: () => {
-                    console.log('✅ Confirmação de sair aceita!');
-                    signOut();
+          <TouchableOpacity
+            onPress={() => {
+              console.log('🖱️ Botão Sair clicado!');
+              alert(
+                'Sair da conta?',
+                'Isso invalidará sua sessão e você precisará fazer login novamente.',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  {
+                    text: 'Sair',
+                    onPress: async () => {
+                      console.log('✅ Confirmação de sair aceita!');
+                      await signOut();
+                      router.replace('/')
+                    },
                   },
-                },
-              ]
-            );
-          }}
-            disabled={logoutLoading}>
+                ]
+              );
+            }}
+            disabled={logoutLoading}
+          >
             <SignOut size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
       <SafeAreaView edges={['top']}>
-        <ScrollView>
-          {!cadastroCompleto && <View style={{ padding: 16 }}><NotificationBanner onPress={() => router.push('/professor')} /></View>}
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Minhas Tarefas</Text>
-            {/* Minhas Tarefas Section */}
-            <View style={styles.container}>
-              <View style={styles.sectionRow}>
-                <View style={styles.cell}>
-                  <SelectButton key="btnEscolas" onPress={() => router.push('/escolas/Escolas')} title="Escolas"
-                    iconLeft={<User size={16} color={colors.primary} />}
-                    buttonColor={colors.greyBlur} textColor={colors.primary} borderColor={colors.primary}
-                  />
-                </View>
-                <View style={styles.cell}>
-                  <SelectButton key="btnMeusAlunos" onPress={() => router.push('/aluno/MeusAlunos')} title="Meus Alunos"
-                    iconLeft={<User size={16} color={colors.primary} />}
-                    buttonColor={colors.greyBlur} textColor={colors.primary} borderColor={colors.primary}
-                  />
-                </View>
-              </View>
-             {/**  <View style={styles.sectionRow}>
-                <View style={styles.cell}>
-                  <Text style={styles.cellText}>3</Text>
-                </View>
-                <View style={styles.cell}>
-                  <SelectButton key="btnMeusAlunos" onPress={() => router.push('/aluno/MeusAlunos')} title="Meus Alunos"
-                    iconLeft={<User size={16} color={colors.primary} />}
-                    buttonColor={colors.greyBlur} textColor={colors.primary} borderColor={colors.primary}
-                  />
-                </View>
-               
-              </View> */}
-            </View>
-          </View>
-        </ScrollView>
-
-        <Text style={{ textAlign: 'center', padding: 16, color: colors.secondary, fontFamily: 'Nunito_400Regular' }}>© 2024 Plural. Todos os direitos reservados.</Text>
+        <FlatList
+          data={sections}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          scrollIndicatorInsets={{ right: 1 }}
+        />
+        <Text
+          style={{
+            textAlign: 'center',
+            padding: 16,
+            color: colors.secondary,
+            fontFamily: 'Nunito_400Regular',
+          }}
+        >
+          © 2025 Plural. Todos os direitos reservados.
+        </Text>
       </SafeAreaView>
     </View>
   );
@@ -145,6 +262,10 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   header: {
     backgroundColor: colors.primary2,
@@ -161,7 +282,6 @@ export const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-
   },
   headerRight: {
     flexDirection: 'row',
@@ -184,42 +304,36 @@ export const styles = StyleSheet.create({
   logo: {
     width: 42.79,
     height: 33.65,
-    marginBottom: 10
+    marginBottom: 10,
   },
   sectionHeader: {
-    flex: 1,
     padding: 16,
-    backgroundColor: colors.background
-  },
-  section: {
-    marginBottom: 16,
-    flex: 1,
-    flexDirection: 'row',
+    backgroundColor: colors.background,
   },
   sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.primary,
-  },
-
-  row: {
-
+    marginBottom: 10,
   },
   cell: {
     flex: 1,
     padding: 10,
     marginHorizontal: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'stretch',
+    borderColor: colors.primary,
+    borderWidth: 1,
+    borderRadius: 8,
   },
-  cellText: {
-    fontSize: 16,
-    color: colors.primary,
+  button: {
+    width: '100%',
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center'
   },
 });

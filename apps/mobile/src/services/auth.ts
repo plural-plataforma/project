@@ -1,4 +1,3 @@
-// apps/mobile/src/services/auth.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import {
@@ -16,32 +15,7 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
-// Interceptor para adicionar token (só usa userToken do AsyncStorage)
-api.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
-    const userToken = await AsyncStorage.getItem('authToken');
-    console.log('🔍 Interceptor: userToken existe?', !!userToken);
-    if (userToken) {
-      config.headers.Authorization = `Bearer ${userToken}`;
-      console.log('✅ Adicionando userToken ao header');
-    } else {
-      console.warn('⚠️ Nenhum token (user) adicionado! API pode falhar.');
-      delete config.headers.Authorization; // Remove header se não houver token
-    }
-    console.log('📤 Config final do request:', {
-      url: config.url,
-      method: config.method,
-      headers: config.headers
-    });
-    return config;
-  },
-  error => {
-    console.error('❌ Erro no interceptor request:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Interceptor de resposta para logout em 401
+// Single request interceptor
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const userToken = await AsyncStorage.getItem('authToken');
@@ -134,9 +108,7 @@ export const register = async (
     const response = await api.post('Autenticacao/registro', credentials);
     console.log('✅ Resposta bruta do registro:', response.data);
 
-    // Validação baseada no status HTTP 200
     if (response.status === 200) {
-      // Tenta extrair a mensagem da resposta
       message = typeof response.data === 'string'
         ? response.data
         : (response.data.message || 'Usuário criado com sucesso');
@@ -196,22 +168,17 @@ export const getToken = async (): Promise<string | null> => {
   return await AsyncStorage.getItem('authToken');
 };
 
-// Função logout atualizada: Invalida no servidor e limpa local (com fallback)
 export const signOut = async (): Promise<void> => {
-  console.log('🔥 logout() do auth.ts chamado!');
+  console.log('🔥 signOut() do auth.ts chamado!');
+
   try {
-    console.log('📤 Tentando invalidar no servidor...');
-     await api.post('Autenticacao/login');
-    console.log('✅ Token invalidado no servidor!');
-  } catch (error) {
-    console.error('❌ Erro ao invalidar token no servidor:', error);
-    if (axios.isAxiosError(error)) {
-      console.log(`Status do erro: ${error.response?.status}`);
-    }
-  } finally {
     console.log('🧹 Limpando AsyncStorage...');
     await AsyncStorage.removeItem('authToken');
+
     const remainingToken = await AsyncStorage.getItem('authToken');
     console.log(`✅ Storage limpo! Token restante: ${remainingToken || 'null'}`);
+    
+  } catch (error) {
+    console.error('❌ Erro ao limpar o AsyncStorage durante logout:', error);
   }
 };

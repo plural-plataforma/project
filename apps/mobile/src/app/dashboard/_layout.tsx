@@ -1,9 +1,10 @@
-import { Tabs } from 'expo-router'
+import { colors } from '@/packages/ui/theme/theme'
+import { Tabs, useSegments } from 'expo-router'
 import {
   Calendar,
   House,
   PresentationChart,
-  Users
+  UserList
 } from 'phosphor-react-native'
 
 export default function TabsLayout() {
@@ -15,42 +16,56 @@ export default function TabsLayout() {
           height: 70,
           paddingBottom: 10,
           paddingTop: 10,
-          backgroundColor: '#FFBE33'
+          backgroundColor: colors.primary2
         },
-        tabBarActiveTintColor: '#193656',
-        tabBarInactiveTintColor: '#d9d9d9'
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.secondary
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color }) => <House size={32} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <House size={32} color={color} weight={focused ? 'fill' : 'regular'} />
+          )
         }}
       />
-      <Tabs.Screen
-        name="alunos"
-        options={{
-          title: 'Alunos',
-          tabBarIcon: ({ color }) => <Users size={32} color={color} />
-        }}
-      />
+      
       <Tabs.Screen
         name="planejamento"
         options={{
           title: 'Planejamento',
-          tabBarIcon: ({ color }) => <Calendar size={32} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Calendar size={32} color={color} weight={focused ? 'fill' : 'regular'} />
+          )
         }}
       />
       <Tabs.Screen
         name="reports"
         options={{
           title: 'Reports',
-          tabBarIcon: ({ color }) => (
-            <PresentationChart size={32} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <PresentationChart size={32} color={color} weight={focused ? 'fill' : 'regular'} />
+          )
+        }}
+      />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, focused }) => (
+            <UserList size={32} color={color} weight={focused ? 'fill' : 'regular'} />
           )
         }}
       />
     </Tabs>
   )
+}
+
+// Example: get active segment (selected tab) elsewhere in the tree
+export function useActiveTab() {
+  const segments = useSegments()
+  // segments is an array like ['dashboard', 'index'] depending on route depth
+  return segments[0] || null
 }

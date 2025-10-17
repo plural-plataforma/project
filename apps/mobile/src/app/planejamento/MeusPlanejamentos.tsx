@@ -1,7 +1,7 @@
 import { colors } from '@/packages/ui/theme/theme'
 import { Text, View, StyleSheet} from 'react-native'
 
-export default function Reports() {
+export default function MeusPlanejamentos() {
   return (
 
     <View style={styles.container}>

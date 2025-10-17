@@ -1,4 +1,4 @@
-import { Image, StyleProp, TextStyle, ViewStyle , ImageStyle} from 'react-native'
+import { Image, StyleProp, TextStyle, ViewStyle, ImageStyle } from 'react-native'
 
 interface LogoProps {
   width?: number
@@ -12,16 +12,17 @@ interface LogoProps {
 }
 
 const logos = {
-  'logo-padrao': require('../assets/images/logo-plural-plataforma.png'),
-  'logo-contrast': require('../assets/images/logo-plural-plataforma-contrast.png')
+  'logo-padrao': require('../../../../packages/ui/assets/images/logo-plural-plataforma.png'),
+  'logo-contrast': require('../../../../packages/ui/assets/images/logo-plural-plataforma-contrast.png'),
 }
 
 const Logo: React.FC<LogoProps> = ({ width, height, href = 'logo-padrao', styles = {} }) => {
   return (
     <Image
       source={logos[href]}
-      style={[styles.logo,{flex:1,
-    resizeMode: 'contain', width: width, height: height }]}
+      style={[styles.logo, {
+        resizeMode: 'contain', width: width, height: height,
+      }]}
     />
   )
 }
