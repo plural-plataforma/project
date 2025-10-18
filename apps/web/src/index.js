@@ -13,21 +13,17 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-import React from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import App from "App";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-// Material Dashboard 2 React Context Provider
-import { MaterialUIControllerProvider } from "context";
+const theme = createTheme();
 
-const container = document.getElementById("app");
-const root = createRoot(container);
-
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <BrowserRouter>
-    <MaterialUIControllerProvider>
-      <App />
-    </MaterialUIControllerProvider>
-  </BrowserRouter>
+  <ThemeProvider theme={theme}>
+    <App />
+  </ThemeProvider>
 );
+
