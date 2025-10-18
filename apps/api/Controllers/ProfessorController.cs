@@ -99,6 +99,29 @@ namespace api.Controllers
             }
         }
 
+        [HttpPost("desvincularescola")]
+        public async Task<IActionResult> DesvincularEscola([FromBody] ProfessorVincularEscolaDTO professorVincularEscolaDto)
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var idProfessor = (int)usuario.ProfessorId;
+            if (ModelState.IsValid)
+            {
+                var resposta = await _professorService.DesvincularEscola(professorVincularEscolaDto.IdEscola, idProfessor);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+                else
+                {
+                    return BadRequest(resposta);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
 
     }
 }

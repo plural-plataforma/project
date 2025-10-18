@@ -212,5 +212,36 @@ namespace api.Services
                 return resposta;
             }
         }
+
+        public async Task<ServiceResponse<bool>> DesvincularEscola(int idEscola, int idProfessor)
+        {
+            var resposta = new ServiceResponse<bool>();
+
+            try
+            {
+                var vinculo = await _contexto.EscolasXProfessores
+                    .FirstOrDefaultAsync(x => x.EscolaId == idEscola && x.ProfessorId == idProfessor);
+
+                if (vinculo == null)
+                {
+                    resposta.SetFalha("Nenhum vínculo encontrado entre este professor e esta escola.");
+                    return resposta;
+                }
+
+                _contexto.EscolasXProfessores.Remove(vinculo);
+                await _contexto.SaveChangesAsync();
+
+                resposta.Sucesso = true;
+                resposta.AdicionaMensagem("Vínculo removido com sucesso.");
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao desvincular escola: {ex.Message}");
+                return resposta;
+            }
+        }
+
+
     }
 }
