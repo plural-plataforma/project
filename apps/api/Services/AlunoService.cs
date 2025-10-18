@@ -35,13 +35,13 @@ namespace api.Services
                         Bairro = alunoDTO.Bairro,
                         Estado = alunoDTO.Estado,
                         Cidade = alunoDTO.Cidade,
-                        Telefone = alunoDTO.Telefone.HasValue ? (int)alunoDTO.Telefone : 0,
+                        Telefone = alunoDTO.Telefone,
                         IdEscola = alunoDTO.IdEscola,
                         NivelEnsino = alunoDTO.NivelEnsino,
                         Ano = alunoDTO.Ano,
                         Turno = alunoDTO.Turno,
                         IdProfessor = usuario.ProfessorId.HasValue ? (int)usuario.ProfessorId : 0,
-
+                        Sexo = alunoDTO.Sexo
                     };
                     _contexto.Alunos.Add(aluno);
                     await _contexto.SaveChangesAsync();
@@ -115,9 +115,9 @@ namespace api.Services
                     aluno.Cidade = alunoDTO.Cidade;
                 }
 
-                if (alunoDTO.Telefone.HasValue)
+                if (!string.IsNullOrEmpty(alunoDTO.Telefone))
                 {
-                    aluno.Telefone = (int)alunoDTO.Telefone;
+                    aluno.Telefone = alunoDTO.Telefone;
                 }
 
                 if (!string.IsNullOrEmpty(alunoDTO.NivelEnsino))
@@ -136,6 +136,10 @@ namespace api.Services
                 if (alunoDTO.IdEscola != 0)
                 {
                     aluno.IdEscola = (int)alunoDTO.IdEscola;
+                }
+                if (!string.IsNullOrEmpty(alunoDTO.Sexo))
+                {
+                    aluno.Sexo = alunoDTO.Sexo;
                 }
 
                 await _contexto.SaveChangesAsync();
@@ -174,7 +178,8 @@ namespace api.Services
                         IdEscola = a.IdEscola,
                         NivelEnsino = a.NivelEnsino,
                         Ano = a.Ano,
-                        Turno = a.Turno
+                        Turno = a.Turno,
+                        Sexo = a.Sexo
                     })
                     .ToList();
                 resposta.AdicionaObjeto(alunos);
@@ -210,7 +215,8 @@ namespace api.Services
                         IdEscola = a.IdEscola,
                         NivelEnsino = a.NivelEnsino,
                         Ano = a.Ano,
-                        Turno = a.Turno
+                        Turno = a.Turno,
+                        Sexo = a.Sexo
                     })
                     .FirstOrDefault();
                 resposta.AdicionaObjeto(aluno);
