@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "tasks": {
+  "pipeline": {
     "dev": {
       "cache": false,
       "persistent": true,
@@ -10,12 +10,6 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "apps/api/bin/**", "apps/api/obj/**"]
     },
-    "lint": {},
-   "pipeline": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", "bin/**", ".vercel/output/**"]
-  } 
+    "lint": {}
   }
-}
 }
