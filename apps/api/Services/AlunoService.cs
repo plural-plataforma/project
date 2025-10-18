@@ -25,6 +25,16 @@ namespace api.Services
             {
                 try
                 {
+                    Responsavel responsavel = new Responsavel()
+                    {
+                        NomeCompleto = alunoDTO.Responsavel.NomeCompleto,
+                        Telefone = alunoDTO.Responsavel.Telefone,
+                        Email = alunoDTO.Responsavel.Email
+                    };
+
+                    _contexto.Responsaveis.Add(responsavel);
+                    await _contexto.SaveChangesAsync();
+
                     Aluno aluno = new Aluno
                     {
                         NomeCompleto = alunoDTO.NomeCompleto,
@@ -36,15 +46,30 @@ namespace api.Services
                         Estado = alunoDTO.Estado,
                         Cidade = alunoDTO.Cidade,
                         Telefone = alunoDTO.Telefone,
-                        IdEscola = alunoDTO.IdEscola,
                         NivelEnsino = alunoDTO.NivelEnsino,
                         Ano = alunoDTO.Ano,
                         Turno = alunoDTO.Turno,
-                        IdProfessor = usuario.ProfessorId.HasValue ? (int)usuario.ProfessorId : 0,
-                        Sexo = alunoDTO.Sexo
+                        Sexo = alunoDTO.Sexo,
+                        IdEscola = alunoDTO.IdEscola,
+                        IdProfessor = usuario.ProfessorId ?? 0,
+                        IdResponsavel = responsavel.Id
                     };
                     _contexto.Alunos.Add(aluno);
                     await _contexto.SaveChangesAsync();
+
+                    if (alunoDTO.Laudos != null && alunoDTO.Laudos.Any())
+                    {
+                        var laudos = alunoDTO.Laudos.Select(l => new Laudo
+                        {
+                            CodigoCid = l.CodigoCid,
+                            NomeMedico = l.NomeMedico,
+                            Descricao = l.Descricao,
+                            IdAluno = aluno.Id
+                        }).ToList();
+
+                        _contexto.Laudos.AddRange(laudos);
+                        await _contexto.SaveChangesAsync();
+                    }
 
                     await transacao.CommitAsync();
                     resposta.Sucesso = true;
