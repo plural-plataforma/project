@@ -76,21 +76,31 @@ export const login = async (
       console.log('✅ Token salvo com sucesso!');
     }
     return { success: true, token };
-  } catch (error) {
-    console.error('❌ Erro no login do auth.ts:', error);
-    const axiosError = error as AxiosError<ApiError>;
-    const msg =
-      axiosError.response?.data?.message ||
-      axiosError.message ||
-      'Falha no login';
-    console.log('📊 Detalhes do erro Axios:', {
-      status: axiosError.response?.status,
-      data: axiosError.response?.data,
-      url: axiosError.config?.url,
-      requestPayload: JSON.stringify(credentials)
-    });
-    throw new Error(msg);
+ } catch (error) {
+  console.error('❌ Erro no login do auth.ts:', error);
+  const axiosError = error as AxiosError<ApiError>;
+  
+  // Lógica melhorada para extrair a mensagem de erro
+  let msg = 'Falha no login';
+  if (axiosError.response) {
+    const responseData = axiosError.response.data;
+    if (typeof responseData === 'string') {
+      msg = responseData; // Trata string direta, ex: "Email ou senha inválidos"
+    } else if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+      msg = (responseData as ApiError).message; // Trata objeto com .message
+    }
   }
+  // Fallback se nada acima funcionar
+  msg = msg || axiosError.message || 'Falha no login';
+  
+  console.log('📊 Detalhes do erro Axios:', {
+    status: axiosError.response?.status,
+    data: axiosError.response?.data,
+    url: axiosError.config?.url,
+    requestPayload: JSON.stringify(credentials)
+  });
+  throw new Error(msg);
+}
 };
 
 export const register = async (
