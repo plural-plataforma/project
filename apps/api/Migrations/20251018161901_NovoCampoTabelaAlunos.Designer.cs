@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251018161901_NovoCampoTabelaAlunos")]
+    partial class NovoCampoTabelaAlunos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -233,10 +236,6 @@ namespace api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("idprofessor");
 
-                    b.Property<int?>("IdResponsavel")
-                        .HasColumnType("integer")
-                        .HasColumnName("idresponsavel");
-
                     b.Property<string>("Logradouro")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -281,9 +280,6 @@ namespace api.Migrations
 
                     b.HasIndex("IdProfessor")
                         .HasDatabaseName("ix_alunos_idprofessor");
-
-                    b.HasIndex("IdResponsavel")
-                        .HasDatabaseName("ix_alunos_idresponsavel");
 
                     b.ToTable("alunos");
                 });
@@ -451,45 +447,6 @@ namespace api.Migrations
                     b.ToTable("habilidadesxplanejamento");
                 });
 
-            modelBuilder.Entity("api.Models.Laudo", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("CodigoCid")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("codigocid");
-
-                    b.Property<string>("Descricao")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("descricao");
-
-                    b.Property<int>("IdAluno")
-                        .HasColumnType("integer")
-                        .HasColumnName("idaluno");
-
-                    b.Property<string>("NomeMedico")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("nomemedico");
-
-                    b.HasKey("Id")
-                        .HasName("pk_laudos");
-
-                    b.HasIndex("IdAluno")
-                        .HasDatabaseName("ix_laudos_idaluno");
-
-                    b.ToTable("laudos");
-                });
-
             modelBuilder.Entity("api.Models.Planejamento", b =>
                 {
                     b.Property<int>("ID")
@@ -619,37 +576,37 @@ namespace api.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Bairro")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("bairro");
 
                     b.Property<string>("Cep")
+                        .IsRequired()
                         .HasMaxLength(9)
                         .HasColumnType("character varying(9)")
                         .HasColumnName("cep");
 
                     b.Property<string>("Cidade")
+                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("cidade");
 
                     b.Property<string>("Complemento")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("complemento");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("email");
-
                     b.Property<string>("Estado")
+                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("estado");
 
                     b.Property<string>("Logradouro")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("logradouro");
@@ -660,7 +617,7 @@ namespace api.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("nomecompleto");
 
-                    b.Property<int?>("Numero")
+                    b.Property<int>("Numero")
                         .HasColumnType("integer")
                         .HasColumnName("numero");
 
@@ -840,16 +797,9 @@ namespace api.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_alunos_professores_idprofessor");
 
-                    b.HasOne("api.Models.Responsavel", "Responsavel")
-                        .WithMany("Alunos")
-                        .HasForeignKey("IdResponsavel")
-                        .HasConstraintName("fk_alunos_responsaveis_idresponsavel");
-
                     b.Navigation("Escola");
 
                     b.Navigation("Professor");
-
-                    b.Navigation("Responsavel");
                 });
 
             modelBuilder.Entity("api.Models.AlunosXPlanejamento", b =>
@@ -915,18 +865,6 @@ namespace api.Migrations
                     b.Navigation("Planejamento");
                 });
 
-            modelBuilder.Entity("api.Models.Laudo", b =>
-                {
-                    b.HasOne("api.Models.Aluno", "Aluno")
-                        .WithMany("Laudos")
-                        .HasForeignKey("IdAluno")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_laudos_alunos_idaluno");
-
-                    b.Navigation("Aluno");
-                });
-
             modelBuilder.Entity("api.Models.Planejamento", b =>
                 {
                     b.HasOne("api.Models.Professor", "Professor")
@@ -953,8 +891,6 @@ namespace api.Migrations
             modelBuilder.Entity("api.Models.Aluno", b =>
                 {
                     b.Navigation("AlunosXPlanejamentos");
-
-                    b.Navigation("Laudos");
                 });
 
             modelBuilder.Entity("api.Models.Escola", b =>
@@ -979,11 +915,6 @@ namespace api.Migrations
                     b.Navigation("EscolaXProfessores");
 
                     b.Navigation("Planejamentos");
-                });
-
-            modelBuilder.Entity("api.Models.Responsavel", b =>
-                {
-                    b.Navigation("Alunos");
                 });
 #pragma warning restore 612, 618
         }
