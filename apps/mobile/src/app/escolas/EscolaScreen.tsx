@@ -10,7 +10,8 @@ import { Escola, TipoEscola } from "@src/types/escolas";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, FlatList, StyleSheet, ActivityIndicator, Keyboard } from "react-native";
-import { useCustomAlert } from '../../hooks/useCustomAlert'
+// FIX: Importe CustomAlert também
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 
 export default function EscolaScreen() {
   const router = useRouter();
@@ -62,7 +63,8 @@ export default function EscolaScreen() {
     return match || null;
   }, []);
 
-  const { showAlert} = useCustomAlert()
+  // FIX: Destruture todos os valores necessários para renderizar o alerta
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   // Função para carregar estados
   const loadEstados = useCallback(async () => {
@@ -246,6 +248,7 @@ export default function EscolaScreen() {
 
   const handleConcluir = useCallback(async () => {
     if (!escolas.nomeInstituicao || !escolas.cep || !escolas.estado || !escolas.cidade) {
+      // FIX: Isso deve disparar agora, pois o Modal está renderizado
       showAlert('Erro', 'Preencha todos os campos obrigatórios (Nome, CEP, Estado, Cidade).');
       return;
     }
@@ -398,6 +401,14 @@ export default function EscolaScreen() {
           </View>
         }
         style={styles.list}
+      />
+      {/* FIX: Renderiza o componente de alerta aqui (sobreposto ao resto) */}
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
       />
     </View>
   );

@@ -83,7 +83,7 @@ export default function LoginScreen() {
           <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 10 }}>
             <Logo width={248} height={87.29} />
           </View>
-          <Text style={styles.text}>Seja bem vindo!</Text>
+          <Text style={styles.text}>Seja bem-vindo!</Text>
           <View style={{ padding: 0 }}>
             <InputField
               label="E-mail"
