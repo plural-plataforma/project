@@ -1,47 +1,160 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Paper,
+  FormControlLabel,
+  Switch,
+  Alert,
+} from "@mui/material";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const navigate = useNavigate();
 
-  // simulação de login
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // console.log("Login com:", email, password);
-    // redireciona para o Dashboard
-    window.location.href = "/dashboard";
-  };
+  const handleLogin = async (e: FormEvent) => {
+  e.preventDefault();
+  setError("");
+
+  try {
+    const response = await axios.post(
+      "https://dev-api.runasp.net/api/Autenticacao/login",
+      { email, senha: password },
+      { headers: { Accept: "application/json", "Content-Type": "application/json" } }
+    );
+
+    const token = response.data.token;
+
+    if (!token) {
+      setError("Não foi possível obter o token. Tente novamente.");
+      return;
+    }
+
+    // Salva token de acordo com "remember me"
+    if (rememberMe) {
+      localStorage.setItem("token", token);
+    } else {
+      sessionStorage.setItem("token", token);
+    }
+
+    // Redireciona para dashboard
+    navigate("/dashboard");
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      setError(err.response?.data || "Erro ao fazer login. Verifique suas credenciais.");
+      console.error(err.response?.data || err.message);
+    } else {
+      setError("Erro ao fazer login. Verifique suas credenciais.");
+      console.error(err);
+    }
+  }
+};
+
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-96">
-      {/* logo */}
-        <div className="p-4 border-b">
-          <img src="/logo-plural-plataforma.png" alt="Plural Logo" className="h-10 mx-auto" />
-        </div>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        bgcolor: "grey.100",
+      }}
+    >
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          borderRadius: 3,
+          width: 380,
+        }}
+      >
+        {/* Logo */}
+        <Box sx={{ textAlign: "center", mb: 3 }}>
+          <img
+            src="/logo-plural-plataforma.png"
+            alt="Plural Logo"
+            style={{ height: 80, width: "auto", marginLeft: "auto", marginRight: "auto" }}
+          />
+          <Typography variant="h5" fontWeight="bold" mt={2}>
+          </Typography>
+        </Box>
+
+        {/* Formulário */}
+        <Box component="form" onSubmit={handleLogin}>
+          <TextField
+            label="E-mail"
             type="email"
-            placeholder="E-mail"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-400"
+            fullWidth
+            margin="normal"
+            required
           />
-          <input
+          <TextField
+            label="Senha"
             type="password"
-            placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-400"
+            fullWidth
+            margin="normal"
+            required
           />
-          <button
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Lembrar-me"
+            sx={{ mt: 1 }}
+          />
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+            variant="contained"
+            style={{ color: "#FFFF", backgroundColor: "#276678" }}
+            fullWidth
+            sx={{ mt: 3 }}
           >
             Entrar
-          </button>
-        </form>
-      </div>
-    </div>
+          </Button>
+
+          <Typography
+            variant="body2"
+            align="center"
+            color="text.secondary"
+            sx={{ mt: 3 }}
+          >
+            Não tem uma conta?{" "}
+            <Typography
+              component="a"
+              href="/cadastro"
+              color="primary"
+              fontWeight="medium"
+              sx={{ textDecoration: "none" }}
+            >
+              Cadastre-se
+            </Typography>
+          </Typography>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

@@ -14,11 +14,11 @@ namespace Data
         public DbSet<Aluno> Alunos { get; set; }
         public DbSet<Responsavel> Responsaveis { get; set; }
         public DbSet<EscolaXProfessor> EscolasXProfessores { get; set; }
-
         public DbSet<Habilidade> Habilidades { get; set; }
         public DbSet<Planejamento> Planejamentos { get; set; }
         public DbSet<AlunosXPlanejamento> AlunosXPlanejamentos { get; set; }
         public DbSet<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
+        public DbSet<Laudo> Laudos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

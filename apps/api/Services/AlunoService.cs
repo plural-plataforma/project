@@ -1,4 +1,6 @@
 ﻿using api.DTOs.Aluno;
+using api.DTOs.Laudo;
+using api.DTOs.Responsavel;
 using api.Models;
 using api.Responses;
 using Data;
@@ -25,6 +27,16 @@ namespace api.Services
             {
                 try
                 {
+                    Responsavel responsavel = new Responsavel()
+                    {
+                        NomeCompleto = alunoDTO.Responsavel.NomeCompleto,
+                        Telefone = alunoDTO.Responsavel.Telefone,
+                        Email = alunoDTO.Responsavel.Email
+                    };
+
+                    _contexto.Responsaveis.Add(responsavel);
+                    await _contexto.SaveChangesAsync();
+
                     Aluno aluno = new Aluno
                     {
                         NomeCompleto = alunoDTO.NomeCompleto,
@@ -35,16 +47,31 @@ namespace api.Services
                         Bairro = alunoDTO.Bairro,
                         Estado = alunoDTO.Estado,
                         Cidade = alunoDTO.Cidade,
-                        Telefone = alunoDTO.Telefone.HasValue ? (int)alunoDTO.Telefone : 0,
-                        IdEscola = alunoDTO.IdEscola,
+                        Telefone = alunoDTO.Telefone,
                         NivelEnsino = alunoDTO.NivelEnsino,
                         Ano = alunoDTO.Ano,
                         Turno = alunoDTO.Turno,
-                        IdProfessor = usuario.ProfessorId.HasValue ? (int)usuario.ProfessorId : 0,
-
+                        Sexo = alunoDTO.Sexo,
+                        IdEscola = alunoDTO.IdEscola,
+                        IdProfessor = usuario.ProfessorId ?? 0,
+                        IdResponsavel = responsavel.Id
                     };
                     _contexto.Alunos.Add(aluno);
                     await _contexto.SaveChangesAsync();
+
+                    if (alunoDTO.Laudos != null && alunoDTO.Laudos.Any())
+                    {
+                        var laudos = alunoDTO.Laudos.Select(l => new Laudo
+                        {
+                            CodigoCid = l.CodigoCid,
+                            NomeMedico = l.NomeMedico,
+                            Descricao = l.Descricao,
+                            IdAluno = aluno.Id
+                        }).ToList();
+
+                        _contexto.Laudos.AddRange(laudos);
+                        await _contexto.SaveChangesAsync();
+                    }
 
                     await transacao.CommitAsync();
                     resposta.Sucesso = true;
@@ -115,9 +142,9 @@ namespace api.Services
                     aluno.Cidade = alunoDTO.Cidade;
                 }
 
-                if (alunoDTO.Telefone.HasValue)
+                if (!string.IsNullOrEmpty(alunoDTO.Telefone))
                 {
-                    aluno.Telefone = (int)alunoDTO.Telefone;
+                    aluno.Telefone = alunoDTO.Telefone;
                 }
 
                 if (!string.IsNullOrEmpty(alunoDTO.NivelEnsino))
@@ -136,6 +163,10 @@ namespace api.Services
                 if (alunoDTO.IdEscola != 0)
                 {
                     aluno.IdEscola = (int)alunoDTO.IdEscola;
+                }
+                if (!string.IsNullOrEmpty(alunoDTO.Sexo))
+                {
+                    aluno.Sexo = alunoDTO.Sexo;
                 }
 
                 await _contexto.SaveChangesAsync();
@@ -157,7 +188,7 @@ namespace api.Services
             var resposta = new ServiceResponse<List<AlunoBuscarDTO>>();
             try
             {
-                var alunos = _contexto.Alunos
+                var alunos = await _contexto.Alunos
                     .Where(a => a.IdProfessor == usuario.ProfessorId)
                     .Select(a => new AlunoBuscarDTO
                     {
@@ -174,9 +205,28 @@ namespace api.Services
                         IdEscola = a.IdEscola,
                         NivelEnsino = a.NivelEnsino,
                         Ano = a.Ano,
-                        Turno = a.Turno
+                        Turno = a.Turno,
+                        Sexo = a.Sexo,
+
+                        Responsavel = a.Responsavel != null
+                            ? new ResponsavelCadastroSimplificadoDTO
+                            {
+                                NomeCompleto = a.Responsavel.NomeCompleto,
+                                Telefone = a.Responsavel.Telefone,
+                                Email = a.Responsavel.Email
+                            }
+                            : null,
+
+                        Laudos = a.Laudos != null
+                            ? a.Laudos.Select(l => new LaudoCadastroSimplificadoDTO
+                            {
+                                CodigoCid = l.CodigoCid,
+                                NomeMedico = l.NomeMedico,
+                                Descricao = l.Descricao
+                            }).ToList()
+                            : new List<LaudoCadastroSimplificadoDTO>()
                     })
-                    .ToList();
+                    .ToListAsync();
                 resposta.AdicionaObjeto(alunos);
                 resposta.Sucesso = true;
                 return resposta;
@@ -193,7 +243,7 @@ namespace api.Services
             var resposta = new ServiceResponse<AlunoBuscarDTO>();
             try
             {
-                var aluno = _contexto.Alunos
+                var aluno = await _contexto.Alunos
                     .Where(a => a.IdProfessor == usuario.ProfessorId && a.Id == idAluno)
                     .Select(a => new AlunoBuscarDTO
                     {
@@ -210,9 +260,35 @@ namespace api.Services
                         IdEscola = a.IdEscola,
                         NivelEnsino = a.NivelEnsino,
                         Ano = a.Ano,
-                        Turno = a.Turno
+                        Turno = a.Turno,
+                        Sexo = a.Sexo,
+
+                        Responsavel = a.Responsavel != null
+                            ? new ResponsavelCadastroSimplificadoDTO
+                            {
+                                NomeCompleto = a.Responsavel.NomeCompleto,
+                                Telefone = a.Responsavel.Telefone,
+                                Email = a.Responsavel.Email
+                            }
+                            : null,
+
+                        Laudos = a.Laudos != null
+                            ? a.Laudos.Select(l => new LaudoCadastroSimplificadoDTO
+                            {
+                                CodigoCid = l.CodigoCid,
+                                NomeMedico = l.NomeMedico,
+                                Descricao = l.Descricao
+                            }).ToList()
+                            : new List<LaudoCadastroSimplificadoDTO>()
                     })
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
+
+                if (aluno == null)
+                {
+                    resposta.SetFalha("Aluno não encontrado.");
+                    return resposta;
+                }
+
                 resposta.AdicionaObjeto(aluno);
                 resposta.Sucesso = true;
                 return resposta;

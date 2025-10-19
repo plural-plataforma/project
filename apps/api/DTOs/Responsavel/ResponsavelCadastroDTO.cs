@@ -1,15 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace api.Models
+namespace api.DTOs.Responsavel
 {
-    [Table("responsaveis")]
-    public class Responsavel
+    public class ResponsavelCadastroDTO
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
-
         [Required]
         [StringLength(100)]
         public string NomeCompleto { get; set; }
@@ -33,13 +28,12 @@ namespace api.Models
 
         [StringLength(40)]
         public string? Cidade { get; set; }
-        
+
         [StringLength(20)]
         public string Telefone { get; set; }
 
         [StringLength(256)]
         public string Email { get; set; }
 
-        public ICollection<Aluno> Alunos { get; set; }
     }
 }

@@ -29,6 +29,7 @@ namespace api.DTOs.Professor
         [MaxLength(40)]
         public string? Cidade { get; set; }
 
+        [MaxLength(20)]
         public string? Telefone { get; set; }
 
         [MaxLength(500)]

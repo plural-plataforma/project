@@ -1,46 +1,61 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using api.DTOs.Laudo;
+using api.DTOs.Responsavel;
+using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.Aluno
 {
     public class AlunoCadastroDTO
     {
         [Required]
-        [StringLength(256)]
+        [MaxLength(256)]
         public string NomeCompleto { get; set; }
 
-        [StringLength(9)]
+        [MaxLength(9)]
         public string? Cep { get; set; }
 
-        [StringLength(50)]
+        [MaxLength(50)]
         public string? Logradouro { get; set; }
 
         public int? Numero { get; set; }
 
-        [StringLength(100)]
+        [MaxLength(100)]
         public string? Complemento { get; set; }
 
-        [StringLength(50)]
+        [MaxLength(50)]
         public string? Bairro { get; set; }
 
-        [StringLength(40)]
+        [MaxLength(40)]
         public string? Estado { get; set; }
 
-        [StringLength(40)]
+        [MaxLength(40)]
         public string? Cidade { get; set; }
 
-        public int? Telefone { get; set; }
+        [MaxLength(20)]
+        public string? Telefone { get; set; }
 
         [Required]
         public int IdEscola { get; set; }
 
-        [StringLength(20)]
+        [MaxLength(20)]
         public string? NivelEnsino { get; set; }
 
-        [StringLength(45)]
+        [MaxLength(45)]
         public string? Ano { get; set; }
 
-        [StringLength(10)]
+        [MaxLength(10)]
         public string? Turno { get; set; }
+
+        [MaxLength(1)]
+        public string? Sexo { get; set; }
+
+        [Required]
+        public ResponsavelCadastroSimplificadoDTO Responsavel {get; set; }
+
+        public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
+
+
+
+
     }
 }
 

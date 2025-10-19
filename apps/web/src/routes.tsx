@@ -1,19 +1,22 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import ProtectedRoutes from "./components/ProtectedRoutes";
+import ProtectedRoute from "./components/ProtectedRoutes"; // cuidado com o nome do arquivo
 
-function App() {
+function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Rota pública */}
         <Route path="/" element={<Login />} />
+
+        {/* Rota protegida */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoutes>
+            <ProtectedRoute>
               <Dashboard />
-            </ProtectedRoutes>
+            </ProtectedRoute>
           }
         />
       </Routes>
@@ -21,4 +24,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppRoutes;

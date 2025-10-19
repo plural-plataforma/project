@@ -3,15 +3,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState } from "react";
 import { Camera } from "phosphor-react-native";
 import { colors } from "@/packages/ui/theme/theme";
-import Alert from '@blazejkustra/react-native-alert';
+import { useCustomAlert } from "@src/hooks/useCustomAlert";
 
 export default function ProfilePhoto(){
+  const { showAlert } = useCustomAlert();
 const [fotoUri, setFotoUri] = useState<string | null>(null);
 
     const selecionarFoto = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permissão negada', 'Precisamos de acesso à galeria para foto.');
+         showAlert('Permissão negada', 'Precisamos de acesso à galeria para foto.');
           return;
         }
     

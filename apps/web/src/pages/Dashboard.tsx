@@ -1,129 +1,280 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { SignOut } from "../components/SignOut";
+import PersonIcon from "@mui/icons-material/Person";
+import InfoCard from "../components/InfoCard";
+
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  CircularProgress,
+  Alert,
+  FormControl,
+  InputLabel
+} from "@mui/material";
+
+interface Professor {
+  id: number;
+  nomeCompleto: string;
+  telefone?: string;
+  disciplinas?: string[] | string;
+  estado?: string;
+}
+
 export default function Dashboard() {
+  const [professores, setProfessores] = useState<Professor[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const signOut = SignOut(); 
+
+  useEffect(() => {
+    const fetchProfessores = async () => {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+
+      if (!token) {
+        setError("Nenhum token de autenticação encontrado. Faça login novamente.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await axios.get("https://dev-api.runasp.net/api/Professor/buscar", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("Resposta da API:", response.data);
+
+        const professor = response.data?.objeto;
+        if (Array.isArray(professor)) {
+          setProfessores(professor);
+        } else if (professor) {
+          setProfessores([professor]);
+        } else {
+          setProfessores([]);
+        }
+      } catch (err) {
+        console.error("Erro na requisição:", err);
+        setError("Erro ao carregar os professores. Verifique o token ou a conexão.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfessores();
+  }, []);
+
+  const filteredProfessores = professores.filter((p) =>
+    p.nomeCompleto?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="flex flex-col md:flex-row min-h-screen">
+    <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, minHeight: "100vh" }}>
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-r shadow-sm md:h-screen md:sticky md:top-0">
+      <Box
+        component="aside"
+        sx={{
+          width: { xs: "100%", md: 256 },
+          bgcolor: "white",
+          borderRight: 1,
+          borderColor: "grey.300",
+          boxShadow: 1,
+          position: { md: "sticky" },
+          top: 0,
+          height: { md: "100vh" },
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {/* Logo */}
-        <div className="p-4 border-b">
-          <img src="/logo-plural-plataforma.png" alt="Plural Logo" className="h-10 mx-auto" />
-        </div>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: "grey.300", textAlign: "center", color: "#276678" }}>
+          <img src="/logo-plural-plataforma.png" alt="Plural Logo" style={{ height: 40 }} />
+        </Box>
+
         {/* Navegação */}
-        <nav className="space-y-2 px-4 py-4">
-          <a href="#" className="flex items-center p-2 rounded-lg bg-yellow-400 text-white">
+        <Box sx={{ display: "flex", flexDirection: "column", p: 2, gap: 1, flexGrow: 1 }}>
+          <Button variant="contained" fullWidth style={{ color: "#FFFF", backgroundColor: "#276678" }}>
             Gerenciar Usuários
-          </a>
-          <a href="#" className="flex items-center p-2 rounded-lg hover:bg-gray-100">
+          </Button>
+          <Button variant="outlined" fullWidth>
             Pagamentos
-          </a>
-          <a href="#" className="flex items-center p-2 rounded-lg hover:bg-gray-100">
+          </Button>
+          <Button variant="outlined" fullWidth>
             Relatórios
-          </a>
-          <a href="#" className="flex items-center p-2 rounded-lg hover:bg-gray-100">
+          </Button>
+          <Button variant="outlined" fullWidth>
             Configurações
-          </a>
-        </nav>
-      </aside>
+          </Button>
+
+        </Box>
+
+        <Box sx={{ p: 2 }}>
+          <Button
+            style={{ color: "#FFFF", backgroundColor: "#276678" }}
+            variant="outlined"
+            fullWidth
+            onClick={signOut}
+          >
+            Sair
+          </Button>
+        </Box>
+      </Box>
 
       {/* Conteúdo principal */}
-      <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
-        <h1 className="text-xl sm:text-2xl font-bold mb-4">Gerenciamento de Usuários</h1>
-        <p className="text-gray-600 mb-6">Controle de acesso e vínculos de professoras</p>
+      <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: "auto" }}>
+        <Typography variant="h5" fontWeight="bold" mb={1}>
+          Gerenciamento de Usuários
+        </Typography>
+        <Typography color="text.secondary" mb={3}>
+          Controle de acesso e vínculos de professores
+        </Typography>
 
-        {/* Cards de resumo */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white shadow rounded-lg p-4 text-center">
-            <p className="text-lg sm:text-xl font-bold">247</p>
-            <p className="text-gray-500">Usuários Ativos</p>
-          </div>
-          <div className="bg-white shadow rounded-lg p-4 text-center">
-            <p className="text-lg sm:text-xl font-bold">18</p>
-            <p className="text-gray-500">Pendentes</p>
-          </div>
-          <div className="bg-white shadow rounded-lg p-4 text-center">
-            <p className="text-lg sm:text-xl font-bold">5</p>
-            <p className="text-gray-500">Suspensos</p>
-          </div>
-          <div className="bg-white shadow rounded-lg p-4 text-center">
-            <p className="text-lg sm:text-xl font-bold">32</p>
-            <p className="text-gray-500">Renovações</p>
-          </div>
-        </div>
+        {/* cards de totalizadores */}
+            <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
+              <InfoCard
+                titulo="Usuários Ativos"
+                valor={professores.length}
+                icone={<PersonIcon fontSize="small" />}
+                corFundo="#f3e8ff"
+                corIcone="#8b5cf6"
+              />
 
-        {/* Barra de filtro */}
-        <div className="flex flex-col sm:flex-row items-center gap-2 mb-4">
-          <input
-            type="text"
-            placeholder="Buscar por nome ou email..."
-            className="w-full sm:flex-1 border px-3 py-2 rounded-lg"
+          {/* Pendentes */}
+            <InfoCard
+              titulo="Pendentes"
+              valor={5}
+              icone={<PersonIcon fontSize="small" />}
+              corFundo="#fff3cd"
+              corIcone="#856404"
+            />
+
+          {/* Suspensos */}
+          <InfoCard
+            titulo="Suspensos"
+            valor={2}
+            icone={<PersonIcon fontSize="small" />}
+            corFundo="#f8d7da"
+            corIcone="#721c24"
           />
-          <select className="w-full sm:w-auto border px-2 py-2 rounded-lg">
-            <option>Status</option>
-          </select>
-          <select className="w-full sm:w-auto border px-2 py-2 rounded-lg">
-            <option>Plano</option>
-          </select>
-          <button className="w-full sm:w-auto bg-yellow-400 px-4 py-2 rounded-lg text-white">
-            Filtrar
-          </button>
-        </div>
 
-        {/* Tabela de usuários */}
-        <div className="bg-white shadow rounded-lg overflow-x-auto">
-          <table className="w-full text-left min-w-[640px]">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="p-3 text-sm sm:text-base">Usuário</th>
-                <th className="p-3 text-sm sm:text-base">Status</th>
-                <th className="p-3 text-sm sm:text-base">Plano</th>
-                <th className="p-3 text-sm sm:text-base">Vencimento</th>
-                <th className="p-3 text-sm sm:text-base">Hotmart ID</th>
-                <th className="p-3 text-sm sm:text-base">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b">
-                <td className="p-3">
-                  Maria Silva <br />
-                  <span className="text-xs sm:text-sm text-gray-500">maria.silva@email.com</span>
-                </td>
-                <td className="p-3">
-                  <span className="text-green-600 font-semibold">Ativo</span>
-                </td>
-                <td className="p-3">Anual</td>
-                <td className="p-3">15/12/2025</td>
-                <td className="p-3">HTM-789456</td>
-                <td className="p-3"></td>
-              </tr>
-              <tr className="border-b">
-                <td className="p-3">
-                  Ana Costa <br />
-                  <span className="text-xs sm:text-sm text-gray-500">ana.costa@email.com</span>
-                </td>
-                <td className="p-3">
-                  <span className="text-yellow-600 font-semibold">Pendente</span>
-                </td>
-                <td className="p-3">Mensal</td>
-                <td className="p-3">28/01/2025</td>
-                <td className="p-3">HTM-123789</td>
-                <td className="p-3"></td>
-              </tr>
-              <tr>
-                <td className="p-3">
-                  Carla Oliveira <br />
-                  <span className="text-xs sm:text-sm text-gray-500">carla.oliveira@email.com</span>
-                </td>
-                <td className="p-3">
-                  <span className="text-red-600 font-semibold">Suspenso</span>
-                </td>
-                <td className="p-3">Trimestral</td>
-                <td className="p-3">05/11/2024</td>
-                <td className="p-3">HTM-456123</td>
-                <td className="p-3"></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
+          {/* Renovações */}
+          <InfoCard
+            titulo="Renovações"
+            valor={1}
+            icone={<PersonIcon fontSize="small" />}
+            corFundo="#d1e7dd"
+            corIcone="#0f5132"
+          />
+        </Box>
+        {/* Filtros */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 1,
+            mb: 3,
+            alignItems: "center",
+          }}
+        >
+          <TextField
+            placeholder="Buscar por nome ou email..."
+            fullWidth
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+
+          <FormControl sx={{ minWidth: 120 }} size="small">
+            <InputLabel>Status</InputLabel>
+            <Select defaultValue="">
+              <MenuItem value="">Ativo</MenuItem>
+              <MenuItem value="pendente">Pendente</MenuItem>
+              <MenuItem value="suspenso">Suspenso</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl sx={{ minWidth: 120 }} size="small">
+            <InputLabel>Plano</InputLabel>
+            <Select defaultValue="">
+              <MenuItem value="">Premium</MenuItem>
+              <MenuItem value="basico">Básico</MenuItem>
+              <MenuItem value="gratuito">Gratuito</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="contained"
+            sx={{
+              color: "#FFF",
+              backgroundColor: "#276678",
+              height: "40px", // define altura fixa igual aos inputs small
+              textTransform: "none",
+            }}
+          >
+            Filtrar
+          </Button>
+        </Box>
+
+        {/* Conteúdo principal */}
+        {loading ? (
+          <Box textAlign="center" mt={5}>
+            <CircularProgress color="warning" />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        ) : (
+          <Paper sx={{ overflowX: "auto" }}>
+            <Table sx={{ minWidth: 640 }}>
+              <TableHead sx={{ bgcolor: "grey.100" }}>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>Nome</TableCell>
+                  <TableCell>Telefone</TableCell>
+                  <TableCell>Disciplinas</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell>Ações</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredProfessores.map((prof) => (
+                  <TableRow key={prof.id}>
+                    <TableCell>{prof.id}</TableCell>
+                    <TableCell>{prof.nomeCompleto}</TableCell>
+                    <TableCell>{prof.telefone || "—"}</TableCell>
+                    <TableCell>
+                      {Array.isArray(prof.disciplinas)
+                        ? prof.disciplinas.join(", ")
+                        : prof.disciplinas || "—"}
+                    </TableCell>
+                    <TableCell>{prof.estado || "—"}</TableCell>
+                    <TableCell>
+                      <Button size="small" variant="contained" style={{ color: "#FFFF", backgroundColor: "#276678" }}>
+                        Editar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Paper>
+        )}
+      </Box>
+    </Box>
   );
 }

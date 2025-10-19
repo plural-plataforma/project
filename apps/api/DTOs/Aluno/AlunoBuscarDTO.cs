@@ -1,4 +1,8 @@
-﻿namespace api.DTOs.Aluno
+﻿using api.DTOs.Laudo;
+using api.DTOs.Responsavel;
+using System.ComponentModel.DataAnnotations;
+
+namespace api.DTOs.Aluno
 {
     public class AlunoBuscarDTO
     {
@@ -20,7 +24,7 @@
 
         public string? Cidade { get; set; }
 
-        public int? Telefone { get; set; }
+        public string? Telefone { get; set; }
 
         public int IdEscola { get; set; }
 
@@ -29,5 +33,11 @@
         public string? Ano { get; set; }
 
         public string? Turno { get; set; }
+
+        public string? Sexo { get; set; }
+
+        public ResponsavelCadastroSimplificadoDTO Responsavel { get; set; }
+
+        public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
     }
 }

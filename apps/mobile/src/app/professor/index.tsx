@@ -30,6 +30,7 @@ import { CheckboxWithLabel, InputField } from '@/packages/ui/components'
 import CustomButton from '@src/components/CustomButton'
 import SectionGroup from '@src/components/SectionGroup'
 import ItemButton from '@src/components/ItemButton'
+import { useCustomAlert } from '@src/hooks/useCustomAlert'
 
 const HEADER_HEIGHT = 55
 const areasEnsino = [
@@ -76,6 +77,7 @@ interface SectionData {
 }
 
 export default function CadastroProfessor() {
+  const { showAlert } = useCustomAlert()
   const router = useRouter()
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
@@ -141,10 +143,7 @@ export default function CadastroProfessor() {
         const token = await AsyncStorage.getItem('authToken')
         if (!token) {
           console.warn('⚠️ Nenhum token encontrado. Usuário não autenticado.')
-          Alert.alert(
-            'Aviso',
-            'Por favor, faça login para carregar seus dados.'
-          )
+          showAlert('Aviso', 'Por favor, faça login para carregar seus dados.')
           setLoading(false)
           setEscolasLoading(false)
           return
@@ -164,7 +163,7 @@ export default function CadastroProfessor() {
         const escolasData = await buscarEscolas()
         console.log('✅ Escolas recebidas:', escolasData)
         if (!escolasData.length) {
-          Alert.alert(
+          showAlert(
             'Aviso',
             'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.'
           )
@@ -191,6 +190,20 @@ export default function CadastroProfessor() {
           )
         } catch (error: any) {
           console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message)
+          showAlert(
+            'Aviso',
+            'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.'
+          )
+        }
+
+        try {
+          const linkedEscolas = await buscarEscolasProfessor()
+          console.log('✅ Escolas vinculadas recebidas:', linkedEscolas)
+          updatedProfessor.escolas = linkedEscolas.map(escola =>
+            escola.id!.toString()
+          )
+        } catch (error: any) {
+          console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message)
           Alert.alert(
             'Aviso',
             'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.'
@@ -202,13 +215,13 @@ export default function CadastroProfessor() {
       } catch (error: any) {
         console.error('❌ Erro ao carregar dados iniciais:', error.message)
         if (error.message.includes('401')) {
-          Alert.alert(
+          showAlert(
             'Erro de Autenticação',
             'Sua sessão expirou. Faça login novamente.'
           )
           router.push('/auth/login')
         } else {
-          Alert.alert(
+          showAlert(
             'Erro',
             'Não foi possível carregar os dados. Preencha manualmente.'
           )
@@ -295,13 +308,13 @@ export default function CadastroProfessor() {
       } catch (error: any) {
         console.error('Erro ao buscar CEP:', error)
         if (error.name === 'BadRequestError') {
-          Alert.alert('Erro de Validação', error.message)
+          showAlert('Erro de Validação', error.message)
         } else if (error.name === 'NotFoundError') {
-          Alert.alert('Erro', 'CEP não encontrado.')
+          showAlert('Erro', 'CEP não encontrado.')
         } else if (error.name === 'InternalError') {
-          Alert.alert('Erro', 'Erro interno no serviço de CEP.')
+          showAlert('Erro', 'Erro interno no serviço de CEP.')
         } else {
-          Alert.alert(
+          showAlert(
             'Erro',
             error.message || 'Não foi possível buscar o endereço.'
           )
@@ -341,7 +354,7 @@ export default function CadastroProfessor() {
     setErrors(newErrors)
 
     if (hasErrors) {
-      Alert.alert(
+      showAlert(
         'Validação',
         'Corrija os erros nos campos destacados antes de continuar.'
       )
@@ -349,7 +362,7 @@ export default function CadastroProfessor() {
     }
 
     if (!isCadastroCompleto(professor)) {
-      Alert.alert(
+      showAlert(
         'Erro',
         'Preencha todos os campos obrigatórios, incluindo pelo menos uma escola vinculada.'
       )
@@ -359,31 +372,31 @@ export default function CadastroProfessor() {
     setLoading(true)
     try {
       await atualizarProfessor(professor)
-      Alert.alert('Sucesso', 'Cadastro de professor salvo com sucesso!', [
+      showAlert('Sucesso', 'Cadastro de professor salvo com sucesso!', [
         { text: 'OK', onPress: () => router.back() }
       ])
     } catch (error: any) {
       console.error('Erro ao salvar professor:', error)
       if (error.message.includes('erro ao vincular escolas')) {
-        Alert.alert(
+        showAlert(
           'Aviso',
           'Cadastro de professor salvo, mas não foi possível vincular as escolas: ' +
             error.message,
           [{ text: 'OK', onPress: () => router.back() }]
         )
       } else if (error.message.includes('401')) {
-        Alert.alert(
+        showAlert(
           'Erro de Autenticação',
           'Sua sessão expirou. Faça login novamente.'
         )
         router.push('/auth/login')
       } else if (error.response?.status === 400) {
-        Alert.alert(
+        showAlert(
           'Erro',
           'Dados inválidos. Verifique os campos e tente novamente.'
         )
       } else {
-        Alert.alert(
+        showAlert(
           'Erro',
           'Não foi possível salvar o cadastro. Tente novamente.'
         )

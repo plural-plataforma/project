@@ -20,7 +20,9 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:8081",
                 "https://68ef01c7dc34b7e24e5960cb--leafy-donut-4f71a4.netlify.app",
-                "https://leafy-donut-4f71a4.netlify.app")
+                "https://leafy-donut-4f71a4.netlify.app",
+                "https://devs.pluralplataforma.com",
+                "http://localhost:8082")
             .AllowAnyHeader() 
             .AllowAnyMethod()
             .AllowCredentials(); 

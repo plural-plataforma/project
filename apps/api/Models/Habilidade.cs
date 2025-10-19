@@ -1,5 +1,4 @@
-﻿using api.Models;
-namespace api.Models;
+﻿namespace api.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -10,8 +9,7 @@ public class Habilidade
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
-    public string NivelEnsino { get; set; }
-
+    public int IdNivelEnsino { get; set; }
     public string Tipo { get; set; }
 
     public string Descricao { get; set; }

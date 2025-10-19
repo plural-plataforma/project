@@ -4,6 +4,8 @@ import CustomButton from "@src/components/CustomButton";
 import InputField from "@src/components/InputField";
 import SelectButton from "@src/components/SelectButton";
 import { useRouter } from "expo-router";
+// NOVO: Importe useFocusEffect do React Navigation
+import { useFocusEffect } from '@react-navigation/native';
 import { CaretRight, User } from "phosphor-react-native";
 import { JSX, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
@@ -50,26 +52,36 @@ export default function Escolas() {
       }
 
       const escolasData = await buscarEscolas();
-      console.log('✅ Escolas recebidas:', escolasData);
+
       setEscolas(escolasData);
-      if (!escolasData.length && showAlert) {
+      // NOVO: Removi o showAlert aqui para evitar alertas desnecessários no refresh silencioso
+      // Se quiser alertar só quando não há escolas, mantenha condicional:
+      if (!escolasData.length && msg) { // Adicionei 'msg' na condição
        showAlert('Aviso', 'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.');
       }
     } catch (error: any) {
       console.error('❌ Erro ao carregar escolas:', error.message);
       setError(error.message || 'Erro desconhecido');
-      if (showAlert) {
+      if (showAlert && msg) { // Adicionei 'msg' para silenciar no refresh
        showAlert('Erro', 'Não foi possível carregar as escolas. Tente novamente.');
       }
       setEscolas([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showAlert]); // Adicionei showAlert nas dependências, se necessário
 
   useEffect(() => {
     fetchEscolas();
   }, [fetchEscolas]);
+
+  // NOVO: Hook para refresh automático ao ganhar foco (ex.: voltar da EscolaScreen)
+  useFocusEffect(
+    useCallback(() => {
+      // Chama fetchEscolas silenciosamente (msg=false) para evitar alertas
+      fetchEscolas(false);
+    }, [fetchEscolas])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

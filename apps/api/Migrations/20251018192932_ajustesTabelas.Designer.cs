@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251018192932_ajustesTabelas")]
+    partial class ajustesTabelas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -253,7 +256,7 @@ namespace api.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("nomecompleto");
 
-                    b.Property<int?>("Numero")
+                    b.Property<int>("Numero")
                         .HasColumnType("integer")
                         .HasColumnName("numero");
 
@@ -263,6 +266,7 @@ namespace api.Migrations
                         .HasColumnName("sexo");
 
                     b.Property<string>("Telefone")
+                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("telefone");
@@ -411,9 +415,10 @@ namespace api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("descricao");
 
-                    b.Property<int>("IdNivelEnsino")
-                        .HasColumnType("integer")
-                        .HasColumnName("idnivelensino");
+                    b.Property<string>("NivelEnsino")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("nivelensino");
 
                     b.Property<string>("Resumo")
                         .HasColumnType("text")
@@ -447,45 +452,6 @@ namespace api.Migrations
                     b.HasIndex("HabilidadeId");
 
                     b.ToTable("habilidadesxplanejamento");
-                });
-
-            modelBuilder.Entity("api.Models.Laudo", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("CodigoCid")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("codigocid");
-
-                    b.Property<string>("Descricao")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("descricao");
-
-                    b.Property<int>("IdAluno")
-                        .HasColumnType("integer")
-                        .HasColumnName("idaluno");
-
-                    b.Property<string>("NomeMedico")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("nomemedico");
-
-                    b.HasKey("Id")
-                        .HasName("pk_laudos");
-
-                    b.HasIndex("IdAluno")
-                        .HasDatabaseName("ix_laudos_idaluno");
-
-                    b.ToTable("laudos");
                 });
 
             modelBuilder.Entity("api.Models.Planejamento", b =>
@@ -913,18 +879,6 @@ namespace api.Migrations
                     b.Navigation("Planejamento");
                 });
 
-            modelBuilder.Entity("api.Models.Laudo", b =>
-                {
-                    b.HasOne("api.Models.Aluno", "Aluno")
-                        .WithMany("Laudos")
-                        .HasForeignKey("IdAluno")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_laudos_alunos_idaluno");
-
-                    b.Navigation("Aluno");
-                });
-
             modelBuilder.Entity("api.Models.Planejamento", b =>
                 {
                     b.HasOne("api.Models.Professor", "Professor")
@@ -951,8 +905,6 @@ namespace api.Migrations
             modelBuilder.Entity("api.Models.Aluno", b =>
                 {
                     b.Navigation("AlunosXPlanejamentos");
-
-                    b.Navigation("Laudos");
                 });
 
             modelBuilder.Entity("api.Models.Escola", b =>
