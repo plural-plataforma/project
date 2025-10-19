@@ -96,13 +96,13 @@ export default function Dashboard() {
         }}
       >
         {/* Logo */}
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: "grey.300", textAlign: "center" }}>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: "grey.300", textAlign: "center", color: "#276678" }}>
           <img src="/logo-plural-plataforma.png" alt="Plural Logo" style={{ height: 40 }} />
         </Box>
 
         {/* Navegação */}
         <Box sx={{ display: "flex", flexDirection: "column", p: 2, gap: 1, flexGrow: 1 }}>
-          <Button variant="contained" color="warning" fullWidth>
+          <Button variant="contained" fullWidth style={{ color: "#FFFF", backgroundColor: "#276678" }}>
             Gerenciar Usuários
           </Button>
           <Button variant="outlined" fullWidth>
@@ -114,20 +114,15 @@ export default function Dashboard() {
           <Button variant="outlined" fullWidth>
             Configurações
           </Button>
-          <Button variant="outlined" fullWidth onClick={signOut}>
-            Sair
-          </Button>
+
         </Box>
 
         <Box sx={{ p: 2 }}>
           <Button
+            style={{ color: "#FFFF", backgroundColor: "#276678" }}
             variant="outlined"
             fullWidth
-            color="error"
-            onClick={() => {
-              localStorage.removeItem("token");
-              window.location.href = "/";
-            }}
+            onClick={signOut}
           >
             Sair
           </Button>
@@ -165,7 +160,7 @@ export default function Dashboard() {
           <Select defaultValue="" sx={{ minWidth: 120 }}>
             <MenuItem value="">Estado</MenuItem>
           </Select>
-          <Button variant="contained" color="warning">
+          <Button variant="contained" style={{ color: "#FFFF", backgroundColor: "#276678" }}>
             Filtrar
           </Button>
         </Box>
@@ -205,7 +200,7 @@ export default function Dashboard() {
                     </TableCell>
                     <TableCell>{prof.estado || "—"}</TableCell>
                     <TableCell>
-                      <Button size="small" variant="contained" color="warning">
+                      <Button size="small" variant="contained" style={{ color: "#FFFF", backgroundColor: "#276678" }}>
                         Editar
                       </Button>
                     </TableCell>

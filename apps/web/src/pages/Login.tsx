@@ -81,10 +81,9 @@ export default function Login() {
           <img
             src="/logo-plural-plataforma.png"
             alt="Plural Logo"
-            style={{ height: 40 }}
+            style={{ height: 80, width: "auto", marginLeft: "auto", marginRight: "auto" }}
           />
           <Typography variant="h5" fontWeight="bold" mt={2}>
-            Entrar
           </Typography>
         </Box>
 
@@ -130,7 +129,7 @@ export default function Login() {
           <Button
             type="submit"
             variant="contained"
-            color="primary"
+            style={{ color: "#FFFF", backgroundColor: "#276678" }}
             fullWidth
             sx={{ mt: 3 }}
           >
