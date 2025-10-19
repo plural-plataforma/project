@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { SignOut } from "../components/SignOut";
+import PersonIcon from "@mui/icons-material/Person";
+import InfoCard from "../components/InfoCard";
+
 import {
   Box,
   Paper,
@@ -16,6 +19,8 @@ import {
   TableCell,
   CircularProgress,
   Alert,
+  FormControl,
+  InputLabel
 } from "@mui/material";
 
 interface Professor {
@@ -132,12 +137,49 @@ export default function Dashboard() {
       {/* Conteúdo principal */}
       <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: "auto" }}>
         <Typography variant="h5" fontWeight="bold" mb={1}>
-          Gerenciamento de Professores
+          Gerenciamento de Usuários
         </Typography>
         <Typography color="text.secondary" mb={3}>
-          Controle de acesso e informações dos professores
+          Controle de acesso e vínculos de professores
         </Typography>
 
+        {/* cards de totalizadores */}
+            <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
+              <InfoCard
+                titulo="Usuários Ativos"
+                valor={professores.length}
+                icone={<PersonIcon fontSize="small" />}
+                corFundo="#f3e8ff"
+                corIcone="#8b5cf6"
+              />
+
+          {/* Pendentes */}
+            <InfoCard
+              titulo="Pendentes"
+              valor={5}
+              icone={<PersonIcon fontSize="small" />}
+              corFundo="#fff3cd"
+              corIcone="#856404"
+            />
+
+          {/* Suspensos */}
+          <InfoCard
+            titulo="Suspensos"
+            valor={2}
+            icone={<PersonIcon fontSize="small" />}
+            corFundo="#f8d7da"
+            corIcone="#721c24"
+          />
+
+          {/* Renovações */}
+          <InfoCard
+            titulo="Renovações"
+            valor={1}
+            icone={<PersonIcon fontSize="small" />}
+            corFundo="#d1e7dd"
+            corIcone="#0f5132"
+          />
+        </Box>
         {/* Filtros */}
         <Box
           sx={{
@@ -151,16 +193,38 @@ export default function Dashboard() {
           <TextField
             placeholder="Buscar por nome ou email..."
             fullWidth
+            size="small"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Select defaultValue="" sx={{ minWidth: 120 }}>
-            <MenuItem value="">Status</MenuItem>
-          </Select>
-          <Select defaultValue="" sx={{ minWidth: 120 }}>
-            <MenuItem value="">Estado</MenuItem>
-          </Select>
-          <Button variant="contained" style={{ color: "#FFFF", backgroundColor: "#276678" }}>
+
+          <FormControl sx={{ minWidth: 120 }} size="small">
+            <InputLabel>Status</InputLabel>
+            <Select defaultValue="">
+              <MenuItem value="">Ativo</MenuItem>
+              <MenuItem value="pendente">Pendente</MenuItem>
+              <MenuItem value="suspenso">Suspenso</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl sx={{ minWidth: 120 }} size="small">
+            <InputLabel>Plano</InputLabel>
+            <Select defaultValue="">
+              <MenuItem value="">Premium</MenuItem>
+              <MenuItem value="basico">Básico</MenuItem>
+              <MenuItem value="gratuito">Gratuito</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="contained"
+            sx={{
+              color: "#FFF",
+              backgroundColor: "#276678",
+              height: "40px", // define altura fixa igual aos inputs small
+              textTransform: "none",
+            }}
+          >
             Filtrar
           </Button>
         </Box>
