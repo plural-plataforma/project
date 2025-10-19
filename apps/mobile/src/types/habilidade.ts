@@ -1,14 +1,13 @@
-
-export interface Habilidade{
-    id: number;
-    nivelEnsino: string;
-    tipo: string;
-    descricao: string;
-    resumo: string
+export interface Habilidade {
+  id: number
+  nivelEnsino: string
+  tipo: string
+  descricao: string
+  resumo: string
 }
 
-export interface AlunoResponse {
-  sucesso: boolean;
-  mensagens: string[];
-  objeto: Habilidade[]; 
+export interface HabilidadeResponse {
+  sucesso: boolean
+  mensagens: string[]
+  objeto: Habilidade[]
 }
