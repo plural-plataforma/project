@@ -34,9 +34,11 @@ namespace api.Models
         [StringLength(40)]
         public string? Cidade { get; set; }
 
-        public int Telefone { get; set; }
+        [StringLength(20)]
+        public string Telefone { get; set; }
         public int IdProfessor { get; set; }
         public int IdEscola { get; set; }
+        public int? IdResponsavel { get; set; }
 
         [StringLength(20)]
         public string? NivelEnsino { get; set; }
@@ -47,13 +49,20 @@ namespace api.Models
         [StringLength(10)]
         public string? Turno { get; set; }
 
+        [MaxLength(1)]
+        public string? Sexo { get; set; }
+
         [ForeignKey("IdProfessor")]
         public Professor Professor { get; set; }
 
         [ForeignKey("IdEscola")]
         public Escola Escola { get; set; }
 
+        [ForeignKey("IdResponsavel")]
+        public Responsavel? Responsavel { get; set; }
+
         public ICollection<AlunosXPlanejamento> AlunosXPlanejamentos{ get; set; }
 
+        public ICollection<Laudo> Laudos { get; set; }
     }
 }

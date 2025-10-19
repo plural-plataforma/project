@@ -34,6 +34,7 @@ namespace api.Models
     [MaxLength(40)]
     public string? Cidade { get; set; }
 
+    [StringLength(20)]
     public string? Telefone { get; set; }
 
     [MaxLength(500)]
