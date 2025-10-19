@@ -28,7 +28,7 @@ namespace api.Services
                 {
                     Habilidade habilidade = new Habilidade()
                     {
-                        NivelEnsino = habilidadeDTO.NivelEnsino,
+                        IdNivelEnsino = habilidadeDTO.IdNivelEnsino,
                         Tipo = habilidadeDTO.Tipo,
                         Descricao = habilidadeDTO.Descricao,
                         Resumo = string.IsNullOrEmpty(habilidadeDTO.Resumo) ? "" : habilidadeDTO.Resumo,
@@ -67,9 +67,9 @@ namespace api.Services
                     return resposta;
                 }
 
-                if (!string.IsNullOrEmpty(habilidadeDTO.NivelEnsino))
+                if (habilidadeDTO.IdNivelEnsino.HasValue && habilidadeDTO.IdNivelEnsino != 0)
                 {
-                    habilidade.NivelEnsino = habilidadeDTO.NivelEnsino;
+                    habilidade.IdNivelEnsino = (int)habilidadeDTO.IdNivelEnsino;
                 }
 
                 if (!string.IsNullOrEmpty(habilidadeDTO.Tipo))
@@ -115,7 +115,7 @@ namespace api.Services
                     Select(h => new HabilidadeBuscarDTO
                     {
                         Id = h.Id,
-                        NivelEnsino = h.NivelEnsino,
+                        IdNivelEnsino = h.IdNivelEnsino,
                         Tipo = h.Tipo,
                         Descricao= h.Descricao,
                         Resumo = h.Resumo,
