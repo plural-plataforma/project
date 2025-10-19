@@ -19,12 +19,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator, FlatList, View, StyleSheet } from "react-native";
 import ProfilePhoto from "@src/components/ProfilePhoto";
 import { cadastraAluno, buscarAlunoPorId, atualizaAluno } from "@src/services/alunoService";
-import { buscarEscolas } from "@src/services/escolasService";
 import { Escola } from "@src/types/escolas";
 import InputField from "@src/components/InputField";
 import SectionGroup from "@src/components/SectionGroup";
 import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 import toTitleCase from "@src/utils/camelCase";
+import { buscarEscolasProfessor } from "@src/services/professorService";
 
 // Tipos para os campos do InputField
 interface TextInputField {
@@ -446,7 +446,7 @@ export default function AlunoProfileScreen() {
     const loadEscolas = async () => {
       try {
         setEscolasLoading(true);
-        const escolasData = await buscarEscolas();
+        const escolasData = await buscarEscolasProfessor();
         setEscolas(escolasData);
       } catch (error) {
         console.error('Erro ao carregar escolas:', error);
