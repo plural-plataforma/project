@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using api.DTOs.Laudo;
+using api.DTOs.Responsavel;
+using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.Aluno
 {
@@ -33,5 +35,9 @@ namespace api.DTOs.Aluno
         public string? Turno { get; set; }
 
         public string? Sexo { get; set; }
+
+        public ResponsavelCadastroSimplificadoDTO Responsavel { get; set; }
+
+        public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
     }
 }

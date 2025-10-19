@@ -5,7 +5,7 @@
     {
         public int Id { get; set; }
 
-        public string NivelEnsino { get; set; }
+        public int IdNivelEnsino { get; set; }
 
         public string Tipo { get; set; }
 
