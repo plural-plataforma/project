@@ -14,7 +14,7 @@ import {
   User,
   UsersThree,
 } from "phosphor-react-native";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator, FlatList, View, StyleSheet } from "react-native";
 import ProfilePhoto from "@src/components/ProfilePhoto";
@@ -37,6 +37,7 @@ interface TextInputField {
   searchable?: boolean;
   searchPlaceholder?: string;
   onFocus?: () => void;
+  keyboardType?: 'default' | 'number-pad' | 'email-address' | 'phone-pad';
 }
 
 interface DropdownInputField {
@@ -73,7 +74,8 @@ const useAlunoSections = (
   enderecoEnabled: boolean,
   handleCepChange: (text: string) => void,
   handleEstadoFocus: () => void,
-  handleCidadeFocus: () => void
+  handleCidadeFocus: () => void,
+  handleAddressFocus: () => void
 ): Section[] => {
   return useMemo(() => [
     {
@@ -149,6 +151,7 @@ const useAlunoSections = (
           value: aluno.bairro || "",
           onChangeText: (value: string) => setAluno(prev => ({ ...prev, bairro: value })),
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
         {
           label: "Endereço",
@@ -156,6 +159,7 @@ const useAlunoSections = (
           value: aluno.logradouro || "",
           onChangeText: (value: string) => setAluno(prev => ({ ...prev, logradouro: value })),
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
         {
           label: "Número",
@@ -167,6 +171,7 @@ const useAlunoSections = (
           },
           keyboardType: "number-pad" as const,
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
         {
           label: "Complemento",
@@ -174,6 +179,7 @@ const useAlunoSections = (
           value: aluno.complemento || '',
           onChangeText: (value: string) => setAluno(prev => ({ ...prev, complemento: value })),
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
 
       ]
@@ -318,7 +324,7 @@ const useAlunoSections = (
         },
       ]
     },
-  ], [aluno, ufs, ufsLoaded, cidadesDisponiveis, cidadesPorUf, cepLoading, enderecoEnabled, handleCepChange, handleEstadoFocus, handleCidadeFocus, escolas, escolasLoading]);
+  ], [aluno, ufs, ufsLoaded, cidadesDisponiveis, cidadesPorUf, cepLoading, enderecoEnabled, handleCepChange, handleEstadoFocus, handleCidadeFocus, escolas, escolasLoading, handleAddressFocus]);
 }
 
 export default function AlunoProfileScreen() {
@@ -351,6 +357,8 @@ export default function AlunoProfileScreen() {
   const [escolas, setEscolas] = useState<Escola[]>([]);
   const [escolasLoading, setEscolasLoading] = useState(true);
   const [enderecoEnabled, setEnderecoEnabled] = useState(false);
+
+  const lastAlertTime = useRef(0);
 
   // FIX: Destruture todos os valores necessários para renderizar o alerta
   const { showAlert, handleDismiss, visible, config } = useCustomAlert();
@@ -439,6 +447,13 @@ export default function AlunoProfileScreen() {
     }
   }, [aluno.estado, loadMunicipiosOnFocus]);
 
+  const handleAddressFocus = useCallback(() => {
+    if (!enderecoEnabled && Date.now() - lastAlertTime.current > 2000) {
+      lastAlertTime.current = Date.now();
+      showAlert("Atenção", "Preencha o CEP primeiro para liberar os campos de endereço.");
+    }
+  }, [enderecoEnabled, showAlert]);
+
   // Carregar escolas
   useEffect(() => {
     const loadEscolas = async () => {
@@ -482,6 +497,9 @@ export default function AlunoProfileScreen() {
               }
             }
             setAluno(processedData);
+            // Verifica se o CEP já está preenchido para habilitar campos de endereço
+            const cleanCep = (processedData.cep || '').replace(/[^0-9]/g, '');
+            setEnderecoEnabled(cleanCep.length === 8);
           } catch (error: any) {
             console.error('❌ Erro ao buscar aluno:', error.message);
             showAlert('Erro', 'Não foi possível carregar os dados do aluno.');
@@ -507,6 +525,7 @@ export default function AlunoProfileScreen() {
     setAluno(prev => ({ ...prev, cep: cepClean }));
 
     if (cepClean.length === 8) {
+      setEnderecoEnabled(true);
       setCepLoading(true);
       try {
         const cepData = await fetchCepData(cepClean);
@@ -653,7 +672,8 @@ export default function AlunoProfileScreen() {
     enderecoEnabled,
     handleCepChange,
     handleEstadoFocus,
-    handleCidadeFocus
+    handleCidadeFocus,
+    handleAddressFocus
   );
 
   const renderItem = useCallback(({ item, index }: { item: Section; index: number }) => (
