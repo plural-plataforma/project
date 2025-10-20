@@ -170,7 +170,6 @@ export default function EscolaScreen() {
       setCepLoading(true);
       try {
         const cepData = await fetchCepData(cepClean);
-        console.log('CEP Data recebido:', cepData); // Debug: verifique o que vem
 
         // Assume formato ViaCEP ou similar: uf (sigla), localidade (cidade full), logradouro, bairro
         let siglaEstado =  cepData.state || getSiglaFromNome(cepData.state  || '');
@@ -193,7 +192,7 @@ export default function EscolaScreen() {
           const matchingCidade = findMatchingCidade(nomeCidade, cidadesList);
           if (matchingCidade) {
             updates.cidade = matchingCidade;
-            console.log('Cidade mapeada com sucesso:', matchingCidade);
+
           } else {
             console.warn('⚠️ Cidade do CEP não encontrada na lista (após normalização):', nomeCidade);
             updates.cidade = nomeCidade; // Preserva mesmo se não match exato
@@ -276,7 +275,6 @@ export default function EscolaScreen() {
       };
 
       const updatedEscola = await atualizaEscolas(escolaData);
-      console.log('✅ Escola salva:', updatedEscola);
       showAlert('Sucesso', `Escola ${escolas.id ? 'atualizada' : 'cadastrada'} com sucesso!`);
       router.back();
     } catch (error: any) {

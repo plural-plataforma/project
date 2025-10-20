@@ -63,7 +63,6 @@ export default function LoginScreen() {
       showAlert('Erro', errorMsg);
     } finally {
       setLoading(false);
-      console.log('🏁 Fim do handleLogin, loading=false');
     }
   };
 
@@ -108,6 +107,13 @@ export default function LoginScreen() {
             buttonColor={{ backgroundColor: colors.primary2 }}
           />
 
+          <CustomAlert
+            visible={visible}
+            title={config.title}
+            message={config.message}
+            buttons={config.buttons}
+            onDismiss={handleDismiss}
+          />
         </View>
         {/**  <View style={styles.authSection}>
           <DividerWithText text="Entre com" />

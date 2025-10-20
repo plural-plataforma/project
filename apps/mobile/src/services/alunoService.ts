@@ -67,7 +67,6 @@ export const cadastraAluno = async (alunoData: Partial<Aluno>): Promise<Aluno> =
           ...payload as Aluno, // Converte Partial para Aluno completo
           id: 0, // ID gerado no backend; ajuste se exposto em outro campo
         };
-        console.log('✅ Cadastro confirmado (objeto null), retornando dados de entrada:', savedAluno);
         return savedAluno;
       }
     }
@@ -108,7 +107,6 @@ export const atualizaAluno = async (alunoData: Partial<Aluno>): Promise<Aluno> =
           ...payload as Aluno, // Converte Partial para Aluno completo
           id: alunoData.id, // Mantém o ID existente
         };
-        console.log('✅ Update confirmado (objeto null), retornando dados de entrada:', updatedAluno);
         return updatedAluno;
       }
     }

@@ -5,32 +5,27 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  TouchableOpacity
-} from 'react-native'
-import { useRouter } from 'expo-router'
-import { Bell, Camera, GraduationCap, User, Trash } from 'phosphor-react-native'
-import { fetchCepData } from '../../services/validateCep'
-import { fetchEstados, fetchMunicipios } from '../../services/locationsService'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { buscarEscolas } from '../../services/escolasService'
-import Header from '../../components/Header'
-import { colors, fontSizes } from '@/packages/ui/theme/theme'
-import { Professor } from '@src/types/professor'
-import { Escola } from '@src/types/escolas'
-import {
-  buscarProfessor,
-  atualizarProfessor,
-  vincularEscola,
-  buscarEscolasProfessor
-} from '../../services/professorService'
-import { isCadastroCompleto } from '../../utils/professorUtils'
-import ProfilePhoto from '@src/components/ProfilePhoto'
-import ProgressFill from '@src/components/ProgressFill'
-import { CheckboxWithLabel, InputField } from '@/packages/ui/components'
-import CustomButton from '@src/components/CustomButton'
-import SectionGroup from '@src/components/SectionGroup'
-import ItemButton from '@src/components/ItemButton'
-import { useCustomAlert } from '@src/hooks/useCustomAlert'
+  TouchableOpacity,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Bell, Camera, GraduationCap, User, Trash } from 'phosphor-react-native';
+import { fetchCepData } from '../../services/validateCep';
+import { fetchEstados, fetchMunicipios } from '../../services/locationsService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { buscarEscolas } from '../../services/escolasService';
+import Header from '../../components/Header';
+import { colors, fontSizes } from '@/packages/ui/theme/theme';
+import { Professor } from '@src/types/professor';
+import { Escola } from '@src/types/escolas';
+import { buscarProfessor, atualizarProfessor, vincularEscola, buscarEscolasProfessor } from '../../services/professorService';
+import { isCadastroCompleto } from '../../utils/professorUtils';
+import ProfilePhoto from '@src/components/ProfilePhoto';
+import ProgressFill from '@src/components/ProgressFill';
+import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
+import CustomButton from '@src/components/CustomButton';
+import SectionGroup from '@src/components/SectionGroup';
+import ItemButton from '@src/components/ItemButton';
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 
 const HEADER_HEIGHT = 55
 const areasEnsino = [
@@ -77,8 +72,8 @@ interface SectionData {
 }
 
 export default function CadastroProfessor() {
-  const { showAlert } = useCustomAlert()
-  const router = useRouter()
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
+  const router = useRouter();
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
     sexo: '',
@@ -160,8 +155,7 @@ export default function CadastroProfessor() {
         const cidadesRS = municipiosData.map(m => m.nome)
         setCidadesPorUf(prev => ({ ...prev, RS: cidadesRS }))
 
-        const escolasData = await buscarEscolas()
-        console.log('✅ Escolas recebidas:', escolasData)
+        const escolasData = await buscarEscolas();
         if (!escolasData.length) {
           showAlert(
             'Aviso',
@@ -170,48 +164,22 @@ export default function CadastroProfessor() {
         }
         setEscolas(escolasData)
 
-        const professorData = await buscarProfessor()
-        console.log('✅ Dados do professor recebidos:', professorData)
+        const professorData = await buscarProfessor();
         let updatedProfessor: Professor = {
           ...professorData.objeto,
-          sexo:
-            professorData.objeto.sexo &&
-            ['F', 'M'].includes(professorData.objeto.sexo)
-              ? professorData.objeto.sexo
-              : '',
-          escolas: [] as string[]
-        }
+          sexo: professorData.objeto.sexo && ['F', 'M'].includes(professorData.objeto.sexo) ? professorData.objeto.sexo : '',
+          escolas: [] as string[],
+        };
 
         try {
-          const linkedEscolas = await buscarEscolasProfessor()
-          console.log('✅ Escolas vinculadas recebidas:', linkedEscolas)
-          updatedProfessor.escolas = linkedEscolas.map(escola =>
-            escola.id!.toString()
-          )
+          const linkedEscolas = await buscarEscolasProfessor();
+          updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
         } catch (error: any) {
-          console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message)
-          showAlert(
-            'Aviso',
-            'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.'
-          )
+          console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message);
+          showAlert('Aviso', 'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.');
         }
 
-        try {
-          const linkedEscolas = await buscarEscolasProfessor()
-          console.log('✅ Escolas vinculadas recebidas:', linkedEscolas)
-          updatedProfessor.escolas = linkedEscolas.map(escola =>
-            escola.id!.toString()
-          )
-        } catch (error: any) {
-          console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message)
-          Alert.alert(
-            'Aviso',
-            'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.'
-          )
-        }
-
-        setProfessor(updatedProfessor)
-        console.log('Professor state:', updatedProfessor)
+        setProfessor(updatedProfessor);
       } catch (error: any) {
         console.error('❌ Erro ao carregar dados iniciais:', error.message)
         if (error.message.includes('401')) {
@@ -326,7 +294,6 @@ export default function CadastroProfessor() {
   }
 
   const handleConcluir = async () => {
-    console.log('Professor state:', professor)
     // Valida todos os campos antes de salvar
     const requiredFields = [
       'nomeCompleto',
@@ -550,7 +517,7 @@ export default function CadastroProfessor() {
               ? (professor[field.key] as number)?.toString() || ''
               : field.key === 'sexo'
                 ? (professor[field.key] as string) || ''
-                : (professor[field.key] as string) || ''
+                : professor[field.key] as string || ''
           }
           onChangeText={value => {
             if (field.key === 'numero') {
@@ -574,11 +541,11 @@ export default function CadastroProfessor() {
           }
           onValueChange={
             field.key === 'sexo' && field.options
-              ? value => {
-                  const sexoValue = typeof value === 'string' ? value : ''
-                  setProfessor({ ...professor, sexo: sexoValue })
-                  validateField('sexo', sexoValue) // Valida em tempo real
-                }
+              ? (value) => {
+                const sexoValue = typeof value === 'string' ? value : '';
+                setProfessor({ ...professor, sexo: sexoValue });
+                validateField('sexo', sexoValue); // Valida em tempo real
+              }
               : undefined
           }
           error={error} // Novo: passa erro para InputField
@@ -677,20 +644,17 @@ export default function CadastroProfessor() {
         {
           label: 'Escola/Instituição vinculada',
           key: 'escolas',
-          placeholder: escolasLoading
-            ? 'Carregando escolas...'
-            : 'Informe a escola/instituição',
-          options:
-            escolasLoading || !escolas
-              ? []
-              : escolas
-                  .filter(escola => escola.nomeInstituicao && escola.id)
-                  .map(escola => ({
-                    label: escola.nomeInstituicao!,
-                    value: escola.id!.toString()
-                  })),
-          editable: !escolasLoading
-        }
+          placeholder: escolasLoading ? 'Carregando escolas...' : 'Informe a escola/instituição',
+          options: escolasLoading || !escolas
+            ? []
+            : escolas
+              .filter((escola) => escola.nomeInstituicao && escola.id)
+              .map((escola) => ({
+                label: escola.nomeInstituicao!,
+                value: escola.id!.toString(),
+              })),
+          editable: !escolasLoading,
+        },
       ],
       extraContent: null
     },
@@ -769,6 +733,13 @@ export default function CadastroProfessor() {
           </>
         }
         contentContainerStyle={styles.content}
+      />
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
       />
     </View>
   )
