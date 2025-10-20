@@ -6,6 +6,7 @@ export interface Planejamento {
     apelido: string;
     dataInicio: string;
     dataFim: string;
+    
     habilidades: Habilidade[];
     aluno: Aluno[];
     
@@ -25,6 +26,6 @@ export interface PlanejamentoVinculaHabilidade {
 export interface PlanejamentoResponse {
   sucesso: boolean;
   mensagens: string[];
-  objeto:null;
+  objeto: Planejamento | null;
   listaObjetos: Planejamento[]; // Para listas (ex.: buscarAlunos)
 }

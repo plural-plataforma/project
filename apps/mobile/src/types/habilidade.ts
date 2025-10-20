@@ -1,6 +1,6 @@
 export interface Habilidade {
   id: number
-  nivelEnsino: string
+  idNivelEnsino: number
   tipo: string
   descricao: string
   resumo: string

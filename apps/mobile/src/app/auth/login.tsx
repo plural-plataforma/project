@@ -18,7 +18,7 @@ import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Logo from '../../components/Logo'
-import { useCustomAlert } from '@src/hooks/useCustomAlert'
+import { CustomAlert, useCustomAlert } from '@src/hooks/useCustomAlert'
 
 
 export default function LoginScreen() {
@@ -30,41 +30,32 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth() // Context login espera string (token)
-  const { showAlert } = useCustomAlert();
+    const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   const handleLogin = async () => {
     setLoading(true);
     setError(''); // Limpa erro anterior
-    console.log('🔍 Iniciando login com credenciais:', credentials);
 
     try {
-      console.log('📤 Chamando authLogin do serviço...');
       const response = await authLogin(credentials);
-      console.log('✅ Resposta do authLogin:', response);
 
       if (!response.token) {
         const msg = 'Token não recebido da API. Tente novamente.';
-        console.error('❌ Sem token na resposta:', response);
         throw new Error(msg);
       }
 
       await new Promise(resolve => setTimeout(resolve, 200)); // Aguarda estado propagar
       router.replace('/dashboard');
-      console.log('🔑 Chamando context.login com token:', response.token);
       login(response.token);
-      console.log('🎉 Context login chamado, isLoggedIn deve ser true agora');
 
       // Verifica se o token foi salvo antes de navegar
       const savedToken = await AsyncStorage.getItem('authToken');
       if (!savedToken || savedToken !== response.token) {
-        console.error('⚠️ Token não salvo ou difere:', { savedToken, expected: response.token });
         throw new Error('Falha ao salvar o token.');
       }
 
       showAlert('Sucesso', 'Login realizado!');
-      console.log('➡️ Navegando para /dashboard...');
       router.replace('/dashboard');
-      console.log('🚀 Navegação executada!');
     } catch (err) {
       console.error('❌ Erro no handleLogin:', err);
       const errorMsg = (err as Error).message;
@@ -135,6 +126,13 @@ export default function LoginScreen() {
           />
         </View>
          */}
+         <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
+      />
       </ScrollView>
     </SafeAreaView>
   )
