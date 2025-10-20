@@ -23,7 +23,8 @@ import { Escola } from '@src/types/escolas';
 import { buscarEscolas } from '@src/services/escolasService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator } from 'react-native';
-import { useCustomAlert } from '../../hooks/useCustomAlert';
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
+
 
 export default function Escolas() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function Escolas() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<any>(null);
-  const { showAlert } = useCustomAlert();
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   const isWeb = Platform.OS === 'web'; // Detecta se é web
 
@@ -45,7 +46,7 @@ export default function Escolas() {
       if (!token) {
         console.warn('⚠️ Nenhum token encontrado. Usuário não autenticado.');
         if (msg) {
-         showAlert('Aviso', 'Por favor, faça login para carregar as escolas.',);
+          showAlert('Aviso', 'Por favor, faça login para carregar as escolas.',);
         }
         setEscolas([]);
         return;
@@ -57,13 +58,13 @@ export default function Escolas() {
       // NOVO: Removi o showAlert aqui para evitar alertas desnecessários no refresh silencioso
       // Se quiser alertar só quando não há escolas, mantenha condicional:
       if (!escolasData.length && msg) { // Adicionei 'msg' na condição
-       showAlert('Aviso', 'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.');
+        showAlert('Aviso', 'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.');
       }
     } catch (error: any) {
       console.error('❌ Erro ao carregar escolas:', error.message);
       setError(error.message || 'Erro desconhecido');
       if (showAlert && msg) { // Adicionei 'msg' para silenciar no refresh
-       showAlert('Erro', 'Não foi possível carregar as escolas. Tente novamente.');
+        showAlert('Erro', 'Não foi possível carregar as escolas. Tente novamente.');
       }
       setEscolas([]);
     } finally {
@@ -134,7 +135,7 @@ export default function Escolas() {
 
   return (
     <View style={styles.container}>
-      <Header title="Escolas" onBack={() => router.back()} fixed={true}/>
+      <Header title="Escolas" onBack={() => router.back()} fixed={true} />
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -149,19 +150,17 @@ export default function Escolas() {
               placeholder="Digite o nome da escola"
               value={filter}
               onChangeText={(text) => {
-                console.log('Filtro alterado:', text);
                 setFilter(text);
               }}
               editable={true}
               selectTextOnFocus={true} // Ajuda com foco no web
               style={{ marginBottom: 15 }}
               onFocus={() => {
-                console.log('Input focado');
                 if (isWeb && inputRef.current) {
                   inputRef.current.focus(); // Força foco no web
                 }
               }}
-              onBlur={() => console.log('Input desfocado')}
+              onBlur={() => ({})}
             />
             <CustomButton
               title="+ Cadastrar Escola"
@@ -203,6 +202,13 @@ export default function Escolas() {
           )}
         </View>
       )}
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
+      />
     </View>
   );
 }
@@ -211,7 +217,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop:70
+    paddingTop: 70
   },
   innerContainer: {
     flex: 1,
