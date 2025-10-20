@@ -26,7 +26,6 @@ export default function RootLayout() {
 
     if (fontsLoaded || fontError) {
       clearTimeout(timer);
-      console.log('Fontes carregadas:', fontsLoaded, 'Erro:', fontError);
       SplashScreen.hideAsync();
     }
 

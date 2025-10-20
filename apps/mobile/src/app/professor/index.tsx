@@ -25,7 +25,7 @@ import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import SectionGroup from '@src/components/SectionGroup';
 import ItemButton from '@src/components/ItemButton';
-import { useCustomAlert } from '@src/hooks/useCustomAlert';
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 
 const HEADER_HEIGHT = 55
 const areasEnsino = [
@@ -67,7 +67,7 @@ interface SectionData {
 }
 
 export default function CadastroProfessor() {
-  const { showAlert } = useCustomAlert();
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
   const router = useRouter();
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
@@ -144,14 +144,12 @@ export default function CadastroProfessor() {
         setCidadesPorUf(prev => ({ ...prev, RS: cidadesRS }));
 
         const escolasData = await buscarEscolas();
-        console.log('✅ Escolas recebidas:', escolasData);
         if (!escolasData.length) {
           showAlert('Aviso', 'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.');
         }
         setEscolas(escolasData);
 
         const professorData = await buscarProfessor();
-        console.log('✅ Dados do professor recebidos:', professorData);
         let updatedProfessor: Professor = {
           ...professorData.objeto,
           sexo: professorData.objeto.sexo && ['F', 'M'].includes(professorData.objeto.sexo) ? professorData.objeto.sexo : '',
@@ -160,7 +158,6 @@ export default function CadastroProfessor() {
 
         try {
           const linkedEscolas = await buscarEscolasProfessor();
-          console.log('✅ Escolas vinculadas recebidas:', linkedEscolas);
           updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
         } catch (error: any) {
           console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message);
@@ -168,7 +165,6 @@ export default function CadastroProfessor() {
         }
 
         setProfessor(updatedProfessor);
-        console.log('Professor state:', updatedProfessor);
       } catch (error: any) {
         console.error('❌ Erro ao carregar dados iniciais:', error.message);
         if (error.message.includes('401')) {
@@ -271,7 +267,6 @@ export default function CadastroProfessor() {
   };
 
   const handleConcluir = async () => {
-    console.log('Professor state:', professor);
     // Valida todos os campos antes de salvar
     const requiredFields = ['nomeCompleto', 'email', 'telefone', 'sexo', 'escolas'] as (keyof Professor)[];
     let hasErrors = false;
@@ -456,8 +451,8 @@ export default function CadastroProfessor() {
             field.key === 'numero'
               ? (professor[field.key] as number)?.toString() || ''
               : field.key === 'sexo'
-              ? (professor[field.key] as string) || ''
-              : professor[field.key] as string || ''
+                ? (professor[field.key] as string) || ''
+                : professor[field.key] as string || ''
           }
           onChangeText={(value) => {
             if (field.key === 'numero') {
@@ -480,10 +475,10 @@ export default function CadastroProfessor() {
           onValueChange={
             field.key === 'sexo' && field.options
               ? (value) => {
-                  const sexoValue = typeof value === 'string' ? value : '';
-                  setProfessor({ ...professor, sexo: sexoValue });
-                  validateField('sexo', sexoValue); // Valida em tempo real
-                }
+                const sexoValue = typeof value === 'string' ? value : '';
+                setProfessor({ ...professor, sexo: sexoValue });
+                validateField('sexo', sexoValue); // Valida em tempo real
+              }
               : undefined
           }
           error={error} // Novo: passa erro para InputField
@@ -585,11 +580,11 @@ export default function CadastroProfessor() {
           options: escolasLoading || !escolas
             ? []
             : escolas
-                .filter((escola) => escola.nomeInstituicao && escola.id)
-                .map((escola) => ({
-                  label: escola.nomeInstituicao!,
-                  value: escola.id!.toString(),
-                })),
+              .filter((escola) => escola.nomeInstituicao && escola.id)
+              .map((escola) => ({
+                label: escola.nomeInstituicao!,
+                value: escola.id!.toString(),
+              })),
           editable: !escolasLoading,
         },
       ],
@@ -655,6 +650,13 @@ export default function CadastroProfessor() {
           </>
         }
         contentContainerStyle={styles.content}
+      />
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
       />
     </View>
   );

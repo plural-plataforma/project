@@ -75,7 +75,6 @@ const useAlunoSections = (
   handleEstadoFocus: () => void,
   handleCidadeFocus: () => void
 ): Section[] => {
-  console.log('🔄 Generating sections with aluno:', aluno); // Debug log para verificar se aluno está populado
   return useMemo(() => [
     {
       title: "Dados Pessoais",
@@ -113,7 +112,6 @@ const useAlunoSections = (
           selectedValue: aluno.estado || null,
           onValueChange: (value: string | number | null) => {
             const stateValue = value?.toString() || "";
-            console.log('🔄 Estado selecionado:', stateValue);  // Debug
             setAluno(prev => ({ ...prev, estado: stateValue, cidade: "" }));
             if (stateValue && !cidadesPorUf[stateValue]) {
               fetchMunicipios(stateValue)
@@ -512,7 +510,6 @@ export default function AlunoProfileScreen() {
       setCepLoading(true);
       try {
         const cepData = await fetchCepData(cepClean);
-        console.log('CEP Data recebido:', cepData);
 
         let siglaEstado = cepData.state || getSiglaFromNome(cepData.state || '');
         const nomeCidade = cepData.city || '';
@@ -532,7 +529,6 @@ export default function AlunoProfileScreen() {
           const matchingCidade = findMatchingCidade(nomeCidade, cidadesList);
           if (matchingCidade) {
             updates.cidade = matchingCidade;
-            console.log('Cidade mapeada com sucesso:', matchingCidade);
           } else {
             console.warn('⚠️ Cidade do CEP não encontrada na lista (após normalização):', nomeCidade);
             updates.cidade = nomeCidade;
@@ -617,13 +613,11 @@ export default function AlunoProfileScreen() {
       let result;
       if (isEdit) {
         result = await atualizaAluno(payload);
-        console.log("✅ Aluno atualizado:", result);
         showAlert("Sucesso", "Perfil do aluno atualizado com sucesso.", [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
         result = await cadastraAluno(payload);
-        console.log("✅ Aluno cadastrado:", result);
         showAlert("Sucesso", "Aluno cadastrado com sucesso.", [
           { text: "OK", onPress: () => router.back() },
         ]);

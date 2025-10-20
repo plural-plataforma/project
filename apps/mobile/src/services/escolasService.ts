@@ -4,7 +4,6 @@ import { api } from '../services/auth';
 export const buscarEscolaPorId = async (id: number): Promise<Escola> => {
   try {
     const response = await api.get<EscolasResponse>(`/Escola/buscar/${id}`);
-    console.log('✅ Resposta de buscarEscolaPorId:', response.data);
     
     if (response.data.sucesso && response.data.objeto) {
       // A API sempre retorna um array no campo objeto, mesmo para busca por ID
@@ -27,7 +26,6 @@ export const buscarEscolaPorId = async (id: number): Promise<Escola> => {
 export const buscarEscolas = async (): Promise<Escola[]> => {
   try {
     const response = await api.get<EscolasResponse>('/Escola/buscar');
-    console.log('✅ Resposta de buscarEscolas:', response.data);
     
     // Verifica se listaObjetos existe e tem elementos
     if (response.data.sucesso && response.data.listaObjetos && response.data.listaObjetos.length > 0) {
@@ -58,11 +56,9 @@ export const atualizaEscolas = async (escolasData: Partial<Escola>): Promise<Esc
     if (escolasData.id) {
       // Se tem ID, usa a rota de atualização com método PATCH
       response = await api.patch<EscolasResponse>('/Escola/atualizar', escolasData);
-      console.log('✅ Resposta de atualizarEscola:', response.data);
     } else {
       // Se não tem ID, usa a rota de cadastro
       response = await api.post<EscolasResponse>('/Escola/cadastro', escolasData);
-      console.log('✅ Resposta de cadastrarEscola:', response.data);
     }
 
     // FIX: Verifica só 'sucesso' primeiro; se true, considera salvo (mesmo com objeto null)
@@ -83,7 +79,6 @@ export const atualizaEscolas = async (escolasData: Partial<Escola>): Promise<Esc
           ...escolasData as Escola, // Converte Partial para Escola completo
           id: escolasData.id || 0, // Mantém ID se existir; senão 0 (pode ser ajustado pro ID real da API se exposto em outro campo)
         };
-        console.log('✅ Salvamento confirmado (objeto null), retornando dados de entrada:', savedEscola);
         return savedEscola;
       }
     }
