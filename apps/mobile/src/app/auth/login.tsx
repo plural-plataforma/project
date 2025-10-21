@@ -18,8 +18,7 @@ import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Logo from '../../components/Logo'
-import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
-
+import { CustomAlert, useCustomAlert } from '@src/hooks/useCustomAlert'
 
 
 export default function LoginScreen() {
@@ -31,31 +30,27 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth() // Context login espera string (token)
-  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
+    const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   const handleLogin = async () => {
     setLoading(true);
-    setError(''); 
+    setError(''); // Limpa erro anterior
 
     try {
       const response = await authLogin(credentials);
 
       if (!response.token) {
         const msg = 'Token não recebido da API. Tente novamente.';
-        console.error('❌ Sem token na resposta:', response);
         throw new Error(msg);
       }
 
       await new Promise(resolve => setTimeout(resolve, 200)); // Aguarda estado propagar
       router.replace('/dashboard');
-
       login(response.token);
-
 
       // Verifica se o token foi salvo antes de navegar
       const savedToken = await AsyncStorage.getItem('authToken');
       if (!savedToken || savedToken !== response.token) {
-        console.error('⚠️ Token não salvo ou difere:', { savedToken, expected: response.token });
         throw new Error('Falha ao salvar o token.');
       }
 
@@ -137,6 +132,13 @@ export default function LoginScreen() {
           />
         </View>
          */}
+         <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
+      />
       </ScrollView>
     </SafeAreaView>
   )
