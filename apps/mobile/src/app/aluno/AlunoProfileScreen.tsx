@@ -16,7 +16,7 @@ import {
 } from "phosphor-react-native";
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, FlatList, View, StyleSheet } from "react-native";
+import { ActivityIndicator, FlatList, View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import ProfilePhoto from "@src/components/ProfilePhoto";
 import { cadastraAluno, buscarAlunoPorId, atualizaAluno } from "@src/services/alunoService";
 import { Escola } from "@src/types/escolas";
@@ -25,6 +25,8 @@ import SectionGroup from "@src/components/SectionGroup";
 import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 import toTitleCase from "@src/utils/camelCase";
 import { buscarEscolasProfessor } from "@src/services/professorService";
+import { PlanejamentoAluno } from "@src/types/planejamento";
+
 
 // Tipos para os campos do InputField
 interface TextInputField {
@@ -57,6 +59,7 @@ type Section = {
   title: string;
   icon: React.ReactNode;
   fields: InputFieldType[];
+  plannings?: PlanejamentoAluno[];
 };
 
 // Hook para gerar as seções do formulário (expandido com campos do API)
@@ -230,11 +233,11 @@ const useAlunoSections = (
       ]
     },
     {
-      title: "Responsável",
+      title: "Dados do Responsável",
       icon: <UsersThree size={16} weight="fill" color={colors.primary} />,
       fields: [
         {
-          label: "Nome Completo do Responsável",
+          label: "Nome Completo",
           placeholder: "Digite o nome do responsável",
           value: (aluno.responsavel?.nomeCompleto || ''),
           onChangeText: (value: string) => setAluno(prev => ({
@@ -248,7 +251,7 @@ const useAlunoSections = (
           })),
         },
         {
-          label: "Telefone do Responsável",
+          label: "Telefone",
           placeholder: "Digite o telefone do responsável",
           value: (aluno.responsavel?.telefone || ''),
           onChangeText: (value: string) => setAluno(prev => ({
@@ -263,7 +266,7 @@ const useAlunoSections = (
           mask: "phone" as const,
         },
         {
-          label: "Email do Responsável",
+          label: "Email",
           placeholder: "Digite o email do responsável",
           value: (aluno.responsavel?.email || ''),
           onChangeText: (value: string) => setAluno(prev => ({
@@ -324,7 +327,13 @@ const useAlunoSections = (
         },
       ]
     },
-  ], [aluno, ufs, ufsLoaded, cidadesDisponiveis, cidadesPorUf, cepLoading, enderecoEnabled, handleCepChange, handleEstadoFocus, handleCidadeFocus, escolas, escolasLoading, handleAddressFocus]);
+    {
+      title: "Plano Desenvolvimento Individual",
+      icon: <ClockCounterClockwise size={16} weight="fill" color={colors.primary} />,
+      fields: [],
+      plannings: aluno.planejamentos || [],
+    },
+  ], [aluno, ufs, ufsLoaded, cidadesDisponiveis, cidadesPorUf, cepLoading, enderecoEnabled, handleCepChange, handleEstadoFocus, handleCidadeFocus, escolas, escolasLoading, handleAddressFocus, aluno.planejamentos]);
 }
 
 export default function AlunoProfileScreen() {
@@ -347,6 +356,7 @@ export default function AlunoProfileScreen() {
     turno: "",
     ano: "",
     laudos: [], // Array vazio para API
+    planejamentos: [], // Array vazio para API
     idEscola: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -690,8 +700,33 @@ export default function AlunoProfileScreen() {
       {item.title === "Dados Pessoais" && cepLoading && (
         <ActivityIndicator size="small" color={colors.primary} />
       )}
+      {item.title === "Plano Desenvolvimento Individual" && (
+        <>
+          {item.plannings && item.plannings.length > 0 ? (
+            item.plannings.map((planning, planningIndex) => (
+              <TouchableOpacity
+                key={planningIndex}
+                style={styles.planningItem}
+                onPress={() => router.push({
+                  pathname: '/planejamento/PlanejamentoScreen',
+                  params: { id: planning.id }
+                })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.planningTitle}>{planning.apelido}</Text>
+                <Text style={styles.planningText}>
+                  Período: {new Date(planning.dataInicio).toLocaleDateString('pt-BR')} - {new Date(planning.dataFim).toLocaleDateString('pt-BR')}
+                </Text>
+                <Text style={styles.planningText}>Número de Habilidades: {planning.habilidades.length}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noPlannings}>Nenhum plano cadastrado.</Text>
+          )}
+        </>
+      )}
     </SectionGroup>
-  ), [sections, cepLoading]);
+  ), [sections, cepLoading, router]);
 
   if (loading) {
     return (
@@ -773,5 +808,31 @@ const styles = StyleSheet.create({
   button: {
     alignItems: "center",
     marginTop: 20,
+  },
+  planningItem: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  planningTitle: {
+    fontSize: fontSizes.f16,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  planningText: {
+    fontSize: fontSizes.f14,
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  noPlannings: {
+    fontSize: fontSizes.f14,
+    color: '#666',
+    textAlign: 'center',
+    padding: 20,
+    fontStyle: 'italic',
   },
 });
