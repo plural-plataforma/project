@@ -46,6 +46,7 @@ const config: ExpoConfig = {
   },
   web: {
     entryPoint: './web/index.tsx',
+    bundler: 'metro',
     output: 'static',
     favicon: '../../packages/ui/assets/images/favicon.png',
   },

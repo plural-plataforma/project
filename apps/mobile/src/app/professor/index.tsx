@@ -53,11 +53,11 @@ interface InputFieldConfig {
   mask?: 'cep' | 'phone' | 'cpf'
   options?: { label: string; value: string | number }[]
   keyboardType?:
-    | 'default'
-    | 'numeric'
-    | 'email-address'
-    | 'phone-pad'
-    | 'number-pad'
+  | 'default'
+  | 'numeric'
+  | 'email-address'
+  | 'phone-pad'
+  | 'number-pad'
   onChange?: (value: string | number | null) => void
   isSpecial?: boolean
   editable?: boolean
@@ -348,7 +348,7 @@ export default function CadastroProfessor() {
         showAlert(
           'Aviso',
           'Cadastro de professor salvo, mas não foi possível vincular as escolas: ' +
-            error.message,
+          error.message,
           [{ text: 'OK', onPress: () => router.back() }]
         )
       } else if (error.message.includes('401')) {
@@ -490,6 +490,12 @@ export default function CadastroProfessor() {
               editable={field.editable}
               error={error} // Novo: passa erro para InputField
             />
+            <CustomButton
+              title="Criar minha escola"
+              onPress={() => router.push('/escolas/EscolaScreen')}
+              buttonColor={{ backgroundColor: colors.primary}}
+            />
+           
             {escolasLoading && (
               <ActivityIndicator size="small" color={colors.primary} />
             )}
@@ -655,6 +661,7 @@ export default function CadastroProfessor() {
               })),
           editable: !escolasLoading,
         },
+
       ],
       extraContent: null
     },
