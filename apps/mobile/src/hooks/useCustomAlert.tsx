@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 5,
     minWidth: 60,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary2,
   },
   buttonPressed: {
     opacity: 0.7,
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   cancelButton: {
-    backgroundColor: colors.greyBlur,
+    backgroundColor: colors.primary,
   },
 });
 

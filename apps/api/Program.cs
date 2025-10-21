@@ -23,7 +23,8 @@ builder.Services.AddCors(options =>
                 "https://leafy-donut-4f71a4.netlify.app",
                 "https://devs.pluralplataforma.com",
                 "http://localhost:8082",
-                "https://adm.pluralplataforma.com")
+                "https://adm.pluralplataforma.com",
+                "https://app.pluralplataforma.com")
             .AllowAnyHeader() 
             .AllowAnyMethod()
             .AllowCredentials(); 

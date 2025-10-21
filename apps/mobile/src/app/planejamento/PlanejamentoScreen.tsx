@@ -166,7 +166,7 @@ export default function PlanejamentoScreen() {
     const filtered = habilidades.filter(habilidade =>
       (!etapaFilter || habilidade.idNivelEnsino === etapaFilter) &&
       (!tipoFilter || habilidade.tipo === tipoFilter) &&
-      (searchHabilidades === '' || habilidade.descricao.toLowerCase().includes(searchHabilidades.toLowerCase()))
+      (searchHabilidades === '' || habilidade.descricao?.toLowerCase().includes(searchHabilidades.toLowerCase()))
     )
     setFilteredHabilidades(filtered)
   }, [habilidades, formData.etapaEnsino, formData.tipoHabilidade, searchHabilidades, isEdit])

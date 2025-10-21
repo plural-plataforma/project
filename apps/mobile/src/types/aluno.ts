@@ -1,3 +1,5 @@
+import { PlanejamentoAluno } from "./planejamento";
+
 export interface Aluno {
   id?: number;
   nomeCompleto: string;
@@ -14,6 +16,7 @@ export interface Aluno {
   turno?: string;
   ano?: string;
   laudos?: Laudo[];
+  planejamentos?: PlanejamentoAluno[]
   idEscola?: number; // Opcional (pode ser 0)
   idProfessor?: number; // Opcional (pode ser 0)
 }

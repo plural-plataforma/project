@@ -98,7 +98,7 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-            <View style={[styles.cell, {borderWidth: 0}]}>
+            <View style={[styles.cell, { borderWidth: 0 }]}>
               <SelectButton
                 key="btnPdi"
                 onPress={() => ({})}
@@ -110,7 +110,7 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-            
+
           </View>
         </View>
       );
@@ -165,7 +165,7 @@ export default function Dashboard() {
       } catch (error: any) {
         console.error('❌ Erro geral em fetchData:', error.message, error);
         if (error.message.includes('401') || error.message.includes('Nenhum token')) {
-        
+
           showAlert('Sessão Expirada', 'Por favor, faça login novamente.', [
             {
               text: 'OK',
@@ -244,6 +244,13 @@ export default function Dashboard() {
         >
           © 2025 Plural. Todos os direitos reservados.
         </Text>
+        <CustomAlert
+          visible={visible}
+          title={config.title}
+          message={config.message}
+          buttons={config.buttons}
+          onDismiss={handleDismiss}
+        />
       </SafeAreaView>
     </View>
   );
