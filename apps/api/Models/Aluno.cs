@@ -20,7 +20,7 @@ namespace api.Models
         [StringLength(50)]
         public string? Logradouro { get; set; }
 
-        public int Numero { get; set; }
+        public int? Numero { get; set; }
 
         [StringLength(100)]
         public string? Complemento { get; set; }
@@ -35,7 +35,7 @@ namespace api.Models
         public string? Cidade { get; set; }
 
         [StringLength(20)]
-        public string Telefone { get; set; }
+        public string? Telefone { get; set; }
         public int IdProfessor { get; set; }
         public int IdEscola { get; set; }
         public int? IdResponsavel { get; set; }

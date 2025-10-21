@@ -25,7 +25,7 @@ import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import SectionGroup from '@src/components/SectionGroup';
 import ItemButton from '@src/components/ItemButton';
-import Alert from '@blazejkustra/react-native-alert';
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 
 const HEADER_HEIGHT = 55
 const areasEnsino = [
@@ -67,6 +67,7 @@ interface SectionData {
 }
 
 export default function CadastroProfessor() {
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
   const router = useRouter();
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
@@ -128,7 +129,7 @@ export default function CadastroProfessor() {
         const token = await AsyncStorage.getItem('authToken');
         if (!token) {
           console.warn('⚠️ Nenhum token encontrado. Usuário não autenticado.');
-          Alert.alert('Aviso', 'Por favor, faça login para carregar seus dados.');
+          showAlert('Aviso', 'Por favor, faça login para carregar seus dados.');
           setLoading(false);
           setEscolasLoading(false);
           return;
@@ -143,14 +144,12 @@ export default function CadastroProfessor() {
         setCidadesPorUf(prev => ({ ...prev, RS: cidadesRS }));
 
         const escolasData = await buscarEscolas();
-        console.log('✅ Escolas recebidas:', escolasData);
         if (!escolasData.length) {
-          Alert.alert('Aviso', 'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.');
+          showAlert('Aviso', 'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.');
         }
         setEscolas(escolasData);
 
         const professorData = await buscarProfessor();
-        console.log('✅ Dados do professor recebidos:', professorData);
         let updatedProfessor: Professor = {
           ...professorData.objeto,
           sexo: professorData.objeto.sexo && ['F', 'M'].includes(professorData.objeto.sexo) ? professorData.objeto.sexo : '',
@@ -159,22 +158,20 @@ export default function CadastroProfessor() {
 
         try {
           const linkedEscolas = await buscarEscolasProfessor();
-          console.log('✅ Escolas vinculadas recebidas:', linkedEscolas);
           updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
         } catch (error: any) {
           console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message);
-          Alert.alert('Aviso', 'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.');
+          showAlert('Aviso', 'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.');
         }
 
         setProfessor(updatedProfessor);
-        console.log('Professor state:', updatedProfessor);
       } catch (error: any) {
         console.error('❌ Erro ao carregar dados iniciais:', error.message);
         if (error.message.includes('401')) {
-          Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
+          showAlert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
           router.push('/auth/login');
         } else {
-          Alert.alert('Erro', 'Não foi possível carregar os dados. Preencha manualmente.');
+          showAlert('Erro', 'Não foi possível carregar os dados. Preencha manualmente.');
           setProfessor((prev) => ({
             ...prev,
             estado: 'SP',
@@ -255,13 +252,13 @@ export default function CadastroProfessor() {
       } catch (error: any) {
         console.error('Erro ao buscar CEP:', error);
         if (error.name === 'BadRequestError') {
-          Alert.alert('Erro de Validação', error.message);
+          showAlert('Erro de Validação', error.message);
         } else if (error.name === 'NotFoundError') {
-          Alert.alert('Erro', 'CEP não encontrado.');
+          showAlert('Erro', 'CEP não encontrado.');
         } else if (error.name === 'InternalError') {
-          Alert.alert('Erro', 'Erro interno no serviço de CEP.');
+          showAlert('Erro', 'Erro interno no serviço de CEP.');
         } else {
-          Alert.alert('Erro', error.message || 'Não foi possível buscar o endereço.');
+          showAlert('Erro', error.message || 'Não foi possível buscar o endereço.');
         }
       } finally {
         setCepLoading(false);
@@ -270,7 +267,6 @@ export default function CadastroProfessor() {
   };
 
   const handleConcluir = async () => {
-    console.log('Professor state:', professor);
     // Valida todos os campos antes de salvar
     const requiredFields = ['nomeCompleto', 'email', 'telefone', 'sexo', 'escolas'] as (keyof Professor)[];
     let hasErrors = false;
@@ -292,36 +288,36 @@ export default function CadastroProfessor() {
     setErrors(newErrors);
 
     if (hasErrors) {
-      Alert.alert('Validação', 'Corrija os erros nos campos destacados antes de continuar.');
+      showAlert('Validação', 'Corrija os erros nos campos destacados antes de continuar.');
       return;
     }
 
     if (!isCadastroCompleto(professor)) {
-      Alert.alert('Erro', 'Preencha todos os campos obrigatórios, incluindo pelo menos uma escola vinculada.');
+      showAlert('Erro', 'Preencha todos os campos obrigatórios, incluindo pelo menos uma escola vinculada.');
       return;
     }
 
     setLoading(true);
     try {
       await atualizarProfessor(professor);
-      Alert.alert('Sucesso', 'Cadastro de professor salvo com sucesso!', [
+      showAlert('Sucesso', 'Cadastro de professor salvo com sucesso!', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error: any) {
       console.error('Erro ao salvar professor:', error);
       if (error.message.includes('erro ao vincular escolas')) {
-        Alert.alert(
+        showAlert(
           'Aviso',
           'Cadastro de professor salvo, mas não foi possível vincular as escolas: ' + error.message,
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else if (error.message.includes('401')) {
-        Alert.alert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
+        showAlert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
         router.push('/auth/login');
       } else if (error.response?.status === 400) {
-        Alert.alert('Erro', 'Dados inválidos. Verifique os campos e tente novamente.');
+        showAlert('Erro', 'Dados inválidos. Verifique os campos e tente novamente.');
       } else {
-        Alert.alert('Erro', 'Não foi possível salvar o cadastro. Tente novamente.');
+        showAlert('Erro', 'Não foi possível salvar o cadastro. Tente novamente.');
       }
     } finally {
       setLoading(false);
@@ -455,8 +451,8 @@ export default function CadastroProfessor() {
             field.key === 'numero'
               ? (professor[field.key] as number)?.toString() || ''
               : field.key === 'sexo'
-              ? (professor[field.key] as string) || ''
-              : professor[field.key] as string || ''
+                ? (professor[field.key] as string) || ''
+                : professor[field.key] as string || ''
           }
           onChangeText={(value) => {
             if (field.key === 'numero') {
@@ -479,10 +475,10 @@ export default function CadastroProfessor() {
           onValueChange={
             field.key === 'sexo' && field.options
               ? (value) => {
-                  const sexoValue = typeof value === 'string' ? value : '';
-                  setProfessor({ ...professor, sexo: sexoValue });
-                  validateField('sexo', sexoValue); // Valida em tempo real
-                }
+                const sexoValue = typeof value === 'string' ? value : '';
+                setProfessor({ ...professor, sexo: sexoValue });
+                validateField('sexo', sexoValue); // Valida em tempo real
+              }
               : undefined
           }
           error={error} // Novo: passa erro para InputField
@@ -584,11 +580,11 @@ export default function CadastroProfessor() {
           options: escolasLoading || !escolas
             ? []
             : escolas
-                .filter((escola) => escola.nomeInstituicao && escola.id)
-                .map((escola) => ({
-                  label: escola.nomeInstituicao!,
-                  value: escola.id!.toString(),
-                })),
+              .filter((escola) => escola.nomeInstituicao && escola.id)
+              .map((escola) => ({
+                label: escola.nomeInstituicao!,
+                value: escola.id!.toString(),
+              })),
           editable: !escolasLoading,
         },
       ],
@@ -654,6 +650,13 @@ export default function CadastroProfessor() {
           </>
         }
         contentContainerStyle={styles.content}
+      />
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
       />
     </View>
   );

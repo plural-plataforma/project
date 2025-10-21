@@ -8,7 +8,7 @@ namespace api.DTOs
         public int Id { get; set; }
 
         [Required]
-        public string NivelEnsino { get; set; }
+        public int IdNivelEnsino { get; set; }
 
         [Required]
         public string Tipo { get; set; }

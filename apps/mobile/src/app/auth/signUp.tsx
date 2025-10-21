@@ -24,7 +24,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../../context/AuthContext'
 import ButtonBack from '@src/components/ButtonBack'
-import alert from '@src/utils/alert'  // ✅ Usando o componente customizado para web/mobile
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 
 export default function SignUp() {
   // Schema de validação com Yup (validação por campo ativada por default no onChange)
@@ -34,6 +34,8 @@ export default function SignUp() {
     senha: yup.string().min(8, 'Senha deve ter pelo menos 8 caracteres').required('Senha é obrigatória'),
     aceitouTermos: yup.boolean().oneOf([true], 'Você precisa aceitar os termos').required('Você precisa aceitar os termos')
   });
+
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   type FormData = yup.InferType<typeof schema>;
 
@@ -60,14 +62,11 @@ export default function SignUp() {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     setErrosValidacao([]);
-    console.log('🔥 handleRegister chamado com:', data);
 
     try {
       const response = await authRegister(data);
-      console.log('✅ Registro retornou:', response);
-
       if (response.success) {
-        alert(  // ✅ Usando o componente customizado
+        showAlert(  // ✅ Usando o componente customizado
           'Sucesso!',
           response.message || 'Usuário criado com sucesso',
           [
@@ -81,14 +80,13 @@ export default function SignUp() {
                   } as LoginCredentials);
                   if (loginResult.token) {
                     login(loginResult.token);
-                    console.log('🔑 Login bem-sucedido, redirecionando para /dashboard');
                     router.replace('/dashboard');
                   } else {
                     throw new Error('Token não recebido após login.');
                   }
                 } catch (loginError) {
                   console.error('❌ Erro no login após registro:', loginError);
-                  alert(  // ✅ Usando o componente customizado
+                  showAlert(  // ✅ Usando o componente customizado
                     'Erro',
                     'Falha ao realizar login automático. Faça login manualmente.',
                     [{ text: 'OK', onPress: () => router.navigate('/auth/login') }]
@@ -108,9 +106,9 @@ export default function SignUp() {
       if (mensagem.includes('\n')) {
         const listaErros = mensagem.split('\n').filter(Boolean);
         setErrosValidacao(listaErros);
-        alert('Erros de Validação', mensagem);  // ✅ Usando o componente customizado (sem buttons, usa default)
+        showAlert('Erros de Validação', mensagem);  // ✅ Usando o componente customizado (sem buttons, usa default)
       } else {
-        alert('Erro', mensagem);  // ✅ Usando o componente customizado (sem buttons, usa default)
+        showAlert('Erro', mensagem);  // ✅ Usando o componente customizado (sem buttons, usa default)
       }
     } finally {
       setLoading(false);
@@ -156,7 +154,6 @@ export default function SignUp() {
                   placeholder="Seu nome de usuário"
                   value={value}
                   onChangeText={onChange}
-                  error={!!errors.nomeCompleto}
                   errorMessage={errors.nomeCompleto?.message}  // Passa pro InputField se quiser estilizar internamente
                 />
                 {renderFieldError(errors.nomeCompleto?.message)}  {/* ✅ Erro explícito abaixo */}
@@ -176,7 +173,6 @@ export default function SignUp() {
                   value={value}
                   onChangeText={onChange}
                   keyboardType="email-address"
-                  error={!!errors.email}
                   errorMessage={errors.email?.message}
                 />
                 {renderFieldError(errors.email?.message)}  {/* ✅ Erro explícito abaixo */}
@@ -197,7 +193,6 @@ export default function SignUp() {
                   onChangeText={onChange}
                   secureTextEntry={true}
                   keyboardType="default"
-                  error={!!errors.senha}
                   errorMessage={errors.senha?.message}
                 />
                 {renderFieldError(errors.senha?.message)}  {/* ✅ Erro explícito abaixo */}

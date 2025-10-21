@@ -54,6 +54,8 @@ namespace api.DTOs.Aluno
         public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
 
 
+
+
     }
 }
 

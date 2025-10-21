@@ -18,7 +18,8 @@ import CustomButton from '../../components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Logo from '../../components/Logo'
-import { useCustomAlert } from '@src/hooks/useCustomAlert'
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
+
 
 
 export default function LoginScreen() {
@@ -30,17 +31,14 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth() // Context login espera string (token)
-  const { showAlert } = useCustomAlert();
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   const handleLogin = async () => {
     setLoading(true);
-    setError(''); // Limpa erro anterior
-    console.log('🔍 Iniciando login com credenciais:', credentials);
+    setError(''); 
 
     try {
-      console.log('📤 Chamando authLogin do serviço...');
       const response = await authLogin(credentials);
-      console.log('✅ Resposta do authLogin:', response);
 
       if (!response.token) {
         const msg = 'Token não recebido da API. Tente novamente.';
@@ -50,9 +48,9 @@ export default function LoginScreen() {
 
       await new Promise(resolve => setTimeout(resolve, 200)); // Aguarda estado propagar
       router.replace('/dashboard');
-      console.log('🔑 Chamando context.login com token:', response.token);
+
       login(response.token);
-      console.log('🎉 Context login chamado, isLoggedIn deve ser true agora');
+
 
       // Verifica se o token foi salvo antes de navegar
       const savedToken = await AsyncStorage.getItem('authToken');
@@ -62,9 +60,7 @@ export default function LoginScreen() {
       }
 
       showAlert('Sucesso', 'Login realizado!');
-      console.log('➡️ Navegando para /dashboard...');
       router.replace('/dashboard');
-      console.log('🚀 Navegação executada!');
     } catch (err) {
       console.error('❌ Erro no handleLogin:', err);
       const errorMsg = (err as Error).message;
@@ -72,7 +68,6 @@ export default function LoginScreen() {
       showAlert('Erro', errorMsg);
     } finally {
       setLoading(false);
-      console.log('🏁 Fim do handleLogin, loading=false');
     }
   };
 
@@ -83,7 +78,7 @@ export default function LoginScreen() {
           <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 10 }}>
             <Logo width={248} height={87.29} />
           </View>
-          <Text style={styles.text}>Seja bem vindo!</Text>
+          <Text style={styles.text}>Seja bem-vindo!</Text>
           <View style={{ padding: 0 }}>
             <InputField
               label="E-mail"
@@ -117,6 +112,13 @@ export default function LoginScreen() {
             buttonColor={{ backgroundColor: colors.primary2 }}
           />
 
+          <CustomAlert
+            visible={visible}
+            title={config.title}
+            message={config.message}
+            buttons={config.buttons}
+            onDismiss={handleDismiss}
+          />
         </View>
         {/**  <View style={styles.authSection}>
           <DividerWithText text="Entre com" />
