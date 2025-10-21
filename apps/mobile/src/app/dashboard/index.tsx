@@ -266,9 +266,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     height: 75,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    boxShadow: ' 0px 2px rgba(0, 0, 0, 0.25)',
   },
   headerLeft: {
     flexDirection: 'row',

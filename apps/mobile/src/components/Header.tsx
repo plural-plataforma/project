@@ -76,10 +76,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', // Evita transparência no scroll
     paddingTop: TOP_SPACING, // Adicionado: replica o marginTop original para evitar elementos colados no topo
     elevation: 4, // Sombra Android
-    shadowColor: '#000', // Sombra iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: ' 0px 2px 4px rgba(0, 0, 0, 0.1)',
   },
   view: {
     height: HEADER_HEIGHT,
