@@ -8,7 +8,7 @@ export interface Planejamento {
     dataFim: string;
     
     habilidades: Habilidade[];
-    aluno: Aluno[];
+    alunos: Aluno[];
     
 }
 

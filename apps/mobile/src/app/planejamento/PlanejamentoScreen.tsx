@@ -3,17 +3,27 @@ import Header from '@src/components/Header'
 import InputField from '@src/components/InputField'
 import { buscarHabilidades } from '@src/services/habilidadeService'
 import { buscarAlunos } from '@src/services/alunoService' // Assumindo serviço para buscar alunos
-import { buscarPlanejamentoPorId, atualizarPlanejamento, vincularAluno, vincularHabilidade } from '@src/services/planejamentoService'
+import { buscarPlanejamentoPorId, atualizarPlanejamento, cadastrarPlanejamento, buscarPlanejamento, vincularAluno, vincularHabilidade } from '@src/services/planejamentoService'
 import { Habilidade } from '@src/types/habilidade'
 import { Aluno } from '@src/types/aluno'
 import { Planejamento } from '@src/types/planejamento'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { Text, View, StyleSheet, FlatList, TouchableOpacity, ScrollView, Button, ActivityIndicator } from 'react-native'
+import { Text, View, StyleSheet, FlatList, TouchableOpacity, ScrollView, Button, ActivityIndicator, ViewStyle, TextStyle } from 'react-native'
 import { Alert } from 'react-native' // Assumindo que Alert é usado para feedback
 import { CheckSquare, Square } from 'phosphor-react-native'; // Ícones do Phosphor
 import { CustomAlert, useCustomAlert } from '@src/hooks/useCustomAlert'
 import CustomButton from '@src/components/CustomButton'
+import dayjs from 'dayjs'
+import DatePicker, { DateType } from 'react-native-ui-datepicker'
+
+interface FormField {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  options?: { label: string; value: string; }[];
+}
 
 export default function PlanejamentoScreen() {
   const router = useRouter()
@@ -28,6 +38,8 @@ export default function PlanejamentoScreen() {
   const [filteredAlunos, setFilteredAlunos] = useState<Aluno[]>([])
   const [selectedHabilidades, setSelectedHabilidades] = useState<Habilidade[]>([])
   const [selectedAlunos, setSelectedAlunos] = useState<Aluno[]>([])
+  const [originalSelectedHabilidades, setOriginalSelectedHabilidades] = useState<Habilidade[]>([])
+  const [originalSelectedAlunos, setOriginalSelectedAlunos] = useState<Aluno[]>([])
   const [formData, setFormData] = useState({
     apelido: '',
     etapaEnsino: '',
@@ -35,8 +47,39 @@ export default function PlanejamentoScreen() {
     dataInicio: '',
     dataFim: ''
   })
+  const [dateRange, setDateRange] = useState({
+    startDate: dayjs(), // Data de início inicial (hoje)
+    endDate: null as dayjs.Dayjs | null, // Data de fim inicial (null)
+  })
   const [loading, setLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(false)
+  const [searchHabilidades, setSearchHabilidades] = useState('')
+  const [searchAlunos, setSearchAlunos] = useState('')
+
+  // Estilos customizados para o DatePicker (para cor de item selecionado)
+  const datePickerStyles: { [key: string]: ViewStyle | TextStyle } = {
+    selected: {
+      backgroundColor: colors.primary,
+    },
+    selected_label: {
+      color: '#fff', // Cor do texto no item selecionado (branco para contraste)
+    },
+    inRange: {
+      backgroundColor: `${colors.primary}20`, // Cor semi-transparente para o range (20% opacidade)
+    },
+    rangeStart: {
+      backgroundColor: colors.primary,
+    },
+    rangeEnd: {
+      backgroundColor: colors.primary,
+    },
+    rangeStart_label: {
+      color: '#fff',
+    },
+    rangeEnd_label: {
+      color: '#fff',
+    },
+  }
 
   useEffect(() => {
     const fetchHabilidades = async () => {
@@ -57,11 +100,15 @@ export default function PlanejamentoScreen() {
   useEffect(() => {
     if (!isEdit) {
       // Define data de início como data atual para novos PDIs
-      const today = new Date().toISOString().split('T')[0]
+      const today = dayjs()
+      setDateRange({
+        startDate: today,
+        endDate: null
+      })
       setFormData(prev => ({
         ...prev,
-        dataInicio: today,
-        dataFim: today // Ou deixar vazio para o usuário definir
+        dataInicio: today.format('YYYY-MM-DD'),
+        dataFim: '' // Deixa vazio inicialmente
       }))
     }
   }, [isEdit])
@@ -78,16 +125,31 @@ export default function PlanejamentoScreen() {
     try {
       const planejamento = await buscarPlanejamentoPorId(planejamentoId)
       // Assumindo que o retorno inclui apelido, dataInicio, dataFim, e uma lista de habilidades e alunos vinculados
+      const startDateStr = planejamento.dataInicio || ''
+      const endDateStr = planejamento.dataFim || ''
       setFormData(prev => ({
         ...prev,
         apelido: planejamento.apelido || '',
-        dataInicio: planejamento.dataInicio || '',
-        dataFim: planejamento.dataFim || ''
+        dataInicio: startDateStr,
+        dataFim: endDateStr
       }))
+
+      // Converte strings para dayjs para o picker
+      const startDate = startDateStr ? dayjs(startDateStr) : dayjs()
+      const endDate = endDateStr ? dayjs(endDateStr) : null
+      setDateRange({
+        startDate,
+        endDate
+      })
+
       // Assumindo que planejamento.habilidades é um array de Habilidade vinculadas
-      setSelectedHabilidades(planejamento.habilidades || [])
-      // Assumindo que planejamento.aluno é um array de Aluno vinculados
-      setSelectedAlunos(planejamento.aluno?.filter(a => a.id !== undefined) || [])
+      const habilidadesVinculadas = planejamento.habilidades || []
+      setSelectedHabilidades(habilidadesVinculadas)
+      setOriginalSelectedHabilidades(habilidadesVinculadas)
+      // Assumindo que planejamento.alunos é um array de Aluno vinculados
+      const alunosVinculados = planejamento.alunos?.filter(a => a.id !== undefined) || []
+      setSelectedAlunos(alunosVinculados)
+      setOriginalSelectedAlunos(alunosVinculados)
     } catch (error) {
       showAlert('Erro', 'Falha ao carregar dados do PDI.')
     } finally {
@@ -96,74 +158,91 @@ export default function PlanejamentoScreen() {
   }
 
   useEffect(() => {
+    if (isEdit) return;
+
     const etapaFilter = formData.etapaEnsino ? Number(formData.etapaEnsino) : null
     const tipoFilter = formData.tipoHabilidade ? formData.tipoHabilidade : null
 
     const filtered = habilidades.filter(habilidade =>
       (!etapaFilter || habilidade.idNivelEnsino === etapaFilter) &&
-      (!tipoFilter || habilidade.tipo === tipoFilter)
+      (!tipoFilter || habilidade.tipo === tipoFilter) &&
+      (searchHabilidades === '' || habilidade.descricao.toLowerCase().includes(searchHabilidades.toLowerCase()))
     )
     setFilteredHabilidades(filtered)
-  }, [habilidades, formData.etapaEnsino, formData.tipoHabilidade])
+  }, [habilidades, formData.etapaEnsino, formData.tipoHabilidade, searchHabilidades, isEdit])
 
-  // Filtro para alunos, se necessário (ex: por nome ou etapa)
-  // Por simplicidade, sem filtro por agora; todos os alunos disponíveis
+  // Filtro para alunos por pesquisa
   useEffect(() => {
-    setFilteredAlunos(alunos.filter(a => a.id !== undefined))
-  }, [alunos])
+    const filtered = alunos.filter(aluno =>
+      (searchAlunos === '' || aluno.nomeCompleto.toLowerCase().includes(searchAlunos.toLowerCase()))
+    )
+    setFilteredAlunos(filtered)
+  }, [alunos, searchAlunos])
 
-  const formFields = useMemo(
-    () => [
-      {
-        id: 'apelido',
-        label: 'Nome do PDI',
-        placeholder: '',
-        value: formData.apelido
-      },
-      {
-        id: 'etapaEnsino',
-        label: 'Etapa de Ensino',
-        placeholder: '',
-        value: formData.etapaEnsino,
-        options: [
-          { label: 'Educação Infantil', value: '1' },
-          { label: 'Ensino Fundamental I - Anos Iniciais', value: '2' },
-          { label: 'Ensino Fundamental II - Anos Finais', value: '3' },
-          { label: 'Ensino Médio', value: '4' }
-        ]
-      },
-      {
-        id: 'tipoHabilidade',
-        label: 'Tipo de Habilidade',
-        placeholder: '',
-        value: formData.tipoHabilidade,
-        options: [
-          { label: 'Cognitivo', value: '1' },
-          { label: 'Socioemocional', value: '2' },
-          { label: 'Comunicação', value: '3' },
-          { label: 'Motora', value: '4' }
-        ]
-      },
-      {
-        id: 'dataInicio',
-        label: 'Data Início',
-        placeholder: 'YYYY-MM-DD',
-        value: formData.dataInicio,
-        keyboardType: 'default' // Melhor para datas, ou implementar date picker
-      },
-      {
-        id: 'dataFim',
-        label: 'Data Fim',
-        placeholder: 'YYYY-MM-DD',
-        value: formData.dataFim,
-        keyboardType: 'default'
+  // Atualiza formData quando dateRange muda
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      dataInicio: dateRange.startDate.format('YYYY-MM-DD'),
+      dataFim: dateRange.endDate ? dateRange.endDate.format('YYYY-MM-DD') : ''
+    }))
+  }, [dateRange])
+
+  const formFields = useMemo<FormField[]>(
+    () => {
+      const fields: FormField[] = [
+        {
+          id: 'apelido',
+          label: 'Nome do PDI',
+          placeholder: '',
+          value: formData.apelido
+        }
+      ];
+
+      if (!isEdit) {
+        fields.push(
+          {
+            id: 'etapaEnsino',
+            label: 'Etapa de Ensino',
+            placeholder: '',
+            value: formData.etapaEnsino,
+            options: [
+              { label: 'Educação Infantil', value: '1' },
+              { label: 'Ensino Fundamental I - Anos Iniciais', value: '2' },
+              { label: 'Ensino Fundamental II - Anos Finais', value: '3' },
+              { label: 'Ensino Médio', value: '4' }
+            ]
+          },
+          {
+            id: 'tipoHabilidade',
+            label: 'Tipo de Habilidade',
+            placeholder: '',
+            value: formData.tipoHabilidade,
+            options: [
+              { label: 'Cognitivo', value: '1' },
+              { label: 'Socioemocional', value: '2' },
+              { label: 'Comunicação', value: '3' },
+              { label: 'Motora', value: '4' }
+            ]
+          }
+        );
       }
-    ],
-    [formData] // Dependência em formData para atualizar valores
+
+      return fields;
+    },
+    [formData.apelido, formData.etapaEnsino, formData.tipoHabilidade, isEdit] // Dependências específicas para evitar re-renders desnecessários
   )
 
-  const handleInputChange = (id: string, value: string) => {
-    setFormData(prev => ({ ...prev, [id]: value }))
+  const handleInputChange = (id: string, value: string | number | null) => {
+    const stringValue = value === null ? '' : String(value);
+    setFormData(prev => ({ ...prev, [id]: stringValue }))
+  }
+
+  const handleDateRangeChange = ({ startDate, endDate }: { startDate: DateType; endDate: DateType }) => {
+    setDateRange({
+      startDate: dayjs(startDate),
+      endDate: endDate ? dayjs(endDate) : null
+    })
   }
 
   const toggleSelectionHabilidade = (habilidade: Habilidade) => {
@@ -196,41 +275,53 @@ export default function PlanejamentoScreen() {
       showAlert('Erro', 'Pelo menos um aluno deve ser selecionado.')
       return
     }
-    if (!formData.dataInicio) {
+    if (!dateRange.startDate) {
       showAlert('Erro', 'Data de início é obrigatória.')
       return
     }
-    if (formData.dataFim && new Date(formData.dataFim) < new Date(formData.dataInicio)) {
+    if (!dateRange.endDate) {
+      showAlert('Erro', 'Data de fim é obrigatória.')
+      return
+    }
+    if (dateRange.endDate.isBefore(dateRange.startDate)) {
       showAlert('Erro', 'Data de fim deve ser posterior à data de início.')
       return
     }
     setLoading(true)
     try {
       let planejamentoIdFinal: number
-      const updatePayload = {
-        id: planejamentoId || 0,
+      const basePayload = {
         apelido: formData.apelido,
-        dataInicio: formData.dataInicio,
-        dataFim: formData.dataFim || '' // Permite vazio se não definido
+        dataInicio: dateRange.startDate.format('YYYY-MM-DD'),
+        dataFim: dateRange.endDate.format('YYYY-MM-DD')
       }
 
       if (isEdit) {
         // Atualiza o planejamento
-        const updated = await atualizarPlanejamento(updatePayload)
-        planejamentoIdFinal = updated.id
+        await atualizarPlanejamento({
+          ...basePayload,
+          id: planejamentoId!
+        })
+        planejamentoIdFinal = planejamentoId!
       } else {
-        // Assumindo que atualizar pode ser usado para criar se id=0
-        // Se houver endpoint separado para criação, substituir aqui
-        const created = await atualizarPlanejamento(updatePayload)
-        planejamentoIdFinal = created.id
+        // Cria novo planejamento
+        await cadastrarPlanejamento(basePayload)
+        // Busca o planejamento criado pelo apelido e dataInicio (assumindo unicidade)
+        const latestPlanejamentos = await buscarPlanejamento()
+        const createdPlanning = latestPlanejamentos.find(p => p.apelido === basePayload.apelido && p.dataInicio === basePayload.dataInicio)
+        if (!createdPlanning) {
+          throw new Error('Não foi possível encontrar o planejamento criado')
+        }
+        planejamentoIdFinal = createdPlanning.id
       }
 
       // Nota: Para sincronizar completamente, seria ideal remover vínculos antigos não selecionados.
       // Como não há endpoint de desvincular, apenas adicionamos os selecionados (pode duplicar se já existirem).
       // Em produção, implementar diff e desvincular se necessário.
 
-      // Vincula os alunos selecionados
-      for (const aluno of selectedAlunos) {
+      // Vincula apenas os novos alunos selecionados (que não estavam originalmente vinculados)
+      const newAlunos = selectedAlunos.filter(aluno => !originalSelectedAlunos.some(orig => orig.id === aluno.id))
+      for (const aluno of newAlunos) {
         if (aluno.id) {
           await vincularAluno({
             idPlanejamento: planejamentoIdFinal,
@@ -239,8 +330,9 @@ export default function PlanejamentoScreen() {
         }
       }
 
-      // Vincula as habilidades selecionadas
-      for (const hab of selectedHabilidades) {
+      // Vincula apenas as novas habilidades selecionadas (que não estavam originalmente vinculadas)
+      const newHabilidades = selectedHabilidades.filter(hab => !originalSelectedHabilidades.some(orig => orig.id === hab.id))
+      for (const hab of newHabilidades) {
         if (hab.id) {
           await vincularHabilidade({
             idPlanejamento: planejamentoIdFinal,
@@ -249,16 +341,25 @@ export default function PlanejamentoScreen() {
         }
       }
 
-      showAlert('Sucesso', `PDI ${isEdit ? 'atualizado' : 'criado'} com sucesso!`)
-      router.back()
+      // Show success alert with navigation on dismiss
+      showAlert('Sucesso', `PDI ${isEdit ? 'atualizado' : 'criado'} com sucesso!`, [
+        {
+          text: 'OK',
+          onPress: () => {
+            handleDismiss();
+            router.back();
+          }
+        }
+      ]);
     } catch (error) {
+      console.error('Erro no handleSave:', error)
       showAlert('Erro', 'Falha ao salvar PDI.')
     } finally {
       setLoading(false)
     }
   }
 
-  const renderFormItem = (field: any, index: number) => (
+  const renderFormItem = (field: FormField, index: number) => (
     <View
       key={field.id}
       style={[styles.inputContainer, { zIndex: formFields.length - index }]}
@@ -266,7 +367,7 @@ export default function PlanejamentoScreen() {
       <InputField
         {...field}
         onChangeText={field.options ? undefined : (text: string) => handleInputChange(field.id, text)}
-        onValueChange={field.options ? (value: string) => handleInputChange(field.id, value) : undefined}
+        onValueChange={field.options ? (value: string | number | null) => handleInputChange(field.id, value) : undefined}
       />
     </View>
   )
@@ -340,26 +441,81 @@ export default function PlanejamentoScreen() {
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
         {formFields.map((field, index) => renderFormItem(field, index))}
 
-        <View style={styles.habilidadesSection}>
-          <Text style={styles.tituloHabilidades}>Habilidades Disponíveis</Text>
-          <FlatList
-            data={filteredHabilidades}
-            renderItem={renderHabilidadeItem}
-            keyExtractor={(item) => item.id.toString()}
-            style={styles.listaHabilidades}
-            scrollEnabled={false}
-          />
-          {selectedHabilidades.length > 0 && (
-            <View style={styles.resumoPdi}>
-              <Text style={styles.resumoTexto}>
-                Habilidades: {selectedHabilidades.length} selecionadas
-              </Text>
+        {!isEdit ? (
+          <View style={styles.habilidadesSection}>
+            <Text style={styles.tituloHabilidades}>Habilidades Gerais</Text>
+            <View style={styles.searchContainer}>
+              <InputField
+                label="Pesquisar habilidades"
+                placeholder="Digite para filtrar por descrição..."
+                value={searchHabilidades}
+                onChangeText={setSearchHabilidades}
+              />
             </View>
-          )}
+            <FlatList
+              data={filteredHabilidades}
+              renderItem={renderHabilidadeItem}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.listaHabilidades}
+              scrollEnabled={false}
+            />
+            {selectedHabilidades.length > 0 && (
+              <View style={styles.resumoPdi}>
+                <Text style={styles.resumoTexto}>
+                  Habilidades: {selectedHabilidades.length} selecionadas
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.habilidadesSection}>
+            <Text style={styles.tituloHabilidades}>Habilidades Selecionadas</Text>
+            <FlatList
+              data={selectedHabilidades}
+              renderItem={renderHabilidadeItem}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.listaHabilidades}
+              scrollEnabled={false}
+            />
+            {selectedHabilidades.length > 0 && (
+              <View style={styles.resumoPdi}>
+                <Text style={styles.resumoTexto}>
+                  Habilidades: {selectedHabilidades.length} selecionadas
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+         {/* Seção do DatePicker para range de datas */}
+        <View style={styles.datePickerSection}>
+          <Text style={styles.labelDatePicker}>Período do PDI</Text>
+          <DatePicker
+            mode="range"
+            startDate={dateRange.startDate}
+            endDate={dateRange.endDate}
+            onChange={handleDateRangeChange}
+            minDate={dayjs().subtract(1, 'year')} // Limite: 1 ano atrás
+            maxDate={dayjs().add(2, 'year')} // Limite: 2 anos à frente
+            styles={datePickerStyles}
+          />
+          <Text style={styles.dateDisplay}>
+            Início: {dateRange.startDate.format('DD/MM/YYYY')}{' '}
+            {dateRange.endDate ? `| Fim: ${dateRange.endDate.format('DD/MM/YYYY')}` : ''}
+          </Text>
         </View>
 
+
         <View style={styles.alunosSection}>
-          <Text style={styles.tituloHabilidades}>Alunos Disponíveis</Text>
+          <Text style={styles.tituloHabilidades}>Meus Alunos</Text>
+          <View style={styles.searchContainer}>
+            <InputField
+              label="Pesquisar alunos"
+              placeholder="Digite para filtrar por nome..."
+              value={searchAlunos}
+              onChangeText={setSearchAlunos}
+            />
+          </View>
           <FlatList
             data={filteredAlunos}
             renderItem={renderAlunoItem}
@@ -378,11 +534,10 @@ export default function PlanejamentoScreen() {
       </ScrollView>
       <View style={styles.saveButtonContainer}>
         <CustomButton
-          title={isEdit ? 'Atualizar PDI' : 'Criar PDI'}
+          title={loading ? 'Salvando...' : (isEdit ? 'Atualizar PDI' : 'Criar PDI')}
           buttonColor={{ backgroundColor: colors.primary2 }}
           onPress={handleSave}
           disabled={loading}
-
         />
       </View>
       <CustomAlert
@@ -411,6 +566,37 @@ export const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 15 // Ajuste conforme o Figma
+  },
+  searchContainer: {
+    marginBottom: 10,
+  },
+  datePickerSection: {
+    marginTop: 15,
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary || '#ddd',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4
+  },
+  labelDatePicker: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 8,
+    textAlign: 'center'
+  },
+  dateDisplay: {
+    fontSize: 14,
+    color: colors.primary,
+    textAlign: 'center',
+    marginTop: 8,
+    fontFamily: 'Nunito_400Regular'
   },
   text: {
     fontSize: 20,

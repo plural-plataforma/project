@@ -36,18 +36,33 @@ export const buscarPlanejamentoPorId = async (
   }
 }
 
+export const cadastrarPlanejamento = async (payload: {
+  apelido: string
+  dataInicio: string
+  dataFim: string
+}): Promise<void> => {
+  try {
+    const response = await api.post<PlanejamentoResponse>('/Planejamento/cadastro', payload)
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao cadastrar planejamento')
+    }
+  } catch (error) {
+    console.error('❌ Erro ao cadastrar planejamento:', error)
+    throw error
+  }
+}
+
 export const atualizarPlanejamento = async (payload: {
   id: number
   apelido: string
   dataInicio: string
   dataFim: string
-}): Promise<Planejamento> => {
+}): Promise<void> => {
   try {
     const response = await api.patch<PlanejamentoResponse>('/Planejamento/atualizar', payload)
-    if (response.data.sucesso && response.data.objeto && typeof response.data.objeto === 'object') {
-      return response.data.objeto as Planejamento
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao atualizar planejamento')
     }
-    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao atualizar planejamento')
   } catch (error) {
     console.error('❌ Erro ao atualizar planejamento:', error)
     throw error
