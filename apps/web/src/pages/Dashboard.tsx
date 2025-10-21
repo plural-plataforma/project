@@ -20,7 +20,8 @@ import {
   CircularProgress,
   Alert,
   FormControl,
-  InputLabel
+  InputLabel,
+  Menu
 } from "@mui/material";
 
 interface Professor {
@@ -213,6 +214,7 @@ export default function Dashboard() {
               <MenuItem value="">Premium</MenuItem>
               <MenuItem value="basico">Básico</MenuItem>
               <MenuItem value="gratuito">Gratuito</MenuItem>
+              <MenuItem value="empresarial">Empresarial</MenuItem>
             </Select>
           </FormControl>
 
