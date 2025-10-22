@@ -7,8 +7,17 @@ export interface Planejamento {
     dataInicio: string;
     dataFim: string;
     
+    habilidades?: Habilidade[];
+    alunos?: Aluno[];
+    
+}
+
+export interface PlanejamentoAluno {
+    id: number;
+    apelido: string;
+    dataInicio: string;
+    dataFim: string;
     habilidades: Habilidade[];
-    alunos: Aluno[];
     
 }
 
