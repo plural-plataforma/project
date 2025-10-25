@@ -152,5 +152,46 @@ namespace api.Services
             return resposta;
 
         }
+
+        public async Task<IdentityResult> AlterarEmail(AlterarEmailDTO alterarEmailDTO, ClaimsPrincipal usuarioController)
+        {
+            var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idUsuario))
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não autenticado."
+                });
+            }
+
+            var usuario = await _usuario.FindByIdAsync(idUsuario);
+            if (usuario == null)
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não encontrado."
+                });
+            }
+
+            if (!string.IsNullOrEmpty(alterarEmailDTO.SenhaAtual))
+            {
+                var senhaCorreta = await _usuario.CheckPasswordAsync(usuario, alterarEmailDTO.SenhaAtual);
+                if (!senhaCorreta)
+                {
+                    return IdentityResult.Failed(new IdentityError
+                    {
+                        Description = "Senha incorreta."
+                    });
+                }
+            }
+
+            usuario.Email = alterarEmailDTO.NovoEmail;
+            usuario.UserName = alterarEmailDTO.NovoEmail;
+
+            var resposta = await _usuario.UpdateAsync(usuario);
+
+            return resposta;
+
+        }
     }
 }

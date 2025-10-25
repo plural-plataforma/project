@@ -79,5 +79,27 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
         }
+
+        [Authorize]
+        [HttpPost("alteraremail")]
+        public async Task<IActionResult> AlterarEmail([FromBody] AlterarEmailDTO alterarEmailDTO)
+        {
+            if (ModelState.IsValid)
+            {
+                var resultado = await _autenticacaoService.AlterarEmail(alterarEmailDTO, User);
+                if (resultado.Succeeded)
+                {
+                    return Ok("Email alterado com sucesso");
+                }
+                else
+                {
+                    return BadRequest(resultado.Errors);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
     }
 }
