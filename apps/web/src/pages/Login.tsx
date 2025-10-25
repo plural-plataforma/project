@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
+
 import {
   Box,
   Button,
@@ -25,7 +27,7 @@ export default function Login() {
 
   try {
     const response = await axios.post(
-      "https://dev-api.runasp.net/api/Autenticacao/login",
+      `${API_URL}/Autenticacao/login`,
       { email, senha: password },
       { headers: { Accept: "application/json", "Content-Type": "application/json" } }
     );
@@ -145,7 +147,7 @@ export default function Login() {
             Não tem uma conta?{" "}
             <Typography
               component="a"
-              href="/cadastro"
+              href="/register"
               color="primary"
               fontWeight="medium"
               sx={{ textDecoration: "none" }}

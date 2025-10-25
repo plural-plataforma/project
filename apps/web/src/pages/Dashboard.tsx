@@ -1,6 +1,9 @@
+// Dashboard.tsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { SignOut } from "../components/SignOut";
+const API_URL = import.meta.env.VITE_API_URL;
+
 import {
   Box,
   Paper,
@@ -31,7 +34,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const signOut = SignOut(); 
+  const signOut = SignOut();
 
   useEffect(() => {
     const fetchProfessores = async () => {
@@ -44,7 +47,7 @@ export default function Dashboard() {
       }
 
       try {
-        const response = await axios.get("https://dev-api.runasp.net/api/Professor/buscar", {
+        const response = await axios.get(`${API_URL}/Professor/buscar`, {
           headers: {
             Authorization: `Bearer ${token}`,
             accept: "*/*",
@@ -78,42 +81,64 @@ export default function Dashboard() {
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, minHeight: "100vh" }}>
-      {/* Sidebar */}
-      <Box
-        component="aside"
-        sx={{
-          width: { xs: "100%", md: 256 },
-          bgcolor: "white",
-          borderRight: 1,
-          borderColor: "grey.300",
-          boxShadow: 1,
-          position: { md: "sticky" },
-          top: 0,
-          height: { md: "100vh" },
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Logo */}
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: "grey.300", textAlign: "center", color: "#276678" }}>
-          <img src="/logo-plural-plataforma.png" alt="Plural Logo" style={{ height: 40 }} />
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {/* Header */}
+      <Header />
+
+      {/* Conteúdo com Sidebar e Main */}
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, flex: 1 }}>
+        {/* Sidebar */}
+        <Box
+          component="aside"
+          sx={{
+            width: { xs: "100%", md: 256 },
+            bgcolor: "white",
+            borderRight: 1,
+            borderColor: "grey.300",
+            boxShadow: 1,
+            position: { md: "sticky" },
+            top: 64, // Ajusta para começar abaixo do header
+            height: { md: "calc(100vh - 64px)" }, // Ajusta a altura para não sobrepor o header
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Navegação */}
+          <Box sx={{ display: "flex", flexDirection: "column", p: 2, gap: 1, flexGrow: 1 }}>
+            <Button variant="contained" fullWidth style={{ color: "#FFFF", backgroundColor: "#276678" }}>
+              Gerenciar Usuários
+            </Button>
+            <Button variant="outlined" fullWidth>
+              Pagamentos
+            </Button>
+            <Button variant="outlined" fullWidth>
+              Relatórios
+            </Button>
+            <Button variant="outlined" fullWidth>
+              Configurações
+            </Button>
+          </Box>
+
+          <Box sx={{ p: 2 }}>
+            <Button
+              style={{ color: "#FFFF", backgroundColor: "#276678" }}
+              variant="outlined"
+              fullWidth
+              onClick={signOut}
+            >
+              Sair
+            </Button>
+          </Box>
         </Box>
 
-        {/* Navegação */}
-        <Box sx={{ display: "flex", flexDirection: "column", p: 2, gap: 1, flexGrow: 1 }}>
-          <Button variant="contained" fullWidth style={{ color: "#FFFF", backgroundColor: "#276678" }}>
-            Gerenciar Usuários
-          </Button>
-          <Button variant="outlined" fullWidth>
-            Pagamentos
-          </Button>
-          <Button variant="outlined" fullWidth>
-            Relatórios
-          </Button>
-          <Button variant="outlined" fullWidth>
-            Configurações
-          </Button>
+        {/* Conteúdo principal */}
+        <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: "auto" }}>
+          <Typography variant="h5" fontWeight="bold" mb={1}>
+            Gerenciamento de Usuários
+          </Typography>
+          <Typography color="text.secondary" mb={3}>
+            Controle de acesso e vínculos de professores
+          </Typography>
 
         </Box>
 
@@ -170,46 +195,57 @@ export default function Dashboard() {
           <Box textAlign="center" mt={5}>
             <CircularProgress color="warning" />
           </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        ) : (
-          <Paper sx={{ overflowX: "auto" }}>
-            <Table sx={{ minWidth: 640 }}>
-              <TableHead sx={{ bgcolor: "grey.100" }}>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Nome</TableCell>
-                  <TableCell>Telefone</TableCell>
-                  <TableCell>Disciplinas</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell>Ações</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredProfessores.map((prof) => (
-                  <TableRow key={prof.id}>
-                    <TableCell>{prof.id}</TableCell>
-                    <TableCell>{prof.nomeCompleto}</TableCell>
-                    <TableCell>{prof.telefone || "—"}</TableCell>
-                    <TableCell>
-                      {Array.isArray(prof.disciplinas)
-                        ? prof.disciplinas.join(", ")
-                        : prof.disciplinas || "—"}
-                    </TableCell>
-                    <TableCell>{prof.estado || "—"}</TableCell>
-                    <TableCell>
-                      <Button size="small" variant="contained" style={{ color: "#FFFF", backgroundColor: "#276678" }}>
-                        Editar
-                      </Button>
-                    </TableCell>
+
+          {/* Tabela */}
+          {loading ? (
+            <Box textAlign="center" mt={5}>
+              <CircularProgress color="warning" />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          ) : (
+            <Paper sx={{ overflowX: "auto" }}>
+              <Table sx={{ minWidth: 640 }}>
+                <TableHead sx={{ bgcolor: "grey.100" }}>
+                  <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Nome</TableCell>
+                    <TableCell>Telefone</TableCell>
+                    <TableCell>Disciplinas</TableCell>
+                    <TableCell>Estado</TableCell>
+                    <TableCell>Ações</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Paper>
-        )}
+                </TableHead>
+                <TableBody>
+                  {filteredProfessores.map((prof) => (
+                    <TableRow key={prof.id}>
+                      <TableCell>{prof.id}</TableCell>
+                      <TableCell>{prof.nomeCompleto}</TableCell>
+                      <TableCell>{prof.telefone || "—"}</TableCell>
+                      <TableCell>
+                        {Array.isArray(prof.disciplinas)
+                          ? prof.disciplinas.join(", ")
+                          : prof.disciplinas || "—"}
+                      </TableCell>
+                      <TableCell>{prof.estado || "—"}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          style={{ color: "#FFFF", backgroundColor: "#276678" }}
+                        >
+                          Editar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Paper>
+          )}
+        </Box>
       </Box>
     </Box>
   );
