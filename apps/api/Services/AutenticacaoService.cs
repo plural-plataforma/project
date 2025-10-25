@@ -42,7 +42,8 @@ namespace api.Services
                         UserName = registroDto.Email,
                         Email = registroDto.Email,
                         ProfessorId = perfilId,
-                        AceitouTermos = registroDto.AceitouTermos
+                        AceitouTermos = registroDto.AceitouTermos,
+                        DeveAlterarSenha = registroDto.DeveAlterarSenha
                     };
 
                     var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
@@ -72,13 +73,15 @@ namespace api.Services
             }
         }
 
-        public async Task<string?> Login(LoginDTO loginDto)
+        public async Task<object?> Login(LoginDTO loginDto)
         {
             var usuario = await _usuario.FindByEmailAsync(loginDto.Email);
             if (usuario == null) return null;
 
             if (!await _usuario.CheckPasswordAsync(usuario, loginDto.Senha))
                 return null;
+
+            bool deveAlterarSenha = usuario.DeveAlterarSenha;
 
             var claims = new List<Claim>
             {
@@ -103,7 +106,13 @@ namespace api.Services
                 signingCredentials: credenciais
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return new
+            {
+                token = tokenString,
+                precisaTrocarSenha = deveAlterarSenha
+            };
         }
     }
 }
