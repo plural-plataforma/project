@@ -2,7 +2,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { SignOut } from "../components/SignOut";
-const API_URL = import.meta.env.VITE_API_URL;
+import PersonIcon from "@mui/icons-material/Person";
+import InfoCard from "../components/InfoCard";
+import Header from "../components/Header";
 
 import {
   Box,
@@ -19,6 +21,8 @@ import {
   TableCell,
   CircularProgress,
   Alert,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 
 interface Professor {
@@ -47,7 +51,7 @@ export default function Dashboard() {
       }
 
       try {
-        const response = await axios.get(`${API_URL}/Professor/buscar`, {
+        const response = await axios.get("https://dev-api.runasp.net/api/Professor/buscar", {
           headers: {
             Authorization: `Bearer ${token}`,
             accept: "*/*",
@@ -140,60 +144,83 @@ export default function Dashboard() {
             Controle de acesso e vínculos de professores
           </Typography>
 
-        </Box>
+          {/* Cards de totalizadores */}
+          <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
+            <InfoCard
+              titulo="Usuários Ativos"
+              valor={professores.length}
+              icone={<PersonIcon fontSize="small" />}
+              corFundo="#f3e8ff"
+              corIcone="#8b5cf6"
+            />
+            <InfoCard
+              titulo="Pendentes"
+              valor={5}
+              icone={<PersonIcon fontSize="small" />}
+              corFundo="#fff3cd"
+              corIcone="#856404"
+            />
+            <InfoCard
+              titulo="Suspensos"
+              valor={2}
+              icone={<PersonIcon fontSize="small" />}
+              corFundo="#f8d7da"
+              corIcone="#721c24"
+            />
+            <InfoCard
+              titulo="Renovações"
+              valor={1}
+              icone={<PersonIcon fontSize="small" />}
+              corFundo="#d1e7dd"
+              corIcone="#0f5132"
+            />
+          </Box>
 
-        <Box sx={{ p: 2 }}>
-          <Button
-            style={{ color: "#FFFF", backgroundColor: "#276678" }}
-            variant="outlined"
-            fullWidth
-            onClick={signOut}
+          {/* Filtros */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 1,
+              mb: 3,
+              alignItems: "center",
+            }}
           >
-            Sair
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Conteúdo principal */}
-      <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: "auto" }}>
-        <Typography variant="h5" fontWeight="bold" mb={1}>
-          Gerenciamento de Professores
-        </Typography>
-        <Typography color="text.secondary" mb={3}>
-          Controle de acesso e informações dos professores
-        </Typography>
-
-        {/* Filtros */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            gap: 1,
-            mb: 3,
-            alignItems: "center",
-          }}
-        >
-          <TextField
-            placeholder="Buscar por nome ou email..."
-            fullWidth
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Select defaultValue="" sx={{ minWidth: 120 }}>
-            <MenuItem value="">Status</MenuItem>
-          </Select>
-          <Select defaultValue="" sx={{ minWidth: 120 }}>
-            <MenuItem value="">Estado</MenuItem>
-          </Select>
-          <Button variant="contained" style={{ color: "#FFFF", backgroundColor: "#276678" }}>
-            Filtrar
-          </Button>
-        </Box>
-
-        {/* Conteúdo principal */}
-        {loading ? (
-          <Box textAlign="center" mt={5}>
-            <CircularProgress color="warning" />
+            <TextField
+              placeholder="Buscar por nome ou email..."
+              fullWidth
+              size="small"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <FormControl sx={{ minWidth: 120 }} size="small">
+              <InputLabel>Status</InputLabel>
+              <Select defaultValue="">
+                <MenuItem value="">Ativo</MenuItem>
+                <MenuItem value="pendente">Pendente</MenuItem>
+                <MenuItem value="suspenso">Suspenso</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 120 }} size="small">
+              <InputLabel>Plano</InputLabel>
+              <Select defaultValue="">
+                <MenuItem value="">Premium</MenuItem>
+                <MenuItem value="basico">Básico</MenuItem>
+                <MenuItem value="gratuito">Gratuito</MenuItem>
+                <MenuItem value="empresarial">Empresarial</MenuItem>
+              </Select>
+            </FormControl>
+            <Button
+              variant="contained"
+              sx={{
+                color: "#FFF",
+                backgroundColor: "#276678",
+                height: "40px",
+                textTransform: "none",
+              }}
+            >
+              Filtrar
+            </Button>
           </Box>
 
           {/* Tabela */}
