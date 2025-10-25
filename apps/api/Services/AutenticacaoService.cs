@@ -9,7 +9,7 @@ using System.Text;
 
 namespace api.Services
 {
-    public  class AutenticacaoService
+    public class AutenticacaoService
     {
         private readonly UserManager<Usuario> _usuario;
         private readonly RoleManager<IdentityRole> _tipo;
@@ -113,6 +113,44 @@ namespace api.Services
                 token = tokenString,
                 precisaTrocarSenha = deveAlterarSenha
             };
+        }
+
+        public async Task<IdentityResult> AlterarSenha(AlterarSenhaDTO alterarSenhaDTO, ClaimsPrincipal usuarioController)
+        {
+            var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idUsuario))
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não autenticado."
+                });
+            }
+
+            var usuario = await _usuario.FindByIdAsync(idUsuario);
+            if (usuario == null)
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não encontrado."
+                });
+            }
+
+            var resposta =
+                await _usuario.ChangePasswordAsync(usuario, alterarSenhaDTO.SenhaAtual, alterarSenhaDTO.NovaSenha);
+
+            if (!resposta.Succeeded)
+            {
+                return resposta;
+            }
+
+            if (usuario.DeveAlterarSenha)
+            {
+                usuario.DeveAlterarSenha = false;
+                await _usuario.UpdateAsync(usuario);
+            }
+
+            return resposta;
+
         }
     }
 }
