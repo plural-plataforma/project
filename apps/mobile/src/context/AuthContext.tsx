@@ -31,7 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // useEffect para checkAuth: roda apenas no mount inicial
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('🔍 checkAuth rodando uma vez no mount. Pathname:', pathname);
       try {
         const token = await getToken();
         if (token) {
@@ -39,7 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const payload = JSON.parse(atob(token.split('.')[1]));
             const currentTime = Math.floor(Date.now() / 1000);
             if (payload.exp < currentTime) {
-              console.log('⚠️ Token expirado, fazendo logout...');
               await authSignOut();
               setUserToken(null);
               setIsLoggedIn(false);
@@ -72,23 +70,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (loading) return; // Evita redirecionamentos durante loading inicial
 
     if (isLoggedIn && (pathname === '/' || pathname === '/')) {
-      console.log('➡️ Redirecionando para dashboard (de login/root)');
       router.replace('/dashboard');
     } else if (!isLoggedIn && pathname === '/dashboard') {
-      console.log('➡️ Redirecionando para login (de dashboard)');
       router.replace('/');
     }
   }, [isLoggedIn, loading, pathname]);
 
 const login = (token: string) => {
-  console.log('🔑 Context.login chamado com token:', token ? 'existe' : 'null/undefined');
   if (!token) {
     console.warn('⚠️ Token vazio no context.login — login falhará!');
     return;
   }
   setUserToken(token);
   setIsLoggedIn(true);
-  console.log('✅ Estados setados: isLoggedIn=true, userToken atualizado');
   
   // Re-valide token imediatamente após login para checar expiração
   setTimeout(() => {
@@ -99,7 +93,6 @@ const login = (token: string) => {
           const payload = JSON.parse(atob(savedToken.split('.')[1]));
           const currentTime = Math.floor(Date.now() / 1000);
           if (payload.exp < currentTime) {
-            console.log('⚠️ Token expirou logo após login, logout...');
             await authSignOut();
             setUserToken(null);
             setIsLoggedIn(false);
@@ -115,29 +108,22 @@ const login = (token: string) => {
 
   const signOut = async (): Promise<void> => {
     if (isSigningOut.current) {
-      console.log('⚠️ signOut já em andamento, ignorando chamada repetida');
       return;
     }
     isSigningOut.current = true;
-    console.log('🔥 signOut chamado no AuthContext!');
     setLogoutLoading(true);
     try {
-      console.log('📤 Chamando signOut() do serviço...');
       await authSignOut();
-      console.log('✅ signOut() do serviço concluído!');
       setUserToken(null);
       setIsLoggedIn(false);
       if (pathname !== '/') {
-        console.log('➡️ Redirecionando para /Home...');
         router.replace('/');
-        console.log('🎉 Redirecionamento executado!');
       }
     } catch (error) {
       console.error('❌ Erro no signOut:', error);
       setUserToken(null);
       setIsLoggedIn(false);
       if (pathname !== '/') {
-        console.log('➡️ Redirecionando para /Home após erro...');
         router.replace('/');
       }
     } finally {

@@ -10,7 +10,8 @@ import { Escola, TipoEscola } from "@src/types/escolas";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, FlatList, StyleSheet, ActivityIndicator, Keyboard } from "react-native";
-import { useCustomAlert } from '../../hooks/useCustomAlert'
+// FIX: Importe CustomAlert também
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 
 export default function EscolaScreen() {
   const router = useRouter();
@@ -62,7 +63,8 @@ export default function EscolaScreen() {
     return match || null;
   }, []);
 
-  const { showAlert} = useCustomAlert()
+  // FIX: Destruture todos os valores necessários para renderizar o alerta
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   // Função para carregar estados
   const loadEstados = useCallback(async () => {
@@ -168,7 +170,6 @@ export default function EscolaScreen() {
       setCepLoading(true);
       try {
         const cepData = await fetchCepData(cepClean);
-        console.log('CEP Data recebido:', cepData); // Debug: verifique o que vem
 
         // Assume formato ViaCEP ou similar: uf (sigla), localidade (cidade full), logradouro, bairro
         let siglaEstado =  cepData.state || getSiglaFromNome(cepData.state  || '');
@@ -191,7 +192,7 @@ export default function EscolaScreen() {
           const matchingCidade = findMatchingCidade(nomeCidade, cidadesList);
           if (matchingCidade) {
             updates.cidade = matchingCidade;
-            console.log('Cidade mapeada com sucesso:', matchingCidade);
+
           } else {
             console.warn('⚠️ Cidade do CEP não encontrada na lista (após normalização):', nomeCidade);
             updates.cidade = nomeCidade; // Preserva mesmo se não match exato
@@ -246,6 +247,7 @@ export default function EscolaScreen() {
 
   const handleConcluir = useCallback(async () => {
     if (!escolas.nomeInstituicao || !escolas.cep || !escolas.estado || !escolas.cidade) {
+      // FIX: Isso deve disparar agora, pois o Modal está renderizado
       showAlert('Erro', 'Preencha todos os campos obrigatórios (Nome, CEP, Estado, Cidade).');
       return;
     }
@@ -273,7 +275,6 @@ export default function EscolaScreen() {
       };
 
       const updatedEscola = await atualizaEscolas(escolaData);
-      console.log('✅ Escola salva:', updatedEscola);
       showAlert('Sucesso', `Escola ${escolas.id ? 'atualizada' : 'cadastrada'} com sucesso!`);
       router.back();
     } catch (error: any) {
@@ -398,6 +399,14 @@ export default function EscolaScreen() {
           </View>
         }
         style={styles.list}
+      />
+      {/* FIX: Renderiza o componente de alerta aqui (sobreposto ao resto) */}
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
       />
     </View>
   );

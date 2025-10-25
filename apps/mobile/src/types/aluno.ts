@@ -1,7 +1,8 @@
+import { PlanejamentoAluno } from "./planejamento";
+
 export interface Aluno {
   id?: number;
   nomeCompleto: string;
-  email?: string;
   cep?: string;
   logradouro?: string;
   numero?: number;
@@ -9,19 +10,13 @@ export interface Aluno {
   bairro?: string;
   estado: string;
   cidade?: string;
-  telefone?: string;
-  responsavel?: string;
-  sexo?: string; // Opcional
-  nivelEscolar: number; // Opcional (frontend)
-  nivelEnsino?: string; // Opcional (API)
-  turno?: string; // Opcional (frontend)
-  ano?: string; // Opcional (API)
-  cid?: string; // Opcional
-  descricaoLaudo?: string; // Opcional
-  responsavelMedico?: string; // Opcional
-  planoDesenvolvimento?: string; // Opcional
-  historicoAtendimento?: string; // Opcional
-  observacoesGerais?: string; // Opcional
+  responsavel: Responsavel;
+  sexo?: string; 
+  nivelEnsino?: string;
+  turno?: string;
+  ano?: string;
+  laudos?: Laudo[];
+  planejamentos?: PlanejamentoAluno[]
   idEscola?: number; // Opcional (pode ser 0)
   idProfessor?: number; // Opcional (pode ser 0)
 }
@@ -32,3 +27,14 @@ export interface AlunoResponse {
   objeto: Aluno[]; // Para respostas single (ex.: buscarPorId, cadastro)
   listaObjetos?: Aluno[]; // Para listas (ex.: buscarAlunos)
 }
+
+export interface Responsavel{
+  nomeCompleto: string;
+  telefone: string;
+  email: string;
+ }
+export interface Laudo{
+  codigoCid: string;
+  nomeMedico: string;
+  descricao: string;
+ }

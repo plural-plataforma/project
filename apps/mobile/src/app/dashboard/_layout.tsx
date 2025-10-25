@@ -25,7 +25,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: 'Início',
           tabBarIcon: ({ color, focused }) => (
             <House size={32} color={color} weight={focused ? 'fill' : 'regular'} />
           )

@@ -1,4 +1,8 @@
 ﻿using api.DTOs.Aluno;
+using api.DTOs.Habilidade;
+using api.DTOs.Laudo;
+using api.DTOs.Planejamento;
+using api.DTOs.Responsavel;
 using api.Models;
 using api.Responses;
 using Data;
@@ -186,7 +190,7 @@ namespace api.Services
             var resposta = new ServiceResponse<List<AlunoBuscarDTO>>();
             try
             {
-                var alunos = _contexto.Alunos
+                var alunos = await _contexto.Alunos
                     .Where(a => a.IdProfessor == usuario.ProfessorId)
                     .Select(a => new AlunoBuscarDTO
                     {
@@ -204,9 +208,42 @@ namespace api.Services
                         NivelEnsino = a.NivelEnsino,
                         Ano = a.Ano,
                         Turno = a.Turno,
-                        Sexo = a.Sexo
+                        Sexo = a.Sexo,
+
+                        Responsavel = a.Responsavel != null
+                            ? new ResponsavelCadastroSimplificadoDTO
+                            {
+                                NomeCompleto = a.Responsavel.NomeCompleto,
+                                Telefone = a.Responsavel.Telefone,
+                                Email = a.Responsavel.Email
+                            }
+                            : null,
+
+                        Laudos = a.Laudos != null
+                            ? a.Laudos.Select(l => new LaudoCadastroSimplificadoDTO
+                            {
+                                CodigoCid = l.CodigoCid,
+                                NomeMedico = l.NomeMedico,
+                                Descricao = l.Descricao
+                            }).ToList()
+                            : new List<LaudoCadastroSimplificadoDTO>(),
+                        Planejamentos = a.AlunosXPlanejamentos != null
+                            ? a.AlunosXPlanejamentos.Select(axp => new PlanejamentoBuscarSimplificadoDTO
+                            {
+                                Id = axp.Planejamento.ID,
+                                Apelido = axp.Planejamento.Apelido,
+                                DataInicio = axp.Planejamento.DataInicio,
+                                DataFim = axp.Planejamento.DataFim,
+                                Habilidades = axp.Planejamento.HabilidadesXPlanejamentos
+                                    .Select(hxp => new HabilidadeBuscarDTO
+                                    {
+                                        Id = hxp.Habilidade.Id
+                                    })
+                                    .ToList()
+                            }).ToList()
+                            : new List<PlanejamentoBuscarSimplificadoDTO>()
                     })
-                    .ToList();
+                    .ToListAsync();
                 resposta.AdicionaObjeto(alunos);
                 resposta.Sucesso = true;
                 return resposta;
@@ -223,7 +260,7 @@ namespace api.Services
             var resposta = new ServiceResponse<AlunoBuscarDTO>();
             try
             {
-                var aluno = _contexto.Alunos
+                var aluno = await _contexto.Alunos
                     .Where(a => a.IdProfessor == usuario.ProfessorId && a.Id == idAluno)
                     .Select(a => new AlunoBuscarDTO
                     {
@@ -241,9 +278,50 @@ namespace api.Services
                         NivelEnsino = a.NivelEnsino,
                         Ano = a.Ano,
                         Turno = a.Turno,
-                        Sexo = a.Sexo
+                        Sexo = a.Sexo,
+
+                        Responsavel = a.Responsavel != null
+                            ? new ResponsavelCadastroSimplificadoDTO
+                            {
+                                NomeCompleto = a.Responsavel.NomeCompleto,
+                                Telefone = a.Responsavel.Telefone,
+                                Email = a.Responsavel.Email
+                            }
+                            : null,
+
+                        Laudos = a.Laudos != null
+                            ? a.Laudos.Select(l => new LaudoCadastroSimplificadoDTO
+                            {
+                                CodigoCid = l.CodigoCid,
+                                NomeMedico = l.NomeMedico,
+                                Descricao = l.Descricao
+                            }).ToList()
+                            : new List<LaudoCadastroSimplificadoDTO>(),
+
+                        Planejamentos = a.AlunosXPlanejamentos != null
+                            ? a.AlunosXPlanejamentos.Select(axp => new PlanejamentoBuscarSimplificadoDTO
+                            {
+                                Id = axp.Planejamento.ID,
+                                Apelido = axp.Planejamento.Apelido,
+                                DataInicio = axp.Planejamento.DataInicio,
+                                DataFim = axp.Planejamento.DataFim,
+                                Habilidades = axp.Planejamento.HabilidadesXPlanejamentos
+                                    .Select(hxp => new HabilidadeBuscarDTO
+                                    {
+                                        Id = hxp.Habilidade.Id
+                                    })
+                                    .ToList()
+                            }).ToList()
+                            : new List<PlanejamentoBuscarSimplificadoDTO>()
                     })
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
+
+                if (aluno == null)
+                {
+                    resposta.SetFalha("Aluno não encontrado.");
+                    return resposta;
+                }
+
                 resposta.AdicionaObjeto(aluno);
                 resposta.Sucesso = true;
                 return resposta;

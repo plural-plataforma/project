@@ -2,6 +2,6 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ActiveDebugProfile>https</ActiveDebugProfile>
-    <NameOfLastUsedPublishProfile>C:\project\apps\api\Properties\PublishProfiles\site38548-WebDeploy.pubxml</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>C:\project\apps\api\Properties\PublishProfiles\desenvolvimento.pubxml</NameOfLastUsedPublishProfile>
   </PropertyGroup>
 </Project>

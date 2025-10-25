@@ -21,7 +21,8 @@ import { Professor } from '@src/types/professor';
 import { buscarProfessor, buscarEscolasProfessor } from '@src/services/professorService';
 import { isCadastroCompleto } from '@src/utils/professorUtils';
 import SelectButton from '@src/components/SelectButton';
-import alert from '../../utils/alert';
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
+
 
 interface SectionItem {
   type: 'banner' | 'tasks';
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   const sections: SectionItem[] = React.useMemo(() => {
     return [
@@ -96,7 +98,7 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-            <View style={[styles.cell, {borderWidth: 0}]}>
+            <View style={[styles.cell, { borderWidth: 0 }]}>
               <SelectButton
                 key="btnPdi"
                 onPress={() => ({})}
@@ -108,7 +110,7 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-            
+
           </View>
         </View>
       );
@@ -122,16 +124,13 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       if (dataFetched) {
-        //console.log('🔍 fetchData já executado, pulando...');
         return;
       }
-      console.log('🔍 Dashboard fetchData iniciado. authLoading:', authLoading, 'isLoggedIn:', isLoggedIn);
       try {
         setLoading(true); // Sempre no início
         setDataFetched(true); // Marque como executado
 
         if (authLoading) {
-          console.log('⏳ Aguardando authLoading...');
           return;
         }
 
@@ -141,23 +140,19 @@ export default function Dashboard() {
           return; // Early return reforçado
         }
 
-        console.log('📥 Buscando professor...');
         const data = await buscarProfessor();
-        console.log('✅ Professor carregado:', data.objeto || 'sem ID');
 
         let updatedProfessor: Professor = {
           ...data.objeto,
           escolas: [],
         };
 
-        console.log('📥 Buscando escolas...');
         try {
           const linkedEscolas = await buscarEscolasProfessor();
           updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
-          console.log('✅ Escolas carregadas:', updatedProfessor.escolas.length);
         } catch (error: any) {
           console.error('❌ Erro em buscarEscolasProfessor:', error.message);
-          alert('Aviso', 'Não foi possível carregar as escolas vinculadas.', [
+          showAlert('Aviso', 'Não foi possível carregar as escolas vinculadas.', [
             { text: 'Cancelar', style: 'cancel' },
             { text: 'OK', onPress: () => ({}) }
           ])
@@ -165,14 +160,13 @@ export default function Dashboard() {
         }
 
         setProfessor(updatedProfessor);
-        console.log(professor)
         setCadastroCompleto(isCadastroCompleto(updatedProfessor));
-        console.log('✅ fetchData concluído com sucesso');
+
       } catch (error: any) {
         console.error('❌ Erro geral em fetchData:', error.message, error);
         if (error.message.includes('401') || error.message.includes('Nenhum token')) {
-          console.log('🔐 Sessão expirada ou sem token detectada, chamando signOut...');
-          alert('Sessão Expirada', 'Por favor, faça login novamente.', [
+
+          showAlert('Sessão Expirada', 'Por favor, faça login novamente.', [
             {
               text: 'OK',
               onPress: async () => {
@@ -183,10 +177,9 @@ export default function Dashboard() {
           ]);
 
         } else {
-          alert('Erro', 'Não foi possível carregar os dados do professor.');
+          showAlert('Erro', 'Não foi possível carregar os dados do professor.');
         }
       } finally {
-        console.log('🏁 fetchData finalizado, setLoading(false)');
         setLoading(false);
       }
     };
@@ -211,8 +204,7 @@ export default function Dashboard() {
         <View style={styles.headerRight}>
           <TouchableOpacity
             onPress={() => {
-              console.log('🖱️ Botão Sair clicado!');
-              alert(
+              showAlert(
                 'Sair da conta?',
                 'Isso invalidará sua sessão e você precisará fazer login novamente.',
                 [
@@ -220,7 +212,6 @@ export default function Dashboard() {
                   {
                     text: 'Sair',
                     onPress: async () => {
-                      console.log('✅ Confirmação de sair aceita!');
                       await signOut();
                       router.replace('/')
                     },
@@ -253,6 +244,13 @@ export default function Dashboard() {
         >
           © 2025 Plural. Todos os direitos reservados.
         </Text>
+        <CustomAlert
+          visible={visible}
+          title={config.title}
+          message={config.message}
+          buttons={config.buttons}
+          onDismiss={handleDismiss}
+        />
       </SafeAreaView>
     </View>
   );
@@ -275,9 +273,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     height: 75,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    boxShadow: ' 0px 2px rgba(0, 0, 0, 0.25)',
   },
   headerLeft: {
     flexDirection: 'row',

@@ -111,7 +111,7 @@ namespace api.Services
                             .Select(hp => new HabilidadeBuscarDTO
                             {
                                 Id = hp.Habilidade.Id,
-                                NivelEnsino = hp.Habilidade.NivelEnsino,
+                                IdNivelEnsino = hp.Habilidade.IdNivelEnsino,
                                 Tipo = hp.Habilidade.Tipo,
                                 Descricao = hp.Habilidade.Descricao,
                                 Resumo = hp.Habilidade.Resumo
@@ -156,7 +156,7 @@ namespace api.Services
                             .Select(hp => new HabilidadeBuscarDTO
                             {
                                 Id = hp.Habilidade.Id,
-                                NivelEnsino = hp.Habilidade.NivelEnsino,
+                                IdNivelEnsino = hp.Habilidade.IdNivelEnsino,
                                 Tipo = hp.Habilidade.Tipo,
                                 Descricao = hp.Habilidade.Descricao,
                                 Resumo = hp.Habilidade.Resumo

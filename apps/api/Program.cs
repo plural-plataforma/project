@@ -22,7 +22,12 @@ builder.Services.AddCors(options =>
                 "https://68ef01c7dc34b7e24e5960cb--leafy-donut-4f71a4.netlify.app",
                 "https://leafy-donut-4f71a4.netlify.app",
                 "https://devs.pluralplataforma.com",
-                "http://localhost:8082")
+                "http://localhost:8082",
+                "https://adm.pluralplataforma.com",
+                "https://app-web-iota-ten.vercel.app",
+                "178.63.129.220:443",
+                "https://app-web-dev.vercel.app")
+                "https://app.pluralplataforma.com")
             .AllowAnyHeader() 
             .AllowAnyMethod()
             .AllowCredentials(); 
@@ -39,6 +44,7 @@ var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperat
 var userId = builder.Configuration["USER_ID"] ?? throw new InvalidOperationException("USER_ID não encontrada no .env");
 var serverUrl = builder.Configuration["SERVER_URL"] ?? throw new InvalidOperationException("SERVER_URL não encontrada no .env");
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? throw new InvalidOperationException("JWT_SECRET não encontrada no .env");
+var portApi = builder.Configuration["PORT_API"] ?? throw new InvalidOperationException("PORT_API não encontrada no .env");
 
 // Carrega appsettings.json e substitui placeholders
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
@@ -52,7 +58,8 @@ var baseConnectionString = builder.Configuration.GetConnectionString("AppDbConte
 var connectionString = baseConnectionString
     .Replace("{USER_ID}", userId)
     .Replace("{DB_PASSWORD}", dbPassword)
-    .Replace("{SERVER_URL}", serverUrl);
+    .Replace("{SERVER_URL}", serverUrl)
+.Replace("{PORT_API}", portApi);
 
 // Registra DbContext com a string montada
 builder.Services.AddDbContext<AppDbContext>(options =>

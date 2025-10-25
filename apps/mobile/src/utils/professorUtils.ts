@@ -1,7 +1,6 @@
 import { Professor } from '../types/professor';
 
 export const isCadastroCompleto = (professor: Professor): boolean => {
-  console.log('Verificando cadastro completo para o professor:', professor);
   const camposObrigatorios = [
     professor.nomeCompleto,
     professor.cep,

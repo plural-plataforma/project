@@ -3,7 +3,7 @@ import CustomButton from "@src/components/CustomButton";
 import Header from "@src/components/Header";
 import { fetchEstados, fetchMunicipios } from "@src/services/locationsService";
 import { fetchCepData } from "@src/services/validateCep";
-import { Aluno } from "@src/types/aluno";
+import { Aluno, Responsavel, Laudo } from "@src/types/aluno"; // Importe os tipos corrigidos
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ClockCounterClockwise,
@@ -14,17 +14,19 @@ import {
   User,
   UsersThree,
 } from "phosphor-react-native";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, FlatList, View, StyleSheet } from "react-native";
+import { ActivityIndicator, FlatList, View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import ProfilePhoto from "@src/components/ProfilePhoto";
 import { cadastraAluno, buscarAlunoPorId, atualizaAluno } from "@src/services/alunoService";
-import { buscarEscolas } from "@src/services/escolasService";
 import { Escola } from "@src/types/escolas";
 import InputField from "@src/components/InputField";
 import SectionGroup from "@src/components/SectionGroup";
-import { useCustomAlert } from '../../hooks/useCustomAlert';
+import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 import toTitleCase from "@src/utils/camelCase";
+import { buscarEscolasProfessor } from "@src/services/professorService";
+import { PlanejamentoAluno } from "@src/types/planejamento";
+
 
 // Tipos para os campos do InputField
 interface TextInputField {
@@ -37,6 +39,7 @@ interface TextInputField {
   searchable?: boolean;
   searchPlaceholder?: string;
   onFocus?: () => void;
+  keyboardType?: 'default' | 'number-pad' | 'email-address' | 'phone-pad';
 }
 
 interface DropdownInputField {
@@ -56,9 +59,10 @@ type Section = {
   title: string;
   icon: React.ReactNode;
   fields: InputFieldType[];
+  plannings?: PlanejamentoAluno[];
 };
 
-// Hook para gerar as seções do formulário
+// Hook para gerar as seções do formulário (expandido com campos do API)
 const useAlunoSections = (
   aluno: Aluno,
   setAluno: React.Dispatch<React.SetStateAction<Aluno>>,
@@ -73,9 +77,9 @@ const useAlunoSections = (
   enderecoEnabled: boolean,
   handleCepChange: (text: string) => void,
   handleEstadoFocus: () => void,
-  handleCidadeFocus: () => void
+  handleCidadeFocus: () => void,
+  handleAddressFocus: () => void
 ): Section[] => {
-  console.log('🔄 Generating sections with aluno:', aluno); // Debug log para verificar se aluno está populado
   return useMemo(() => [
     {
       title: "Dados Pessoais",
@@ -113,7 +117,6 @@ const useAlunoSections = (
           selectedValue: aluno.estado || null,
           onValueChange: (value: string | number | null) => {
             const stateValue = value?.toString() || "";
-            console.log('🔄 Estado selecionado:', stateValue);  // Debug
             setAluno(prev => ({ ...prev, estado: stateValue, cidade: "" }));
             if (stateValue && !cidadesPorUf[stateValue]) {
               fetchMunicipios(stateValue)
@@ -125,16 +128,15 @@ const useAlunoSections = (
             }
           },
           onFocus: handleEstadoFocus,
-          editable: true,
         },
         {
           label: "Cidade",
           placeholder: aluno.estado ? 'Informe a cidade' : 'Selecione o estado primeiro',
           options: cidadesDisponiveis.length > 0 && cidadesDisponiveis[0] !== 'Selecione o estado primeiro'
             ? cidadesDisponiveis.map((cidade) => ({
-                label: toTitleCase(cidade),
-                value: cidade,
-              }))
+              label: toTitleCase(cidade),
+              value: cidade,
+            }))
             : [{ label: 'Carregando cidades...', value: '' }],
           selectedValue: aluno.cidade || null,
           onValueChange: (value: string | number | null) => {
@@ -152,6 +154,7 @@ const useAlunoSections = (
           value: aluno.bairro || "",
           onChangeText: (value: string) => setAluno(prev => ({ ...prev, bairro: value })),
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
         {
           label: "Endereço",
@@ -159,202 +162,187 @@ const useAlunoSections = (
           value: aluno.logradouro || "",
           onChangeText: (value: string) => setAluno(prev => ({ ...prev, logradouro: value })),
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
         {
           label: "Número",
           placeholder: "Digite o número",
-          value: aluno.numero ? aluno.numero.toString() : "",
+          value: aluno.numero ? aluno.numero.toString() : '',
           onChangeText: (value: string) => {
-            const numValue = value === "" ? 0 : parseInt(value) || 0;
+            const numValue = value === '' ? 0 : parseInt(value) || 0;
             setAluno(prev => ({ ...prev, numero: numValue }));
           },
+          keyboardType: "number-pad" as const,
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
         {
           label: "Complemento",
           placeholder: "Digite o complemento",
-          value: aluno.complemento || "",
+          value: aluno.complemento || '',
           onChangeText: (value: string) => setAluno(prev => ({ ...prev, complemento: value })),
           editable: enderecoEnabled,
+          onFocus: handleAddressFocus,
         },
-      ],
-    },
-    {
-      title: "Dados do Responsável",
-      icon: <UsersThree size={16} weight="fill" color={colors.primary} />,
-      fields: [
-        {
-          label: "Nome do Responsável",
-          placeholder: "Digite o nome do responsável",
-          value: aluno.responsavel || "",
-          onChangeText: (value: string) => setAluno(prev => ({ ...prev, responsavel: value })),
-        },
-        {
-          label: "Contato",
-          placeholder: "(00) 00000-0000",
-          mask: "phone" as const,
-          value: aluno.telefone || "",
-          onChangeText: (value: string) => setAluno(prev => ({ ...prev, telefone: value })),
-        },
-        {
-          label: "E-mail",
-          placeholder: "Digite o e-mail",
-          value: aluno.email || "",
-          onChangeText: (value: string) => setAluno(prev => ({ ...prev, email: value })),
-        },
-      ],
+
+      ]
     },
     {
       title: "Dados Escolares",
       icon: <Student size={16} weight="fill" color={colors.primary} />,
       fields: [
         {
-          label: "Nível Escolar",
-          placeholder: "Informe o nível escolar",
-          options: [
-            { label: "Educação Infantil", value: 1 },
-            { label: "Ensino Fundamental I - Anos Iniciais", value: 2 },
-            { label: "Ensino Fundamental II - Anos Finais", value: 3 },
-            { label: "Ensino Médio", value: 4 },
-          ],
-          selectedValue: aluno.nivelEscolar || null,
+          label: "Escola",
+          placeholder: "Selecione a escola",
+          options: escolasLoading ? [{ label: 'Carregando...', value: '' }] : escolas.map(e => ({ label: e.nomeInstituicao, value: e.id })),
+          selectedValue: aluno.idEscola || null,
           onValueChange: (value: string | number | null) =>
-            setAluno(prev => ({ ...prev, nivelEscolar: value ? Number(value) : 0 })),
+            setAluno(prev => ({ ...prev, idEscola: Number(value) || 0 })),
+        },
+        {
+          label: "Nível de Ensino",
+          placeholder: "Selecione o nível",
+          options: [
+            { label: "Educação Infantil", value: "1" },
+            { label: "Ensino Fundamental I - Anos Iniciais", value: "2" },
+            { label: "Ensino Fundamental II - Anos Finais", value: "3" },
+            { label: "Ensino Médio", value: "4" },
+          ],
+          selectedValue: aluno.nivelEnsino || null,
+          onValueChange: (value: string | number | null) =>
+            setAluno(prev => ({ ...prev, nivelEnsino: value?.toString() || "" })),
+        },
+        {
+          label: "Ano",
+          placeholder: "Digite o ano",
+          value: aluno.ano || '',
+          onChangeText: (value: string) => setAluno(prev => ({ ...prev, ano: value })),
         },
         {
           label: "Turno",
-          placeholder: "Informe o turno",
+          placeholder: "Selecione o turno",
           options: [
             { label: "Manhã", value: "1" },
             { label: "Tarde", value: "2" },
           ],
           selectedValue: aluno.turno || null,
-          onValueChange: (value: any) =>
-            setAluno(prev => ({ ...prev, turno: value.toString() || "" })),
-        },
-        {
-          label: "Escola/Instituição",
-          placeholder: escolasLoading ? "Carregando escolas..." : "Informe a escola/instituição",
-          options: escolasLoading
-            ? []
-            : !escolas || escolas.length === 0
-            ? [{ label: "Nenhuma escola disponível", value: "" }]
-            : escolas
-                .filter((escola) => escola.nomeInstituicao && escola.id)
-                .map((escola) => ({
-                  label: escola.nomeInstituicao!,
-                  value: escola.id!.toString(),
-                })),
-          selectedValue: aluno.idEscola ? aluno.idEscola.toString() : null,
           onValueChange: (value: string | number | null) =>
-            setAluno(prev => ({ ...prev, idEscola: value ? Number(value) : 0 })),
-          editable: !escolasLoading,
-          searchable: true,
-          searchPlaceholder: 'Digite para buscar a escola',
+            setAluno(prev => ({ ...prev, turno: value?.toString() || "" })),
         },
-        {
-          label: "Professor Responsável",
-          placeholder: "Informe o professor",
-          options: [
-            { label: "Prof 1", value: 101 },
-            { label: "Prof 2", value: 2 },
-          ],
-          selectedValue: aluno.idProfessor || null,
-          onValueChange: (value: string | number | null) =>
-            setAluno(prev => ({ ...prev, idProfessor: value ? Number(value) : 0 })),
-        },
-      ],
+
+      ]
     },
     {
-      title: "Descrição do Laudo",
-      icon: <FilePlus size={16} weight="fill" color={colors.primary} />,
+      title: "Dados do Responsável",
+      icon: <UsersThree size={16} weight="fill" color={colors.primary} />,
       fields: [
         {
-          label: "CID",
-          placeholder: "Código CID",
-          value: aluno.cid || "",
-          onChangeText: (value: string) => setAluno(prev => ({ ...prev, cid: value })),
+          label: "Nome Completo",
+          placeholder: "Digite o nome do responsável",
+          value: (aluno.responsavel?.nomeCompleto || ''),
+          onChangeText: (value: string) => setAluno(prev => ({
+            ...prev,
+            responsavel: {
+              ...prev.responsavel,
+              nomeCompleto: value,
+              telefone: prev.responsavel?.telefone || '',
+              email: prev.responsavel?.email || ''
+            }
+          })),
         },
         {
-          label: "Médico Responsável",
-          placeholder: "Nome Profissional",
-          value: aluno.responsavelMedico || "",
-          onChangeText: (value: string) => setAluno(prev => ({ ...prev, responsavelMedico: value })),
+          label: "Telefone",
+          placeholder: "Digite o telefone do responsável",
+          value: (aluno.responsavel?.telefone || ''),
+          onChangeText: (value: string) => setAluno(prev => ({
+            ...prev,
+            responsavel: {
+              ...prev.responsavel,
+              telefone: value,
+              nomeCompleto: prev.responsavel?.nomeCompleto || '',
+              email: prev.responsavel?.email || ''
+            }
+          })),
+          mask: "phone" as const,
         },
         {
-          label: "Descrição",
-          placeholder: "Digite a descrição do laudo",
-          value: aluno.descricaoLaudo || "",
-          onChangeText: (value: string) => setAluno(prev => ({ ...prev, descricaoLaudo: value })),
+          label: "Email",
+          placeholder: "Digite o email do responsável",
+          value: (aluno.responsavel?.email || ''),
+          onChangeText: (value: string) => setAluno(prev => ({
+            ...prev,
+            responsavel: {
+              ...prev.responsavel,
+              email: value,
+              nomeCompleto: prev.responsavel?.nomeCompleto || '',
+              telefone: prev.responsavel?.telefone || ''
+            }
+          })),
         },
-      ],
+      ]
+    },
+    {
+      title: "Laudos",
+      icon: <Note size={16} weight="fill" color={colors.primary} />,
+      fields: [
+        // Para simplicidade, adicione inputs para um laudo (expanda para array se necessário)
+        {
+          label: "Código CID",
+          placeholder: "Digite o código CID",
+          value: (aluno.laudos && aluno.laudos.length > 0 ? aluno.laudos[0]?.codigoCid || '' : ''),
+          onChangeText: (value: string) => {
+            const newLaudos = [...(aluno.laudos || [])];
+            if (newLaudos.length === 0) {
+              newLaudos.push({ codigoCid: '', nomeMedico: '', descricao: '' });
+            }
+            newLaudos[0] = { ...newLaudos[0], codigoCid: value };
+            setAluno(prev => ({ ...prev, laudos: newLaudos }));
+          },
+        },
+        {
+          label: "Nome do Médico",
+          placeholder: "Digite o nome do médico",
+          value: (aluno.laudos && aluno.laudos.length > 0 ? aluno.laudos[0]?.nomeMedico || '' : ''),
+          onChangeText: (value: string) => {
+            const newLaudos = [...(aluno.laudos || [])];
+            if (newLaudos.length === 0) {
+              newLaudos.push({ codigoCid: '', nomeMedico: '', descricao: '' });
+            }
+            newLaudos[0] = { ...newLaudos[0], nomeMedico: value };
+            setAluno(prev => ({ ...prev, laudos: newLaudos }));
+          },
+        },
+        {
+          label: "Descrição do Laudo",
+          placeholder: "Digite a descrição",
+          value: (aluno.laudos && aluno.laudos.length > 0 ? aluno.laudos[0]?.descricao || '' : ''),
+          onChangeText: (value: string) => {
+            const newLaudos = [...(aluno.laudos || [])];
+            if (newLaudos.length === 0) {
+              newLaudos.push({ codigoCid: '', nomeMedico: '', descricao: '' });
+            }
+            newLaudos[0] = { ...newLaudos[0], descricao: value };
+            setAluno(prev => ({ ...prev, laudos: newLaudos }));
+          },
+        },
+      ]
     },
     {
       title: "Plano Desenvolvimento Individual",
-      icon: <MapTrifold size={16} weight="fill" color={colors.primary} />,
-      fields: [
-        {
-          label: "Plano",
-          placeholder: "Digite o plano de desenvolvimento",
-          value: aluno.planoDesenvolvimento || "",
-          onChangeText: (value: string) =>
-            setAluno(prev => ({ ...prev, planoDesenvolvimento: value })),
-        },
-      ],
-    },
-    {
-      title: "Histórico de Atendimento",
       icon: <ClockCounterClockwise size={16} weight="fill" color={colors.primary} />,
-      fields: [
-        {
-          label: "Histórico",
-          placeholder: "Digite o histórico de atendimento",
-          value: aluno.historicoAtendimento || "",
-          onChangeText: (value: string) =>
-            setAluno(prev => ({ ...prev, historicoAtendimento: value })),
-        },
-      ],
+      fields: [],
+      plannings: aluno.planejamentos || [],
     },
-    {
-      title: "Observações Gerais",
-      icon: <Note size={16} weight="fill" color={colors.primary} />,
-      fields: [
-        {
-          label: "Observações",
-          placeholder: "Digite as observações gerais",
-          value: aluno.observacoesGerais || "",
-          onChangeText: (value: string) =>
-            setAluno(prev => ({ ...prev, observacoesGerais: value })),
-        },
-      ],
-    },
-  ], [
-    aluno,
-    ufs,
-    ufsLoaded,
-    cidadesDisponiveis,
-    escolasLoading,
-    escolas,
-    cepLoading,
-    enderecoEnabled,
-    handleCepChange,
-    setAluno,
-    cidadesPorUf,
-    setCidadesPorUf,
-    handleEstadoFocus,
-    handleCidadeFocus
-  ]);
-};
+  ], [aluno, ufs, ufsLoaded, cidadesDisponiveis, cidadesPorUf, cepLoading, enderecoEnabled, handleCepChange, handleEstadoFocus, handleCidadeFocus, escolas, escolasLoading, handleAddressFocus, aluno.planejamentos]);
+}
 
 export default function AlunoProfileScreen() {
+  const { id } = useLocalSearchParams();
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const alunoId = params.id ? Number(params.id) : null;
-  const isEdit = !!alunoId;
+  const isEdit = !!id;
   const [aluno, setAluno] = useState<Aluno>({
-    id: 0,
+    id: isEdit ? parseInt(id as string) : 0,
     nomeCompleto: "",
-    email: "",
     cep: "",
     logradouro: "",
     numero: 0,
@@ -362,62 +350,68 @@ export default function AlunoProfileScreen() {
     bairro: "",
     estado: "",
     cidade: "",
-    telefone: "",
-    responsavel: "",
+    responsavel: { nomeCompleto: "", telefone: "", email: "" },
     sexo: "",
-    nivelEscolar: 0,
+    nivelEnsino: "",
     turno: "",
-    cid: "",
-    descricaoLaudo: "",
-    responsavelMedico: "",
-    planoDesenvolvimento: "",
-    historicoAtendimento: "",
-    observacoesGerais: "",
+    ano: "",
+    laudos: [], // Array vazio para API
+    planejamentos: [], // Array vazio para API
     idEscola: 0,
-    idProfessor: 0,
   });
-  const [loading, setLoading] = useState<boolean>(true);
-  const [cepLoading, setCepLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [cepLoading, setCepLoading] = useState(false);
   const [ufs, setUfs] = useState<{ label: string; value: string }[]>([]);
-  const [ufsLoaded, setUfsLoaded] = useState<boolean>(false);
+  const [ufsLoaded, setUfsLoaded] = useState(false);
   const [cidadesPorUf, setCidadesPorUf] = useState<{ [key: string]: string[] }>({});
-  const cidadesDisponiveis = useMemo(() => 
-    aluno.estado && cidadesPorUf[aluno.estado] && cidadesPorUf[aluno.estado].length > 0
-      ? cidadesPorUf[aluno.estado]
-      : aluno.estado
-      ? [aluno.cidade || 'Carregando cidades...']
-      : ['Selecione o estado primeiro'], 
-    [aluno.estado, cidadesPorUf, aluno.cidade]
-  );
   const [escolas, setEscolas] = useState<Escola[]>([]);
-  const [escolasLoading, setEscolasLoading] = useState<boolean>(false);
+  const [escolasLoading, setEscolasLoading] = useState(true);
+  const [enderecoEnabled, setEnderecoEnabled] = useState(false);
 
-  const { showAlert } = useCustomAlert();
-    
-  // Allow manual editing of address fields by default. City search will only be enabled when state is provided.
-  const enderecoEnabled = true;
+  const lastAlertTime = useRef(0);
+
+  // FIX: Destruture todos os valores necessários para renderizar o alerta
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
+
+  const cidadesDisponiveis = useMemo(() =>
+    aluno.estado ? cidadesPorUf[aluno.estado] || ['Selecione o estado primeiro'] : ['Selecione o estado primeiro'],
+    [aluno.estado, cidadesPorUf]
+  );
+
+  // Função para mapear nome completo do estado para sigla (caso o CEP retorne nome)
+  const getSiglaFromNome = useCallback((nomeEstado: string): string => {
+    const normalizedNome = nomeEstado.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const uf = ufs.find(ufItem =>
+      ufItem.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedNome
+    );
+    return uf ? uf.value : '';
+  }, [ufs]);
 
   // Função para normalizar e encontrar cidade exata na lista
   const findMatchingCidade = useCallback((nomeCidade: string, cidadesList: string[]): string | null => {
     if (!nomeCidade || !cidadesList.length) return null;
     const normalizedInput = nomeCidade.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const match = cidadesList.find(cidade => 
+    const match = cidadesList.find(cidade =>
       cidade.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedInput
     );
     return match || null;
   }, []);
 
-  // Função para mapear nome completo do estado para sigla (como em EscolaScreen)
-  const getSiglaFromNome = useCallback((nomeEstado: string): string => {
-    if (!nomeEstado) return '';
-    const normalizedNome = nomeEstado.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const uf = ufs.find(ufItem => 
-      ufItem.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedNome
-    );
-    return uf ? uf.value : nomeEstado.toUpperCase();  // Fallback para sigla se já for
-  }, [ufs]);
+  // Função para carregar estados
+  const loadEstados = useCallback(async () => {
+    if (ufsLoaded) return;
+    try {
+      const estadosData = await fetchEstados();
+      const formattedUfs = estadosData.map((uf) => ({ label: uf.nome, value: uf.sigla }));
+      setUfs(formattedUfs);
+      setUfsLoaded(true);
+    } catch (error: any) {
+      console.error('❌ Erro ao carregar estados:', error.message);
+      showAlert('Erro', 'Não foi possível carregar os estados. Tente novamente.');
+    }
+  }, [ufsLoaded, showAlert]);
 
-  const loadOrGetMunicipios = useCallback(async (siglaEstado: string, currentCidade?: string): Promise<{cidades: string[], matchedCidade?: string}> => {
+  const loadOrGetMunicipios = useCallback(async (siglaEstado: string, currentCidade?: string): Promise<{ cidades: string[], matchedCidade?: string }> => {
     if (cidadesPorUf[siglaEstado] && cidadesPorUf[siglaEstado].length > 0) {
       const cidades = cidadesPorUf[siglaEstado];
       let matched = currentCidade;
@@ -444,22 +438,6 @@ export default function AlunoProfileScreen() {
     }
   }, [cidadesPorUf, findMatchingCidade, showAlert]);
 
-  // Função para carregar estados (sempre no mount, como em EscolaScreen)
-  const loadEstados = useCallback(async () => {
-    if (ufsLoaded) return;
-    try {
-      const estadosData = await fetchEstados();
-      const formattedUfs = estadosData.map((uf) => ({ label: uf.nome, value: uf.sigla }));
-      setUfs(formattedUfs);
-      setUfsLoaded(true);
-      console.log('✅ UFs carregados:', formattedUfs.length);  // Debug: deve logar 27
-    } catch (error: any) {
-      console.error('❌ Erro ao carregar estados:', error.message);
-      showAlert('Erro', 'Não foi possível carregar os estados. Tente novamente.');
-      setUfs([]);  // Fallback vazio para retry
-    }
-  }, [ufsLoaded, showAlert]);
-
   // Função para carregar municípios apenas quando o campo de cidade recebe foco
   const loadMunicipiosOnFocus = useCallback(async (siglaEstado: string) => {
     if (!siglaEstado) return;
@@ -474,155 +452,115 @@ export default function AlunoProfileScreen() {
   }, [loadEstados]);
 
   const handleCidadeFocus = useCallback(() => {
-    loadMunicipiosOnFocus(aluno.estado);
+    if (aluno.estado) {
+      loadMunicipiosOnFocus(aluno.estado);
+    }
   }, [aluno.estado, loadMunicipiosOnFocus]);
+
+  const handleAddressFocus = useCallback(() => {
+    if (!enderecoEnabled && Date.now() - lastAlertTime.current > 2000) {
+      lastAlertTime.current = Date.now();
+      showAlert("Atenção", "Preencha o CEP primeiro para liberar os campos de endereço.");
+    }
+  }, [enderecoEnabled, showAlert]);
+
+  // Carregar escolas
+  useEffect(() => {
+    const loadEscolas = async () => {
+      try {
+        setEscolasLoading(true);
+        const escolasData = await buscarEscolasProfessor();
+        setEscolas(escolasData);
+      } catch (error) {
+        console.error('Erro ao carregar escolas:', error);
+        showAlert('Erro', 'Não foi possível carregar as escolas.');
+      } finally {
+        setEscolasLoading(false);
+      }
+    };
+    loadEscolas();
+  }, [showAlert]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         setLoading(true);
-        setEscolasLoading(true);
-        const token = await AsyncStorage.getItem("authToken");
+        const token = await AsyncStorage.getItem('authToken');
         if (!token) {
-          console.warn("⚠️ Nenhum token encontrado. Usuário não autenticado.");
-          showAlert("Aviso", "Por favor, faça login para carregar seus dados.");
+          console.warn('⚠️ Nenhum token encontrado. Usuário não autenticado.');
+          showAlert('Aviso', 'Por favor, faça login para carregar os dados.');
           setLoading(false);
-          setEscolasLoading(false);
           return;
         }
 
-        // Fetch escolas
-        const escolasData = await buscarEscolas();
-        setEscolas(escolasData);
-
-        // Carrega estados sempre no mount (como em EscolaScreen)
+        // Carrega estados sempre no mount
         await loadEstados();
 
-        // If editing, fetch aluno data using buscarAlunoPorId
         if (isEdit) {
-          console.log('🔍 Fetching aluno data for ID:', alunoId); // Debug log
-          const rawAluno = await buscarAlunoPorId(alunoId!); 
-          console.log('📥 Fetched rawAluno:', rawAluno); // Debug log
-
-          if (!rawAluno.id) {
-            throw new Error('ID do aluno não encontrado nos dados carregados.');
-          }
-
-          let processedData = { ...rawAluno };
-
-          // Normaliza estado para sigla se necessário (como em EscolaScreen)
-          let estadoSigla = '';
-          if (rawAluno.estado) {
-            estadoSigla = getSiglaFromNome(rawAluno.estado);
-            processedData = { ...processedData, estado: estadoSigla };
-            console.log('🔄 Estado normalizado:', rawAluno.estado, '→', estadoSigla);  // Debug
-          }
-
-          // Carrega cidades usando a sigla normalizada
-          if (estadoSigla) {
-            const { matchedCidade } = await loadOrGetMunicipios(estadoSigla, rawAluno.cidade);
-            if (matchedCidade && matchedCidade !== rawAluno.cidade) {
-              processedData = { ...processedData, cidade: matchedCidade };
+          try {
+            const alunoData = await buscarAlunoPorId(parseInt(id as string));
+            let processedData = { ...alunoData };
+            if (alunoData.estado) {
+              const { matchedCidade } = await loadOrGetMunicipios(alunoData.estado, alunoData.cidade);
+              if (matchedCidade && matchedCidade !== alunoData.cidade) {
+                processedData = { ...processedData, cidade: matchedCidade };
+              }
             }
+            setAluno(processedData);
+            // Verifica se o CEP já está preenchido para habilitar campos de endereço
+            const cleanCep = (processedData.cep || '').replace(/[^0-9]/g, '');
+            setEnderecoEnabled(cleanCep.length === 8);
+          } catch (error: any) {
+            console.error('❌ Erro ao buscar aluno:', error.message);
+            showAlert('Erro', 'Não foi possível carregar os dados do aluno.');
           }
-
-          // Mapeamento para Aluno (corrigindo nomes de campos e tipos)
-          const mappedAluno: Aluno = {
-            id: processedData.id || 0,
-            nomeCompleto: processedData.nomeCompleto || "",
-            email: processedData.email || "", // Ausente na API, fica vazio
-            cep: processedData.cep || "",
-            logradouro: processedData.logradouro || "",
-            numero: processedData.numero || 0,
-            complemento: processedData.complemento || "",
-            bairro: processedData.bairro || "",
-            estado: processedData.estado || "",  // Agora é sigla garantida
-            cidade: processedData.cidade || "",
-            telefone: processedData.telefone ? String(processedData.telefone) : "", // Converte para string para máscara
-            responsavel: processedData.responsavel || "", // Ausente, fica vazio
-            sexo: processedData.sexo || "", // Ausente
-            nivelEscolar: processedData.nivelEnsino ? Number(processedData.nivelEnsino) : 0, // Mapeia nivelEnsino -> nivelEscolar
-            turno: processedData.turno || "", // Converte para número
-            cid: processedData.cid || "", // Ausente
-            descricaoLaudo: processedData.descricaoLaudo || "", // Ausente
-            responsavelMedico: processedData.responsavelMedico || "", // Ausente
-            planoDesenvolvimento: processedData.planoDesenvolvimento || "", // Ausente
-            historicoAtendimento: processedData.historicoAtendimento || "", // Ausente
-            observacoesGerais: processedData.observacoesGerais || "", // Ausente
-            idEscola: processedData.idEscola || 0,
-            idProfessor: processedData.idProfessor || 0, // Ausente, fica 0
-            // Ignora 'ano' por enquanto (adicione se precisar mapear para algo)
-          };
-
-          console.log('✅ Mapped aluno to:', mappedAluno); // Debug após mapeamento
-          setAluno(mappedAluno);
         }
-
       } catch (error: any) {
-        console.error("Erro ao carregar dados iniciais:", error.message);
-        if (error.message.includes("401")) {
-          showAlert(
-            "Erro de Autenticação",
-            "Sua sessão expirou. Faça login novamente."
-          );
-          router.push("/auth/login");
+        console.error('❌ Erro ao carregar dados iniciais:', error.message);
+        if (error.message.includes('401')) {
+          showAlert('Erro de Autenticação', 'Sua sessão expirou. Faça login novamente.');
+          router.push('/auth/login');
         } else {
-          showAlert(
-            "Erro",
-            isEdit ? "Não foi possível carregar os dados do aluno. Preencha manualmente." : "Não foi possível carregar os dados. Preencha manualmente."
-          );
-          // Para edição com erro, reseta idEscola para evitar payloads inválidos
-          setAluno((prev) => ({
-            ...prev,
-            id: 0, // Evita edição acidental
-            idEscola: 0,
-          }));
+          showAlert('Erro', 'Não foi possível carregar os dados. Preencha manualmente.');
         }
       } finally {
         setLoading(false);
-        setEscolasLoading(false);
       }
     };
     fetchInitialData();
-  }, [isEdit, alunoId]);  // Deps mínimas, como em EscolaScreen
+  }, [id, isEdit, showAlert, router]);
 
   const handleCepChange = useCallback(async (text: string) => {
-    const cepClean = text.replace(/[^0-9]/g, "");
+    const cepClean = text.replace(/[^0-9]/g, '');
     setAluno(prev => ({ ...prev, cep: cepClean }));
 
     if (cepClean.length === 8) {
+      setEnderecoEnabled(true);
       setCepLoading(true);
       try {
         const cepData = await fetchCepData(cepClean);
-        console.log('CEP Data recebido:', cepData); // Debug: verifique o que vem
 
-        // Assume formato ViaCEP ou similar: uf (sigla), localidade (cidade full), logradouro, bairro
         let siglaEstado = cepData.state || getSiglaFromNome(cepData.state || '');
         const nomeCidade = cepData.city || '';
 
-        const updates = {
-          estado: cepData.state || "",
-          cidade: cepData.city || "",
-          logradouro: cepData.street || "",
-          bairro: cepData.neighborhood || "",
+        const updates: Partial<Aluno> = {
+          logradouro: cepData.street || '',
+          bairro: cepData.neighborhood || '',
         };
 
         if (siglaEstado) {
           updates.estado = siglaEstado;
-          // Carrega cidades se necessário
           let cidadesList = cidadesPorUf[siglaEstado];
           if (!cidadesList || cidadesList.length === 0) {
             const { cidades } = await loadOrGetMunicipios(siglaEstado, nomeCidade);
             cidadesList = cidades;
           }
-          // Encontra match normalizado para cidade
           const matchingCidade = findMatchingCidade(nomeCidade, cidadesList);
           if (matchingCidade) {
             updates.cidade = matchingCidade;
-            console.log('Cidade mapeada com sucesso:', matchingCidade);
           } else {
             console.warn('⚠️ Cidade do CEP não encontrada na lista (após normalização):', nomeCidade);
-            updates.cidade = nomeCidade; // Preserva mesmo se não match exato (como em Escola)
+            updates.cidade = nomeCidade;
           }
         } else {
           console.warn('⚠️ Não foi possível obter sigla do estado do CEP:', cepData);
@@ -632,15 +570,15 @@ export default function AlunoProfileScreen() {
 
         setAluno(prev => ({ ...prev, ...updates }));
       } catch (error: any) {
-        console.error("Erro ao buscar CEP:", error);
-        if (error.name === "BadRequestError") {
-          showAlert("Erro de Validação", error.message);
-        } else if (error.name === "NotFoundError") {
-          showAlert("Erro", "CEP não encontrado.");
-        } else if (error.name === "InternalError") {
-          showAlert("Erro", "Erro interno no serviço de CEP.");
+        console.error('❌ Erro ao buscar CEP:', error);
+        if (error.name === 'BadRequestError') {
+          showAlert('Erro de Validação', error.message);
+        } else if (error.name === 'NotFoundError') {
+          showAlert('Erro', 'CEP não encontrado.');
+        } else if (error.name === 'InternalError') {
+          showAlert('Erro', 'Erro interno no serviço de CEP.');
         } else {
-          showAlert("Erro", error.message || "Não foi possível buscar o endereço.");
+          showAlert('Erro', error.message || 'Não foi possível buscar o endereço.');
         }
       } finally {
         setCepLoading(false);
@@ -649,49 +587,71 @@ export default function AlunoProfileScreen() {
   }, [getSiglaFromNome, findMatchingCidade, showAlert, cidadesPorUf, loadOrGetMunicipios]);
 
   const handleConcluir = useCallback(async () => {
-
-    // Basic client-side validation (como em Escola)
-    if (!aluno.nomeCompleto || aluno.nomeCompleto.trim() === "") {
-      showAlert("Erro", "O nome do aluno é obrigatório.");
+    // Validação client-side alinhada com API obrigatórios
+    if (!aluno.nomeCompleto?.trim()) {
+      showAlert("Erro", "O nome completo é obrigatório.");
       return;
     }
-
-    // Validação extra para escola
+    if (!aluno.estado) {
+      showAlert("Erro", "O estado é obrigatório.");
+      return;
+    }
     if (!aluno.idEscola || aluno.idEscola === 0) {
       showAlert("Erro", "Selecione uma escola.");
       return;
     }
-
-    // Validação extra para edição
-    if (isEdit && (!aluno.id || aluno.id === 0)) {
-      showAlert("Erro", "ID do aluno inválido para edição.");
+    if (!aluno.nivelEnsino?.trim()) {
+      showAlert("Erro", "Selecione o nível de ensino.");
+      return;
+    }
+    if (!aluno.responsavel?.nomeCompleto?.trim()) {
+      showAlert("Erro", "O nome do responsável é obrigatório.");
+      return;
+    }
+    // FIX: Validação obrigatória para Laudo (pelo menos um com todos os campos preenchidos)
+    if (!aluno.laudos || aluno.laudos.length === 0 ||
+      !aluno.laudos[0]?.codigoCid?.trim() ||
+      !aluno.laudos[0]?.nomeMedico?.trim() ||
+      !aluno.laudos[0]?.descricao?.trim()) {
+      showAlert("Erro", "Informe os dados do laudo (Código CID, Nome do Médico e Descrição).");
       return;
     }
 
     setLoading(true);
     try {
-      // Mapeamento reverso para formato da API
-      const payload = {
-        ...aluno,
-        nivelEnsino: aluno.nivelEscolar.toString() , // Mapeia de volta para nivelEnsino (string)
-        // Adicione outros mapeamentos se necessário (ex.: turno para string se API esperar)
+      // Mapeamento para payload exato da API (sem extras, laudos como array)
+      const payload: Partial<Aluno> = {
+        id: aluno.id,
+        nomeCompleto: aluno.nomeCompleto,
+        cep: aluno.cep,
+        logradouro: aluno.logradouro,
+        numero: aluno.numero || 0,
+        complemento: aluno.complemento,
+        bairro: aluno.bairro,
+        estado: aluno.estado,
+        cidade: aluno.cidade,
+        idEscola: aluno.idEscola,
+        nivelEnsino: aluno.nivelEnsino,
+        ano: aluno.ano,
+        turno: aluno.turno,
+        sexo: aluno.sexo,
+        responsavel: aluno.responsavel, // Objeto completo
+        laudos: aluno.laudos || [], // Array
       };
+
       let result;
       if (isEdit) {
         result = await atualizaAluno(payload);
-        console.log("✅ Aluno atualizado:", result);
         showAlert("Sucesso", "Perfil do aluno atualizado com sucesso.", [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
         result = await cadastraAluno(payload);
-        console.log("✅ Aluno cadastrado:", result);
         showAlert("Sucesso", "Aluno cadastrado com sucesso.", [
           { text: "OK", onPress: () => router.back() },
         ]);
       }
     } catch (error: any) {
-      // Try to surface axios response data when available for easier debugging
       if (error?.response) {
         console.error("❌ Erro ao " + (isEdit ? "atualizar" : "cadastrar") + " aluno - response:", error.response);
         const status = error.response.status;
@@ -706,7 +666,7 @@ export default function AlunoProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [aluno, isEdit, showAlert]);
+  }, [aluno, isEdit, showAlert, router]);
 
   const sections = useAlunoSections(
     aluno,
@@ -722,7 +682,8 @@ export default function AlunoProfileScreen() {
     enderecoEnabled,
     handleCepChange,
     handleEstadoFocus,
-    handleCidadeFocus
+    handleCidadeFocus,
+    handleAddressFocus
   );
 
   const renderItem = useCallback(({ item, index }: { item: Section; index: number }) => (
@@ -739,8 +700,33 @@ export default function AlunoProfileScreen() {
       {item.title === "Dados Pessoais" && cepLoading && (
         <ActivityIndicator size="small" color={colors.primary} />
       )}
+      {item.title === "Plano Desenvolvimento Individual" && (
+        <>
+          {item.plannings && item.plannings.length > 0 ? (
+            item.plannings.map((planning, planningIndex) => (
+              <TouchableOpacity
+                key={planningIndex}
+                style={styles.planningItem}
+                onPress={() => router.push({
+                  pathname: '/planejamento/PlanejamentoScreen',
+                  params: { id: planning.id }
+                })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.planningTitle}>{planning.apelido}</Text>
+                <Text style={styles.planningText}>
+                  Período: {new Date(planning.dataInicio).toLocaleDateString('pt-BR')} - {new Date(planning.dataFim).toLocaleDateString('pt-BR')}
+                </Text>
+                <Text style={styles.planningText}>Número de Habilidades: {planning.habilidades.length}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noPlannings}>Nenhum plano cadastrado.</Text>
+          )}
+        </>
+      )}
     </SectionGroup>
-  ), [sections, cepLoading]);
+  ), [sections, cepLoading, router]);
 
   if (loading) {
     return (
@@ -752,14 +738,13 @@ export default function AlunoProfileScreen() {
 
   return (
     <View style={{ flex: 1, zIndex: -1, backgroundColor: '#fff', overflow: 'visible' }}>
-       <Header title={isEdit ? "Editar Perfil do Aluno" : "Perfil do Aluno"} onBack={() => router.back()} fixed={true}/>
+      <Header title={isEdit ? "Editar Perfil do Aluno" : "Perfil do Aluno"} onBack={() => router.back()} fixed={true} />
       <FlatList
         data={sections}
         renderItem={renderItem}
         keyExtractor={(item, index) => index.toString()}
         ListHeaderComponent={
           <>
-           
             <View style={{ flex: 1, marginTop: 20 }}>
               {/* <ProfilePhoto /> */}
             </View>
@@ -779,6 +764,13 @@ export default function AlunoProfileScreen() {
         contentContainerStyle={[styles.content, { zIndex: -1 }]}
         style={styles.container}
       />
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
+      />
     </View>
   );
 }
@@ -788,7 +780,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingTop:70
+    paddingTop: 70
   },
   content: {
     paddingBottom: 100,
@@ -800,7 +792,7 @@ const styles = StyleSheet.create({
   },
   titleInstrucao: {
     textAlign: "justify",
-    fontSize: fontSizes.f24,
+    fontSize: fontSizes.f18,
     marginTop: 17,
     marginBottom: 8,
     lineHeight: 22,
@@ -816,5 +808,31 @@ const styles = StyleSheet.create({
   button: {
     alignItems: "center",
     marginTop: 20,
+  },
+  planningItem: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  planningTitle: {
+    fontSize: fontSizes.f16,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  planningText: {
+    fontSize: fontSizes.f14,
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  noPlannings: {
+    fontSize: fontSizes.f14,
+    color: '#666',
+    textAlign: 'center',
+    padding: 20,
+    fontStyle: 'italic',
   },
 });
