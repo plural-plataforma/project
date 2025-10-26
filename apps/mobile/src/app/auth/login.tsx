@@ -30,7 +30,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth() // Context login espera string (token)
-    const { showAlert, handleDismiss, visible, config } = useCustomAlert();
+  const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
   const handleLogin = async () => {
     setLoading(true);
@@ -40,13 +40,10 @@ export default function LoginScreen() {
       const response = await authLogin(credentials);
 
       if (!response.token) {
-        const msg = 'Token não recebido da API. Tente novamente.';
-        throw new Error(msg);
+        throw new Error('Token não recebido da API. Tente novamente.');
       }
 
-      await new Promise(resolve => setTimeout(resolve, 200)); // Aguarda estado propagar
-      router.replace('/dashboard');
-      login(response.token);
+      login(response.token, response.precisaTrocarSenha ?? false);
 
       // Verifica se o token foi salvo antes de navegar
       const savedToken = await AsyncStorage.getItem('authToken');
@@ -54,13 +51,17 @@ export default function LoginScreen() {
         throw new Error('Falha ao salvar o token.');
       }
 
-      showAlert('Sucesso', 'Login realizado!');
       router.replace('/dashboard');
+      
+      showAlert('Sucesso', 'Login realizado!');
+
     } catch (err) {
-      console.error('❌ Erro no handleLogin:', err);
-      const errorMsg = (err as Error).message;
-      setError(errorMsg);
-      showAlert('Erro', errorMsg);
+
+      let errorMsg = (err as Error).message;
+     
+      if (errorMsg.includes('401') || errorMsg.includes('Request failed') ) {
+        setError('Email ou senha inválidos. Verifique e tente novamente.')
+      }
     } finally {
       setLoading(false);
     }
@@ -91,6 +92,7 @@ export default function LoginScreen() {
               secureTextEntry={true}
               autoCapitalize="none"
             />
+            
           </View>
           {/**  <View style={styles.checkboxRow}>
             <CheckboxWithLabel label="Lembrar-me" checked={true} onPress={() => { }} />
@@ -132,13 +134,7 @@ export default function LoginScreen() {
           />
         </View>
          */}
-         <CustomAlert
-        visible={visible}
-        title={config.title}
-        message={config.message}
-        buttons={config.buttons}
-        onDismiss={handleDismiss}
-      />
+        
       </ScrollView>
     </SafeAreaView>
   )

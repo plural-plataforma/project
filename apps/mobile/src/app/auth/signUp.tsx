@@ -79,7 +79,7 @@ export default function SignUp() {
                     senha: data.senha
                   } as LoginCredentials);
                   if (loginResult.token) {
-                    login(loginResult.token);
+                    login(loginResult.token, loginResult.precisaTrocarSenha ?? false);
                     router.replace('/dashboard');
                   } else {
                     throw new Error('Token não recebido após login.');

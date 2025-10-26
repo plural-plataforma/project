@@ -4,7 +4,8 @@ import {
   LoginCredentials,
   RegisterCredentials,
   AuthResponse,
-  ApiError
+  ApiError,
+  TrocarSenha
 } from '../types/auth';
 import Constants from 'expo-constants';
 
@@ -51,18 +52,18 @@ export const login = async (
     }
     const payload = { email: credentials.email, senha: credentials.senha };
     const response = await api.post('Autenticacao/login', payload);
-    const { token } = response.data;
-    if (!token) {
-      throw new Error('Token não retornado pela API');
+    const innerTokenObj = response.data.token;
+    if (!innerTokenObj || !innerTokenObj.token) {
+      throw new Error('Token não retornado pela API (estrutura inválida)');
     }
+
+    const token = innerTokenObj.token;
+    const precisaTrocarSenha = innerTokenObj.precisaTrocarSenha ?? false;
+
     await AsyncStorage.setItem('authToken', token);
-    const savedToken = await AsyncStorage.getItem('authToken');
-    if (savedToken !== token) {
-      console.error('⚠️ Token salvo difere do retornado:', { savedToken, token });
-    } else {
-      console.error('✅ Token salvo com sucesso!');
-    }
-    return { success: true, token };
+    await AsyncStorage.setItem('trocarSenha', precisaTrocarSenha);
+  
+    return { success: true, token, precisaTrocarSenha };
   } catch (error) {
     console.error('❌ Erro no login do auth.ts:', error);
     const axiosError = error as AxiosError<ApiError>;
@@ -84,6 +85,7 @@ export const register = async (
   credentials: RegisterCredentials
 ): Promise<AuthResponse & { message?: string }> => {
   let token: string | undefined = undefined;
+  let precisaTrocarSenha: boolean = false;
   let autoLogin = false;
   let message: string | undefined;
 
@@ -117,7 +119,7 @@ export const register = async (
       throw new Error(`Status inesperado no registro: ${response.status}`);
     }
 
-    return { success: true, token, autoLogin, message };
+    return { success: true, token, autoLogin, message, precisaTrocarSenha };
   } catch (error) {
     console.error('❌ Erro no register:', error);
     const axiosError = error as AxiosError<ApiError>;
@@ -150,8 +152,44 @@ export const signOut = async (): Promise<void> => {
     await AsyncStorage.removeItem('authToken');
 
     const remainingToken = await AsyncStorage.getItem('authToken');
-    
+
   } catch (error) {
     console.error('❌ Erro ao limpar o AsyncStorage durante logout:', error);
+  }
+};
+
+export const trocarSenha = async (request: TrocarSenha): Promise<AuthResponse> => {
+  try {
+    if (!request.senhaAtual || !request.novaSenha) {
+      throw new Error('Senha atual e nova são obrigatórios');
+    }
+    if (request.novaSenha.length < 8) {
+      throw new Error('Nova senha deve ter pelo menos 8 caracteres');
+    }
+    if (request.senhaAtual === request.novaSenha) {
+      throw new Error('Nova senha deve ser diferente da atual');
+    }
+
+    const response = await api.post('Autenticacao/alterarsenha', request);
+    
+    // Assume que backend retorna novo token e confirma sucesso
+    const { token } = response.data;
+    if (!token) {
+      throw new Error('Token não retornado após troca de senha');
+    }
+
+    // Atualiza o token no storage
+    await AsyncStorage.setItem('authToken', token);
+    
+    // Remove a flag (já que trocou)
+    await AsyncStorage.removeItem('precisaTrocarSenha');
+    
+    console.log('✅ Senha trocada com sucesso!');
+    return { success: true, token, precisaTrocarSenha: false };
+  } catch (error) {
+    console.error('❌ Erro ao trocar senha:', error);
+    const axiosError = error as AxiosError<ApiError>;
+    const msg = axiosError.response?.data?.message || axiosError.message || 'Falha ao trocar senha';
+    throw new Error(msg);
   }
 };
