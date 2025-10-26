@@ -11,6 +11,7 @@ export default function AuthLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="signUp" options={{ headerShown: false }} />
+        <Stack.Screen name="changePassword" options={{ headerShown: false }} />
       </Stack>
     </SafeAreaProvider>
   )

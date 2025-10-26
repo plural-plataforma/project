@@ -7,13 +7,16 @@ import React, {
   useRef
 } from 'react';
 import { getToken, signOut as authSignOut } from '../services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, usePathname } from 'expo-router';
 
 interface AuthContextType {
   isLoggedIn: boolean;
   loading: boolean;
   userToken: string | null;
-  login: (token: string) => void;
+  precisaTrocarSenha: boolean;
+  login: (token: string, precisaTrocarSenha: boolean) => void;
+  trocarSenhaConcluida: () => void;
   signOut: () => Promise<void>;
   logoutLoading: boolean;
 }
@@ -24,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userToken, setUserToken] = useState<string | null>(null);
+  const [precisaTrocarSenha, setPrecisaTrocarSenha] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const isSigningOut = useRef(false); // Prevent recursive signOut calls
   const pathname = usePathname(); // Get current pathname
@@ -33,6 +37,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = async () => {
       try {
         const token = await getToken();
+        const precisaSenhaStr = await AsyncStorage.getItem('precisaTrocarSenha');
+        const precisaTrocar = precisaSenhaStr === 'true';
+
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
@@ -41,22 +48,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               await authSignOut();
               setUserToken(null);
               setIsLoggedIn(false);
+              setPrecisaTrocarSenha(false);
+              await AsyncStorage.removeItem('precisaTrocarSenha');
             } else {
               setUserToken(token);
               setIsLoggedIn(true);
+              setPrecisaTrocarSenha(precisaTrocar);
             }
           } catch (e) {
             console.error('❌ Erro ao decodificar token:', e);
             await authSignOut();
             setUserToken(null);
             setIsLoggedIn(false);
+            setPrecisaTrocarSenha(false);
+            await AsyncStorage.removeItem('precisaTrocarSenha');
           }
         } else {
           setIsLoggedIn(false);
+          setPrecisaTrocarSenha(false);
+          await AsyncStorage.removeItem('precisaTrocarSenha');
         }
       } catch (error) {
         console.error('❌ Erro ao verificar auth:', error);
         setIsLoggedIn(false);
+        setPrecisaTrocarSenha(false);
+        await AsyncStorage.removeItem('precisaTrocarSenha');
       } finally {
         setLoading(false);
       }
@@ -65,46 +81,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []); // Dependência vazia: roda só no mount
 
-  // useEffect separado para redirecionamentos baseados em isLoggedIn e pathname
+  // useEffect separado para redirecionamentos baseados em isLoggedIn, precisaTrocarSenha e pathname
   useEffect(() => {
     if (loading) return; // Evita redirecionamentos durante loading inicial
 
-    if (isLoggedIn && (pathname === '/' || pathname === '/')) {
-      router.replace('/dashboard');
+    if (isLoggedIn) {
+      // Se precisa trocar senha e não está na tela de troca, redireciona para lá
+      if (precisaTrocarSenha && pathname !== '/auth/changePassword') {
+        router.replace('/auth/changePassword');
+        return;
+      }
+      // Redireciona para dashboard se na tela de login
+      if (pathname === '/' || pathname === '/auth/login') {
+        router.replace('/dashboard');
+      }
     } else if (!isLoggedIn && pathname === '/dashboard') {
+      // Redireciona para login se não logado e na dashboard
       router.replace('/');
     }
-  }, [isLoggedIn, loading, pathname]);
+  }, [isLoggedIn, precisaTrocarSenha, loading, pathname]);
 
-const login = (token: string) => {
-  if (!token) {
-    console.warn('⚠️ Token vazio no context.login — login falhará!');
-    return;
-  }
-  setUserToken(token);
-  setIsLoggedIn(true);
-  
-  // Re-valide token imediatamente após login para checar expiração
-  setTimeout(() => {
-    const validateToken = async () => {
-      try {
-        const savedToken = await getToken();
-        if (savedToken) {
-          const payload = JSON.parse(atob(savedToken.split('.')[1]));
-          const currentTime = Math.floor(Date.now() / 1000);
-          if (payload.exp < currentTime) {
-            await authSignOut();
-            setUserToken(null);
-            setIsLoggedIn(false);
+  const login = (token: string, precisaTrocar: boolean) => {
+    if (!token) {
+      console.warn('⚠️ Token vazio no context.login — login falhará!');
+      return;
+    }
+    setUserToken(token);
+    setIsLoggedIn(true);
+    setPrecisaTrocarSenha(precisaTrocar);
+    
+    // Salva a flag no storage para persistência
+    AsyncStorage.setItem('precisaTrocarSenha', precisaTrocar.toString());
+    
+    // Re-valida token imediatamente após login para checar expiração
+    setTimeout(() => {
+      const validateToken = async () => {
+        try {
+          const savedToken = await getToken();
+          if (savedToken) {
+            const payload = JSON.parse(atob(savedToken.split('.')[1]));
+            const currentTime = Math.floor(Date.now() / 1000);
+            if (payload.exp < currentTime) {
+              await authSignOut();
+              setUserToken(null);
+              setIsLoggedIn(false);
+              setPrecisaTrocarSenha(false);
+              await AsyncStorage.removeItem('precisaTrocarSenha');
+            }
           }
+        } catch (e) {
+          console.error('❌ Erro validando token pós-login:', e);
         }
-      } catch (e) {
-        console.error('❌ Erro validando token pós-login:', e);
-      }
-    };
-    validateToken();
-  }, 100); // Delay pequeno para async setState
-};
+      };
+      validateToken();
+    }, 100); // Delay pequeno para async setState
+  };
+
+  // Método para marcar que a troca de senha foi concluída
+  const trocarSenhaConcluida = () => {
+    setPrecisaTrocarSenha(false);
+    AsyncStorage.removeItem('precisaTrocarSenha');
+    // Opcional: Redireciona para dashboard
+    if (pathname === '/auth/changePassword') {
+      router.replace('/dashboard');
+    }
+  };
 
   const signOut = async (): Promise<void> => {
     if (isSigningOut.current) {
@@ -116,6 +157,8 @@ const login = (token: string) => {
       await authSignOut();
       setUserToken(null);
       setIsLoggedIn(false);
+      setPrecisaTrocarSenha(false);
+      await AsyncStorage.removeItem('precisaTrocarSenha');
       if (pathname !== '/') {
         router.replace('/');
       }
@@ -123,6 +166,8 @@ const login = (token: string) => {
       console.error('❌ Erro no signOut:', error);
       setUserToken(null);
       setIsLoggedIn(false);
+      setPrecisaTrocarSenha(false);
+      await AsyncStorage.removeItem('precisaTrocarSenha');
       if (pathname !== '/') {
         router.replace('/');
       }
@@ -136,7 +181,9 @@ const login = (token: string) => {
     isLoggedIn,
     loading,
     userToken,
+    precisaTrocarSenha,
     login,
+    trocarSenhaConcluida,
     signOut,
     logoutLoading
   };
