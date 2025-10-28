@@ -18,8 +18,8 @@ export const isCadastroCompleto = (professor: Professor): boolean => {
   // Considera o cadastro completo se nenhum campo obrigatório for null/undefined/empty,
   // aceitouTermos for true, e escolas for um array não vazio
   return (
-    camposObrigatorios.every((campo) => campo != null && campo !== '') // &&
+    camposObrigatorios.every((campo) => campo != null && campo !== '')  &&
    // professor.aceitouTermos === true &&
-    //professor.escolas.length > 0
+    professor.escolas.length > 0
   );
 };
