@@ -14,14 +14,16 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import CustomButton from '../../components/CustomButton';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import NotificationBanner from './../../components/NotificationBanner';
 import { Backpack, NoteBlank, SignOut, Users } from 'phosphor-react-native';
 import { Professor } from '@src/types/professor';
+import { Escola } from '@src/types/escolas'; // NOVO: Import Escola para tipagem
 import { buscarProfessor, buscarEscolasProfessor } from '@src/services/professorService';
 import { isCadastroCompleto } from '@src/utils/professorUtils';
 import SelectButton from '@src/components/SelectButton';
 import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
+import { useFocusEffect } from '@react-navigation/native'; // NOVO: Import para re-fetch no focus
 
 
 interface SectionItem {
@@ -34,12 +36,73 @@ export default function Dashboard() {
   const insets = useSafeAreaInsets();
   const [cadastroCompleto, setCadastroCompleto] = useState(false);
   const [professor, setProfessor] = useState<Professor | null>(null);
+  const [professorEscolas, setProfessorEscolas] = useState<Escola[]>([]); // NOVO: Estado separado para escolas completas (evita conflito de tipo)
   const [loading, setLoading] = useState<boolean>(true);
   const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
   const { showAlert, handleDismiss, visible, config } = useCustomAlert();
 
+  // NOVO: Função para fetch dados (reutilizável para useEffect e useFocusEffect)
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      if (!isLoggedIn) {
+        console.warn('⚠️ Usuário não está logado. Redirecionando para login...');
+        router.replace('/auth/login');
+        return;
+      }
+
+      const data = await buscarProfessor();
+
+      let updatedProfessor: Professor = {
+        ...data.objeto,
+        escolas: [], // Mantém como string[] para compatibilidade com tipo Professor
+      };
+
+      try {
+        const linkedEscolas = await buscarEscolasProfessor();
+        // FIX: Armazena IDs no professor.escolas (para save/diff) e objetos completos em professorEscolas (para info/display)
+        updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
+        setProfessorEscolas(linkedEscolas); // NOVO: Estado separado com info completa das escolas
+      } catch (error: any) {
+        console.error('❌ Erro em buscarEscolasProfessor:', error.message);
+        showAlert('Aviso', 'Não foi possível carregar as escolas vinculadas.', [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'OK', onPress: () => ({}) }
+        ])
+        setProfessorEscolas([]); // NOVO: Vazio se erro
+      }
+
+      setProfessor(updatedProfessor);
+      // FIX: Garante que cadastroCompleto seja setado corretamente após fetch dos dados do professor
+      const isComplete = isCadastroCompleto(updatedProfessor);
+      setCadastroCompleto(isComplete);
+      console.log('Cadastro completo?', isComplete); // NOVO: Log para debug (remova em produção)
+
+    } catch (error: any) {
+      console.error('❌ Erro geral em fetchData:', error.message, error);
+      if (error.message.includes('401') || error.message.includes('Nenhum token')) {
+
+        showAlert('Sessão Expirada', 'Por favor, faça login novamente.', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await signOut();
+              router.replace('/auth/login');
+            }
+          }
+        ]);
+
+      } else {
+        showAlert('Erro', 'Não foi possível carregar os dados do professor.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [isLoggedIn, router, showAlert, signOut]); // Dependências corretas
+
   const sections: SectionItem[] = React.useMemo(() => {
     return [
+      // FIX: Condicional restaurado para apresentar o NotificationBanner apenas se cadastro incompleto (isCadastroCompleto false)
       ...(!cadastroCompleto ? [{ type: 'banner' as const }] : []),
       { type: 'tasks' as const },
     ];
@@ -122,70 +185,18 @@ export default function Dashboard() {
   const keyExtractor = (item: SectionItem) => item.type;
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (dataFetched) {
-        return;
-      }
-      try {
-        setLoading(true); // Sempre no início
-        setDataFetched(true); // Marque como executado
-
-        if (authLoading) {
-          return;
-        }
-
-        if (!isLoggedIn) {
-          console.warn('⚠️ Usuário não está logado. Redirecionando para login...');
-          router.replace('/auth/login');
-          return; // Early return reforçado
-        }
-
-        const data = await buscarProfessor();
-
-        let updatedProfessor: Professor = {
-          ...data.objeto,
-          escolas: [],
-        };
-
-        try {
-          const linkedEscolas = await buscarEscolasProfessor();
-          updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
-        } catch (error: any) {
-          console.error('❌ Erro em buscarEscolasProfessor:', error.message);
-          showAlert('Aviso', 'Não foi possível carregar as escolas vinculadas.', [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'OK', onPress: () => ({}) }
-          ])
-
-        }
-
-        setProfessor(updatedProfessor);
-        setCadastroCompleto(isCadastroCompleto(updatedProfessor));
-
-      } catch (error: any) {
-        console.error('❌ Erro geral em fetchData:', error.message, error);
-        if (error.message.includes('401') || error.message.includes('Nenhum token')) {
-
-          showAlert('Sessão Expirada', 'Por favor, faça login novamente.', [
-            {
-              text: 'OK',
-              onPress: async () => {
-                await signOut();
-                router.replace('/auth/login');
-              }
-            }
-          ]);
-
-        } else {
-          showAlert('Erro', 'Não foi possível carregar os dados do professor.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    if (authLoading) {
+      return;
+    }
     fetchData();
-  }, [authLoading, isLoggedIn, signOut, dataFetched]); // Inclua dataFetched para controle
+  }, [authLoading, fetchData]); // NOVO: Dependências simplificadas, sem dataFetched para permitir re-run se authLoading mudar
+
+  // NOVO: Re-fetch no focus da tela (ex.: após completar cadastro e voltar)
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   if (authLoading || loading) return <ActivityIndicator size="large" color={colors.primary} />;
   return (

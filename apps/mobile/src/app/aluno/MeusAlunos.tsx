@@ -37,7 +37,7 @@ export default function MeusAlunos() {
             setLoadingAlunos(true);
             const data = await buscarAlunos();
             const mapped = data.map((a, idx) => {
-                const raw = a as any; 
+                const raw = a as any;
                 const id = raw.id != null ? Number(raw.id) : idx + 1;
                 const name = raw.nomeCompleto || raw.nome || `Aluno ${id}`;
                 // FIX: Corrigido para raw.idEscola (conforme JSON da API)
@@ -111,42 +111,39 @@ export default function MeusAlunos() {
 
     return (
         <View style={styles.container}>
-            <Header title="Meus Alunos" onBack={() => router.back()} fixed={true}/>
+            <Header title="Meus Alunos" onBack={() => router.back()} fixed={true} />
+            <View style={styles.fixedHeader}>
+                <View style={styles.filterContainer}>
+                    <InputField
+                        label="Filtro por escola"
+                        options={escolasOptions}
+                        selectedValue={selectedEscola}
+                        onValueChange={handleEscolaChange}
+                        placeholder="Selecione uma escola"
+                        style={{ flex: 1 }}
+                    />
+                    {selectedEscola && (
+                        <CustomButton
+                            title="Limpar"
+                            onPress={clearFilter}
+                            buttonColor={{ backgroundColor: colors.primary, marginLeft: 10, alignSelf: 'center' }}
+                        />
+                    )}
+                </View>
+                <CustomButton
+                    title="+ Cadastrar Aluno"
+                    onPress={() => router.push('/aluno/AlunoProfileScreen')}
+                />
+            </View>
+
             <FlatList
                 data={alunosFiltrados}
                 renderItem={renderAluno}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={styles.content}
+                style={styles.list}
                 refreshControl={
-                    // NOVO: Adicione RefreshControl para pull-to-refresh
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
-                }
-                ListHeaderComponent={
-                    <View>
-                        <View style={styles.filterContainer}>
-                            {/* FIX: Adicione key dinâmico para remountar o InputField ao limpar filtro */}
-                            <InputField
-                                key={selectedEscola ? `filter-${selectedEscola}` : 'filter-all'}
-                                label="Filtro por escola"
-                                options={escolasOptions}
-                                selectedValue={selectedEscola}
-                                onValueChange={handleEscolaChange}
-                                placeholder="Selecione uma escola"
-                                style={{ flex: 1}}
-                            />
-                            {selectedEscola && (
-                                <CustomButton
-                                    title="Limpar"
-                                    onPress={clearFilter}
-                                    buttonColor={{ backgroundColor: colors.primary,  marginLeft: 10, alignSelf: 'center' }}
-                                />
-                            )}
-                        </View>
-                        <CustomButton
-                            title="+ Cadastrar Aluno"
-                            onPress={() => router.push('/aluno/AlunoProfileScreen')}
-                        />
-                    </View>
                 }
                 ListEmptyComponent={
                     !isLoading ? (
@@ -165,27 +162,25 @@ export default function MeusAlunos() {
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
         backgroundColor: colors.background,
         paddingHorizontal: 20,
-        paddingTop:70
+        paddingTop: 70
+    },
+    fixedHeader: { 
+        marginBottom: 10,
     },
     content: {
         paddingBottom: 20,
+    },
+    list: {
+        flex: 1,
     },
     filterContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 10,
-    },
-    listHeader: {
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    listHeaderText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.primary,
     },
     emptyContainer: {
         marginTop: 50,
