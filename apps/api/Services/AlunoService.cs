@@ -1,5 +1,7 @@
 ﻿using api.DTOs.Aluno;
+using api.DTOs.Habilidade;
 using api.DTOs.Laudo;
+using api.DTOs.Planejamento;
 using api.DTOs.Responsavel;
 using api.Models;
 using api.Responses;
@@ -224,7 +226,22 @@ namespace api.Services
                                 NomeMedico = l.NomeMedico,
                                 Descricao = l.Descricao
                             }).ToList()
-                            : new List<LaudoCadastroSimplificadoDTO>()
+                            : new List<LaudoCadastroSimplificadoDTO>(),
+                        Planejamentos = a.AlunosXPlanejamentos != null
+                            ? a.AlunosXPlanejamentos.Select(axp => new PlanejamentoBuscarSimplificadoDTO
+                            {
+                                Id = axp.Planejamento.ID,
+                                Apelido = axp.Planejamento.Apelido,
+                                DataInicio = axp.Planejamento.DataInicio,
+                                DataFim = axp.Planejamento.DataFim,
+                                Habilidades = axp.Planejamento.HabilidadesXPlanejamentos
+                                    .Select(hxp => new HabilidadeBuscarDTO
+                                    {
+                                        Id = hxp.Habilidade.Id
+                                    })
+                                    .ToList()
+                            }).ToList()
+                            : new List<PlanejamentoBuscarSimplificadoDTO>()
                     })
                     .ToListAsync();
                 resposta.AdicionaObjeto(alunos);
@@ -279,7 +296,23 @@ namespace api.Services
                                 NomeMedico = l.NomeMedico,
                                 Descricao = l.Descricao
                             }).ToList()
-                            : new List<LaudoCadastroSimplificadoDTO>()
+                            : new List<LaudoCadastroSimplificadoDTO>(),
+
+                        Planejamentos = a.AlunosXPlanejamentos != null
+                            ? a.AlunosXPlanejamentos.Select(axp => new PlanejamentoBuscarSimplificadoDTO
+                            {
+                                Id = axp.Planejamento.ID,
+                                Apelido = axp.Planejamento.Apelido,
+                                DataInicio = axp.Planejamento.DataInicio,
+                                DataFim = axp.Planejamento.DataFim,
+                                Habilidades = axp.Planejamento.HabilidadesXPlanejamentos
+                                    .Select(hxp => new HabilidadeBuscarDTO
+                                    {
+                                        Id = hxp.Habilidade.Id
+                                    })
+                                    .ToList()
+                            }).ToList()
+                            : new List<PlanejamentoBuscarSimplificadoDTO>()
                     })
                     .FirstOrDefaultAsync();
 

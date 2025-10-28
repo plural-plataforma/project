@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import Header from '../../components/Header';
 import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import { Professor } from '@src/types/professor';
 import { Escola } from '@src/types/escolas';
-import { buscarProfessor, atualizarProfessor, vincularEscola, buscarEscolasProfessor } from '../../services/professorService';
+import { buscarProfessor, atualizarProfessor, vincularEscola, buscarEscolasProfessor, atualizarEscolasProfessor } from '../../services/professorService';
 import { isCadastroCompleto } from '../../utils/professorUtils';
 import ProfilePhoto from '@src/components/ProfilePhoto';
 import ProgressFill from '@src/components/ProgressFill';
@@ -74,6 +74,7 @@ interface SectionData {
 export default function CadastroProfessor() {
   const { showAlert, handleDismiss, visible, config } = useCustomAlert();
   const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
     sexo: '',
@@ -92,6 +93,7 @@ export default function CadastroProfessor() {
     aceitouTermos: false,
     escolas: []
   })
+  const [initialEscolas, setInitialEscolas] = useState<string[]>([]) // NOVO: Armazena escolas iniciais para calcular diff
   const [errors, setErrors] = useState<{ [key: string]: string }>({}) // Novo: erros por campo
   const [loading, setLoading] = useState<boolean>(true)
   const [cepLoading, setCepLoading] = useState<boolean>(false)
@@ -106,6 +108,94 @@ export default function CadastroProfessor() {
   const [completedSections, setCompletedSections] = useState<number>(0)
   const totalSections = 4
   const [escolasLoading, setEscolasLoading] = useState<boolean>(false)
+
+  // Novo: Função para obter erro de um campo (síncrona)
+  const getFieldError = (key: keyof Professor, value: any): string | null => {
+    switch (key) {
+      case 'nomeCompleto':
+        return !value || (value as string).trim().length < 2
+          ? 'Nome deve ter pelo menos 2 caracteres'
+          : null
+      case 'email':
+        return !value || !/^\S+@\S+\.\S+$/.test(value as string)
+          ? 'E-mail inválido'
+          : null
+      case 'telefone':
+        return !value || (value as string).replace(/\D/g, '').length < 10
+          ? 'Telefone inválido'
+          : null
+      case 'sexo':
+        return !value ? 'Selecione o sexo' : null
+      case 'cep':
+        return !value || (value as string).trim() === ''
+          ? 'CEP é obrigatório'
+          : null
+      case 'logradouro':
+        return !value || (value as string).trim() === ''
+          ? 'Endereço é obrigatório'
+          : null
+      case 'numero':
+        return !value || value === 0 ? 'Número é obrigatório' : null
+      case 'bairro':
+        return !value || (value as string).trim() === ''
+          ? 'Bairro é obrigatório'
+          : null
+      case 'estado':
+        return !value || (value as string).trim() === ''
+          ? 'Estado é obrigatório'
+          : null
+      case 'cidade':
+        return !value || (value as string).trim() === ''
+          ? 'Cidade é obrigatória'
+          : null
+      case 'escolas':
+        return (value as string[])?.length === 0
+          ? 'Vincule pelo menos uma escola'
+          : null
+      case 'aceitouTermos':
+        return !value ? 'Aceite os termos e a política de privacidade' : null
+      default:
+        return null
+    }
+  }
+
+  // Novo: Função para validar campo e atualizar erros (usa getFieldError)
+  const validateField = (
+    key: keyof Professor,
+    value: any
+  ) => {
+    const errorMsg = getFieldError(key, value)
+    setErrors(prevErrors => {
+      const newErrors = { ...prevErrors }
+      if (errorMsg) {
+        newErrors[key as string] = errorMsg
+      } else {
+        delete newErrors[key as string]
+      }
+      return newErrors
+    })
+  }
+
+  // Novo: Função para validar todos os campos obrigatórios
+  const validateAllFields = () => {
+    const requiredFields = [
+      'nomeCompleto',
+      'email',
+      'telefone',
+      'sexo',
+      'cep',
+      'logradouro',
+      'numero',
+      'bairro',
+      'estado',
+      'cidade',
+      'escolas',
+      'aceitouTermos'
+    ] as (keyof Professor)[];
+    requiredFields.forEach(key => {
+      validateField(key, professor[key]);
+    });
+  };
 
   useEffect(() => {
     const calculateProgress = () => {
@@ -171,12 +261,17 @@ export default function CadastroProfessor() {
           escolas: [] as string[],
         };
 
+        let initialEscolasIds: string[] = []; // NOVO: Calcula aqui
+
         try {
           const linkedEscolas = await buscarEscolasProfessor();
-          updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
+          initialEscolasIds = linkedEscolas.map(escola => escola.id!.toString());
+          updatedProfessor.escolas = initialEscolasIds;
+          setInitialEscolas(initialEscolasIds); // NOVO: Define as iniciais
         } catch (error: any) {
           console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message);
           showAlert('Aviso', 'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.');
+          setInitialEscolas([]); // NOVO: Inicial vazio se erro
         }
 
         setProfessor(updatedProfessor);
@@ -200,6 +295,7 @@ export default function CadastroProfessor() {
             sexo: '',
             escolas: []
           }))
+          setInitialEscolas([]); // NOVO: Inicial vazio em erro geral
         }
       } finally {
         setLoading(false)
@@ -209,47 +305,12 @@ export default function CadastroProfessor() {
     fetchInitialData()
   }, [])
 
-  // Novo: Função para validar campo e atualizar erros
-  const validateField = (
-    key: keyof Professor,
-    value: string | number | null
-  ) => {
-    let newErrors = { ...errors }
-    delete newErrors[key as string] // Limpa erro anterior
-
-    switch (key) {
-      case 'nomeCompleto':
-        if (!value || (value as string).trim().length < 2) {
-          newErrors['nomeCompleto'] = 'Nome deve ter pelo menos 2 caracteres'
-        }
-        break
-      case 'email':
-        if (!value || !/^\S+@\S+\.\S+$/.test(value as string)) {
-          newErrors['email'] = 'E-mail inválido'
-        }
-        break
-      case 'telefone':
-        if (!value || (value as string).replace(/\D/g, '').length < 10) {
-          newErrors['telefone'] = 'Telefone inválido'
-        }
-        break
-      case 'sexo':
-        if (!value) {
-          newErrors['sexo'] = 'Selecione o sexo'
-        }
-        break
-      case 'escolas':
-        if ((professor.escolas?.length || 0) === 0) {
-          newErrors['escolas'] = 'Vincule pelo menos uma escola'
-        }
-        break
-      // Adicione mais validações conforme necessário (ex.: CEP, etc.)
-      default:
-        break
+  // Novo: Valida todos os campos após carregar os dados iniciais
+  useEffect(() => {
+    if (!loading) {
+      validateAllFields();
     }
-
-    setErrors(newErrors)
-  }
+  }, [loading]);
 
   const handleCepChange = async (text: string) => {
     const cepClean = text.replace(/[^0-9]/g, '')
@@ -267,6 +328,12 @@ export default function CadastroProfessor() {
           estado: cepData.state || '',
           cidade: cepData.city || ''
         }))
+
+        // NOVO: Valida os novos valores preenchidos pelo CEP
+        validateField('logradouro', cepData.street);
+        validateField('bairro', cepData.neighborhood);
+        validateField('estado', cepData.state);
+        validateField('cidade', cepData.city);
 
         if (cepData.state && !cidadesPorUf[cepData.state]) {
           const municipiosData = await fetchMunicipios(cepData.state)
@@ -294,70 +361,67 @@ export default function CadastroProfessor() {
   }
 
   const handleConcluir = async () => {
-    // Valida todos os campos antes de salvar
-    const requiredFields = [
-      'nomeCompleto',
-      'email',
-      'telefone',
-      'sexo',
-      'escolas'
-    ] as (keyof Professor)[]
-    let hasErrors = false
-    const newErrors: { [key: string]: string } = {}
+    // FIX: Validação completa síncrona usando getFieldError para erros específicos e destaque visual
+    validateAllFields();
 
-    requiredFields.forEach(key => {
-      const value = professor[key]
-      if (!value || (typeof value === 'string' && value.trim() === '')) {
-        newErrors[key] = `${key} é obrigatório`
-        hasErrors = true
-      }
-    })
-
-    if (professor.escolas?.length === 0) {
-      newErrors['escolas'] = 'Vincule pelo menos uma escola'
-      hasErrors = true
-    }
-
-    setErrors(newErrors)
+    // Verifica se ainda há erros após validação específica
+    const hasErrors = Object.keys(errors).length > 0;
 
     if (hasErrors) {
       showAlert(
-        'Validação',
-        'Corrija os erros nos campos destacados antes de continuar.'
-      )
-      return
-    }
-
-    if (!isCadastroCompleto(professor)) {
-      showAlert(
-        'Erro',
-        'Preencha todos os campos obrigatórios, incluindo pelo menos uma escola vinculada.'
-      )
-      return
+        'Aviso',
+        'Você precisa completar o cadastro. Corrija os campos destacados em vermelho.'
+      );
+      return;
     }
 
     setLoading(true)
     try {
-      await atualizarProfessor(professor)
-      showAlert('Sucesso', 'Cadastro de professor salvo com sucesso!', [
-        { text: 'OK', onPress: () => router.back() }
-      ])
+      // FIX: Mudei de undefined para [] para satisfazer o tipo Professor (string[] | never)
+      // O service já ignora escolas no payload, então [] é seguro e tipado corretamente
+      const professorWithoutSchools = { ...professor, escolas: [] };
+      await atualizarProfessor(professorWithoutSchools);
+
+      // NOVO: Calcula diferenças para escolas (apenas adições/remoções)
+      const currentEscolasIds = professor.escolas || [];
+      const added = currentEscolasIds.filter(id => !initialEscolas.includes(id));
+      const removed = initialEscolas.filter(id => !currentEscolasIds.includes(id));
+
+      let schoolsUpdated = true;
+      if (added.length > 0 || removed.length > 0) {
+        const payload = {
+          acoes: [
+            ...added.map(id => ({ tipo: 'adicionar' as const, escolaId: parseInt(id) })),
+            ...removed.map(id => ({ tipo: 'remover' as const, escolaId: parseInt(id) }))
+          ]
+        };
+
+        try {
+          await atualizarEscolasProfessor(payload);
+        } catch (schoolErr: any) {
+          console.error('❌ Erro ao atualizar escolas:', schoolErr);
+          schoolsUpdated = false;
+        }
+      }
+
+      // NOVO: Atualiza initialEscolas para o estado atual (para futuras edições, se necessário)
+      setInitialEscolas(currentEscolasIds);
+
+      showAlert('Sucesso',
+        schoolsUpdated
+          ? 'Cadastro de professor salvo com sucesso!'
+          : 'Cadastro salvo, mas não foi possível atualizar as escolas vinculadas.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
     } catch (error: any) {
       console.error('Erro ao salvar professor:', error)
-      if (error.message.includes('erro ao vincular escolas')) {
-        showAlert(
-          'Aviso',
-          'Cadastro de professor salvo, mas não foi possível vincular as escolas: ' +
-          error.message,
-          [{ text: 'OK', onPress: () => router.back() }]
-        )
-      } else if (error.message.includes('401')) {
+      if (error.message?.includes('401')) {
         showAlert(
           'Erro de Autenticação',
           'Sua sessão expirou. Faça login novamente.'
         )
         router.push('/auth/login')
-      } else if (error.response?.status === 400) {
+      } else if ((error as any).response?.status === 400) {
         showAlert(
           'Erro',
           'Dados inválidos. Verifique os campos e tente novamente.'
@@ -372,27 +436,33 @@ export default function CadastroProfessor() {
       setLoading(false)
     }
   }
-
   const addEscola = (value: string) => {
     if (
       value &&
       typeof value === 'string' &&
       !professor.escolas.includes(value)
     ) {
+      const newEscolas = [...(professor.escolas || []), value]
       setProfessor(prev => ({
         ...prev,
-        escolas: [...(prev.escolas || []), value]
+        escolas: newEscolas
       }))
-      validateField('escolas', null) // Valida após adicionar (passa null para escolas)
+      validateField('escolas', newEscolas) // FIX: Valida com o novo array
+    } else if (value && typeof value === 'string') {
+      // NOVO: Se já existe, mostra alert
+      const escola = escolas.find(e => e.id!.toString() === value);
+      const nomeEscola = escola ? escola.nomeInstituicao : value;
+      showAlert('Aviso', `A escola "${nomeEscola}" já está vinculada.`);
     }
   }
 
   const removeEscola = (escolaToRemove: string) => {
+    const newEscolas = (professor.escolas || []).filter(escola => escola !== escolaToRemove)
     setProfessor(prev => ({
       ...prev,
-      escolas: (prev.escolas || []).filter(escola => escola !== escolaToRemove)
+      escolas: newEscolas
     }))
-    validateField('escolas', null) // Revalida (passa null para escolas)
+    validateField('escolas', newEscolas) // FIX: Valida com o novo array
   }
 
   const renderItems = (fields: InputFieldConfig[]) => {
@@ -436,6 +506,7 @@ export default function CadastroProfessor() {
               const stateValue = value?.toString() || ''
               setProfessor({ ...professor, estado: stateValue, cidade: '' })
               validateField(field.key, stateValue) // Valida em tempo real
+              validateField('cidade', '') // FIX: Valida cidade ao limpar
               if (stateValue && !cidadesPorUf[stateValue]) {
                 fetchMunicipios(stateValue)
                   .then(municipiosData => {
@@ -479,23 +550,30 @@ export default function CadastroProfessor() {
           <View key={field.key}>
             <InputField
               label={field.label}
-              placeholder={field.placeholder}
-              options={field.options}
+              placeholder={escolasLoading ? 'Carregando escolas...' : 'Informe a escola/instituição'}
+              options={escolasLoading || !escolas
+                ? []
+                : escolas
+                  .filter((escola) => escola.nomeInstituicao && escola.id)
+                  .map((escola) => ({
+                    label: escola.nomeInstituicao!,
+                    value: escola.id!.toString(),
+                  }))}
               selectedValue=""
               onValueChange={value => {
                 if (value && typeof value === 'string') {
                   addEscola(value)
                 }
               }}
-              editable={field.editable}
+              editable={!escolasLoading}
               error={error} // Novo: passa erro para InputField
             />
             <CustomButton
               title="Criar minha escola"
               onPress={() => router.push('/escolas/EscolaScreen')}
-              buttonColor={{ backgroundColor: colors.primary}}
+              buttonColor={{ backgroundColor: colors.primary }}
             />
-           
+
             {escolasLoading && (
               <ActivityIndicator size="small" color={colors.primary} />
             )}
@@ -665,12 +743,12 @@ export default function CadastroProfessor() {
       ],
       extraContent: null
     },
-    {
+   /** {
       id: 'preferencias',
       title: 'Preferências',
       icon: <Bell size={16} weight="fill" color={colors.primary} />,
       fields: []
-    }
+    } */
   ]
 
   if (loading) return <ActivityIndicator size="large" color={colors.primary} />
@@ -690,6 +768,7 @@ export default function CadastroProfessor() {
         fixed={true}
       />
       <FlatList
+        ref={flatListRef}
         data={sections}
         renderItem={renderSection}
         keyExtractor={item => item.id}
@@ -720,13 +799,18 @@ export default function CadastroProfessor() {
               <CheckboxWithLabel
                 label="Aceito os termos e a política de privacidade"
                 checked={professor.aceitouTermos}
-                onPress={() =>
+                onPress={() => {
+                  const newValue = !professor.aceitouTermos
                   setProfessor(prev => ({
                     ...prev,
-                    aceitouTermos: !prev.aceitouTermos
+                    aceitouTermos: newValue
                   }))
-                }
+                  validateField('aceitouTermos', newValue)
+                }}
               />
+              {errors['aceitouTermos'] && (
+                <Text style={styles.errorText}>{errors['aceitouTermos']}</Text>
+              )}
             </View>
             <View style={styles.button}>
               <CustomButton
@@ -787,5 +871,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 20
+  },
+  errorText: {
+    color: 'red',
+    fontSize: fontSizes.f12,
+    marginTop: 4,
+    marginLeft: 16,
+    fontFamily: 'Nunito_400Regular'
   }
 })

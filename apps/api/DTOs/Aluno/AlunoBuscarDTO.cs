@@ -1,6 +1,6 @@
 ﻿using api.DTOs.Laudo;
+using api.DTOs.Planejamento;
 using api.DTOs.Responsavel;
-using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.Aluno
 {
@@ -39,5 +39,7 @@ namespace api.DTOs.Aluno
         public ResponsavelCadastroSimplificadoDTO Responsavel { get; set; }
 
         public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
+
+        public List<PlanejamentoBuscarSimplificadoDTO>? Planejamentos { get; set; }
     }
 }
