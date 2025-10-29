@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [precisaTrocarSenha, setPrecisaTrocarSenha] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const isSigningOut = useRef(false); // Prevent recursive signOut calls
+  const isRedirecting = useRef(false); // Evita loops de redirecionamento
   const pathname = usePathname(); // Get current pathname
 
   // useEffect para checkAuth: roda apenas no mount inicial
@@ -46,10 +47,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const currentTime = Math.floor(Date.now() / 1000);
             if (payload.exp < currentTime) {
               await authSignOut();
+              await AsyncStorage.removeItem('precisaTrocarSenha'); // Limpa flag sempre
               setUserToken(null);
               setIsLoggedIn(false);
               setPrecisaTrocarSenha(false);
-              await AsyncStorage.removeItem('precisaTrocarSenha');
             } else {
               setUserToken(token);
               setIsLoggedIn(true);
@@ -58,21 +59,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } catch (e) {
             console.error('❌ Erro ao decodificar token:', e);
             await authSignOut();
+            await AsyncStorage.removeItem('precisaTrocarSenha'); // Limpa em erro
             setUserToken(null);
             setIsLoggedIn(false);
             setPrecisaTrocarSenha(false);
-            await AsyncStorage.removeItem('precisaTrocarSenha');
           }
         } else {
           setIsLoggedIn(false);
           setPrecisaTrocarSenha(false);
-          await AsyncStorage.removeItem('precisaTrocarSenha');
+          await AsyncStorage.removeItem('precisaTrocarSenha'); // Limpa se sem token
         }
       } catch (error) {
         console.error('❌ Erro ao verificar auth:', error);
         setIsLoggedIn(false);
         setPrecisaTrocarSenha(false);
-        await AsyncStorage.removeItem('precisaTrocarSenha');
+        await AsyncStorage.removeItem('precisaTrocarSenha'); // Limpa em erro geral
       } finally {
         setLoading(false);
       }
@@ -81,25 +82,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []); // Dependência vazia: roda só no mount
 
-  // useEffect separado para redirecionamentos baseados em isLoggedIn, precisaTrocarSenha e pathname
+  // useEffect para redirecionamentos (com debounce para evitar loops)
   useEffect(() => {
-    if (loading) return; // Evita redirecionamentos durante loading inicial
+    if (loading || isRedirecting.current) {
+      return; // Evita durante loading ou redirect em progresso
+    }
 
     if (isLoggedIn) {
       // Se precisa trocar senha e não está na tela de troca, redireciona para lá
       if (precisaTrocarSenha && pathname !== '/auth/changePassword') {
+        isRedirecting.current = true;
         router.replace('/auth/changePassword');
+        setTimeout(() => { isRedirecting.current = false; }, 500); // Debounce: libera após 500ms
         return;
       }
+
+      // Se NÃO precisa trocar e está na tela de troca, redireciona para dashboard (forçado)
+      if (!precisaTrocarSenha && pathname === '/auth/changePassword') {
+        isRedirecting.current = true;
+        router.replace('/dashboard');
+        setTimeout(() => { isRedirecting.current = false; }, 500);
+        return;
+      }
+
       // Redireciona para dashboard se na tela de login
       if (pathname === '/' || pathname === '/auth/login') {
+        isRedirecting.current = true;
         router.replace('/dashboard');
+        setTimeout(() => { isRedirecting.current = false; }, 500);
+        return;
       }
     } else if (!isLoggedIn && pathname === '/dashboard') {
       // Redireciona para login se não logado e na dashboard
+      isRedirecting.current = true;
       router.replace('/');
+      setTimeout(() => { isRedirecting.current = false; }, 500);
+      return;
     }
-  }, [isLoggedIn, precisaTrocarSenha, loading, pathname]);
+  }, [isLoggedIn, precisaTrocarSenha, loading]); // Removida 'pathname' para evitar re-triggers desnecessários; usePathname é watched internamente
 
   const login = (token: string, precisaTrocar: boolean) => {
     if (!token) {
@@ -109,10 +129,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUserToken(token);
     setIsLoggedIn(true);
     setPrecisaTrocarSenha(precisaTrocar);
-    
+
     // Salva a flag no storage para persistência
     AsyncStorage.setItem('precisaTrocarSenha', precisaTrocar.toString());
-    
+
     // Re-valida token imediatamente após login para checar expiração
     setTimeout(() => {
       const validateToken = async () => {
@@ -123,28 +143,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const currentTime = Math.floor(Date.now() / 1000);
             if (payload.exp < currentTime) {
               await authSignOut();
+              await AsyncStorage.removeItem('precisaTrocarSenha');
               setUserToken(null);
               setIsLoggedIn(false);
               setPrecisaTrocarSenha(false);
-              await AsyncStorage.removeItem('precisaTrocarSenha');
             }
           }
         } catch (e) {
           console.error('❌ Erro validando token pós-login:', e);
+          await authSignOut();
+          await AsyncStorage.removeItem('precisaTrocarSenha');
+          setUserToken(null);
+          setIsLoggedIn(false);
+          setPrecisaTrocarSenha(false);
         }
       };
       validateToken();
     }, 100); // Delay pequeno para async setState
   };
 
-  // Método para marcar que a troca de senha foi concluída
-  const trocarSenhaConcluida = () => {
+  // Método para marcar que a troca de senha foi concluída (com await para sync)
+  const trocarSenhaConcluida = async () => {
     setPrecisaTrocarSenha(false);
-    AsyncStorage.removeItem('precisaTrocarSenha');
-    // Opcional: Redireciona para dashboard
-    if (pathname === '/auth/changePassword') {
-      router.replace('/dashboard');
-    }
+    await AsyncStorage.removeItem('precisaTrocarSenha'); 
+
   };
 
   const signOut = async (): Promise<void> => {
@@ -158,12 +180,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUserToken(null);
       setIsLoggedIn(false);
       setPrecisaTrocarSenha(false);
-      await AsyncStorage.removeItem('precisaTrocarSenha');
+      await AsyncStorage.removeItem('precisaTrocarSenha'); // Limpa flag
       if (pathname !== '/') {
         router.replace('/');
       }
     } catch (error) {
-      console.error('❌ Erro no signOut:', error);
       setUserToken(null);
       setIsLoggedIn(false);
       setPrecisaTrocarSenha(false);

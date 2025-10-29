@@ -61,7 +61,7 @@ export const login = async (
     const precisaTrocarSenha = innerTokenObj.precisaTrocarSenha ?? false;
 
     await AsyncStorage.setItem('authToken', token);
-    await AsyncStorage.setItem('trocarSenha', precisaTrocarSenha);
+    await AsyncStorage.setItem('precisaTrocarSenha', precisaTrocarSenha.toString()); // Stringify para bool
   
     return { success: true, token, precisaTrocarSenha };
   } catch (error) {
@@ -99,7 +99,6 @@ export const register = async (
       message = typeof response.data === 'string'
         ? response.data
         : (response.data.message || 'Usuário criado com sucesso');
-
 
       try {
         const result = await login({ email: credentials.email, senha: credentials.senha });
@@ -147,12 +146,13 @@ export const getToken = async (): Promise<string | null> => {
 };
 
 export const signOut = async (): Promise<void> => {
-
   try {
     await AsyncStorage.removeItem('authToken');
-
+    await AsyncStorage.removeItem('precisaTrocarSenha'); // Limpa flag no logout também
     const remainingToken = await AsyncStorage.getItem('authToken');
-
+    if (remainingToken) {
+      console.warn('⚠️ Token ainda presente após signOut');
+    }
   } catch (error) {
     console.error('❌ Erro ao limpar o AsyncStorage durante logout:', error);
   }
@@ -171,25 +171,76 @@ export const trocarSenha = async (request: TrocarSenha): Promise<AuthResponse> =
     }
 
     const response = await api.post('Autenticacao/alterarsenha', request);
-    
-    // Assume que backend retorna novo token e confirma sucesso
-    const { token } = response.data;
-    if (!token) {
-      throw new Error('Token não retornado após troca de senha');
+    const success = response.data.success !== false; 
+    if (!success) {
+      throw new Error('Falha na troca de senha pelo backend');
     }
 
-    // Atualiza o token no storage
-    await AsyncStorage.setItem('authToken', token);
+    let token = response.data.token; 
+    if (!token) {
+      // Pega o token atual do storage (não precisa renovar sempre)
+      token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Token atual perdido; faça login novamente');
+      }
+    } else {
+      // Atualiza se novo token veio
+      await AsyncStorage.setItem('authToken', token);
+    }
     
-    // Remove a flag (já que trocou)
+    // Remove a flag (já que trocou) – Await para garantir sync
     await AsyncStorage.removeItem('precisaTrocarSenha');
     
-    console.log('✅ Senha trocada com sucesso!');
     return { success: true, token, precisaTrocarSenha: false };
   } catch (error) {
-    console.error('❌ Erro ao trocar senha:', error);
-    const axiosError = error as AxiosError<ApiError>;
-    const msg = axiosError.response?.data?.message || axiosError.message || 'Falha ao trocar senha';
-    throw new Error(msg);
+  
+    const axiosError = error as AxiosError<any>;
+    let msg = 'Falha ao trocar senha'; // Fallback genérico
+
+    if (axiosError.response) {
+      const status = axiosError.response.status;
+      const data = axiosError.response.data;
+
+      if (status === 400) {
+        // Específico para "Incorrect password"
+        if (data === 'Incorrect password..' || (typeof data === 'string' && data.includes('password'))) {
+          msg = 'Senha atual incorreta. Verifique e tente novamente.';
+        }
+        // Caso específico: Array de erros de validação
+        else if (Array.isArray(data)) {
+          const descriptions = data
+            .map((item: { code?: string; description?: string }) => {
+              if (item.description) {
+                return item.description;
+              }
+              if (item.code) {
+                console.warn(`Código de erro não mapeado: ${item.code}`);
+                return `Erro de validação: ${item.code}`;
+              }
+              return null;
+            })
+            .filter(Boolean);
+
+          if (descriptions.length > 0) {
+            msg = descriptions.join('. ') + '.';
+          } else {
+            msg = 'Erros de validação na senha. Verifique as regras.';
+          }
+        } else if (typeof data === 'string' || (data && typeof data.message === 'string')) {
+          msg = data.message || data as string;
+        }
+      } else if (status === 401) {
+        msg = 'Senha atual inválida. Verifique e tente novamente.';
+      } else if (status === 500) {
+        msg = 'Erro interno no servidor. Tente novamente mais tarde.';
+      } else {
+        msg = data?.message || axiosError.message || msg;
+      }
+    } else {
+      msg = axiosError.message || msg;
+    }
+
+    console.error(`❌ Detalhes do erro: Status ${axiosError.response?.status}, Mensagem: ${msg}`);
+    throw new Error(msg); // Lança com a mensagem formatada
   }
 };

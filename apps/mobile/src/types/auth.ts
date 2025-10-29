@@ -12,7 +12,7 @@ export interface AuthResponse {
   success: boolean
   token?: string
   autoLogin?: boolean
-  precisaTrocarSenha?:boolean
+  precisaTrocarSenha?: boolean
 }
 
 export interface ApiError {

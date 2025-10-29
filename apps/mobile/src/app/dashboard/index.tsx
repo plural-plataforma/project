@@ -76,7 +76,6 @@ export default function Dashboard() {
       // FIX: Garante que cadastroCompleto seja setado corretamente após fetch dos dados do professor
       const isComplete = isCadastroCompleto(updatedProfessor);
       setCadastroCompleto(isComplete);
-      console.log('Cadastro completo?', isComplete); // NOVO: Log para debug (remova em produção)
 
     } catch (error: any) {
       console.error('❌ Erro geral em fetchData:', error.message, error);
