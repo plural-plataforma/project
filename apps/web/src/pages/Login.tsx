@@ -21,36 +21,52 @@ export default function Login() {
   const [error, setError] = useState<string>("");
   const navigate = useNavigate();
 
+interface LoginResponse {
+  token: {
+    token: string;
+    precisaTrocarSenha: boolean;
+  };
+}
+
+
   const handleLogin = async (e: FormEvent) => {
   e.preventDefault();
   setError("");
 
   try {
-    const response = await axios.post(
+    const response = await axios.post<LoginResponse>(
       `${API_URL}/Autenticacao/login`,
       { email, senha: password },
-      { headers: { Accept: "application/json", "Content-Type": "application/json" } }
+      {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      }
     );
 
-    const token = response.data.token;
+    const token = response.data.token.token;
 
     if (!token) {
       setError("Não foi possível obter o token. Tente novamente.");
       return;
     }
 
-    // Salva token de acordo com "remember me"
+    const tokenString = String(token);
+
     if (rememberMe) {
-      localStorage.setItem("token", token);
+      localStorage.setItem("token", tokenString);
     } else {
-      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("token", tokenString);
     }
 
-    // Redireciona para dashboard
     navigate("/dashboard");
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      setError(err.response?.data || "Erro ao fazer login. Verifique suas credenciais.");
+      setError(
+        (err.response?.data as string) ||
+          "Erro ao fazer login. Verifique suas credenciais."
+      );
       console.error(err.response?.data || err.message);
     } else {
       setError("Erro ao fazer login. Verifique suas credenciais.");

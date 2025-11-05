@@ -4,6 +4,8 @@ import { SignOut } from "../components/SignOut";
 import PersonIcon from "@mui/icons-material/Person";
 import InfoCard from "../components/InfoCard";
 import Header from "../components/Header";
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 import {
   Box,
@@ -50,7 +52,7 @@ export default function Dashboard() {
       }
 
       try {
-        const response = await axios.get("https://dev-api.runasp.net/api/Professor/buscar", {
+        const response = await axios.get(`${API_URL}/Professor/buscar`, {
           headers: {
             Authorization: `Bearer ${token}`,
             accept: "*/*",
@@ -58,7 +60,6 @@ export default function Dashboard() {
           },
         });
 
-        console.log("Resposta da API:", response.data);
 
         const professor = response.data?.objeto;
         if (Array.isArray(professor)) {
@@ -119,6 +120,9 @@ export default function Dashboard() {
             </Button>
             <Button variant="outlined" fullWidth>
               Configurações
+            </Button>
+            <Button variant="outlined" fullWidth href='/skills'>
+              Habilidades
             </Button>
           </Box>
 
