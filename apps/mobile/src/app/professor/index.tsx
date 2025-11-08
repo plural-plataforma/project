@@ -743,12 +743,21 @@ export default function CadastroProfessor() {
       ],
       extraContent: null
     },
-   /** {
+    {
       id: 'preferencias',
       title: 'Preferências',
       icon: <Bell size={16} weight="fill" color={colors.primary} />,
-      fields: []
-    } */
+      extraContent: (
+        <View style={styles.preferenciasContent}>
+          <TouchableOpacity
+            style={styles.trocarSenhaButton}
+            onPress={() => router.push('/auth/changePassword')} // Ajuste a rota conforme sua estrutura
+          >
+            <Text style={styles.trocarSenhaText}>Trocar senha</Text>
+          </TouchableOpacity>
+        </View>
+      )
+    }
   ]
 
   if (loading) return <ActivityIndicator size="large" color={colors.primary} />
@@ -780,7 +789,7 @@ export default function CadastroProfessor() {
                   completedSections={completedSections}
                   totalSections={totalSections}
                 />
-                <View>
+                <View style={{ padding: 20 }}>
                   <Text style={styles.titleInstrucao}>
                     Finalize seu cadastro!
                   </Text>
@@ -878,5 +887,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 16,
     fontFamily: 'Nunito_400Regular'
+  },
+  preferenciasContent: {
+    marginTop: 8,
+  },
+  trocarSenhaButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  trocarSenhaText: {
+    color: '#fff',
+    fontSize: fontSizes.f16,
+    fontFamily: 'Nunito_700Bold',
   }
 })
