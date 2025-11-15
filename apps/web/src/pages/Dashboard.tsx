@@ -112,15 +112,17 @@ export default function Dashboard() {
             <Button variant="contained" fullWidth style={{ color: "#FFFF", backgroundColor: "#276678" }}>
               Gerenciar Usuários
             </Button>
-            <Button variant="outlined" fullWidth>
+          {/**   <Button variant="outlined" fullWidth>
               Pagamentos
             </Button>
             <Button variant="outlined" fullWidth>
               Relatórios
             </Button>
-            <Button variant="outlined" fullWidth>
+            
+            <Button variant="outlined" fullWidth href='/config'>
               Configurações
             </Button>
+            */}
             <Button variant="outlined" fullWidth href='/skills'>
               Habilidades
             </Button>

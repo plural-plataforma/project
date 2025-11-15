@@ -17,6 +17,7 @@ function App() {
         <Route path="/dashboard"        element={<ProtectedRoutes><Dashboard /></ProtectedRoutes>}  />
         <Route path="/skills"           element={<ProtectedRoutes><SkillsList /></ProtectedRoutes>} />
         <Route path="/skills/edit"  element={<ProtectedRoutes><SkillsEdit /></ProtectedRoutes>} />
+        <Route path="/config"  element={<ProtectedRoutes><SkillsEdit /></ProtectedRoutes>} />
         <Route path="/change-password"  element={<ProtectedRoutes><ChangePassword /></ProtectedRoutes>}/>
         <Route path="/register"         element={<Register />}/>
       
