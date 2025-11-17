@@ -608,14 +608,7 @@ export default function AlunoProfileScreen() {
       showAlert("Erro", "O nome do responsável é obrigatório.");
       return;
     }
-    // FIX: Validação obrigatória para Laudo (pelo menos um com todos os campos preenchidos)
-    if (!aluno.laudos || aluno.laudos.length === 0 ||
-      !aluno.laudos[0]?.codigoCid?.trim() ||
-      !aluno.laudos[0]?.nomeMedico?.trim() ||
-      !aluno.laudos[0]?.descricao?.trim()) {
-      showAlert("Erro", "Informe os dados do laudo (Código CID, Nome do Médico e Descrição).");
-      return;
-    }
+
 
     setLoading(true);
     try {

@@ -10,13 +10,13 @@ namespace api.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long Id { get; set; }
 
-        public string CodigoCid { get; set; }
+        public string? CodigoCid { get; set; }
 
         [MaxLength(256)]
-        public string NomeMedico { get; set; }
+        public string? NomeMedico { get; set; }
 
         [MaxLength(2000)]
-        public string Descricao { get; set; }
+        public string? Descricao { get; set; }
 
         public int IdAluno { get; set; }
 
