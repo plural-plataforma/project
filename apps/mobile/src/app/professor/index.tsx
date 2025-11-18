@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, Camera, GraduationCap, User, Trash } from 'phosphor-react-native';
+import { Bell, GraduationCap, User } from 'phosphor-react-native';
 import { fetchCepData } from '../../services/validateCep';
 import { fetchEstados, fetchMunicipios } from '../../services/locationsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,9 +17,12 @@ import Header from '../../components/Header';
 import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import { Professor } from '@src/types/professor';
 import { Escola } from '@src/types/escolas';
-import { buscarProfessor, atualizarProfessor, vincularEscola, buscarEscolasProfessor } from '../../services/professorService';
+import {
+  buscarProfessor,
+  atualizarProfessor,
+  buscarEscolasProfessor,
+} from '../../services/professorService';
 import { isCadastroCompleto } from '../../utils/professorUtils';
-import ProfilePhoto from '@src/components/ProfilePhoto';
 import ProgressFill from '@src/components/ProgressFill';
 import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
@@ -27,53 +30,57 @@ import SectionGroup from '@src/components/SectionGroup';
 import ItemButton from '@src/components/ItemButton';
 import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 
-const HEADER_HEIGHT = 55
-const areasEnsino = [
-  'Matemática',
-  'Português',
-  'História',
-  'Geografia',
-  'Biologia',
-  'Física',
-  'Química',
-  'Inglês',
-  'Educação Física',
-  'Artes'
-]
+import {
+  getSiglaFromNome,
+  findCidadeMatch,
+  formatUfsDropdown,
+  formatCidadesList,
+} from '@src/utils/locationUtils';
+
+const HEADER_HEIGHT = 55;
 
 const sexoOptions = [
   { label: 'Feminino', value: 'F' },
-  { label: 'Masculino', value: 'M' }
-]
+  { label: 'Masculino', value: 'M' },
+];
 
-interface InputFieldConfig {
-  label: string
-  key: keyof Professor
-  placeholder: string
-  mask?: 'cep' | 'phone' | 'cpf'
-  options?: { label: string; value: string | number }[]
-  keyboardType?:
-  | 'default'
-  | 'numeric'
-  | 'email-address'
-  | 'phone-pad'
-  | 'number-pad'
-  onChange?: (value: string | number | null) => void
-  isSpecial?: boolean
-  editable?: boolean
-}
+type InputFieldConfig =
+  | {
+    type: 'text';
+    label: string;
+    key: keyof Professor;
+    placeholder?: string;
+    mask?: 'cep' | 'phone' | 'cpf';
+    keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'number-pad';
+    error?: string;
+    editable?: boolean;
+  }
+  | {
+    type: 'dropdown';
+    label: string;
+    key: keyof Professor;
+    placeholder?: string;
+    options: { label: string; value: string | number }[];
+    selectedValue: string | number | null;
+    onValueChange: (value: string | number | null) => void;
+    error?: string;
+    searchable?: boolean;
+    searchPlaceholder?: string;
+    editable?: boolean;
+  };
 
 interface SectionData {
-  id: string
-  title: string
-  icon: React.ReactNode
-  fields?: InputFieldConfig[]
-  extraContent?: React.ReactNode
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  fields?: InputFieldConfig[];
+  extraContent?: React.ReactNode;
 }
 
 export default function CadastroProfessor() {
   const { showAlert, handleDismiss, visible, config } = useCustomAlert();
   const router = useRouter();
+
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
     sexo: '',
@@ -90,475 +97,232 @@ export default function CadastroProfessor() {
     nivelEnsino: '',
     sobre: '',
     aceitouTermos: false,
-    escolas: []
-  })
-  const [errors, setErrors] = useState<{ [key: string]: string }>({}) // Novo: erros por campo
-  const [loading, setLoading] = useState<boolean>(true)
-  const [cepLoading, setCepLoading] = useState<boolean>(false)
-  const [ufs, setUfs] = useState<{ label: string; value: string }[]>([])
-  const [cidadesPorUf, setCidadesPorUf] = useState<{ [key: string]: string[] }>(
-    {}
-  )
-  const [escolas, setEscolas] = useState<Escola[]>([])
-  const cidadesDisponiveis = professor.estado
-    ? cidadesPorUf[professor.estado] || ['Selecione o estado primeiro']
-    : ['Selecione o estado primeiro']
-  const [completedSections, setCompletedSections] = useState<number>(0)
-  const totalSections = 4
-  const [escolasLoading, setEscolasLoading] = useState<boolean>(false)
+    escolas: [],
+  });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [ufs, setUfs] = useState<{ label: string; value: string }[]>([]);
+  const [cidadesPorUf, setCidadesPorUf] = useState<Record<string, string[]>>({});
+  const [escolas, setEscolas] = useState<Escola[]>([]);
+  const [escolasLoading, setEscolasLoading] = useState(false);
+  const [completedSections, setCompletedSections] = useState(0);
+  const totalSections = 4;
+
+  // === Cidades disponíveis com memo ===
+  const cidadesDisponiveis = useMemo(() => {
+    if (!professor.estado) return ['Selecione o estado primeiro'];
+    return cidadesPorUf[professor.estado] || ['Carregando cidades...'];
+  }, [professor.estado, cidadesPorUf]);
+
+  // === Progresso do cadastro ===
   useEffect(() => {
-    const calculateProgress = () => {
-      let completed = 0
-      const dadosPessoaisCompleto =
-        professor.nomeCompleto &&
-        professor.sexo &&
-        professor.email &&
-        professor.telefone
-      const dadosProfissionaisCompleto = professor.escolas?.length > 0
-      const preferenciasCompleto = true
-      const termosCompleto = professor.aceitouTermos
+    let completed = 0;
+    if (professor.nomeCompleto && professor.sexo && professor.email && professor.telefone) completed++;
+    if (professor.escolas.length > 0) completed++;
+    if (true) completed++; // Preferências (sempre completo)
+    if (professor.aceitouTermos) completed++;
+    setCompletedSections(completed);
+  }, [professor]);
 
-      if (dadosPessoaisCompleto) completed += 1
-      if (dadosProfissionaisCompleto) completed += 1
-      if (preferenciasCompleto) completed += 1
-      if (termosCompleto) completed += 1
-
-      setCompletedSections(completed)
-    }
-
-    calculateProgress()
-  }, [professor])
-
+  // === Carregamento inicial ===
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const loadData = async () => {
       try {
-        setLoading(true)
-        setEscolasLoading(true)
-        const token = await AsyncStorage.getItem('authToken')
-        if (!token) {
-          console.warn('⚠️ Nenhum token encontrado. Usuário não autenticado.')
-          showAlert('Aviso', 'Por favor, faça login para carregar seus dados.')
-          setLoading(false)
-          setEscolasLoading(false)
-          return
-        }
+        setLoading(true);
+        setEscolasLoading(true);
 
-        const estadosData = await fetchEstados()
-        const formattedUfs = estadosData.map(uf => ({
-          label: uf.nome,
-          value: uf.sigla
-        }))
-        setUfs(formattedUfs)
+        const token = await AsyncStorage.getItem('authToken');
+        if (!token) throw new Error('Token não encontrado');
 
-        const municipiosData = await fetchMunicipios('RS')
-        const cidadesRS = municipiosData.map(m => m.nome)
-        setCidadesPorUf(prev => ({ ...prev, RS: cidadesRS }))
+        // Estados
+        const estadosData = await fetchEstados();
+        setUfs(formatUfsDropdown(estadosData));
 
+        // Escolas
         const escolasData = await buscarEscolas();
-        if (!escolasData.length) {
-          showAlert(
-            'Aviso',
-            'Nenhuma escola encontrada. Verifique sua conexão ou tente novamente.'
-          )
-        }
-        setEscolas(escolasData)
+        setEscolas(escolasData || []);
 
+        // Dados do professor
         const professorData = await buscarProfessor();
-        let updatedProfessor: Professor = {
+        const linkedEscolas = await buscarEscolasProfessor().catch(() => []);
+
+        setProfessor({
           ...professorData.objeto,
-          sexo: professorData.objeto.sexo && ['F', 'M'].includes(professorData.objeto.sexo) ? professorData.objeto.sexo : '',
-          escolas: [] as string[],
-        };
-
-        try {
-          const linkedEscolas = await buscarEscolasProfessor();
-          updatedProfessor.escolas = linkedEscolas.map(escola => escola.id!.toString());
-        } catch (error: any) {
-          console.warn('⚠️ Falha ao buscar escolas vinculadas:', error.message);
-          showAlert('Aviso', 'Não foi possível carregar as escolas vinculadas. Você pode vincular escolas manualmente.');
-        }
-
-        setProfessor(updatedProfessor);
-      } catch (error: any) {
-        console.error('❌ Erro ao carregar dados iniciais:', error.message)
-        if (error.message.includes('401')) {
-          showAlert(
-            'Erro de Autenticação',
-            'Sua sessão expirou. Faça login novamente.'
-          )
-          router.push('/auth/login')
-        } else {
-          showAlert(
-            'Erro',
-            'Não foi possível carregar os dados. Preencha manualmente.'
-          )
-          setProfessor(prev => ({
-            ...prev,
-            estado: 'SP',
-            cidade: 'São Paulo',
-            sexo: '',
-            escolas: []
-          }))
-        }
+          sexo: professorData.objeto.sexo && ['F', 'M'].includes(professorData.objeto.sexo)
+            ? professorData.objeto.sexo
+            : '',
+          escolas: linkedEscolas.map(e => e.id!.toString()),
+        });
+      } catch (err: any) {
+        showAlert('Erro', err.message || 'Falha ao carregar dados.');
       } finally {
-        setLoading(false)
-        setEscolasLoading(false)
+        setLoading(false);
+        setEscolasLoading(false);
       }
-    }
-    fetchInitialData()
-  }, [])
+    };
 
-  // Novo: Função para validar campo e atualizar erros
-  const validateField = (
-    key: keyof Professor,
-    value: string | number | null
-  ) => {
-    let newErrors = { ...errors }
-    delete newErrors[key as string] // Limpa erro anterior
+    loadData();
+  }, []);
+
+  // === Validação em tempo real ===
+  const validateField = (key: keyof Professor, value: any) => {
+    const newErrors = { ...errors };
+    delete newErrors[key as string];
 
     switch (key) {
       case 'nomeCompleto':
-        if (!value || (value as string).trim().length < 2) {
-          newErrors['nomeCompleto'] = 'Nome deve ter pelo menos 2 caracteres'
-        }
-        break
+        if (!value || value.trim().length < 2) newErrors[key] = 'Nome muito curto';
+        break;
       case 'email':
-        if (!value || !/^\S+@\S+\.\S+$/.test(value as string)) {
-          newErrors['email'] = 'E-mail inválido'
-        }
-        break
+        if (!/^\S+@\S+\.\S+$/.test(value)) newErrors[key] = 'E-mail inválido';
+        break;
       case 'telefone':
-        if (!value || (value as string).replace(/\D/g, '').length < 10) {
-          newErrors['telefone'] = 'Telefone inválido'
-        }
-        break
+        if (value.replace(/\D/g, '').length < 10) newErrors[key] = 'Telefone inválido';
+        break;
       case 'sexo':
-        if (!value) {
-          newErrors['sexo'] = 'Selecione o sexo'
-        }
-        break
+        if (!value) newErrors[key] = 'Selecione o sexo';
+        break;
       case 'escolas':
-        if ((professor.escolas?.length || 0) === 0) {
-          newErrors['escolas'] = 'Vincule pelo menos uma escola'
-        }
-        break
-      // Adicione mais validações conforme necessário (ex.: CEP, etc.)
-      default:
-        break
+        if (professor.escolas.length === 0) newErrors[key] = 'Vincule pelo menos uma escola';
+        break;
     }
 
-    setErrors(newErrors)
-  }
+    setErrors(newErrors);
+  };
 
+  // === CEP ===
   const handleCepChange = async (text: string) => {
-    const cepClean = text.replace(/[^0-9]/g, '')
-    setProfessor({ ...professor, cep: cepClean })
-    validateField('cep', cepClean) // Valida CEP se necessário
+    const cepClean = text.replace(/\D/g, '');
+    setProfessor(prev => ({ ...prev, cep: cepClean }));
 
     if (cepClean.length === 8) {
-      setCepLoading(true)
+      setCepLoading(true);
       try {
-        const cepData = await fetchCepData(cepClean)
-        setProfessor(prev => ({
-          ...prev,
-          logradouro: cepData.street || '',
-          bairro: cepData.neighborhood || '',
-          estado: cepData.state || '',
-          cidade: cepData.city || ''
-        }))
+        const data = await fetchCepData(cepClean);
+        const sigla = data.state || getSiglaFromNome(data.state || '');
+        const cidadeNome = data.city || '';
 
-        if (cepData.state && !cidadesPorUf[cepData.state]) {
-          const municipiosData = await fetchMunicipios(cepData.state)
-          const cidades = municipiosData.map(m => m.nome)
-          setCidadesPorUf(prev => ({ ...prev, [cepData.state]: cidades }))
+        const updates: Partial<Professor> = {
+          logradouro: data.street || '',
+          bairro: data.neighborhood || '',
+        };
+
+        if (sigla) {
+          updates.estado = sigla;
+          if (!cidadesPorUf[sigla]) {
+            const municipios = await fetchMunicipios(sigla);
+            const cidades = formatCidadesList(municipios);
+            setCidadesPorUf(prev => ({ ...prev, [sigla]: cidades }));
+          }
+          const matched = findCidadeMatch(cidadeNome, cidadesPorUf[sigla] || []);
+          updates.cidade = matched || cidadeNome;
         }
-      } catch (error: any) {
-        console.error('Erro ao buscar CEP:', error)
-        if (error.name === 'BadRequestError') {
-          showAlert('Erro de Validação', error.message)
-        } else if (error.name === 'NotFoundError') {
-          showAlert('Erro', 'CEP não encontrado.')
-        } else if (error.name === 'InternalError') {
-          showAlert('Erro', 'Erro interno no serviço de CEP.')
-        } else {
-          showAlert(
-            'Erro',
-            error.message || 'Não foi possível buscar o endereço.'
-          )
-        }
+
+        setProfessor(prev => ({ ...prev, ...updates }));
+      } catch (err: any) {
+        showAlert('CEP', err.message || 'CEP não encontrado');
       } finally {
-        setCepLoading(false)
+        setCepLoading(false);
       }
     }
-  }
+  };
 
+  // === Estado change ===
+  const handleEstadoChange = async (value: string | number | null) => {
+    const sigla = value?.toString() || '';
+    setProfessor(prev => ({ ...prev, estado: sigla, cidade: '' }));
+
+    if (sigla && !cidadesPorUf[sigla]) {
+      const municipios = await fetchMunicipios(sigla);
+      const cidades = formatCidadesList(municipios);
+      setCidadesPorUf(prev => ({ ...prev, [sigla]: cidades }));
+    }
+  };
+
+  // === Vincular escola ===
+  const addEscola = (id: string) => {
+    if (id && !professor.escolas.includes(id)) {
+      setProfessor(prev => ({ ...prev, escolas: [...prev.escolas, id] }));
+      validateField('escolas', null);
+    }
+  };
+
+  const removeEscola = (id: string) => {
+    setProfessor(prev => ({ ...prev, escolas: prev.escolas.filter(e => e !== id) }));
+    validateField('escolas', null);
+  };
+
+  // === Salvar ===
   const handleConcluir = async () => {
-    // Valida todos os campos antes de salvar
-    const requiredFields = [
-      'nomeCompleto',
-      'email',
-      'telefone',
-      'sexo',
-      'escolas'
-    ] as (keyof Professor)[]
-    let hasErrors = false
-    const newErrors: { [key: string]: string } = {}
-
-    requiredFields.forEach(key => {
-      const value = professor[key]
-      if (!value || (typeof value === 'string' && value.trim() === '')) {
-        newErrors[key] = `${key} é obrigatório`
-        hasErrors = true
-      }
-    })
-
-    if (professor.escolas?.length === 0) {
-      newErrors['escolas'] = 'Vincule pelo menos uma escola'
-      hasErrors = true
+    if (Object.keys(errors).length > 0 || professor.escolas.length === 0) {
+      showAlert('Erro', 'Corrija os campos destacados e vincule uma escola.');
+      return;
     }
 
-    setErrors(newErrors)
-
-    if (hasErrors) {
-      showAlert(
-        'Validação',
-        'Corrija os erros nos campos destacados antes de continuar.'
-      )
-      return
-    }
-
-    if (!isCadastroCompleto(professor)) {
-      showAlert(
-        'Erro',
-        'Preencha todos os campos obrigatórios, incluindo pelo menos uma escola vinculada.'
-      )
-      return
-    }
-
-    setLoading(true)
+    setLoading(true);
     try {
-      await atualizarProfessor(professor)
-      showAlert('Sucesso', 'Cadastro de professor salvo com sucesso!', [
-        { text: 'OK', onPress: () => router.back() }
-      ])
-    } catch (error: any) {
-      console.error('Erro ao salvar professor:', error)
-      if (error.message.includes('erro ao vincular escolas')) {
-        showAlert(
-          'Aviso',
-          'Cadastro de professor salvo, mas não foi possível vincular as escolas: ' +
-          error.message,
-          [{ text: 'OK', onPress: () => router.back() }]
-        )
-      } else if (error.message.includes('401')) {
-        showAlert(
-          'Erro de Autenticação',
-          'Sua sessão expirou. Faça login novamente.'
-        )
-        router.push('/auth/login')
-      } else if (error.response?.status === 400) {
-        showAlert(
-          'Erro',
-          'Dados inválidos. Verifique os campos e tente novamente.'
-        )
-      } else {
-        showAlert(
-          'Erro',
-          'Não foi possível salvar o cadastro. Tente novamente.'
-        )
-      }
+      await atualizarProfessor(professor);
+      showAlert('Sucesso', 'Perfil atualizado com sucesso!', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (err: any) {
+      showAlert('Erro', err.message || 'Falha ao salvar');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const addEscola = (value: string) => {
-    if (
-      value &&
-      typeof value === 'string' &&
-      !professor.escolas.includes(value)
-    ) {
-      setProfessor(prev => ({
-        ...prev,
-        escolas: [...(prev.escolas || []), value]
-      }))
-      validateField('escolas', null) // Valida após adicionar (passa null para escolas)
-    }
-  }
+  // === Renderização dos campos ===
+  const renderField = (field: InputFieldConfig) => {
+    const error = errors[field.key as string];
 
-  const removeEscola = (escolaToRemove: string) => {
-    setProfessor(prev => ({
-      ...prev,
-      escolas: (prev.escolas || []).filter(escola => escola !== escolaToRemove)
-    }))
-    validateField('escolas', null) // Revalida (passa null para escolas)
-  }
-
-  const renderItems = (fields: InputFieldConfig[]) => {
-    return fields.map(field => {
-      const fieldKey = field.key as string
-      const fieldValue = professor[field.key]
-      const error = errors[fieldKey]
-
-      if (field.isSpecial && field.key === 'cep') {
-        return (
-          <View key={field.key}>
-            <InputField
-              label={field.label}
-              placeholder={field.placeholder}
-              value={(professor[field.key] as string) || ''}
-              onChangeText={value => {
-                handleCepChange(value)
-                validateField(field.key, value) // Valida em tempo real
-              }}
-              editable={!cepLoading}
-              mask={field.mask}
-              keyboardType={field.keyboardType}
-              error={error} // Novo: passa erro para InputField
-            />
-            {cepLoading && (
-              <ActivityIndicator size="small" color={colors.primary} />
-            )}
-          </View>
-        )
-      }
-
-      if (field.isSpecial && field.key === 'estado') {
-        return (
-          <InputField
-            key={field.key}
-            label={field.label}
-            placeholder={field.placeholder}
-            options={ufs}
-            selectedValue={(professor[field.key] as string) || ''}
-            onValueChange={value => {
-              const stateValue = value?.toString() || ''
-              setProfessor({ ...professor, estado: stateValue, cidade: '' })
-              validateField(field.key, stateValue) // Valida em tempo real
-              if (stateValue && !cidadesPorUf[stateValue]) {
-                fetchMunicipios(stateValue)
-                  .then(municipiosData => {
-                    const cidades = municipiosData.map(m => m.nome)
-                    setCidadesPorUf(prev => ({
-                      ...prev,
-                      [stateValue]: cidades
-                    }))
-                  })
-                  .catch(err => console.error('Erro ao carregar cidades:', err))
-              }
-            }}
-            error={error} // Novo: passa erro para InputField
-          />
-        )
-      }
-
-      if (field.isSpecial && field.key === 'cidade') {
-        return (
-          <InputField
-            key={field.key}
-            label={field.label}
-            placeholder={field.placeholder}
-            options={cidadesDisponiveis.map(cidade => ({
-              label: cidade,
-              value: cidade
-            }))}
-            selectedValue={(professor[field.key] as string) || ''}
-            onValueChange={value => {
-              const cityValue = value?.toString() || ''
-              setProfessor({ ...professor, cidade: cityValue })
-              validateField(field.key, cityValue) // Valida em tempo real
-            }}
-            error={error} // Novo: passa erro para InputField
-          />
-        )
-      }
-
-      if (field.key === 'escolas') {
-        return (
-          <View key={field.key}>
-            <InputField
-              label={field.label}
-              placeholder={field.placeholder}
-              options={field.options}
-              selectedValue=""
-              onValueChange={value => {
-                if (value && typeof value === 'string') {
-                  addEscola(value)
-                }
-              }}
-              editable={field.editable}
-              error={error} // Novo: passa erro para InputField
-            />
-            <CustomButton
-              title="Criar minha escola"
-              onPress={() => router.push('/escolas/EscolaScreen')}
-              buttonColor={{ backgroundColor: colors.primary}}
-            />
-           
-            {escolasLoading && (
-              <ActivityIndicator size="small" color={colors.primary} />
-            )}
-            {professor.escolas.map((escolaId, index) => {
-              const escola = escolas.find(e => e.id!.toString() === escolaId)
-              return (
-                <ItemButton
-                  key={index}
-                  escola={escola?.nomeInstituicao || escolaId}
-                  onRemove={() => removeEscola(escolaId)}
-                />
-              )
-            })}
-          </View>
-        )
-      }
-
+    if (field.type === 'dropdown') {
       return (
         <InputField
           key={field.key}
           label={field.label}
           placeholder={field.placeholder}
-          value={
-            field.key === 'numero'
-              ? (professor[field.key] as number)?.toString() || ''
-              : field.key === 'sexo'
-                ? (professor[field.key] as string) || ''
-                : professor[field.key] as string || ''
-          }
-          onChangeText={value => {
-            if (field.key === 'numero') {
-              const numValue = value === '' ? 0 : parseInt(value) || 0
-              setProfessor({ ...professor, [field.key]: numValue })
-              validateField(field.key, numValue) // Valida em tempo real
-            } else if (field.options && field.onChange) {
-              field.onChange(value)
-            } else {
-              setProfessor({ ...professor, [field.key]: value })
-              validateField(field.key, value) // Valida em tempo real
-            }
-          }}
-          mask={field.mask}
           options={field.options}
-          keyboardType={field.keyboardType}
-          selectedValue={
-            field.key === 'sexo'
-              ? (professor[field.key] as string) || ''
-              : undefined
-          }
-          onValueChange={
-            field.key === 'sexo' && field.options
-              ? (value) => {
-                const sexoValue = typeof value === 'string' ? value : '';
-                setProfessor({ ...professor, sexo: sexoValue });
-                validateField('sexo', sexoValue); // Valida em tempo real
-              }
-              : undefined
-          }
-          error={error} // Novo: passa erro para InputField
+          selectedValue={field.selectedValue}
+          onValueChange={field.onValueChange}
+          searchable={field.searchable}
+          searchPlaceholder={field.searchPlaceholder}
+          error={error}
+          editable={field.editable}
         />
-      )
-    })
-  }
+      );
+    }
+
+    // Text fields
+    return (
+      <InputField
+        key={field.key}
+        label={field.label}
+        placeholder={field.placeholder}
+        value={
+          field.key === 'numero'
+            ? professor[field.key]?.toString() || ''
+            : (professor[field.key] as string) || ''
+        }
+        onChangeText={(text) => {
+          if (field.key === 'cep') {
+            handleCepChange(text);
+          } else if (field.key === 'numero') {
+            setProfessor(prev => ({ ...prev, numero: parseInt(text) || 0 }));
+          } else {
+            setProfessor(prev => ({ ...prev, [field.key]: text }));
+          }
+          validateField(field.key, text);
+        }}
+        mask={field.mask}
+        keyboardType={field.keyboardType}
+        error={error}
+        editable={field.key === 'cep' ? !cepLoading : field.editable}
+      />
+    );
+  };
 
   const sections: SectionData[] = [
     {
@@ -566,153 +330,79 @@ export default function CadastroProfessor() {
       title: 'Dados Pessoais',
       icon: <User size={16} weight="fill" color={colors.primary} />,
       fields: [
-        {
-          label: 'Nome',
-          key: 'nomeCompleto',
-          placeholder: 'Digite o nome'
-        },
-        {
-          label: 'E-mail',
-          key: 'email',
-          placeholder: 'Digite o e-mail',
-          keyboardType: 'email-address'
-        },
-        {
-          label: 'Telefone',
-          key: 'telefone',
-          placeholder: '(00) 00000-0000',
-          mask: 'phone'
-        },
-        {
-          label: 'Sexo',
-          key: 'sexo',
-          placeholder: 'Selecione o sexo',
-          options: sexoOptions,
-          onChange: value => {
-            const sexoValue = typeof value === 'string' ? value : ''
-            setProfessor({ ...professor, sexo: sexoValue })
-            validateField('sexo', sexoValue) // Valida em tempo real
-          }
-        },
-        {
-          label: 'CEP',
-          key: 'cep',
-          placeholder: 'Informe o CEP',
-          mask: 'cep',
-          isSpecial: true
-        },
-        {
-          label: 'Estado',
-          key: 'estado',
-          placeholder: 'Informe o estado',
-          isSpecial: true
-        },
-        {
-          label: 'Cidade',
-          key: 'cidade',
-          placeholder: 'Informe a cidade',
-          isSpecial: true
-        },
-        {
-          label: 'Bairro',
-          key: 'bairro',
-          placeholder: 'Digite o bairro'
-        },
-        {
-          label: 'Endereço',
-          key: 'logradouro',
-          placeholder: 'Digite o endereço'
-        },
-        {
-          label: 'Número',
-          key: 'numero',
-          placeholder: 'Digite o número',
-          keyboardType: 'number-pad'
-        },
-        {
-          label: 'Complemento',
-          key: 'complemento',
-          placeholder: 'Digite o complemento'
-        },
-        {
-          label: 'Sobre você',
-          key: 'sobre',
-          placeholder:
-            'Conte um pouco sobre sua experiência metodologia de ensino...'
-        }
-      ]
+        { type: 'text', label: 'Nome', key: 'nomeCompleto', placeholder: 'Digite o nome' },
+        { type: 'text', label: 'E-mail', key: 'email', placeholder: 'seu@email.com', keyboardType: 'email-address' },
+        { type: 'text', label: 'Telefone', key: 'telefone', placeholder: '(00) 00000-0000', mask: 'phone' },
+        { type: 'dropdown', label: 'Sexo', key: 'sexo', placeholder: 'Selecione', options: sexoOptions, selectedValue: professor.sexo || null, onValueChange: v => setProfessor(p => ({ ...p, sexo: v?.toString() || '' })) },
+        { type: 'text', label: 'CEP', key: 'cep', placeholder: '00000-000', mask: 'cep' },
+        { type: 'dropdown', label: 'Estado', key: 'estado', placeholder: 'Selecione', options: ufs, selectedValue: professor.estado || null, onValueChange: handleEstadoChange, searchable: true },
+        { type: 'dropdown', label: 'Cidade', key: 'cidade', placeholder: 'Selecione', options: cidadesDisponiveis.map(c => ({ label: c, value: c })), selectedValue: professor.cidade || null, onValueChange: v => setProfessor(p => ({ ...p, cidade: v?.toString() || '' })), searchable: true },
+        { type: 'text', label: 'Bairro', key: 'bairro', placeholder: 'Digite o bairro' },
+        { type: 'text', label: 'Endereço', key: 'logradouro', placeholder: 'Rua, avenida...' },
+        { type: 'text', label: 'Número', key: 'numero', placeholder: '000', keyboardType: 'number-pad' },
+        { type: 'text', label: 'Complemento', key: 'complemento', placeholder: 'Apt, bloco...' },
+        { type: 'text', label: 'Sobre você', key: 'sobre', placeholder: 'Fale sobre sua experiência...' },
+      ],
     },
     {
-      id: 'dados-profissionais | professor',
+      id: 'dados-profissionais',
       title: 'Dados Profissionais',
       icon: <GraduationCap size={16} weight="fill" color={colors.primary} />,
       fields: [
         {
+          type: 'dropdown',
           label: 'Escola/Instituição vinculada',
           key: 'escolas',
-          placeholder: escolasLoading ? 'Carregando escolas...' : 'Informe a escola/instituição',
-          options: escolasLoading || !escolas
-            ? []
-            : escolas
-              .filter((escola) => escola.nomeInstituicao && escola.id)
-              .map((escola) => ({
-                label: escola.nomeInstituicao!,
-                value: escola.id!.toString(),
-              })),
+          placeholder: escolasLoading ? 'Carregando...' : 'Selecione uma escola',
+          options: escolas.map(e => ({ label: e.nomeInstituicao!, value: e.id!.toString() })),
+          selectedValue: null,
+          onValueChange: (v) => v && addEscola(v.toString()),
+          error: errors.escolas,
           editable: !escolasLoading,
-        },
-
+        } as InputFieldConfig,
       ],
-      extraContent: null
+      extraContent: (
+        <View style={{ marginTop: 10 }}>
+          <CustomButton title="Criar minha escola" onPress={() => router.push('/escolas/EscolaScreen')} buttonColor={{ backgroundColor: colors.primary }} />
+          {professor.escolas.map(id => {
+            const escola = escolas.find(e => e.id!.toString() === id);
+            return <ItemButton key={id} escola={escola?.nomeInstituicao || id} onRemove={() => removeEscola(id)} />;
+          })}
+        </View>
+      ),
     },
     {
       id: 'preferencias',
       title: 'Preferências',
       icon: <Bell size={16} weight="fill" color={colors.primary} />,
-      fields: []
-    }
-  ]
+      fields: [],
+    },
+  ];
 
-  if (loading) return <ActivityIndicator size="large" color={colors.primary} />
-
-  const renderSection = ({ item }: { item: SectionData }) => (
-    <SectionGroup title={item.title} icon={item.icon}>
-      {item.fields && renderItems(item.fields)}
-      {item.extraContent}
-    </SectionGroup>
-  )
+  if (loading) return <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1, justifyContent: 'center' }} />;
 
   return (
     <View style={styles.container}>
-      <Header
-        title="Perfil do Professor"
-        onBack={() => router.back()}
-        fixed={true}
-      />
+      <Header title="Perfil do Professor" onBack={() => router.back()} fixed />
       <FlatList
         data={sections}
-        renderItem={renderSection}
         keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <SectionGroup title={item.title} icon={item.icon}>
+            {item.fields?.map(renderField)}
+            {item.extraContent}
+          </SectionGroup>
+        )}
         ListHeaderComponent={
-          <>
-            {!isCadastroCompleto(professor) && (
-              <View>
-                <ProgressFill
-                  completedSections={completedSections}
-                  totalSections={totalSections}
-                />
-                <View>
-                  <Text style={styles.titleInstrucao}>
-                    Finalize seu cadastro!
-                  </Text>
-                  <Text style={styles.obsInstrucao}>
-                    Seu cadastro não está completo. Conclua a configuração do
-                    seu perfil para acessar todos os recursos da plataforma.
-                  </Text>
-                </View>
-              </View>
-            )}
-          </>
+          !isCadastroCompleto(professor) ? (
+            <>
+              <ProgressFill completedSections={completedSections} totalSections={totalSections} />
+              <Text style={styles.titleInstrucao}>Finalize seu cadastro!</Text>
+              <Text style={styles.obsInstrucao}>
+                Seu cadastro não está completo. Conclua a configuração do seu perfil para acessar todos os recursos da plataforma.
+              </Text>
+            </>
+          ) : null
         }
         ListFooterComponent={
           <>
@@ -720,72 +410,26 @@ export default function CadastroProfessor() {
               <CheckboxWithLabel
                 label="Aceito os termos e a política de privacidade"
                 checked={professor.aceitouTermos}
-                onPress={() =>
-                  setProfessor(prev => ({
-                    ...prev,
-                    aceitouTermos: !prev.aceitouTermos
-                  }))
-                }
+                onPress={() => setProfessor(p => ({ ...p, aceitouTermos: !p.aceitouTermos }))}
               />
             </View>
             <View style={styles.button}>
-              <CustomButton
-                title="Concluir Cadastro"
-                onPress={handleConcluir}
-                buttonColor={{ backgroundColor: colors.primary2 }}
-                disabled={loading}
-                loading={loading}
-              />
+              <CustomButton title="Concluir Cadastro" onPress={handleConcluir} buttonColor={{ backgroundColor: colors.primary2 }} loading={loading} />
             </View>
           </>
         }
         contentContainerStyle={styles.content}
       />
-      <CustomAlert
-        visible={visible}
-        title={config.title}
-        message={config.message}
-        buttons={config.buttons}
-        onDismiss={handleDismiss}
-      />
+      <CustomAlert visible={visible} title={config.title} message={config.message} buttons={config.buttons} onDismiss={handleDismiss} />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff'
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-    paddingTop: HEADER_HEIGHT + 20
-  },
-  titleInstrucao: {
-    textAlign: 'justify',
-    fontSize: fontSizes.f24,
-    marginTop: 17,
-    marginBottom: 8,
-    lineHeight: 22,
-    color: colors.primary,
-    fontFamily: 'Nunito_400Regular'
-  },
-  obsInstrucao: {
-    fontSize: fontSizes.f16,
-    lineHeight: 24,
-    color: colors.primary,
-    marginBottom: 30
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginVertical: 10
-  },
-  button: {
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20
-  }
-})
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: HEADER_HEIGHT + 20 },
+  titleInstrucao: { fontSize: fontSizes.f24, color: colors.primary, textAlign: 'center', marginVertical: 10 },
+  obsInstrucao: { fontSize: fontSizes.f16, color: colors.primary, textAlign: 'center', marginBottom: 20 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginVertical: 15 },
+  button: { alignItems: 'center', marginVertical: 20 },
+});

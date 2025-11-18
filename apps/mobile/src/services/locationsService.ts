@@ -52,3 +52,4 @@ export const fetchMunicipios = async (uf: string): Promise<Municipio[]> => {
 };
 
 export default {fetchMunicipios, fetchEstados};
+export type { Uf, Municipio };
