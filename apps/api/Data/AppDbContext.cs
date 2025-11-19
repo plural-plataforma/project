@@ -20,6 +20,8 @@ namespace Data
         public DbSet<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
         public DbSet<Laudo> Laudos { get; set; }
 
+        public DbSet<Estrategias> Estrategias { get; set; }
+        public DbSet<EstrategiasXPlanejamento> EstrategiasXPlanejamentos { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -84,6 +86,20 @@ namespace Data
                 .HasOne(ph => ph.Habilidade)
                 .WithMany(h => h.HabilidadesXPlanejamentos)
                 .HasForeignKey(ph => ph.HabilidadeId);
+
+            // Planejamento ↔ Estrategia (N:N)
+            modelBuilder.Entity<EstrategiasXPlanejamento>()
+                .HasKey(ph => new { ph.PlanejamentoId, ph.EstrategiaId });
+
+            modelBuilder.Entity<EstrategiasXPlanejamento>()
+                .HasOne(ph => ph.Planejamento)
+                .WithMany(p => p.EstrategiasXPlanejamentos)
+                .HasForeignKey(ph => ph.PlanejamentoId);
+
+            modelBuilder.Entity<EstrategiasXPlanejamento>()
+                .HasOne(ph => ph.Estrategia)
+                .WithMany(h => h.EstrategiasXPlanejamentos)
+                .HasForeignKey(ph => ph.EstrategiaId);
 
             // Planejamento ↔ Aluno (N:N)
             modelBuilder.Entity<AlunosXPlanejamento>()
