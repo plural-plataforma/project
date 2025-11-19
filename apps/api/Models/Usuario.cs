@@ -8,5 +8,7 @@ namespace api.Models
         public Professor Professor { get; set; }
 
         public bool AceitouTermos { get; set; }
+
+        public bool DeveAlterarSenha { get; set; }
     }
 }

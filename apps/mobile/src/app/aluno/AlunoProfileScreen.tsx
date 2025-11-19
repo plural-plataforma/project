@@ -21,7 +21,6 @@ import { Escola } from "@src/types/escolas";
 import InputField from "@src/components/InputField";
 import SectionGroup from "@src/components/SectionGroup";
 import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
-import toTitleCase from "@src/utils/camelCase";
 import { buscarEscolasProfessor } from "@src/services/professorService";
 import { PlanejamentoAluno } from "@src/types/planejamento";
 import {

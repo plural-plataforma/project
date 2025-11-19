@@ -423,6 +423,7 @@ export default function CadastroProfessor() {
     <View style={styles.container}>
       <Header title="Perfil do Professor" onBack={() => router.back()} fixed />
       <FlatList
+        ref={flatListRef}
         data={sections}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
@@ -450,6 +451,9 @@ export default function CadastroProfessor() {
                 checked={professor.aceitouTermos}
                 onPress={() => setProfessor(p => ({ ...p, aceitouTermos: !p.aceitouTermos }))}
               />
+              {errors['aceitouTermos'] && (
+                <Text style={styles.errorText}>{errors['aceitouTermos']}</Text>
+              )}
             </View>
             <View style={styles.button}>
               <CustomButton title="Concluir Cadastro" onPress={handleConcluir} buttonColor={{ backgroundColor: colors.primary2 }} loading={loading} />

@@ -58,8 +58,6 @@ export default function Dashboard() {
           },
         });
 
-        console.log("Resposta da API:", response.data);
-
         const professor = response.data?.objeto;
         if (Array.isArray(professor)) {
           setProfessores(professor);
