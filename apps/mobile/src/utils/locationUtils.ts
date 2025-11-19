@@ -4,7 +4,7 @@ import { Uf, Municipio } from "@src/services/locationsService";
 /**
  * Normaliza string: remove acentos e converte para lowercase
  */
-export const normalizeString = (str: string): string => {
+export const normalize = (str: string): string => {
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -18,6 +18,14 @@ export const sortUfs = (ufs: Uf[]): Uf[] => {
   return [...ufs].sort((a, b) =>
     a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" })
   );
+};
+
+const toTitleCase = (str: string): string => {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 };
 
 /**
@@ -43,18 +51,21 @@ export const formatUfsDropdown = (ufs: Uf[]): { label: string; value: string }[]
  * Formata cidades como string[] ordenadas
  */
 export const formatCidadesList = (municipios: Municipio[]): string[] => {
-  return sortCidades(municipios).map(m => m.nome);
+  return sortCidades(municipios)
+    .map(m => m.nome)
+    .map(nome => toTitleCase(nome)); // ← Isso resolve TUDO
 };
 
 /**
  * Encontra cidade exata (case/acento insensitive)
  */
-export const findCidadeMatch = (nomeCidade: string, cidadesList: string[]): string | null => {
-  if (!nomeCidade || !cidadesList.length) return null;
-  const normalized = normalizeString(nomeCidade);
-  return cidadesList.find(c => normalizeString(c) === normalized) || null;
-};
+export const findCidadeMatch = (cidadeCep: string, listaCidades: string[]) => {
+  if (!cidadeCep || listaCidades.length === 0) return null;
 
+  const normalizedCep = normalize(cidadeCep);
+
+  return listaCidades.find(c => normalize(c) === normalizedCep) || null;
+};
 /**
  * Converte nome do estado → sigla (sem precisar da lista de UFs!)
  * Usa mapa estático interno – 100% confiável e offline
@@ -62,7 +73,7 @@ export const findCidadeMatch = (nomeCidade: string, cidadesList: string[]): stri
 export const getSiglaFromNome = (nomeEstado: string): string => {
   if (!nomeEstado) return "";
 
-  const normalized = normalizeString(nomeEstado);
+  const normalized = normalize(nomeEstado);
 
   const mapaEstados: Record<string, string> = {
     acre: "AC",

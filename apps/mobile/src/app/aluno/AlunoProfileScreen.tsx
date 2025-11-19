@@ -227,6 +227,8 @@ const useAlunoSections = (
           options: [
             { label: "Manhã", value: "1" },
             { label: "Tarde", value: "2" },
+            { label: "Noite", value: "3" },
+            { label: "Vespertino", value: "4" },
           ],
           selectedValue: aluno.turno || null,
           onValueChange: (value: string | number | null) =>

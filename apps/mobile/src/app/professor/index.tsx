@@ -36,6 +36,7 @@ import {
   formatUfsDropdown,
   formatCidadesList,
 } from '@src/utils/locationUtils';
+import toTitleCase from '@src/utils/camelCase';
 
 const HEADER_HEIGHT = 55;
 
@@ -67,6 +68,7 @@ type InputFieldConfig =
     searchable?: boolean;
     searchPlaceholder?: string;
     editable?: boolean;
+    loading?: boolean;
   };
 
 interface SectionData {
@@ -148,13 +150,31 @@ export default function CadastroProfessor() {
         const professorData = await buscarProfessor();
         const linkedEscolas = await buscarEscolasProfessor().catch(() => []);
 
-        setProfessor({
+        const profTemp = {
           ...professorData.objeto,
           sexo: professorData.objeto.sexo && ['F', 'M'].includes(professorData.objeto.sexo)
             ? professorData.objeto.sexo
             : '',
           escolas: linkedEscolas.map(e => e.id!.toString()),
-        });
+        };
+
+        setProfessor(profTemp);
+
+        if (profTemp.estado && profTemp.cidade) {
+          const sigla = profTemp.estado;
+          const cidadeDoBackend = profTemp.cidade.trim();
+
+          (async () => {
+            if (!cidadesPorUf[sigla]) {
+              const municipios = await fetchMunicipios(sigla);
+              const cidades = formatCidadesList(municipios); // já vem em TitleCase
+              setCidadesPorUf(prev => ({ ...prev, [sigla]: cidades }));
+            }
+
+            const cidadeNormalizada = toTitleCase(cidadeDoBackend);
+            setProfessor(prev => ({ ...prev, cidade: cidadeNormalizada }));
+          })();
+        }
       } catch (err: any) {
         showAlert('Erro', err.message || 'Falha ao carregar dados.');
       } finally {
@@ -197,38 +217,43 @@ export default function CadastroProfessor() {
     const cepClean = text.replace(/\D/g, '');
     setProfessor(prev => ({ ...prev, cep: cepClean }));
 
-    if (cepClean.length === 8) {
-      setCepLoading(true);
-      try {
-        const data = await fetchCepData(cepClean);
-        const sigla = data.state || getSiglaFromNome(data.state || '');
-        const cidadeNome = data.city || '';
+    if (cepClean.length !== 8) return;
 
-        const updates: Partial<Professor> = {
-          logradouro: data.street || '',
-          bairro: data.neighborhood || '',
-        };
+    setCepLoading(true);
+    try {
+      const data = await fetchCepData(cepClean);
+      const sigla = data.state?.toUpperCase() || '';
+      const cidadeDoCep = data.city || '';
 
-        if (sigla) {
-          updates.estado = sigla;
-          if (!cidadesPorUf[sigla]) {
-            const municipios = await fetchMunicipios(sigla);
-            const cidades = formatCidadesList(municipios);
-            setCidadesPorUf(prev => ({ ...prev, [sigla]: cidades }));
-          }
-          const matched = findCidadeMatch(cidadeNome, cidadesPorUf[sigla] || []);
-          updates.cidade = matched || cidadeNome;
+      const updates: Partial<Professor> = {
+        logradouro: data.street || '',
+        bairro: data.neighborhood || '',
+        estado: sigla,
+        // NÃO setamos cidade ainda aqui!
+      };
+
+      setProfessor(prev => ({ ...prev, ...updates }));
+
+      if (sigla) {
+        // Garante que as cidades do estado estejam carregadas
+        if (!cidadesPorUf[sigla]) {
+          const municipios = await fetchMunicipios(sigla);
+          const cidades = formatCidadesList(municipios);
+          setCidadesPorUf(prev => ({ ...prev, [sigla]: cidades }));
+
+          // Agora sim, depois de garantir que a lista existe, setamos a cidade
+          setProfessor(prev => ({ ...prev, cidade: cidadeDoCep }));
+        } else {
+          // Se já estava carregado, seta direto
+          setProfessor(prev => ({ ...prev, cidade: cidadeDoCep }));
         }
-
-        setProfessor(prev => ({ ...prev, ...updates }));
-      } catch (err: any) {
-        showAlert('CEP', err.message || 'CEP não encontrado');
-      } finally {
-        setCepLoading(false);
       }
+    } catch (err: any) {
+      showAlert('CEP', err.message || 'CEP não encontrado');
+    } finally {
+      setCepLoading(false);
     }
   };
-
   // === Estado change ===
   const handleEstadoChange = async (value: string | number | null) => {
     const sigla = value?.toString() || '';
@@ -336,7 +361,20 @@ export default function CadastroProfessor() {
         { type: 'dropdown', label: 'Sexo', key: 'sexo', placeholder: 'Selecione', options: sexoOptions, selectedValue: professor.sexo || null, onValueChange: v => setProfessor(p => ({ ...p, sexo: v?.toString() || '' })) },
         { type: 'text', label: 'CEP', key: 'cep', placeholder: '00000-000', mask: 'cep' },
         { type: 'dropdown', label: 'Estado', key: 'estado', placeholder: 'Selecione', options: ufs, selectedValue: professor.estado || null, onValueChange: handleEstadoChange, searchable: true },
-        { type: 'dropdown', label: 'Cidade', key: 'cidade', placeholder: 'Selecione', options: cidadesDisponiveis.map(c => ({ label: c, value: c })), selectedValue: professor.cidade || null, onValueChange: v => setProfessor(p => ({ ...p, cidade: v?.toString() || '' })), searchable: true },
+        {
+          type: 'dropdown',
+          label: 'Cidade',
+          key: 'cidade',
+          placeholder: 'Selecione',
+          options: professor.estado
+            ? (cidadesPorUf[professor.estado] || []).map(c => ({ label: c, value: c }))
+            : [{ label: 'Selecione o estado primeiro', value: '' }],
+          selectedValue: professor.cidade || null,
+          onValueChange: v => setProfessor(p => ({ ...p, cidade: v?.toString() || '' })),
+          searchable: true,
+          // Mostra loading só se tem estado mas ainda não tem cidades
+          loading: !!professor.estado && !cidadesPorUf[professor.estado],
+        },
         { type: 'text', label: 'Bairro', key: 'bairro', placeholder: 'Digite o bairro' },
         { type: 'text', label: 'Endereço', key: 'logradouro', placeholder: 'Rua, avenida...' },
         { type: 'text', label: 'Número', key: 'numero', placeholder: '000', keyboardType: 'number-pad' },

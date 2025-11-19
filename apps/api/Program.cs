@@ -26,7 +26,7 @@ builder.Services.AddCors(options =>
                 "https://adm.pluralplataforma.com",
                 "https://app-web-iota-ten.vercel.app",
                 "178.63.129.220:443",
-                "https://app-web-dev.vercel.app")
+                "https://app-web-dev.vercel.app",
                 "https://app.pluralplataforma.com")
             .AllowAnyHeader() 
             .AllowAnyMethod()
