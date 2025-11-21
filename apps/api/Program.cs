@@ -95,6 +95,7 @@ builder.Services.AddScoped<EscolaService>();
 builder.Services.AddScoped<AlunoService>();
 builder.Services.AddScoped<HabilidadeService>();
 builder.Services.AddScoped<PlanejamentoService>();
+builder.Services.AddScoped<EstrategiaService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
