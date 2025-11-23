@@ -1,4 +1,5 @@
 ﻿using api.DTOs.Aluno;
+using api.DTOs.Estrategia;
 using api.DTOs.Habilidade;
 using api.DTOs.Planejamento;
 using api.Models;
@@ -117,6 +118,13 @@ namespace api.Services
                                 Resumo = hp.Habilidade.Resumo
                             })
                             .ToList(),
+                        Estrategias = p.EstrategiasXPlanejamentos
+                            .Select(hp => new EstrategiaBuscarDTO
+                            {
+                                Id = hp.Estrategia.Id,
+                                Descricao = hp.Estrategia.Descricao
+                            })
+                            .ToList(),
 
                         Alunos = p.AlunosXPlanejamentos
                             .Select(ap => new AlunoResumoDTO()
@@ -160,6 +168,13 @@ namespace api.Services
                                 Tipo = hp.Habilidade.Tipo,
                                 Descricao = hp.Habilidade.Descricao,
                                 Resumo = hp.Habilidade.Resumo
+                            })
+                            .ToList(),
+                        Estrategias = p.EstrategiasXPlanejamentos
+                            .Select(hp => new EstrategiaBuscarDTO
+                            {
+                                Id = hp.Estrategia.Id,
+                                Descricao = hp.Estrategia.Descricao
                             })
                             .ToList(),
 
@@ -267,6 +282,49 @@ namespace api.Services
             };
 
             _contexto.HabilidadesXPlanejamentos.Add(vinculo);
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
+            return resposta;
+        }
+
+        public async Task<ServiceResponse<bool>> VincularEstrategias(PlanejamentoVincularEstrategiaDTO planejamentoVincularEstrategiaDTO, Usuario usuario)
+        {
+            var planejamento = await _contexto.Planejamentos
+                .FirstOrDefaultAsync(p =>
+                    p.ID == planejamentoVincularEstrategiaDTO.IdPlanejamento &&
+                    p.IdProfessor == usuario.ProfessorId);
+            var habilidade = await _contexto.Habilidades
+                .FirstOrDefaultAsync(a =>
+                    a.Id == planejamentoVincularEstrategiaDTO.IdEstrategia);
+            var resposta = new ServiceResponse<bool>();
+            if (planejamento == null)
+            {
+                resposta.SetFalha("Planejamento não encontrado.");
+                return resposta;
+            }
+
+            if (habilidade == null)
+            {
+                resposta.SetFalha("Estratégia não encontrada.");
+                return resposta;
+            }
+
+            bool jaVinculado = await _contexto.EstrategiasXPlanejamentos
+                .AnyAsync(x => x.EstrategiaId == planejamentoVincularEstrategiaDTO.IdEstrategia && x.PlanejamentoId == planejamentoVincularEstrategiaDTO.IdPlanejamento);
+
+            if (jaVinculado)
+            {
+                resposta.SetFalha("Esta estratégia já está vinculada a esse planejamento.");
+                return resposta;
+            }
+
+            var vinculo = new EstrategiasXPlanejamento()
+            {
+                EstrategiaId = planejamentoVincularEstrategiaDTO.IdEstrategia,
+                PlanejamentoId = planejamentoVincularEstrategiaDTO.IdPlanejamento
+            };
+
+            _contexto.EstrategiasXPlanejamentos.Add(vinculo);
             await _contexto.SaveChangesAsync();
             resposta.Sucesso = true;
             return resposta;

@@ -66,5 +66,33 @@ public class EstrategiaController : ControllerBase
             return BadRequest(ModelState);
         }
     }
+    [HttpGet("buscar/{id}")]
+    public async Task<IActionResult> BuscarPorId(int id)
+    {
+        var resposta = await _estrategiaService.GetEstrategiaPorId(id);
+
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrada"))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta);
+    }
+
+    [HttpPut("atualizar/{id}")]
+    public async Task<IActionResult> Atualizar(int id, [FromBody] EstrategiaAtualizarDTO estrategiaDTO)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var resposta = await _estrategiaService.Atualizar(id, estrategiaDTO);
+
+        return resposta.Sucesso
+            ? Ok(resposta)
+            : NotFound(resposta); // ou BadRequest, dependendo do erro
+    }
+
 
 }

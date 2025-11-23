@@ -6,11 +6,9 @@ import { buscarAlunos } from '@src/services/alunoService' // Assumindo serviço 
 import { buscarPlanejamentoPorId, atualizarPlanejamento, cadastrarPlanejamento, buscarPlanejamento, vincularAluno, vincularHabilidade } from '@src/services/planejamentoService'
 import { Habilidade } from '@src/types/habilidade'
 import { Aluno } from '@src/types/aluno'
-import { Planejamento } from '@src/types/planejamento'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { Text, View, StyleSheet, FlatList, TouchableOpacity, ScrollView, Button, ActivityIndicator, ViewStyle, TextStyle } from 'react-native'
-import { Alert } from 'react-native' // Assumindo que Alert é usado para feedback
 import { CheckSquare, Square } from 'phosphor-react-native'; // Ícones do Phosphor
 import { CustomAlert, useCustomAlert } from '@src/hooks/useCustomAlert'
 import CustomButton from '@src/components/CustomButton'

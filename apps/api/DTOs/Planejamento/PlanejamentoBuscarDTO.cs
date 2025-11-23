@@ -1,4 +1,5 @@
 ﻿using api.DTOs.Aluno;
+using api.DTOs.Estrategia;
 using api.DTOs.Habilidade;
 
 namespace api.DTOs.Planejamento
@@ -15,5 +16,6 @@ namespace api.DTOs.Planejamento
 
         public List<HabilidadeBuscarDTO> Habilidades { get; set; } = new();
         public List<AlunoResumoDTO> Alunos { get; set; } = new();
+        public List<EstrategiaBuscarDTO> Estrategias { get; internal set; }
     }
 }
