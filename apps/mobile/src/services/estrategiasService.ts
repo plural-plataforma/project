@@ -1,7 +1,7 @@
 import { api } from '../services/auth'
 import { Estrategia, EstrategiaResponse } from '@src/types/estrategia'
 
-export const buscarEstrategia = async (): Promise<Estrategia[]> => {
+export const buscarEstrategias = async (): Promise<Estrategia[]> => {
   try {
     const response = await api.get<EstrategiaResponse>('/Estrategia/buscarAtivos')
 
@@ -14,3 +14,5 @@ export const buscarEstrategia = async (): Promise<Estrategia[]> => {
     return []
   }
 }
+
+

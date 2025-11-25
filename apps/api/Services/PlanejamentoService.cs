@@ -293,7 +293,7 @@ namespace api.Services
                 .FirstOrDefaultAsync(p =>
                     p.ID == planejamentoVincularEstrategiaDTO.IdPlanejamento &&
                     p.IdProfessor == usuario.ProfessorId);
-            var habilidade = await _contexto.Habilidades
+            var estrategias = await _contexto.Estrategias
                 .FirstOrDefaultAsync(a =>
                     a.Id == planejamentoVincularEstrategiaDTO.IdEstrategia);
             var resposta = new ServiceResponse<bool>();
@@ -303,7 +303,7 @@ namespace api.Services
                 return resposta;
             }
 
-            if (habilidade == null)
+            if (estrategias == null)
             {
                 resposta.SetFalha("Estratégia não encontrada.");
                 return resposta;

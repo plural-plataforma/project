@@ -1,4 +1,5 @@
 import { Aluno } from "./aluno";
+import { Estrategia } from "./estrategia";
 import { Habilidade } from "./habilidade";
 
 export interface Planejamento {
@@ -8,6 +9,7 @@ export interface Planejamento {
     dataFim: string;
     
     habilidades?: Habilidade[];
+    estrategias?: Estrategia[];
     alunos?: Aluno[];
     
 }
@@ -29,6 +31,11 @@ export interface PlanejamentoVinculaAluno {
 export interface PlanejamentoVinculaHabilidade {
     idPlanejamento: number;
     idHabilidade: number;
+}
+
+export interface PlanejamentoVinculaEstrategia {
+    idPlanejamento: number;
+    idEstrategia: number;
 
 }
 

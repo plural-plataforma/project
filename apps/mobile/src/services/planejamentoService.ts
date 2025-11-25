@@ -1,4 +1,4 @@
-import { Planejamento, PlanejamentoResponse } from '@src/types/planejamento'
+import { Planejamento, PlanejamentoResponse, PlanejamentoVinculaEstrategia, PlanejamentoVinculaHabilidade } from '@src/types/planejamento'
 import { Habilidade } from '@src/types/habilidade'
 import { api } from '../services/auth'
 
@@ -79,7 +79,7 @@ export const vincularAluno = async (payload: {
       throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular aluno')
     }
   } catch (error) {
-    console.error('❌ Erro ao vincular aluno:', error)
+    console.error('Erro ao vincular aluno:', error)
     throw error
   }
 }
@@ -94,7 +94,22 @@ export const vincularHabilidade = async (payload: {
       throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular habilidade')
     }
   } catch (error) {
-    console.error('❌ Erro ao vincular habilidade:', error)
+    console.error('Erro ao vincular habilidade:', error)
+    throw error
+  }
+}
+
+export const vincularEstrategia = async (payload: {
+  idPlanejamento: number
+  idEstrategia: number
+}): Promise<void> => {
+  try {
+    const response = await api.post('/Planejamento/vincularestrategia', payload)
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular estratégia')
+    }
+  } catch (error) {
+    console.error('Erro ao vincular estratégia:', error)
     throw error
   }
 }

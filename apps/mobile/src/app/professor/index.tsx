@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -82,7 +82,7 @@ interface SectionData {
 export default function CadastroProfessor() {
   const { showAlert, handleDismiss, visible, config } = useCustomAlert();
   const router = useRouter();
-
+  const flatListRef = useRef<FlatList>(null);
   const [professor, setProfessor] = useState<Professor>({
     nomeCompleto: '',
     sexo: '',
@@ -474,4 +474,11 @@ const styles = StyleSheet.create({
   obsInstrucao: { fontSize: fontSizes.f16, color: colors.primary, textAlign: 'center', marginBottom: 20 },
   checkboxRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginVertical: 15 },
   button: { alignItems: 'center', marginVertical: 20 },
+  errorText: {
+    color: 'red',
+    fontSize: fontSizes.f12,
+    marginTop: 4,
+    marginLeft: 16,
+    fontFamily: 'Nunito_400Regular'
+  }
 });

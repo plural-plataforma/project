@@ -15,7 +15,7 @@ namespace api.Models
         public int PlanejamentoId { get; set; }
 
         [ForeignKey("EstrategiaId")]
-        public Habilidade Estrategia { get; set; }
+        public Estrategias Estrategia { get; set; }
 
         [ForeignKey("PlanejamentoId")]
         public Planejamento Planejamento { get; set; }
