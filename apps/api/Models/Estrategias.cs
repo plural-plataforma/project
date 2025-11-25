@@ -1,10 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿namespace api.Models;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace api.Models
-{
-
-    [Table("estrategias")]
+[Table("estrategias")]
     public class Estrategias
     {
         [Key]
@@ -17,4 +15,3 @@ namespace api.Models
 
         public ICollection<EstrategiasXPlanejamento> EstrategiasXPlanejamentos { get; set; }
     }
-}

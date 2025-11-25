@@ -1,10 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿namespace api.Models;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace api.Models
-{
 
-    [Table("estrategiasxplanejamento")]
+[Table("estrategiasxplanejamento")]
     public class EstrategiasXPlanejamento
     {
 
@@ -20,4 +19,3 @@ namespace api.Models
         [ForeignKey("PlanejamentoId")]
         public Planejamento Planejamento { get; set; }
     }
-}

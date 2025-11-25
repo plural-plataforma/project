@@ -316,43 +316,36 @@ namespace api.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
 
                     b.Property<string>("Bairro")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("bairro");
 
                     b.Property<string>("Cep")
-                        .IsRequired()
                         .HasMaxLength(9)
                         .HasColumnType("character varying(9)")
                         .HasColumnName("cep");
 
                     b.Property<string>("Cidade")
-                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("cidade");
 
                     b.Property<string>("Complemento")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("complemento");
 
                     b.Property<string>("Estado")
-                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("estado");
 
                     b.Property<string>("Logradouro")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("logradouro");
 
                     b.Property<string>("NomeInstituicao")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("nomeinstituicao");
 
@@ -361,7 +354,6 @@ namespace api.Migrations
                         .HasColumnName("numero");
 
                     b.Property<string>("Tipo")
-                        .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("character varying(45)")
                         .HasColumnName("tipo");
@@ -407,7 +399,6 @@ namespace api.Migrations
                         .HasColumnName("ativo");
 
                     b.Property<string>("Descricao")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("descricao");
 
@@ -429,16 +420,9 @@ namespace api.Migrations
                         .HasColumnName("estrategiaid")
                         .HasColumnOrder(0);
 
-                    b.Property<int?>("EstrategiasId")
-                        .HasColumnType("integer")
-                        .HasColumnName("estrategiasid");
-
                     b.HasKey("PlanejamentoId", "EstrategiaId");
 
                     b.HasIndex("EstrategiaId");
-
-                    b.HasIndex("EstrategiasId")
-                        .HasDatabaseName("ix_estrategiasxplanejamento_estrategiasid");
 
                     b.ToTable("estrategiasxplanejamento");
                 });
@@ -457,7 +441,6 @@ namespace api.Migrations
                         .HasColumnName("ativo");
 
                     b.Property<string>("Descricao")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("descricao");
 
@@ -470,7 +453,6 @@ namespace api.Migrations
                         .HasColumnName("resumo");
 
                     b.Property<string>("Tipo")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("tipo");
 
@@ -545,7 +527,6 @@ namespace api.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
 
                     b.Property<string>("Apelido")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("apelido");
 
@@ -624,7 +605,6 @@ namespace api.Migrations
                         .HasColumnName("nivelensino");
 
                     b.Property<string>("NomeCompleto")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("nomecompleto");
@@ -684,7 +664,6 @@ namespace api.Migrations
                         .HasColumnName("complemento");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("email");
@@ -710,7 +689,6 @@ namespace api.Migrations
                         .HasColumnName("numero");
 
                     b.Property<string>("Telefone")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("telefone");
@@ -945,17 +923,12 @@ namespace api.Migrations
 
             modelBuilder.Entity("api.Models.EstrategiasXPlanejamento", b =>
                 {
-                    b.HasOne("api.Models.Habilidade", "Estrategia")
+                    b.HasOne("api.Models.Estrategias", "Estrategia")
                         .WithMany("EstrategiasXPlanejamentos")
                         .HasForeignKey("EstrategiaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_estrategiasxplanejamento_habilidades_estrategiaid");
-
-                    b.HasOne("api.Models.Estrategias", null)
-                        .WithMany("EstrategiasXPlanejamentos")
-                        .HasForeignKey("EstrategiasId")
-                        .HasConstraintName("fk_estrategiasxplanejamento_estrategias_estrategiasid");
+                        .HasConstraintName("fk_estrategiasxplanejamento_estrategias_estrategiaid");
 
                     b.HasOne("api.Models.Planejamento", "Planejamento")
                         .WithMany("EstrategiasXPlanejamentos")
@@ -1044,8 +1017,6 @@ namespace api.Migrations
 
             modelBuilder.Entity("api.Models.Habilidade", b =>
                 {
-                    b.Navigation("EstrategiasXPlanejamentos");
-
                     b.Navigation("HabilidadesXPlanejamentos");
                 });
 

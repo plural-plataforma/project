@@ -351,8 +351,28 @@ export default function PlanejamentoScreen() {
           idPlanejamento: planejamentoIdFinal,
           idEstrategia: e.id
         })
+      )
 
+      // Vincular apenas os novos — ALUNOS
+      await vincularNovos(
+        selectedAlunos,
+        originalSelectedAlunos,
+        vincularAluno,
+        a => ({
+          idPlanejamento: planejamentoIdFinal,
+          idAluno: a.id
+        })
+      )
 
+      // Vincular apenas os novos — HABILIDADES
+      await vincularNovos(
+        selectedHabilidades,
+        originalSelectedHabilidades,
+        vincularHabilidade,
+        h => ({
+          idPlanejamento: planejamentoIdFinal,
+          idHabilidade: h.id
+        })
       )
 
       showAlert('Sucesso!', `PDI ${isEdit ? 'atualizado' : 'criado'} com sucesso!`, [
