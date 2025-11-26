@@ -7,7 +7,7 @@ export interface Planejamento {
     apelido: string;
     dataInicio: string;
     dataFim: string;
-    
+    descicaoPlanejamento: string;
     habilidades?: Habilidade[];
     estrategias?: Estrategia[];
     alunos?: Aluno[];
@@ -19,7 +19,9 @@ export interface PlanejamentoAluno {
     apelido: string;
     dataInicio: string;
     dataFim: string;
+    descicaoPlanejamento: string;
     habilidades: Habilidade[];
+    estrategias: Estrategia[];
     
 }
 

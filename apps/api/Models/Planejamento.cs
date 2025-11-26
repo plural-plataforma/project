@@ -19,6 +19,8 @@ public class Planejamento
     [ForeignKey("IdProfessor")]
     public Professor Professor { get; set; }
 
+    public string DescicaoPlanejamento { get; set; }
+
 
     public ICollection<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
 

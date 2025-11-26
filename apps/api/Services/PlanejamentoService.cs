@@ -33,8 +33,9 @@ namespace api.Services
                         Apelido = planejamentoDTO.Apelido,
                         DataInicio = planejamentoDTO.DataInicio,
                         DataFim = planejamentoDTO.DataFim,
-                        IdProfessor = (int)usuario.ProfessorId
-                    };
+                        IdProfessor = (int)usuario.ProfessorId,
+                        DescicaoPlanejamento= planejamentoDTO.DescicaoPlanejamento
+    };
                     _contexto.Planejamentos.Add(planejamento);
                     await _contexto.SaveChangesAsync();
 
@@ -80,10 +81,15 @@ namespace api.Services
 
                 if (planejamentoDTO.DataFim.HasValue)
                 {
-                    planejamento.DataFim= (DateOnly)planejamentoDTO.DataFim;
+                    planejamento.DataFim = (DateOnly)planejamentoDTO.DataFim;
                 }
 
-                await _contexto.SaveChangesAsync();
+                if (!string.IsNullOrEmpty(planejamentoDTO.DescicaoPlanejamento))
+                {
+                        planejamento.DescicaoPlanejamento = planejamentoDTO.DescicaoPlanejamento;
+                 }
+
+                    await _contexto.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -108,6 +114,7 @@ namespace api.Services
                         Apelido = p.Apelido,
                         DataInicio = p.DataInicio,
                         DataFim = p.DataFim,
+                        DescicaoPlanejamento = p.DescicaoPlanejamento,
                         Habilidades = p.HabilidadesXPlanejamentos
                             .Select(hp => new HabilidadeBuscarDTO
                             {
@@ -160,6 +167,7 @@ namespace api.Services
                         Apelido = p.Apelido,
                         DataInicio = p.DataInicio,
                         DataFim = p.DataFim,
+                        DescicaoPlanejamento = p.DescicaoPlanejamento,
                         Habilidades = p.HabilidadesXPlanejamentos
                             .Select(hp => new HabilidadeBuscarDTO
                             {

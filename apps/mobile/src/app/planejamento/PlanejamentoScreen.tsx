@@ -77,6 +77,7 @@ export default function PlanejamentoScreen() {
     apelido: '',
     etapaEnsino: '',
     tipoHabilidade: '',
+    descicaoPlanejamento: '',
     dataInicio: '',
     dataFim: ''
   })
@@ -89,7 +90,7 @@ export default function PlanejamentoScreen() {
   const [loading, setLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(false)
 
-    const getEtapaEnsinoLabel = (value: string) => {
+  const getEtapaEnsinoLabel = (value: string) => {
     const map: Record<string, string> = {
       '1': 'Educação Infantil',
       '2': 'Fundamental I',
@@ -159,6 +160,7 @@ export default function PlanejamentoScreen() {
         apelido: p.apelido || '',
         etapaEnsino: '',
         tipoHabilidade: '',
+        descicaoPlanejamento: p.descicaoPlanejamento || '',
         dataInicio: p.dataInicio || '',
         dataFim: p.dataFim || ''
       })
@@ -256,10 +258,21 @@ export default function PlanejamentoScreen() {
       disabled: isEdit,
       displayValue: isEdit ? getTipoHabilidadeLabel(formData.tipoHabilidade) : undefined,
     },
+
+    {
+      id: 'descricaoPlanejamento',
+      label: 'Resumo do Planejamento',
+      placeholder: 'Escreva...',
+      value: formData.descicaoPlanejamento,
+      multiline: true,                    // ← permite várias linhas
+      
+      onChangeText: (text: any) => handleInputChange('descicaoPlanejamento', text),
+    },
   ], [
     formData.apelido,
     formData.etapaEnsino,
     formData.tipoHabilidade,
+    formData.descicaoPlanejamento,
     isEdit,
   ])
 

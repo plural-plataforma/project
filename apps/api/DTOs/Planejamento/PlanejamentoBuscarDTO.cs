@@ -14,8 +14,10 @@ namespace api.DTOs.Planejamento
 
         public DateOnly DataFim { get; set; }
 
+        public string DescicaoPlanejamento { get; set; }
+
         public List<HabilidadeBuscarDTO> Habilidades { get; set; } = new();
         public List<AlunoResumoDTO> Alunos { get; set; } = new();
-        public List<EstrategiaBuscarDTO> Estrategias { get; internal set; }
+        public List<EstrategiaBuscarDTO> Estrategias { get; set; } = new();
     }
 }
