@@ -13,5 +13,7 @@ namespace api.DTOs.Planejamento
         [Required]
         public DateOnly DataFim { get; set; }
 
+        public string DescicaoPlanejamento { get; set; }
+
     }
 }

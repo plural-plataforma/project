@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251125025256_tabelasEstrategias")]
+    partial class tabelasEstrategias
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -284,7 +287,7 @@ namespace api.Migrations
                     b.HasIndex("IdResponsavel")
                         .HasDatabaseName("ix_alunos_idresponsavel");
 
-                    b.ToTable("alunos", (string)null);
+                    b.ToTable("alunos");
                 });
 
             modelBuilder.Entity("api.Models.AlunosXPlanejamento", b =>
@@ -303,7 +306,7 @@ namespace api.Migrations
 
                     b.HasIndex("AlunoId");
 
-                    b.ToTable("alunosxplanejamento", (string)null);
+                    b.ToTable("alunosxplanejamento");
                 });
 
             modelBuilder.Entity("api.Models.Escola", b =>
@@ -361,7 +364,7 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_escolas");
 
-                    b.ToTable("escolas", (string)null);
+                    b.ToTable("escolas");
                 });
 
             modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
@@ -382,7 +385,7 @@ namespace api.Migrations
                     b.HasIndex("ProfessorId")
                         .HasDatabaseName("ix_escolasxprofessores_professorid");
 
-                    b.ToTable("escolasxprofessores", (string)null);
+                    b.ToTable("escolasxprofessores");
                 });
 
             modelBuilder.Entity("api.Models.Estrategias", b =>
@@ -405,7 +408,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_estrategias");
 
-                    b.ToTable("estrategias", (string)null);
+                    b.ToTable("estrategias");
                 });
 
             modelBuilder.Entity("api.Models.EstrategiasXPlanejamento", b =>
@@ -424,7 +427,7 @@ namespace api.Migrations
 
                     b.HasIndex("EstrategiaId");
 
-                    b.ToTable("estrategiasxplanejamento", (string)null);
+                    b.ToTable("estrategiasxplanejamento");
                 });
 
             modelBuilder.Entity("api.Models.Habilidade", b =>
@@ -459,7 +462,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_habilidades");
 
-                    b.ToTable("habilidades", (string)null);
+                    b.ToTable("habilidades");
                 });
 
             modelBuilder.Entity("api.Models.HabilidadesXPlanejamento", b =>
@@ -478,7 +481,7 @@ namespace api.Migrations
 
                     b.HasIndex("HabilidadeId");
 
-                    b.ToTable("habilidadesxplanejamento", (string)null);
+                    b.ToTable("habilidadesxplanejamento");
                 });
 
             modelBuilder.Entity("api.Models.Laudo", b =>
@@ -514,7 +517,7 @@ namespace api.Migrations
                     b.HasIndex("IdAluno")
                         .HasDatabaseName("ix_laudos_idaluno");
 
-                    b.ToTable("laudos", (string)null);
+                    b.ToTable("laudos");
                 });
 
             modelBuilder.Entity("api.Models.Planejamento", b =>
@@ -538,10 +541,6 @@ namespace api.Migrations
                         .HasColumnType("date")
                         .HasColumnName("datainicio");
 
-                    b.Property<string>("DescicaoPlanejamento")
-                        .HasColumnType("text")
-                        .HasColumnName("descicaoplanejamento");
-
                     b.Property<int>("IdProfessor")
                         .HasColumnType("integer")
                         .HasColumnName("idprofessor");
@@ -552,7 +551,7 @@ namespace api.Migrations
                     b.HasIndex("IdProfessor")
                         .HasDatabaseName("ix_planejamentos_idprofessor");
 
-                    b.ToTable("planejamentos", (string)null);
+                    b.ToTable("planejamentos");
                 });
 
             modelBuilder.Entity("api.Models.Professor", b =>
@@ -635,7 +634,7 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_professores");
 
-                    b.ToTable("professores", (string)null);
+                    b.ToTable("professores");
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>
@@ -700,7 +699,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_responsaveis");
 
-                    b.ToTable("responsaveis", (string)null);
+                    b.ToTable("responsaveis");
                 });
 
             modelBuilder.Entity("api.Models.Usuario", b =>

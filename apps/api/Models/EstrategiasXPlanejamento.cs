@@ -1,0 +1,21 @@
+﻿namespace api.Models;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+
+[Table("estrategiasxplanejamento")]
+    public class EstrategiasXPlanejamento
+    {
+
+        [Key, Column("estrategiaid", Order = 0)]
+        public int EstrategiaId { get; set; }
+
+        [Key, Column("planejamentoid", Order = 1)]
+        public int PlanejamentoId { get; set; }
+
+        [ForeignKey("EstrategiaId")]
+        public Estrategias Estrategia { get; set; }
+
+        [ForeignKey("PlanejamentoId")]
+        public Planejamento Planejamento { get; set; }
+    }

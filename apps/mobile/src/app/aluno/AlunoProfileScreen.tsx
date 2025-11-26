@@ -1,12 +1,17 @@
+import * as Sharing from 'expo-sharing';
+import { Platform, Alert } from 'react-native';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { File, Paths } from 'expo-file-system';
 import { colors, fontSizes } from "@/packages/ui/theme/theme";
 import CustomButton from "@src/components/CustomButton";
 import Header from "@src/components/Header";
 import { fetchEstados, fetchMunicipios } from "@src/services/locationsService";
 import { fetchCepData } from "@src/services/validateCep";
-import { Aluno  } from "@src/types/aluno"; // Importe os tipos corrigidos
+import { Aluno } from "@src/types/aluno"; // Importe os tipos corrigidos
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ClockCounterClockwise,
+  DownloadSimple,
   Note,
   Student,
   User,
@@ -28,6 +33,8 @@ import {
   formatUfsDropdown,
   getSiglaFromNome
 } from "@src/utils/locationUtils";
+import { Habilidade } from '@src/types/habilidade';
+import { Estrategia } from '@src/types/estrategia';
 
 
 // Tipos para os campos do InputField
@@ -63,6 +70,15 @@ type Section = {
   fields: InputFieldType[];
   plannings?: PlanejamentoAluno[];
 };
+
+const toTitleCase = (str: string): string => {
+  if (!str) return ''
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 
 // Hook para gerar as seções do formulário (expandido com campos do API)
 const useAlunoSections = (
@@ -381,8 +397,6 @@ export default function AlunoProfileScreen() {
     aluno.estado ? cidadesPorUf[aluno.estado] || ['Selecione o estado primeiro'] : ['Selecione o estado primeiro'],
     [aluno.estado, cidadesPorUf]
   );
-
-
   // Função para carregar estados
   const loadEstados = useCallback(async () => {
     if (ufsLoaded) return;
@@ -638,6 +652,174 @@ export default function AlunoProfileScreen() {
     }
   }, [aluno, isEdit, showAlert, router]);
 
+  const imprimirPDI = async (
+    pdiRaw: PlanejamentoAluno[] | any, // aceita tanto o objeto direto quanto com .objeto
+    aluno: Aluno
+  ) => {
+    try {
+      // Normaliza os dados (funciona com ou sem .objeto)
+      const pdi = {
+        apelido: pdiRaw.apelido || pdiRaw.objeto?.apelido || "Sem título",
+        dataInicio: pdiRaw.dataInicio || pdiRaw.objeto?.dataInicio,
+        dataFim: pdiRaw.dataFim || pdiRaw.objeto?.dataFim,
+        descicaoPlanejamento: pdiRaw.descicaoPlanejamento || pdiRaw.objeto?.descicaoPlanejamento || "",
+        habilidades: pdiRaw.habilidades || pdiRaw.objeto?.habilidades || [],
+        estrategias: pdiRaw.estrategias || pdiRaw.objeto?.estrategias || [],
+      };
+
+      const doc = new Document({
+        creator: "Plural Plataforma",
+        title: `PDI - ${aluno.nomeCompleto}`,
+        sections: [{
+          properties: {
+            page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } },
+          },
+          children: [
+            // TÍTULO
+            new Paragraph({
+              children: [new TextRun({ text: "PLANO DE DESENVOLVIMENTO INDIVIDUAL - PDI", bold: true, size: 36 })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 800 },
+            }),
+
+            // 1. IDENTIFICAÇÃO
+            new Paragraph({ children: [new TextRun({ text: "1. IDENTIFICAÇÃO DO (A) ALUNO (A):", bold: true, size: 26 })] }),
+            new Paragraph({ children: [new TextRun("Nome: "), new TextRun({ text: aluno.nomeCompleto, bold: true })] }),
+            new Paragraph({ children: [new TextRun(`Ano escolar/período: ${aluno.ano || "___"}º ano`)] }),
+            new Paragraph({
+              children: [
+                new TextRun("Diagnóstico Médico: "),
+                new TextRun(aluno.laudos?.map(l => l.codigoCid).filter(Boolean).join(", ") || "Não informado"),
+              ],
+            }),
+            new Paragraph({ spacing: { after: 600 } }),
+
+            // 2. ORGANIZAÇÃO DO ATENDIMENTO
+            new Paragraph({ children: [new TextRun({ text: "2. ORGANIZAÇÃO DO ATENDIMENTO:", bold: true, size: 26 })] }),
+            new Paragraph({
+              children: [
+                new TextRun("Período de execução: "),
+                new TextRun(`${new Date(pdi.dataInicio).toLocaleDateString('pt-BR')} até ${new Date(pdi.dataFim).toLocaleDateString('pt-BR')}`),
+              ],
+            }),
+            new Paragraph({ children: [new TextRun("Frequência do atendimento na semana: ( ) 1 Vez   ( ) 2 vezes   ( ) 3ª feira   ( ) 4ª feira   ( ) 5ª feira")] }),
+            new Paragraph({ children: [new TextRun("Dia da semana: ( ) 2ª feira   ( ) 3ª feira   ( ) 4ª feira   ( ) 5ª feira")] }),
+            new Paragraph({ children: [new TextRun("Composição do atendimento: ( ) Individual   ( ) Coletivo")] }),
+            new Paragraph({ spacing: { after: 600 } }),
+
+            // 3. OBJETIVOS DO PLANO
+            new Paragraph({ children: [new TextRun({ text: "3. OBJETIVOS DO PLANO: (o que é preciso atingir, meta)", bold: true, size: 26 })] }),
+            new Paragraph({ spacing: { after: 300 } }),
+
+            // HABILIDADES (agora aparece!)
+            ...(pdi.habilidades.length > 0
+              ? pdi.habilidades.map((h: Habilidade) =>
+                new Paragraph({
+                  children: [new TextRun({ text: `• ${h.descricao || h.resumo || "Sem descrição"}`, size: 24 })],
+                  indent: { left: 560 },
+                  spacing: { after: 180 },
+                })
+              )
+              : [new Paragraph({
+                children: [new TextRun({ text: "• Nenhuma habilidade vinculada.", italics: true, color: "666666" })],
+                indent: { left: 560 },
+                spacing: { after: 300 },
+              })]
+            ),
+
+            new Paragraph({ spacing: { after: 600 } }),
+
+            // ESTRATÉGIAS
+            new Paragraph({ children: [new TextRun({ text: "4. ESTRATÉGIAS A SEREM UTILIZADAS:", bold: true, size: 26 })] }),
+            new Paragraph({ spacing: { after: 300 } }),
+
+            ...(pdi.estrategias.length > 0
+              ? pdi.estrategias.map((e: Estrategia) =>
+                new Paragraph({
+                  children: [new TextRun({ text: `• ${e.descricao}`, size: 24 })],
+                  indent: { left: 560 },
+                  spacing: { after: 180 },
+                })
+              )
+              : [new Paragraph({
+                children: [new TextRun({ text: "• Nenhuma estratégia cadastrada.", italics: true, color: "666666" })],
+                indent: { left: 560 },
+                spacing: { after: 300 },
+              })]
+              
+            ),
+
+          // 5. DESCRITIVO DO PLANEJAMENTO (aqui entra o descicaoPlanejamento!)
+          ...(pdi.descicaoPlanejamento
+            ? [
+                new Paragraph({ spacing: { after: 600 } }),
+                new Paragraph({ children: [new TextRun({ text: "5. DESCRITIVO DO PLANEJAMENTO:", bold: true, size: 26 })] }),
+                new Paragraph({ spacing: { after: 300 } }),
+                new Paragraph({
+                  children: [new TextRun({ text: pdi.descicaoPlanejamento, size: 24 })],
+                  indent: { left: 560 },
+                  spacing: { after: 300 },
+                }),
+              ]
+            : []
+          ),
+
+            new Paragraph({ spacing: { after: 1000 } }),
+
+            // RODAPÉ
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+                  italics: true,
+                  size: 20,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            }),
+          ],
+        }],
+      });
+
+      // GERAÇÃO DO ARQUIVO (Expo SDK 51+ / 52+)
+      const blob = await Packer.toBlob(doc);
+      const fileName = `PDI_${aluno.nomeCompleto.replace(/[^a-zA-Z0-9]/g, '_')}_${pdi.apelido}.docx`;
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+
+        if (Platform.OS === 'web') {
+          const a = document.createElement('a');
+          a.href = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${base64}`;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          return;
+        }
+
+        const cacheDir = Paths.cache;
+        const file = new File(cacheDir, fileName);
+        await file.write(base64);
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            dialogTitle: 'Compartilhar PDI',
+            UTI: 'com.microsoft.word.doc',
+          });
+        } else {
+          Alert.alert('Sucesso', 'Arquivo salvo na pasta de downloads');
+        }
+      };
+
+      reader.readAsDataURL(blob);
+    } catch (error: any) {
+      console.error('Erro ao gerar PDI:', error);
+      Alert.alert('Erro', 'Não foi possível gerar o documento Word.');
+    }
+  };
   const sections = useAlunoSections(
     aluno,
     setAluno,
@@ -688,6 +870,15 @@ export default function AlunoProfileScreen() {
                   Período: {new Date(planning.dataInicio).toLocaleDateString('pt-BR')} - {new Date(planning.dataFim).toLocaleDateString('pt-BR')}
                 </Text>
                 <Text style={styles.planningText}>Número de Habilidades: {planning.habilidades.length}</Text>
+
+                {/* BOTÃO DE IMPRIMIR / DOWNLOAD */}
+                <TouchableOpacity
+                  style={styles.printButton}
+                  onPress={() => imprimirPDI(planning, aluno)}
+                  
+                >
+                  <DownloadSimple color={colors.background} size={16} />
+                </TouchableOpacity>
               </TouchableOpacity>
             ))
           ) : (
@@ -804,5 +995,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 20,
     fontStyle: 'italic',
+  },
+  printButton: {
+    marginTop: 12,
+    backgroundColor: colors.primary,
+    paddingHorizontal: fontSizes.f16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  printButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
