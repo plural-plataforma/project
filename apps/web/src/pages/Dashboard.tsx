@@ -60,7 +60,6 @@ export default function Dashboard() {
           },
         });
 
-
         const professor = response.data?.objeto;
         if (Array.isArray(professor)) {
           setProfessores(professor);

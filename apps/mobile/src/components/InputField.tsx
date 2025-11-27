@@ -135,6 +135,7 @@ const InputField: React.FC<InputFieldProps> = ({
         <View style={[styles.container, style]}>
           <Text style={styles.label}>{label || ''}</Text>
           <WebSelect />
+          {error && <Text style={styles.errorText}>{error}</Text>}
         </View>
       );
     }
@@ -188,57 +189,74 @@ const InputField: React.FC<InputFieldProps> = ({
     <View style={[styles.container, style]}>
       <Text style={styles.label}>{label || ''}</Text>
       {mask ? (
-        <MaskInput
-          value={value || ''}
-          onChangeText={(masked, raw) => {
-            if (onChangeMaskedText) {
-              onChangeMaskedText(masked, raw);
-            }
-            if (onChangeText) {
-              onChangeText(raw);
-            }
-          }}
-          mask={getMask()}
-          placeholder={placeholder || ''}
-          placeholderFillCharacter={'_'}
-          style={[styles.input, isFocused && styles.inputFocused]}
-          onFocus={() => {
-            setIsFocused(true);
-            handleFocusTextInput();
-          }}
-          onBlur={() => setIsFocused(false)}
-          keyboardType={keyboardType || 'numeric'}
-          {...props}
-        />
-        
-      ) : (
-        <View style={[styles.inputWrapper, isFocused && styles.inputFocused]}>
-          <TextInput
+        <View>
+          <MaskInput
             value={value || ''}
-            onChangeText={onChangeText}
-            style={styles.inputText}
+            onChangeText={(masked, raw) => {
+              if (onChangeMaskedText) {
+                onChangeMaskedText(masked, raw);
+              }
+              if (onChangeText) {
+                onChangeText(raw);
+              }
+            }}
+            mask={getMask()}
             placeholder={placeholder || ''}
-            placeholderTextColor={colors.placeholder}
-            secureTextEntry={isSecure ? !showPassword : false}
+            placeholderFillCharacter={'_'}
+            style={[
+              styles.input, 
+              isFocused && styles.inputFocused,
+              error && styles.inputError
+            ]}
             onFocus={() => {
               setIsFocused(true);
               handleFocusTextInput();
             }}
             onBlur={() => setIsFocused(false)}
-            keyboardType={keyboardType}
+            keyboardType={keyboardType || 'numeric'}
             editable={editable}
             {...inputProps}
           />
+          {error && <Text style={styles.errorText}>{error}</Text>}
+        </View>
+      ) : (
+        <View>
+          <View style={[
+            styles.inputWrapper, 
+            isFocused && styles.inputFocused,
+            error && styles.inputErrorWrapper
+          ]}>
+            <TextInput
+              value={value || ''}
+              onChangeText={onChangeText}
+              style={[
+                styles.inputText,
+                error && styles.inputTextError
+              ]}
+              placeholder={placeholder || ''}
+              placeholderTextColor={colors.placeholder}
+              secureTextEntry={isSecure ? !showPassword : false}
+              onFocus={() => {
+                setIsFocused(true);
+                handleFocusTextInput();
+              }}
+              onBlur={() => setIsFocused(false)}
+              keyboardType={keyboardType}
+              editable={editable}
+              {...inputProps}
+            />
 
-          {isSecure && (
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePasswordContainer}>
-              {showPassword ? (
-                <EyeSlash size={20} color={colors.primary} />
-              ) : (
-                <Eye size={20} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-          )}
+            {isSecure && (
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePasswordContainer}>
+                {showPassword ? (
+                  <EyeSlash size={20} color={colors.primary} />
+                ) : (
+                  <Eye size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+          {error && <Text style={styles.errorText}>{error}</Text>}
         </View>
       )}
     </View>
@@ -269,6 +287,10 @@ const styles = StyleSheet.create({
   inputFocused: {
     borderColor: colors.primary,
     borderWidth: 2,
+  },
+  inputError: {
+    borderColor: 'red',
+    borderWidth: 1.5,
   },
   dropdown: {
     flex: 1,
@@ -305,7 +327,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 5,
   },
-
+  inputErrorWrapper: {
+    borderColor: 'red',
+    borderWidth: 1.5,
+  },
   inputText: {
     flex: 1,
     color: colors.primary,
@@ -314,7 +339,9 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
 
   },
-
+  inputTextError: {
+    color: colors.primary,
+  },
   togglePasswordContainer: {
     paddingHorizontal: 8,
     paddingVertical: 10,

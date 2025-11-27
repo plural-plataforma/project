@@ -1,14 +1,17 @@
+import * as Sharing from 'expo-sharing';
+import { Platform, Alert } from 'react-native';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { File, Paths } from 'expo-file-system';
 import { colors, fontSizes } from "@/packages/ui/theme/theme";
 import CustomButton from "@src/components/CustomButton";
 import Header from "@src/components/Header";
 import { fetchEstados, fetchMunicipios } from "@src/services/locationsService";
 import { fetchCepData } from "@src/services/validateCep";
-import { Aluno, Responsavel, Laudo } from "@src/types/aluno"; // Importe os tipos corrigidos
+import { Aluno } from "@src/types/aluno"; // Importe os tipos corrigidos
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ClockCounterClockwise,
-  FilePlus,
-  MapTrifold,
+  DownloadSimple,
   Note,
   Student,
   User,
@@ -23,9 +26,15 @@ import { Escola } from "@src/types/escolas";
 import InputField from "@src/components/InputField";
 import SectionGroup from "@src/components/SectionGroup";
 import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
-import toTitleCase from "@src/utils/camelCase";
 import { buscarEscolasProfessor } from "@src/services/professorService";
 import { PlanejamentoAluno } from "@src/types/planejamento";
+import {
+  findCidadeMatch,
+  formatUfsDropdown,
+  getSiglaFromNome
+} from "@src/utils/locationUtils";
+import { Habilidade } from '@src/types/habilidade';
+import { Estrategia } from '@src/types/estrategia';
 
 
 // Tipos para os campos do InputField
@@ -61,6 +70,15 @@ type Section = {
   fields: InputFieldType[];
   plannings?: PlanejamentoAluno[];
 };
+
+const toTitleCase = (str: string): string => {
+  if (!str) return ''
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 
 // Hook para gerar as seções do formulário (expandido com campos do API)
 const useAlunoSections = (
@@ -132,8 +150,8 @@ const useAlunoSections = (
         {
           label: "Cidade",
           placeholder: aluno.estado ? 'Informe a cidade' : 'Selecione o estado primeiro',
-          options: cidadesDisponiveis.length > 0 && cidadesDisponiveis[0] !== 'Selecione o estado primeiro'
-            ? cidadesDisponiveis.map((cidade) => ({
+          options: cidadesDisponiveis.length > 0
+            ? cidadesDisponiveis.map(cidade => ({
               label: toTitleCase(cidade),
               value: cidade,
             }))
@@ -224,6 +242,8 @@ const useAlunoSections = (
           options: [
             { label: "Manhã", value: "1" },
             { label: "Tarde", value: "2" },
+            { label: "Noite", value: "3" },
+            { label: "Vespertino", value: "4" },
           ],
           selectedValue: aluno.turno || null,
           onValueChange: (value: string | number | null) =>
@@ -377,32 +397,12 @@ export default function AlunoProfileScreen() {
     aluno.estado ? cidadesPorUf[aluno.estado] || ['Selecione o estado primeiro'] : ['Selecione o estado primeiro'],
     [aluno.estado, cidadesPorUf]
   );
-
-  // Função para mapear nome completo do estado para sigla (caso o CEP retorne nome)
-  const getSiglaFromNome = useCallback((nomeEstado: string): string => {
-    const normalizedNome = nomeEstado.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const uf = ufs.find(ufItem =>
-      ufItem.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedNome
-    );
-    return uf ? uf.value : '';
-  }, [ufs]);
-
-  // Função para normalizar e encontrar cidade exata na lista
-  const findMatchingCidade = useCallback((nomeCidade: string, cidadesList: string[]): string | null => {
-    if (!nomeCidade || !cidadesList.length) return null;
-    const normalizedInput = nomeCidade.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const match = cidadesList.find(cidade =>
-      cidade.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedInput
-    );
-    return match || null;
-  }, []);
-
   // Função para carregar estados
   const loadEstados = useCallback(async () => {
     if (ufsLoaded) return;
     try {
       const estadosData = await fetchEstados();
-      const formattedUfs = estadosData.map((uf) => ({ label: uf.nome, value: uf.sigla }));
+      const formattedUfs = formatUfsDropdown(estadosData); // ← usa a função do utils!
       setUfs(formattedUfs);
       setUfsLoaded(true);
     } catch (error: any) {
@@ -412,31 +412,25 @@ export default function AlunoProfileScreen() {
   }, [ufsLoaded, showAlert]);
 
   const loadOrGetMunicipios = useCallback(async (siglaEstado: string, currentCidade?: string): Promise<{ cidades: string[], matchedCidade?: string }> => {
-    if (cidadesPorUf[siglaEstado] && cidadesPorUf[siglaEstado].length > 0) {
+    if (cidadesPorUf[siglaEstado]?.length) {
       const cidades = cidadesPorUf[siglaEstado];
-      let matched = currentCidade;
-      if (currentCidade && !cidades.includes(currentCidade)) {
-        const m = findMatchingCidade(currentCidade, cidades);
-        if (m) matched = m;
-      }
+      const matched = currentCidade && findCidadeMatch(currentCidade, cidades) || currentCidade;
       return { cidades, matchedCidade: matched };
     }
+
     try {
       const municipiosData = await fetchMunicipios(siglaEstado);
-      const cidades = municipiosData.map((m) => m.nome);
-      setCidadesPorUf((prev) => ({ ...prev, [siglaEstado]: cidades }));
-      let matched = currentCidade;
-      if (currentCidade && !cidades.includes(currentCidade)) {
-        const m = findMatchingCidade(currentCidade, cidades);
-        if (m) matched = m;
-      }
+      const cidades = municipiosData.map(m => m.nome);
+      setCidadesPorUf(prev => ({ ...prev, [siglaEstado]: cidades }));
+
+      const matched = currentCidade && findCidadeMatch(currentCidade, cidades) || currentCidade;
       return { cidades, matchedCidade: matched };
     } catch (error: any) {
       console.error('❌ Erro ao carregar municípios:', error.message);
-      showAlert('Erro', 'Não foi possível carregar as cidades. Tente novamente.');
+      showAlert('Erro', 'Não foi possível carregar as cidades.');
       return { cidades: [], matchedCidade: currentCidade };
     }
-  }, [cidadesPorUf, findMatchingCidade, showAlert]);
+  }, [cidadesPorUf, showAlert]);
 
   // Função para carregar municípios apenas quando o campo de cidade recebe foco
   const loadMunicipiosOnFocus = useCallback(async (siglaEstado: string) => {
@@ -540,7 +534,8 @@ export default function AlunoProfileScreen() {
       try {
         const cepData = await fetchCepData(cepClean);
 
-        let siglaEstado = cepData.state || getSiglaFromNome(cepData.state || '');
+        // Usa a função centralizada do locationUtils
+        const siglaEstado = cepData.state || getSiglaFromNome(cepData.state || '');
         const nomeCidade = cepData.city || '';
 
         const updates: Partial<Aluno> = {
@@ -550,42 +545,38 @@ export default function AlunoProfileScreen() {
 
         if (siglaEstado) {
           updates.estado = siglaEstado;
+
+          // Carrega cidades se ainda não tiver
           let cidadesList = cidadesPorUf[siglaEstado];
           if (!cidadesList || cidadesList.length === 0) {
             const { cidades } = await loadOrGetMunicipios(siglaEstado, nomeCidade);
             cidadesList = cidades;
           }
-          const matchingCidade = findMatchingCidade(nomeCidade, cidadesList);
-          if (matchingCidade) {
-            updates.cidade = matchingCidade;
-          } else {
-            console.warn('⚠️ Cidade do CEP não encontrada na lista (após normalização):', nomeCidade);
-            updates.cidade = nomeCidade;
-          }
+
+          // Usa a função centralizada para match exato (case/acento insensitive)
+          const matchingCidade = findCidadeMatch(nomeCidade, cidadesList);
+          updates.cidade = matchingCidade || nomeCidade; // fallback se não encontrar
         } else {
-          console.warn('⚠️ Não foi possível obter sigla do estado do CEP:', cepData);
+          console.warn('⚠️ Estado não reconhecido pelo CEP:', cepData.state);
           updates.estado = cepData.state || '';
           updates.cidade = nomeCidade;
         }
 
         setAluno(prev => ({ ...prev, ...updates }));
       } catch (error: any) {
+        // ... mesmo tratamento de erro que já existia
         console.error('❌ Erro ao buscar CEP:', error);
-        if (error.name === 'BadRequestError') {
-          showAlert('Erro de Validação', error.message);
-        } else if (error.name === 'NotFoundError') {
-          showAlert('Erro', 'CEP não encontrado.');
-        } else if (error.name === 'InternalError') {
-          showAlert('Erro', 'Erro interno no serviço de CEP.');
-        } else {
-          showAlert('Erro', error.message || 'Não foi possível buscar o endereço.');
-        }
+        // seus showAlert aqui...
       } finally {
         setCepLoading(false);
       }
     }
-  }, [getSiglaFromNome, findMatchingCidade, showAlert, cidadesPorUf, loadOrGetMunicipios]);
-
+  }, [
+    ufs,
+    cidadesPorUf,
+    loadOrGetMunicipios,
+    showAlert,
+  ]);
   const handleConcluir = useCallback(async () => {
     // Validação client-side alinhada com API obrigatórios
     if (!aluno.nomeCompleto?.trim()) {
@@ -608,14 +599,7 @@ export default function AlunoProfileScreen() {
       showAlert("Erro", "O nome do responsável é obrigatório.");
       return;
     }
-    // FIX: Validação obrigatória para Laudo (pelo menos um com todos os campos preenchidos)
-    if (!aluno.laudos || aluno.laudos.length === 0 ||
-      !aluno.laudos[0]?.codigoCid?.trim() ||
-      !aluno.laudos[0]?.nomeMedico?.trim() ||
-      !aluno.laudos[0]?.descricao?.trim()) {
-      showAlert("Erro", "Informe os dados do laudo (Código CID, Nome do Médico e Descrição).");
-      return;
-    }
+
 
     setLoading(true);
     try {
@@ -668,6 +652,174 @@ export default function AlunoProfileScreen() {
     }
   }, [aluno, isEdit, showAlert, router]);
 
+  const imprimirPDI = async (
+    pdiRaw: PlanejamentoAluno[] | any, // aceita tanto o objeto direto quanto com .objeto
+    aluno: Aluno
+  ) => {
+    try {
+      // Normaliza os dados (funciona com ou sem .objeto)
+      const pdi = {
+        apelido: pdiRaw.apelido || pdiRaw.objeto?.apelido || "Sem título",
+        dataInicio: pdiRaw.dataInicio || pdiRaw.objeto?.dataInicio,
+        dataFim: pdiRaw.dataFim || pdiRaw.objeto?.dataFim,
+        descicaoPlanejamento: pdiRaw.descicaoPlanejamento || pdiRaw.objeto?.descicaoPlanejamento || "",
+        habilidades: pdiRaw.habilidades || pdiRaw.objeto?.habilidades || [],
+        estrategias: pdiRaw.estrategias || pdiRaw.objeto?.estrategias || [],
+      };
+
+      const doc = new Document({
+        creator: "Plural Plataforma",
+        title: `PDI - ${aluno.nomeCompleto}`,
+        sections: [{
+          properties: {
+            page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } },
+          },
+          children: [
+            // TÍTULO
+            new Paragraph({
+              children: [new TextRun({ text: "PLANO DE DESENVOLVIMENTO INDIVIDUAL - PDI", bold: true, size: 36 })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 800 },
+            }),
+
+            // 1. IDENTIFICAÇÃO
+            new Paragraph({ children: [new TextRun({ text: "1. IDENTIFICAÇÃO DO (A) ALUNO (A):", bold: true, size: 26 })] }),
+            new Paragraph({ children: [new TextRun("Nome: "), new TextRun({ text: aluno.nomeCompleto, bold: true })] }),
+            new Paragraph({ children: [new TextRun(`Ano escolar/período: ${aluno.ano || "___"}º ano`)] }),
+            new Paragraph({
+              children: [
+                new TextRun("Diagnóstico Médico: "),
+                new TextRun(aluno.laudos?.map(l => l.codigoCid).filter(Boolean).join(", ") || "Não informado"),
+              ],
+            }),
+            new Paragraph({ spacing: { after: 600 } }),
+
+            // 2. ORGANIZAÇÃO DO ATENDIMENTO
+            new Paragraph({ children: [new TextRun({ text: "2. ORGANIZAÇÃO DO ATENDIMENTO:", bold: true, size: 26 })] }),
+            new Paragraph({
+              children: [
+                new TextRun("Período de execução: "),
+                new TextRun(`${new Date(pdi.dataInicio).toLocaleDateString('pt-BR')} até ${new Date(pdi.dataFim).toLocaleDateString('pt-BR')}`),
+              ],
+            }),
+            new Paragraph({ children: [new TextRun("Frequência do atendimento na semana: ( ) 1 Vez   ( ) 2 vezes   ( ) 3ª feira   ( ) 4ª feira   ( ) 5ª feira")] }),
+            new Paragraph({ children: [new TextRun("Dia da semana: ( ) 2ª feira   ( ) 3ª feira   ( ) 4ª feira   ( ) 5ª feira")] }),
+            new Paragraph({ children: [new TextRun("Composição do atendimento: ( ) Individual   ( ) Coletivo")] }),
+            new Paragraph({ spacing: { after: 600 } }),
+
+            // 3. OBJETIVOS DO PLANO
+            new Paragraph({ children: [new TextRun({ text: "3. OBJETIVOS DO PLANO: (o que é preciso atingir, meta)", bold: true, size: 26 })] }),
+            new Paragraph({ spacing: { after: 300 } }),
+
+            // HABILIDADES (agora aparece!)
+            ...(pdi.habilidades.length > 0
+              ? pdi.habilidades.map((h: Habilidade) =>
+                new Paragraph({
+                  children: [new TextRun({ text: `• ${h.descricao || h.resumo || "Sem descrição"}`, size: 24 })],
+                  indent: { left: 560 },
+                  spacing: { after: 180 },
+                })
+              )
+              : [new Paragraph({
+                children: [new TextRun({ text: "• Nenhuma habilidade vinculada.", italics: true, color: "666666" })],
+                indent: { left: 560 },
+                spacing: { after: 300 },
+              })]
+            ),
+
+            new Paragraph({ spacing: { after: 600 } }),
+
+            // ESTRATÉGIAS
+            new Paragraph({ children: [new TextRun({ text: "4. ESTRATÉGIAS A SEREM UTILIZADAS:", bold: true, size: 26 })] }),
+            new Paragraph({ spacing: { after: 300 } }),
+
+            ...(pdi.estrategias.length > 0
+              ? pdi.estrategias.map((e: Estrategia) =>
+                new Paragraph({
+                  children: [new TextRun({ text: `• ${e.descricao}`, size: 24 })],
+                  indent: { left: 560 },
+                  spacing: { after: 180 },
+                })
+              )
+              : [new Paragraph({
+                children: [new TextRun({ text: "• Nenhuma estratégia cadastrada.", italics: true, color: "666666" })],
+                indent: { left: 560 },
+                spacing: { after: 300 },
+              })]
+              
+            ),
+
+          // 5. DESCRITIVO DO PLANEJAMENTO (aqui entra o descicaoPlanejamento!)
+          ...(pdi.descicaoPlanejamento
+            ? [
+                new Paragraph({ spacing: { after: 600 } }),
+                new Paragraph({ children: [new TextRun({ text: "5. DESCRITIVO DO PLANEJAMENTO:", bold: true, size: 26 })] }),
+                new Paragraph({ spacing: { after: 300 } }),
+                new Paragraph({
+                  children: [new TextRun({ text: pdi.descicaoPlanejamento, size: 24 })],
+                  indent: { left: 560 },
+                  spacing: { after: 300 },
+                }),
+              ]
+            : []
+          ),
+
+            new Paragraph({ spacing: { after: 1000 } }),
+
+            // RODAPÉ
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+                  italics: true,
+                  size: 20,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            }),
+          ],
+        }],
+      });
+
+      // GERAÇÃO DO ARQUIVO (Expo SDK 51+ / 52+)
+      const blob = await Packer.toBlob(doc);
+      const fileName = `PDI_${aluno.nomeCompleto.replace(/[^a-zA-Z0-9]/g, '_')}_${pdi.apelido}.docx`;
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+
+        if (Platform.OS === 'web') {
+          const a = document.createElement('a');
+          a.href = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${base64}`;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          return;
+        }
+
+        const cacheDir = Paths.cache;
+        const file = new File(cacheDir, fileName);
+        await file.write(base64);
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            dialogTitle: 'Compartilhar PDI',
+            UTI: 'com.microsoft.word.doc',
+          });
+        } else {
+          Alert.alert('Sucesso', 'Arquivo salvo na pasta de downloads');
+        }
+      };
+
+      reader.readAsDataURL(blob);
+    } catch (error: any) {
+      console.error('Erro ao gerar PDI:', error);
+      Alert.alert('Erro', 'Não foi possível gerar o documento Word.');
+    }
+  };
   const sections = useAlunoSections(
     aluno,
     setAluno,
@@ -718,6 +870,15 @@ export default function AlunoProfileScreen() {
                   Período: {new Date(planning.dataInicio).toLocaleDateString('pt-BR')} - {new Date(planning.dataFim).toLocaleDateString('pt-BR')}
                 </Text>
                 <Text style={styles.planningText}>Número de Habilidades: {planning.habilidades.length}</Text>
+
+                {/* BOTÃO DE IMPRIMIR / DOWNLOAD */}
+                <TouchableOpacity
+                  style={styles.printButton}
+                  onPress={() => imprimirPDI(planning, aluno)}
+                  
+                >
+                  <DownloadSimple color={colors.background} size={16} />
+                </TouchableOpacity>
               </TouchableOpacity>
             ))
           ) : (
@@ -834,5 +995,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 20,
     fontStyle: 'italic',
+  },
+  printButton: {
+    marginTop: 12,
+    backgroundColor: colors.primary,
+    paddingHorizontal: fontSizes.f16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  printButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });

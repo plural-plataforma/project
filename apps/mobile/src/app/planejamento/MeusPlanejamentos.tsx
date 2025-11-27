@@ -22,7 +22,6 @@ export default function MeusPlanejamentos() {
     try {
       setLoading(true);
       const data = await buscarPlanejamento();
-      console.log(data)
       setPlanejamentos(data)
     } catch (err) {
       console.error('Erro ao carregar planejamentos:', err);

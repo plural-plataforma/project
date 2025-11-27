@@ -26,7 +26,7 @@ builder.Services.AddCors(options =>
                 "https://adm.pluralplataforma.com",
                 "https://app-web-iota-ten.vercel.app",
                 "178.63.129.220:443",
-                "https://app-web-dev.vercel.app")
+                "https://app-web-dev.vercel.app",
                 "https://app.pluralplataforma.com")
             .AllowAnyHeader() 
             .AllowAnyMethod()
@@ -95,6 +95,7 @@ builder.Services.AddScoped<EscolaService>();
 builder.Services.AddScoped<AlunoService>();
 builder.Services.AddScoped<HabilidadeService>();
 builder.Services.AddScoped<PlanejamentoService>();
+builder.Services.AddScoped<EstrategiaService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>

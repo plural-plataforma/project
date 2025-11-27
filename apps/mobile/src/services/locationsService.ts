@@ -19,12 +19,23 @@ interface Municipio {
   codigo_ibge: string;
 }
 
+// NOVO: Função toTitleCase para capitalizar nomes de municípios
+function toTitleCase(str: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase() // Garante base em lowercase
+    .split(' ') // Divide por espaços
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitaliza primeira letra de cada palavra
+    .join(' '); // Junta de volta
+}
+
 export const fetchEstados = async (): Promise<Uf[]> => {
   try {
     const response = await axios.get<Uf[]>(BASE_URL_IBGE_UF, {
       headers: { 'Accept': 'application/json' },
     });
-    return response.data;
+    // NOVO: Ordena os estados por nome em ordem alfabética
+    return response.data.sort((a, b) => a.nome.localeCompare(b.nome));
   } catch (error: any) {
     console.error('Erro ao buscar estados:', error.message);
     throw {
@@ -40,7 +51,13 @@ export const fetchMunicipios = async (uf: string): Promise<Municipio[]> => {
     const response = await axios.get<Municipio[]>(`${BASE_URL_IBGE_MUNICIPIOS}/${uf}`, {
       headers: { 'Accept': 'application/json' },
     });
-    return response.data;
+    // NOVO: Ordena os municípios por nome em ordem alfabética e aplica toTitleCase no nome
+    return response.data
+      .map(municipio => ({
+        ...municipio,
+        nome: toTitleCase(municipio.nome) // Aplica title case ao nome
+      }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
   } catch (error: any) {
     console.error('Erro ao buscar municípios para UF', uf, ':', error.message);
     throw {
@@ -52,3 +69,4 @@ export const fetchMunicipios = async (uf: string): Promise<Municipio[]> => {
 };
 
 export default {fetchMunicipios, fetchEstados};
+export type { Uf, Municipio };
