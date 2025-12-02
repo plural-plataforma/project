@@ -36,8 +36,13 @@ builder.Services.AddCors(options =>
 
 
 // Carrega .env da raiz do Turborepo
-Env.TraversePath().Load();
+DotNetEnv.Env.TraversePath().Load();
 builder.Configuration.AddEnvironmentVariables();
+
+var requiredVars = new[]
+{"HOTMART_CLIENT_ID", "HOTMART_CLIENT_SECRET",
+    "API_HOTMART_URL", "HOTMART_TOKEN_URL"
+};
 
 // Validações básicas das vars do .env
 var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("DB_PASSWORD não encontrada no .env");
@@ -51,6 +56,7 @@ builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnC
 var appSettings = builder.Configuration.GetSection("JwtSettings");
 var secret = appSettings["Secret"].Replace("{JWT_SECRET}", jwtSecret); // Substitui o placeholder
 appSettings["Secret"] = secret; // Atualiza a configuração
+
 
 // Monte connection string com substituições do .env
 var baseConnectionString = builder.Configuration.GetConnectionString("AppDbContext")
