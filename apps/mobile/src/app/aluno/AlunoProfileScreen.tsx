@@ -35,6 +35,7 @@ import {
 } from "@src/utils/locationUtils";
 import { Habilidade } from '@src/types/habilidade';
 import { Estrategia } from '@src/types/estrategia';
+import { Avaliacao } from '@src/types/avaliacao';
 
 
 // Tipos para os campos do InputField
@@ -662,9 +663,9 @@ export default function AlunoProfileScreen() {
         apelido: pdiRaw.apelido || pdiRaw.objeto?.apelido || "Sem título",
         dataInicio: pdiRaw.dataInicio || pdiRaw.objeto?.dataInicio,
         dataFim: pdiRaw.dataFim || pdiRaw.objeto?.dataFim,
-        descicaoPlanejamento: pdiRaw.descicaoPlanejamento || pdiRaw.objeto?.descicaoPlanejamento || "",
         habilidades: pdiRaw.habilidades || pdiRaw.objeto?.habilidades || [],
         estrategias: pdiRaw.estrategias || pdiRaw.objeto?.estrategias || [],
+        avaliacao: pdiRaw.avaliacao || pdiRaw.objeto?.avaliacao || [],
       };
 
       const doc = new Document({
@@ -749,20 +750,25 @@ export default function AlunoProfileScreen() {
               
             ),
 
-          // 5. DESCRITIVO DO PLANEJAMENTO (aqui entra o descicaoPlanejamento!)
-          ...(pdi.descicaoPlanejamento
-            ? [
-                new Paragraph({ spacing: { after: 600 } }),
-                new Paragraph({ children: [new TextRun({ text: "5. DESCRITIVO DO PLANEJAMENTO:", bold: true, size: 26 })] }),
-                new Paragraph({ spacing: { after: 300 } }),
+          // 5. CRITÉRIOS AVALIATIVOS
+          new Paragraph({ children: [new TextRun({ text: "5. CRITÉRIOS AVALIATIVOS:", bold: true, size: 26 })] }),
+            new Paragraph({ spacing: { after: 300 } }),
+
+            ...(pdi.avaliacao.length > 0
+              ? pdi.avaliacao.map((e: Avaliacao) =>
                 new Paragraph({
-                  children: [new TextRun({ text: pdi.descicaoPlanejamento, size: 24 })],
+                  children: [new TextRun({ text: `• ${e.descricao}`, size: 24 })],
                   indent: { left: 560 },
-                  spacing: { after: 300 },
-                }),
-              ]
-            : []
-          ),
+                  spacing: { after: 180 },
+                })
+              )
+              : [new Paragraph({
+                children: [new TextRun({ text: "• Nenhuma critério cadastrado.", italics: true, color: "666666" })],
+                indent: { left: 560 },
+                spacing: { after: 300 },
+              })]
+              
+            ),
 
             new Paragraph({ spacing: { after: 1000 } }),
 

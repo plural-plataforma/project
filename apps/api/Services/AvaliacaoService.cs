@@ -45,7 +45,7 @@ namespace api.Services
             }
         }
 
-        public async Task<ServiceResponse<List<AvaliacaoBuscarDTO>>> GetAvaliacoesAtivas()
+        public ServiceResponse<List<AvaliacaoBuscarDTO>> GetAvaliacoesAtivas()
         {
             var resposta = new ServiceResponse<List<AvaliacaoBuscarDTO>>();
             try
@@ -95,7 +95,6 @@ namespace api.Services
                     await transacao.RollbackAsync();
                     resposta.SetFalha("Erro ao cadastrar avaliação.");
                     throw;
-                    return resposta;
                 }
             }
 

@@ -1,6 +1,7 @@
 ﻿using api.DTOs.Aluno;
 using api.DTOs.Estrategia;
 using api.DTOs.Habilidade;
+using api.DTOs.Avaliacao;
 using api.DTOs.Planejamento;
 using api.Models;
 using api.Responses;
@@ -50,7 +51,6 @@ namespace api.Services
                     await transacao.RollbackAsync();
                     resposta.SetFalha("Erro ao cadastrar planejamento.");
                     throw;
-                    return resposta;
                 }
             }
 
@@ -132,6 +132,13 @@ namespace api.Services
                                 Descricao = hp.Estrategia.Descricao
                             })
                             .ToList(),
+                        Avaliacao = p.AvaliacaoXPlanejamentos
+                            .Select(hp => new AvaliacaoBuscarDTO
+                            {
+                                Id = hp.Avaliacao.Id,
+                                Descricao = hp.Avaliacao.Descricao
+                            })
+                            .ToList(),
 
                         Alunos = p.AlunosXPlanejamentos
                             .Select(ap => new AlunoResumoDTO()
@@ -183,6 +190,13 @@ namespace api.Services
                             {
                                 Id = hp.Estrategia.Id,
                                 Descricao = hp.Estrategia.Descricao
+                            })
+                            .ToList(),
+                        Avaliacao = p.AvaliacaoXPlanejamentos
+                            .Select(hp => new AvaliacaoBuscarDTO
+                            {
+                                Id = hp.Avaliacao.Id,
+                                Descricao = hp.Avaliacao.Descricao
                             })
                             .ToList(),
 
@@ -333,6 +347,49 @@ namespace api.Services
             };
 
             _contexto.EstrategiasXPlanejamentos.Add(vinculo);
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
+            return resposta;
+        }
+
+        public async Task<ServiceResponse<bool>> VincularAvaliacoes(PlanejamentoVincularAvaliacaoDTO planejamentoVincularAvaliacaoDTO, Usuario usuario)
+        {
+            var planejamento = await _contexto.Planejamentos
+                .FirstOrDefaultAsync(p =>
+                    p.ID == planejamentoVincularAvaliacaoDTO.IdPlanejamento &&
+                    p.IdProfessor == usuario.ProfessorId);
+            var avaliacoes = await _contexto.Avaliacao
+                .FirstOrDefaultAsync(a =>
+                    a.Id == planejamentoVincularAvaliacaoDTO.IdAvaliacao);
+            var resposta = new ServiceResponse<bool>();
+            if (planejamento == null)
+            {
+                resposta.SetFalha("Planejamento não encontrado.");
+                return resposta;
+            }
+
+            if (avaliacoes == null)
+            {
+                resposta.SetFalha("Estratégia não encontrada.");
+                return resposta;
+            }
+
+            bool jaVinculado = await _contexto.AvaliacaoXPlanejamento
+                .AnyAsync(x => x.AvaliacaoId == planejamentoVincularAvaliacaoDTO.IdAvaliacao && x.PlanejamentoId == planejamentoVincularAvaliacaoDTO.IdPlanejamento);
+
+            if (jaVinculado)
+            {
+                resposta.SetFalha("Esta estratégia já está vinculada a esse planejamento.");
+                return resposta;
+            }
+
+            var vinculo = new AvaliacaoXPlanejamento()
+            {
+                AvaliacaoId = planejamentoVincularAvaliacaoDTO.IdAvaliacao,
+                PlanejamentoId = planejamentoVincularAvaliacaoDTO.IdPlanejamento
+            };
+
+            _contexto.AvaliacaoXPlanejamento.Add(vinculo);
             await _contexto.SaveChangesAsync();
             resposta.Sucesso = true;
             return resposta;

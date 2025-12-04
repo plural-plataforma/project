@@ -284,7 +284,7 @@ namespace api.Migrations
                     b.HasIndex("IdResponsavel")
                         .HasDatabaseName("ix_alunos_idresponsavel");
 
-                    b.ToTable("alunos");
+                    b.ToTable("alunos", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AlunosXPlanejamento", b =>
@@ -303,7 +303,7 @@ namespace api.Migrations
 
                     b.HasIndex("AlunoId");
 
-                    b.ToTable("alunosxplanejamento");
+                    b.ToTable("alunosxplanejamento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Avaliacao", b =>
@@ -330,7 +330,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_avaliacao");
 
-                    b.ToTable("avaliacao");
+                    b.ToTable("avaliacao", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoXPlanejamento", b =>
@@ -349,7 +349,7 @@ namespace api.Migrations
 
                     b.HasIndex("AvaliacaoId");
 
-                    b.ToTable("avaliacaoxplanejamento");
+                    b.ToTable("avaliacaoxplanejamento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Escola", b =>
@@ -407,7 +407,7 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_escolas");
 
-                    b.ToTable("escolas");
+                    b.ToTable("escolas", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
@@ -428,7 +428,7 @@ namespace api.Migrations
                     b.HasIndex("ProfessorId")
                         .HasDatabaseName("ix_escolasxprofessores_professorid");
 
-                    b.ToTable("escolasxprofessores");
+                    b.ToTable("escolasxprofessores", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Estrategias", b =>
@@ -451,7 +451,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_estrategias");
 
-                    b.ToTable("estrategias");
+                    b.ToTable("estrategias", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.EstrategiasXPlanejamento", b =>
@@ -470,7 +470,7 @@ namespace api.Migrations
 
                     b.HasIndex("EstrategiaId");
 
-                    b.ToTable("estrategiasxplanejamento");
+                    b.ToTable("estrategiasxplanejamento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Habilidade", b =>
@@ -505,7 +505,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_habilidades");
 
-                    b.ToTable("habilidades");
+                    b.ToTable("habilidades", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.HabilidadesXPlanejamento", b =>
@@ -524,7 +524,7 @@ namespace api.Migrations
 
                     b.HasIndex("HabilidadeId");
 
-                    b.ToTable("habilidadesxplanejamento");
+                    b.ToTable("habilidadesxplanejamento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Laudo", b =>
@@ -560,7 +560,7 @@ namespace api.Migrations
                     b.HasIndex("IdAluno")
                         .HasDatabaseName("ix_laudos_idaluno");
 
-                    b.ToTable("laudos");
+                    b.ToTable("laudos", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Planejamento", b =>
@@ -598,7 +598,7 @@ namespace api.Migrations
                     b.HasIndex("IdProfessor")
                         .HasDatabaseName("ix_planejamentos_idprofessor");
 
-                    b.ToTable("planejamentos");
+                    b.ToTable("planejamentos", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Professor", b =>
@@ -681,7 +681,7 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_professores");
 
-                    b.ToTable("professores");
+                    b.ToTable("professores", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>
@@ -746,7 +746,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_responsaveis");
 
-                    b.ToTable("responsaveis");
+                    b.ToTable("responsaveis", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Usuario", b =>

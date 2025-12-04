@@ -33,16 +33,16 @@ public class AvaliacaoController : ControllerBase
     }
 
     [HttpGet("buscarAtivos")]
-    public async Task<IActionResult> BuscarAtivos()
+    public Task<IActionResult> BuscarAtivos()
     {
-        var resposta = await _avaliacaoService.GetAvaliacoesAtivas();
+        var resposta = _avaliacaoService.GetAvaliacoesAtivas();
         if (resposta.Sucesso)
         {
-            return Ok(resposta);
+            return Task.FromResult<IActionResult>(Ok(resposta));
         }
         else
         {
-            return BadRequest(resposta);
+            return Task.FromResult<IActionResult>(BadRequest(resposta));
         }
     }
 
