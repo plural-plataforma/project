@@ -113,3 +113,18 @@ export const vincularEstrategia = async (payload: {
     throw error
   }
 }
+
+export const vincularAvaliacao = async (payload: {
+  idPlanejamento: number
+  idAvaliacao: number
+}): Promise<void> => {
+  try {
+    const response = await api.post('Planejamento/vincularavaliacao', payload)
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular avaliação')
+    }
+  } catch (error) {
+    console.error('Erro ao vincular avaliação:', error)
+    throw error
+  }
+}

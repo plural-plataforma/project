@@ -48,7 +48,6 @@ namespace api.Services
                     await transacao.RollbackAsync();
                     resposta.SetFalha("Erro ao cadastrar habilidade.");
                     throw;
-                    return resposta;
                 }
             }
 

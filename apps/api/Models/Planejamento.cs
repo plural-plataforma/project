@@ -25,6 +25,8 @@ public class Planejamento
     public ICollection<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
 
     public ICollection<EstrategiasXPlanejamento> EstrategiasXPlanejamentos { get; set; }
+
+    public ICollection<AvaliacaoXPlanejamento> AvaliacaoXPlanejamentos { get; set; }
     public ICollection<AlunosXPlanejamento> AlunosXPlanejamentos { get; set; }
 
 }

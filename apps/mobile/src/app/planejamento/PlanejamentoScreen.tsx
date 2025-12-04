@@ -10,7 +10,8 @@ import {
   buscarPlanejamento,
   vincularAluno,
   vincularHabilidade,
-  vincularEstrategia
+  vincularEstrategia,
+  vincularAvaliacao
 } from '@src/services/planejamentoService'
 import { buscarEstrategias } from '@src/services/estrategiasService'
 
@@ -34,6 +35,9 @@ import { CustomAlert, useCustomAlert } from '@src/hooks/useCustomAlert'
 import CustomButton from '@src/components/CustomButton'
 import dayjs from 'dayjs'
 import DatePicker, { DateType } from 'react-native-ui-datepicker'
+import { Avaliacao } from '@src/types/avaliacao'
+import { buscarAvaliacoes } from '@src/services/avaliacaoService'
+import { set } from 'react-hook-form'
 
 interface FormField {
   id: string
@@ -55,22 +59,27 @@ export default function PlanejamentoScreen() {
   // Estados
   const [habilidades, setHabilidades] = useState<Habilidade[]>([])
   const [estrategias, setEstrategias] = useState<Estrategia[]>([])
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
   const [alunos, setAlunos] = useState<Aluno[]>([])
 
   const [filteredHabilidades, setFilteredHabilidades] = useState<Habilidade[]>([])
   const [filteredEstrategias, setFilteredEstrategias] = useState<Estrategia[]>([])
+  const [filteredAvaliacoes, setFilteredAvaliacoes] = useState<Avaliacao[]>([])
   const [filteredAlunos, setFilteredAlunos] = useState<Aluno[]>([])
 
   const [selectedHabilidades, setSelectedHabilidades] = useState<Habilidade[]>([])
   const [selectedEstrategias, setSelectedEstrategias] = useState<Estrategia[]>([])
+  const [selectedAvaliacoes, setSelectedAvaliacoes] = useState<Avaliacao[]>([])
   const [selectedAlunos, setSelectedAlunos] = useState<Aluno[]>([])
 
   const [originalSelectedHabilidades, setOriginalSelectedHabilidades] = useState<Habilidade[]>([])
   const [originalSelectedEstrategias, setOriginalSelectedEstrategias] = useState<Estrategia[]>([])
+  const [originalSelectedAvaliacoes, setOriginalSelectedAvaliacoes] = useState<Avaliacao[]>([])
   const [originalSelectedAlunos, setOriginalSelectedAlunos] = useState<Aluno[]>([])
 
   const [searchHabilidades, setSearchHabilidades] = useState('')
   const [searchEstrategias, setSearchEstrategias] = useState('')
+  const [searchAvaliacoes, setSearchAvaliacoes] = useState('')
   const [searchAlunos, setSearchAlunos] = useState('')
 
   const [formData, setFormData] = useState({
@@ -123,15 +132,18 @@ export default function PlanejamentoScreen() {
   // Carregamento inicial
   useEffect(() => {
     const load = async () => {
-      const [habs, ests, als] = await Promise.all([
+      const [habs, ests, aval, als] = await Promise.all([
         buscarHabilidades(),
         buscarEstrategias(),
+        buscarAvaliacoes(),
         buscarAlunos()
       ])
       setHabilidades(habs)
       setFilteredHabilidades(habs)
       setEstrategias(ests)
       setFilteredEstrategias(ests)
+      setAvaliacoes(aval),
+      setFilteredAvaliacoes(aval),
       setAlunos(als)
       setFilteredAlunos(als)
     }
@@ -172,12 +184,15 @@ export default function PlanejamentoScreen() {
 
       const habs = p.habilidades || []
       const ests = p.estrategias || []
+      const aval = p.avaliacao || []
       const als = p.alunos?.filter(a => a.id) || []
 
       setSelectedHabilidades(habs)
       setOriginalSelectedHabilidades(habs)
       setSelectedEstrategias(ests)
       setOriginalSelectedEstrategias(ests)
+      setSelectedAvaliacoes(aval)
+      setOriginalSelectedAvaliacoes(aval)
       setSelectedAlunos(als)
       setOriginalSelectedAlunos(als)
     } catch (err) {
@@ -205,6 +220,13 @@ export default function PlanejamentoScreen() {
     )
     setFilteredEstrategias(filtered)
   }, [estrategias, searchEstrategias])
+
+  useEffect(() => {
+    const filtered = avaliacoes.filter(e =>
+      searchAvaliacoes === '' || e.descricao?.toLowerCase().includes(searchAvaliacoes.toLowerCase())
+    )
+    setFilteredAvaliacoes(filtered)
+  }, [avaliacoes, searchAvaliacoes])
 
   useEffect(() => {
     const filtered = alunos.filter(a =>
@@ -307,6 +329,7 @@ export default function PlanejamentoScreen() {
 
   const toggleHabilidade = (h: Habilidade) => toggle(h, selectedHabilidades, setSelectedHabilidades, h.descricao || 'Habilidade')
   const toggleEstrategia = (e: Estrategia) => toggle(e, selectedEstrategias, setSelectedEstrategias, e.descricao || 'Estratégia')
+  const toggleAvaliacao = (v: Avaliacao) => toggle(v, selectedAvaliacoes, setSelectedAvaliacoes, v.descricao || 'Avaliação')
   const toggleAluno = (a: Aluno) => toggle(a, selectedAlunos, setSelectedAlunos, a.nomeCompleto || 'Aluno')
 
   // Vincular apenas os novos
@@ -388,6 +411,17 @@ export default function PlanejamentoScreen() {
         })
       )
 
+      // Vincular apenas os novos — AVALIAÇÕES
+      await vincularNovos(
+        selectedAvaliacoes,
+        originalSelectedAvaliacoes,
+        vincularAvaliacao,
+        v => ({
+          idPlanejamento: planejamentoIdFinal,
+          idAvaliacao: v.id
+        })
+      )
+
       showAlert('Sucesso!', `PDI ${isEdit ? 'atualizado' : 'criado'} com sucesso!`, [
         { text: 'OK', onPress: () => { handleDismiss(); router.back() } }
       ])
@@ -425,6 +459,7 @@ export default function PlanejamentoScreen() {
 
   const renderHabilidade = ({ item }: { item: Habilidade }) => renderItem(item, selectedHabilidades.some(s => s.id === item.id), () => toggleHabilidade(item), 'descricao')
   const renderEstrategia = ({ item }: { item: Estrategia }) => renderItem(item, selectedEstrategias.some(s => s.id === item.id), () => toggleEstrategia(item), 'descricao')
+  const renderAvaliacao = ({ item }: { item: Avaliacao }) => renderItem(item, selectedAvaliacoes.some(s => s.id === item.id), () => toggleAvaliacao(item), 'descricao')
   const renderAluno = ({ item }: { item: Aluno }) => renderItem(item, selectedAlunos.some(s => s.id === item.id), () => toggleAluno(item), 'nomeCompleto')
 
   if (isLoadingData) {
@@ -475,6 +510,19 @@ export default function PlanejamentoScreen() {
             scrollEnabled={false}
           />
           <Text style={styles.summary}>Estratégias: {selectedEstrategias.length}</Text>
+        </View>
+
+         {/* Avaliações */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Critérios Avaliativos</Text>
+          <InputField label="Buscar" placeholder="Filtrar..." value={searchAvaliacoes} onChangeText={setSearchAvaliacoes} style={{ marginBottom: 10 }} />
+          <FlatList
+            data={isEdit ? selectedAvaliacoes : filteredAvaliacoes}
+            renderItem={renderAvaliacao}
+            keyExtractor={item => item.id?.toString() ?? 'temp'}
+            scrollEnabled={false}
+          />
+          <Text style={styles.summary}>Critérios Avaliativos: {selectedAvaliacoes.length}</Text>
         </View>
 
         {/* Período */}
