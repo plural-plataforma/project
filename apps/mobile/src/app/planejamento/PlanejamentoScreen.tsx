@@ -143,8 +143,8 @@ export default function PlanejamentoScreen() {
       setEstrategias(ests)
       setFilteredEstrategias(ests)
       setAvaliacoes(aval),
-      setFilteredAvaliacoes(aval),
-      setAlunos(als)
+        setFilteredAvaliacoes(aval),
+        setAlunos(als)
       setFilteredAlunos(als)
     }
     load()
@@ -204,33 +204,41 @@ export default function PlanejamentoScreen() {
 
   // Filtros (apenas em criação)
   useEffect(() => {
-    if (isEdit) return
     const etapa = formData.etapaEnsino ? Number(formData.etapaEnsino) : null
-    const filtered = habilidades.filter(h =>
-      (!etapa || h.idNivelEnsino === etapa) &&
-      (!formData.tipoHabilidade || h.tipo === formData.tipoHabilidade) &&
-      (searchHabilidades === '' || h.descricao?.toLowerCase().includes(searchHabilidades.toLowerCase()))
-    )
+    const tipo = formData.tipoHabilidade || null
+
+    const filtered = habilidades.filter(h => {
+      const matchesEtapa = !etapa || h.idNivelEnsino === etapa
+      const matchesTipo = !tipo || h.tipo === tipo
+      const matchesSearch = searchHabilidades === '' ||
+        h.descricao?.toLowerCase().includes(searchHabilidades.toLowerCase())
+
+      return matchesEtapa && matchesTipo && matchesSearch
+    })
+
     setFilteredHabilidades(filtered)
-  }, [habilidades, formData.etapaEnsino, formData.tipoHabilidade, searchHabilidades, isEdit])
+  }, [habilidades, formData.etapaEnsino, formData.tipoHabilidade, searchHabilidades])
 
   useEffect(() => {
     const filtered = estrategias.filter(e =>
-      searchEstrategias === '' || e.descricao?.toLowerCase().includes(searchEstrategias.toLowerCase())
+      searchEstrategias === '' ||
+      e.descricao?.toLowerCase().includes(searchEstrategias.toLowerCase())
     )
     setFilteredEstrategias(filtered)
   }, [estrategias, searchEstrategias])
 
   useEffect(() => {
     const filtered = avaliacoes.filter(e =>
-      searchAvaliacoes === '' || e.descricao?.toLowerCase().includes(searchAvaliacoes.toLowerCase())
+      searchAvaliacoes === '' ||
+      e.descricao?.toLowerCase().includes(searchAvaliacoes.toLowerCase())
     )
     setFilteredAvaliacoes(filtered)
   }, [avaliacoes, searchAvaliacoes])
 
   useEffect(() => {
     const filtered = alunos.filter(a =>
-      searchAlunos === '' || a.nomeCompleto.toLowerCase().includes(searchAlunos.toLowerCase())
+      searchAlunos === '' ||
+      a.nomeCompleto.toLowerCase().includes(searchAlunos.toLowerCase())
     )
     setFilteredAlunos(filtered)
   }, [alunos, searchAlunos])
@@ -287,7 +295,7 @@ export default function PlanejamentoScreen() {
       placeholder: 'Escreva...',
       value: formData.descicaoPlanejamento,
       multiline: true,                    // ← permite várias linhas
-      
+
       onChangeText: (text: any) => handleInputChange('descicaoPlanejamento', text),
     },
   ], [
@@ -476,6 +484,7 @@ export default function PlanejamentoScreen() {
       <Header title={isEdit ? 'Editar PDI' : 'Criar PDI'} onBack={() => router.back()} fixed />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Campos principais */}
         {formFields.map((f, i) => (
           <View key={f.id} style={{ marginBottom: 15, zIndex: 999 - i }}>
             <InputField
@@ -486,58 +495,116 @@ export default function PlanejamentoScreen() {
           </View>
         ))}
 
-        {/* Habilidades */}
+        {/* HABILIDADES - AGORA FUNCIONA EM EDIÇÃO */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{isEdit ? 'Habilidades Vinculadas' : 'Selecionar Habilidades'}</Text>
-          {!isEdit && <InputField label="Buscar" placeholder="Filtrar..." value={searchHabilidades} onChangeText={setSearchHabilidades} style={{ marginBottom: 10 }} />}
+          <Text style={styles.sectionTitle}>
+            Habilidades {isEdit ? '(vinculadas e disponíveis)' : 'a trabalhar'}
+          </Text>
+          <InputField
+            label="Buscar habilidade"
+            placeholder="Digite para filtrar..."
+            value={searchHabilidades}
+            onChangeText={setSearchHabilidades}
+            style={{ marginBottom: 10 }}
+          />
           <FlatList
-            data={isEdit ? selectedHabilidades : filteredHabilidades}
+            data={filteredHabilidades}
             renderItem={renderHabilidade}
             keyExtractor={item => item.id?.toString() ?? 'temp'}
             scrollEnabled={false}
+            ListEmptyComponent={
+              <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
+                Nenhuma habilidade encontrada
+              </Text>
+            }
           />
-          <Text style={styles.summary}>Habilidades: {selectedHabilidades.length}</Text>
+          <Text style={styles.summary}>
+            Selecionadas: {selectedHabilidades.length}
+          </Text>
         </View>
 
-        {/* Estratégias */}
+        {/* ESTRATÉGIAS */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Estratégias de Ensino</Text>
-          <InputField label="Buscar" placeholder="Filtrar..." value={searchEstrategias} onChangeText={setSearchEstrategias} style={{ marginBottom: 10 }} />
+          <Text style={styles.sectionTitle}>
+            Estratégias de Ensino {isEdit ? '(vinculadas e disponíveis)' : ''}
+          </Text>
+          <InputField
+            label="Buscar estratégia"
+            placeholder="Digite para filtrar..."
+            value={searchEstrategias}
+            onChangeText={setSearchEstrategias}
+            style={{ marginBottom: 10 }}
+          />
           <FlatList
-            data={isEdit ? selectedEstrategias : filteredEstrategias}
+            data={filteredEstrategias}
             renderItem={renderEstrategia}
             keyExtractor={item => item.id?.toString() ?? 'temp'}
             scrollEnabled={false}
+            ListEmptyComponent={
+              <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
+                Nenhuma estratégia encontrada
+              </Text>
+            }
           />
-          <Text style={styles.summary}>Estratégias: {selectedEstrategias.length}</Text>
+          <Text style={styles.summary}>
+            Selecionadas: {selectedEstrategias.length}
+          </Text>
         </View>
 
-         {/* Avaliações */}
+        {/* CRITÉRIOS AVALIATIVOS */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Critérios Avaliativos</Text>
-          <InputField label="Buscar" placeholder="Filtrar..." value={searchAvaliacoes} onChangeText={setSearchAvaliacoes} style={{ marginBottom: 10 }} />
+          <Text style={styles.sectionTitle}>
+            Critérios Avaliativos {isEdit ? '(vinculados e disponíveis)' : ''}
+          </Text>
+          <InputField
+            label="Buscar critério"
+            placeholder="Digite para filtrar..."
+            value={searchAvaliacoes}
+            onChangeText={setSearchAvaliacoes}
+            style={{ marginBottom: 10 }}
+          />
           <FlatList
-            data={isEdit ? selectedAvaliacoes : filteredAvaliacoes}
+            data={filteredAvaliacoes}
             renderItem={renderAvaliacao}
             keyExtractor={item => item.id?.toString() ?? 'temp'}
             scrollEnabled={false}
+            ListEmptyComponent={
+              <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
+                Nenhum critério encontrado
+              </Text>
+            }
           />
-          <Text style={styles.summary}>Critérios Avaliativos: {selectedAvaliacoes.length}</Text>
+          <Text style={styles.summary}>
+            Selecionados: {selectedAvaliacoes.length}
+          </Text>
         </View>
 
         {/* Período */}
         <View style={styles.dateSection}>
           <Text style={styles.sectionTitle}>Período do PDI</Text>
-          <DatePicker mode="range" startDate={dateRange.startDate} endDate={dateRange.endDate} onChange={handleDateRangeChange} styles={datePickerStyles} />
+          <DatePicker
+            mode="range"
+            startDate={dateRange.startDate}
+            endDate={dateRange.endDate}
+            onChange={handleDateRangeChange}
+            styles={datePickerStyles}
+          />
           <Text style={styles.dateText}>
-            {dateRange.startDate.format('DD/MM/YYYY')} → {dateRange.endDate?.format('DD/MM/YYYY') || '...'}
+            {dateRange.startDate.format('DD/MM/YYYY')} →{' '}
+            {dateRange.endDate?.format('DD/MM/YYYY') || '...'}
           </Text>
         </View>
 
         {/* Alunos */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Alunos</Text>
-          <InputField label="Buscar aluno" placeholder="Nome..." value={searchAlunos} onChangeText={setSearchAlunos} style={{ marginBottom: 10 }} />
+          <Text style={styles.sectionTitle}>Alunos Vinculados</Text>
+          <InputField
+            label="Buscar aluno"
+            placeholder="Nome..."
+            value={searchAlunos}
+            onChangeText={setSearchAlunos}
+            style={{ marginBottom: 10 }}
+          />
           <FlatList
             data={filteredAlunos}
             renderItem={renderAluno}
@@ -557,7 +624,13 @@ export default function PlanejamentoScreen() {
         />
       </View>
 
-      <CustomAlert visible={visible} title={config.title} message={config.message} buttons={config.buttons} onDismiss={handleDismiss} />
+      <CustomAlert
+        visible={visible}
+        title={config.title}
+        message={config.message}
+        buttons={config.buttons}
+        onDismiss={handleDismiss}
+      />
     </View>
   )
 }
