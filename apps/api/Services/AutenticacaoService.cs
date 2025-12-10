@@ -9,7 +9,7 @@ using System.Text;
 
 namespace api.Services
 {
-    public  class AutenticacaoService
+    public class AutenticacaoService
     {
         private readonly UserManager<Usuario> _usuario;
         private readonly RoleManager<IdentityRole> _tipo;
@@ -42,7 +42,8 @@ namespace api.Services
                         UserName = registroDto.Email,
                         Email = registroDto.Email,
                         ProfessorId = perfilId,
-                        AceitouTermos = registroDto.AceitouTermos
+                        AceitouTermos = registroDto.AceitouTermos,
+                        DeveAlterarSenha = registroDto.DeveAlterarSenha
                     };
 
                     var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
@@ -72,13 +73,15 @@ namespace api.Services
             }
         }
 
-        public async Task<string?> Login(LoginDTO loginDto)
+        public async Task<object?> Login(LoginDTO loginDto)
         {
             var usuario = await _usuario.FindByEmailAsync(loginDto.Email);
             if (usuario == null) return null;
 
             if (!await _usuario.CheckPasswordAsync(usuario, loginDto.Senha))
                 return null;
+
+            bool deveAlterarSenha = usuario.DeveAlterarSenha;
 
             var claims = new List<Claim>
             {
@@ -103,7 +106,92 @@ namespace api.Services
                 signingCredentials: credenciais
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return new
+            {
+                token = tokenString,
+                precisaTrocarSenha = deveAlterarSenha
+            };
+        }
+
+        public async Task<IdentityResult> AlterarSenha(AlterarSenhaDTO alterarSenhaDTO, ClaimsPrincipal usuarioController)
+        {
+            var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idUsuario))
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não autenticado."
+                });
+            }
+
+            var usuario = await _usuario.FindByIdAsync(idUsuario);
+            if (usuario == null)
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não encontrado."
+                });
+            }
+
+            var resposta =
+                await _usuario.ChangePasswordAsync(usuario, alterarSenhaDTO.SenhaAtual, alterarSenhaDTO.NovaSenha);
+
+            if (!resposta.Succeeded)
+            {
+                return resposta;
+            }
+
+            if (usuario.DeveAlterarSenha)
+            {
+                usuario.DeveAlterarSenha = false;
+                await _usuario.UpdateAsync(usuario);
+            }
+
+            return resposta;
+
+        }
+
+        public async Task<IdentityResult> AlterarEmail(AlterarEmailDTO alterarEmailDTO, ClaimsPrincipal usuarioController)
+        {
+            var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idUsuario))
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não autenticado."
+                });
+            }
+
+            var usuario = await _usuario.FindByIdAsync(idUsuario);
+            if (usuario == null)
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não encontrado."
+                });
+            }
+
+            if (!string.IsNullOrEmpty(alterarEmailDTO.SenhaAtual))
+            {
+                var senhaCorreta = await _usuario.CheckPasswordAsync(usuario, alterarEmailDTO.SenhaAtual);
+                if (!senhaCorreta)
+                {
+                    return IdentityResult.Failed(new IdentityError
+                    {
+                        Description = "Senha incorreta."
+                    });
+                }
+            }
+
+            usuario.Email = alterarEmailDTO.NovoEmail;
+            usuario.UserName = alterarEmailDTO.NovoEmail;
+
+            var resposta = await _usuario.UpdateAsync(usuario);
+
+            return resposta;
+
         }
     }
 }

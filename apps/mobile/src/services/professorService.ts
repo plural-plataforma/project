@@ -56,7 +56,6 @@ export const vincularEscola = async (idEscola: number) => {
     
     // FIX: Se já vinculada, considera sucesso (não joga erro)
     if (!data.sucesso && data.mensagens && data.mensagens.includes('Este professor já está vinculado a essa escola.')) {
-      console.log(`✅ Escola ID ${idEscola} já está vinculada (ignorando).`);
       return { ...data, sucesso: true }; // Retorna como sucesso para o chamador
     }
     
@@ -83,7 +82,6 @@ export const desvincularEscola = async (idEscola: number) => {
     
     // Se não estava vinculada, considera sucesso (similar ao vincular)
     if (!data.sucesso && data.mensagens && data.mensagens.includes('Este professor não está vinculado a essa escola.')) {
-      console.log(`✅ Escola ID ${idEscola} já não está vinculada (ignorando).`);
       return { ...data, sucesso: true };
     }
     

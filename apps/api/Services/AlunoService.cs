@@ -1,4 +1,6 @@
 ﻿using api.DTOs.Aluno;
+using api.DTOs.Avaliacao;
+using api.DTOs.Estrategia;
 using api.DTOs.Habilidade;
 using api.DTOs.Laudo;
 using api.DTOs.Planejamento;
@@ -85,7 +87,6 @@ namespace api.Services
                     await transacao.RollbackAsync();
                     resposta.SetFalha("Erro ao cadastrar aluno.");
                     throw;
-                    return resposta;
                 }
             }
 
@@ -237,7 +238,23 @@ namespace api.Services
                                 Habilidades = axp.Planejamento.HabilidadesXPlanejamentos
                                     .Select(hxp => new HabilidadeBuscarDTO
                                     {
-                                        Id = hxp.Habilidade.Id
+                                        Id = hxp.Habilidade.Id,
+                                        Descricao = hxp.Habilidade.Descricao
+                                    })
+                                    .ToList(),
+                                Estrategias = axp.Planejamento.EstrategiasXPlanejamentos
+                                    .Select(hxp => new EstrategiaBuscarDTO
+                                    {
+                                        Id = hxp.Estrategia.Id,
+                                        Descricao = hxp.Estrategia.Descricao
+                                    })
+                                    .ToList(),
+                                Avaliacao = axp.Planejamento.AvaliacaoXPlanejamentos
+                                    .Select(hxp => new AvaliacaoBuscarDTO
+                                    {
+                                        Id = hxp.Avaliacao.Id,
+                                        Descricao = hxp.Avaliacao.Descricao,
+                                        Resumo = hxp.Avaliacao.Resumo
                                     })
                                     .ToList()
                             }).ToList()
@@ -308,7 +325,22 @@ namespace api.Services
                                 Habilidades = axp.Planejamento.HabilidadesXPlanejamentos
                                     .Select(hxp => new HabilidadeBuscarDTO
                                     {
-                                        Id = hxp.Habilidade.Id
+                                        Id = hxp.Habilidade.Id,
+                                        Descricao = hxp.Habilidade.Descricao
+                                    })
+                                    .ToList(),
+                                Estrategias = axp.Planejamento.EstrategiasXPlanejamentos
+                                    .Select(hxp => new EstrategiaBuscarDTO
+                                    {
+                                        Id = hxp.Estrategia.Id,
+                                        Descricao = hxp.Estrategia.Descricao
+                                    })
+                                    .ToList(),
+                                Avaliacao = axp.Planejamento.AvaliacaoXPlanejamentos
+                                    .Select(hxp => new AvaliacaoBuscarDTO
+                                    {
+                                        Id = hxp.Avaliacao.Id,
+                                        Descricao = hxp.Avaliacao.Descricao
                                     })
                                     .ToList()
                             }).ToList()

@@ -18,6 +18,8 @@ namespace api.DTOs.Autenticacao
         [Required(ErrorMessage = "É necessário aceitar os termos de uso")]
         public bool AceitouTermos { get; set; }
 
+        public bool DeveAlterarSenha { get; set; } = false;
+
 
     }
 }

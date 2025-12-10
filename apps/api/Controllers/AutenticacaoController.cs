@@ -1,5 +1,7 @@
-﻿using api.DTOs.Autenticacao;
+﻿using System.Security.Claims;
+using api.DTOs.Autenticacao;
 using api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
@@ -47,6 +49,7 @@ namespace api.Controllers
                 {
                     return Unauthorized("Email ou senha inválidos");
                 }
+
                 return Ok(new { Token = token });
             }
             else
@@ -55,5 +58,48 @@ namespace api.Controllers
             }
         }
 
+        [Authorize]
+        [HttpPost("alterarsenha")]
+        public async Task<IActionResult> AlterarSenha([FromBody] AlterarSenhaDTO alterarSenhaDto)
+        {
+            if (ModelState.IsValid)
+            {
+                var resultado = await _autenticacaoService.AlterarSenha(alterarSenhaDto, User);
+                if (resultado.Succeeded)
+                {
+                    return Ok("Senha alterada com sucesso");
+                }
+                else
+                {
+                    return BadRequest(resultado.Errors);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+        [Authorize]
+        [HttpPost("alteraremail")]
+        public async Task<IActionResult> AlterarEmail([FromBody] AlterarEmailDTO alterarEmailDTO)
+        {
+            if (ModelState.IsValid)
+            {
+                var resultado = await _autenticacaoService.AlterarEmail(alterarEmailDTO, User);
+                if (resultado.Succeeded)
+                {
+                    return Ok("Email alterado com sucesso");
+                }
+                else
+                {
+                    return BadRequest(resultado.Errors);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
     }
 }

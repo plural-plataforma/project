@@ -24,6 +24,7 @@ import { isCadastroCompleto } from '@src/utils/professorUtils';
 import SelectButton from '@src/components/SelectButton';
 import { useCustomAlert, CustomAlert } from '../../hooks/useCustomAlert';
 import { useFocusEffect } from '@react-navigation/native'; // NOVO: Import para re-fetch no focus
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 interface SectionItem {
@@ -40,6 +41,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
   const { showAlert, handleDismiss, visible, config } = useCustomAlert();
+  const { precisaTrocarSenha } = useAuth();
+
 
   // NOVO: Função para fetch dados (reutilizável para useEffect e useFocusEffect)
   const fetchData = useCallback(async () => {
@@ -76,7 +79,6 @@ export default function Dashboard() {
       // FIX: Garante que cadastroCompleto seja setado corretamente após fetch dos dados do professor
       const isComplete = isCadastroCompleto(updatedProfessor);
       setCadastroCompleto(isComplete);
-      console.log('Cadastro completo?', isComplete); // NOVO: Log para debug (remova em produção)
 
     } catch (error: any) {
       console.error('❌ Erro geral em fetchData:', error.message, error);
@@ -183,6 +185,33 @@ export default function Dashboard() {
   };
 
   const keyExtractor = (item: SectionItem) => item.type;
+
+  useEffect(() => {
+    const checkPasswordAlert = async () => {
+      const alertaTrocouSenhaMostrado = await AsyncStorage.getItem('alertTrocaSenhaDashboardMostrado');
+
+      if (precisaTrocarSenha && !alertaTrocouSenhaMostrado) {
+        showAlert(
+          'Troca de Senha Requerida',
+          'Por motivos de segurança, é necessário alterar sua senha antes de continuar. Caso deseja alterar depois acesse Perfil > Preferências',
+          [
+            {
+              text: 'Trocar agora',
+              onPress: () => router.replace('/auth/changePassword'),
+            },
+            {
+              text: 'Não quero',
+              style: 'destructive',
+              onPress: async () => {
+                await AsyncStorage.setItem('alertTrocaSenhaDashboardMostrado', 'true');
+              },
+            },
+          ]
+        );
+      }
+    };
+    checkPasswordAlert();
+  }, [precisaTrocarSenha]);
 
   useEffect(() => {
     if (authLoading) {

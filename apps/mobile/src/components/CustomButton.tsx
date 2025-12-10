@@ -1,4 +1,3 @@
-// packages/ui/components/CustomButton.tsx
 import React from 'react'
 import {
   TouchableOpacity,
@@ -32,7 +31,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
 }) => {
   return (
     <TouchableOpacity
-      style={[styles.button, buttonColor, disabled && styles.disabled]}
+      style={[styles.button, buttonColor, disabled && styles.disabled, props.style,]}
       disabled={disabled || loading}
       {...props}
       onPress={onPress}
@@ -58,19 +57,23 @@ const CustomButton: React.FC<CustomButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginVertical: 10
+    justifyContent: 'center',
+    minHeight: 56,
+    width: '100%',
+    flexDirection: 'row'
   },
   disabled: {
-    backgroundColor: colors.secondary,
+    backgroundColor: colors.primary2,
     opacity: 0.6
   },
   text: {
     color: '#ffffff',
     fontSize: fontSizes.f18,
-    fontFamily: 'Nunito_400Regular'
+    fontFamily: 'Nunito_700Bold',     
+    textAlign: 'center',
   },
   icon: {
     marginRight: 8

@@ -138,5 +138,48 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
         }
+        [HttpPost("vincularestrategia")]
+        public async Task<IActionResult> VincularEstrategias([FromBody] PlanejamentoVincularEstrategiaDTO planejamentoVincularEstrategiaDTO)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await _usuario.GetUserAsync(User);
+                var resposta = await _planejamentoService.VincularEstrategias(planejamentoVincularEstrategiaDTO, usuario);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+                else
+                {
+                    return BadRequest(resposta);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+        [HttpPost("vincularavaliacao")]
+        public async Task<IActionResult> VincularAvaliacoes([FromBody] PlanejamentoVincularAvaliacaoDTO planejamentoVincularAvaliacaoDTO)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await _usuario.GetUserAsync(User);
+                var resposta = await _planejamentoService.VincularAvaliacoes(planejamentoVincularAvaliacaoDTO, usuario);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+                else
+                {
+                    return BadRequest(resposta);
+                }
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
     }
 }
