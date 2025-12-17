@@ -1,8 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Transactions;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 public class HotmartService
 {
@@ -16,12 +14,15 @@ public class HotmartService
 
     public HotmartService(HttpClient httpClient, IConfiguration config, ILogger<HotmartService> logger)
     {
-        _httpClient = httpClient;
-        _config = config;
-        _logger = logger;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _config = config ?? throw new ArgumentNullException(nameof(config));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
         _apiUrl = (config["API_HOTMART_URL"] ?? throw new InvalidOperationException("API_HOTMART_URL não configurada")).TrimEnd('/');
         _tokenUrl = (config["HOTMART_TOKEN_URL"] ?? throw new InvalidOperationException("HOTMART_TOKEN_URL não configurada")).TrimEnd('/');
 
+        // Configurações permanentes do HttpClient
+        _httpClient.Timeout = TimeSpan.FromSeconds(100); // Evita travas infinitas
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
         _httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/json");
     }
@@ -29,40 +30,49 @@ public class HotmartService
     private async Task<string> GetTokenAsync()
     {
         if (_accessToken != null && DateTime.UtcNow < _tokenExpiry.AddMinutes(-5))
-            return _accessToken!;
+            return _accessToken;
 
-        var clientId = _config["HOTMART_CLIENT_ID"]!;
-        var clientSecret = _config["HOTMART_CLIENT_SECRET"]!;
+        var clientId = _config["HOTMART_CLIENT_ID"] ?? throw new InvalidOperationException("HOTMART_CLIENT_ID não configurado");
+        var clientSecret = _config["HOTMART_CLIENT_SECRET"] ?? throw new InvalidOperationException("HOTMART_CLIENT_SECRET não configurado");
 
-
-
-        // 1. Basic Auth no header (base64 de client_id:client_secret)
         var basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
 
-        // 2. URL com query params (exato do seu curl)
         var tokenUrl = $"{_tokenUrl}?grant_type=client_credentials" +
                        $"&client_id={Uri.EscapeDataString(clientId)}" +
                        $"&client_secret={Uri.EscapeDataString(clientSecret)}";
 
-        // 3. Limpa headers e adiciona só o Authorization
-        _httpClient.DefaultRequestHeaders.Clear();
+        // IMPORTANTE: NÃO limpar todos os headers aqui (remove User-Agent, Accept, etc.)
+        // Apenas sobrescreve o Authorization temporariamente
+        var previousAuth = _httpClient.DefaultRequestHeaders.Authorization;
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
 
-        // 4. POST sem body (Content-Length: 0) → NÃO ADICIONA Content-Type!
-        var response = await _httpClient.PostAsync(tokenUrl, null!);
-        var body = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            _logger.LogError("Erro token Hotmart: {Status} - {Body}", response.StatusCode, body);
-            throw new Exception($"Falha ao obter token: {response.StatusCode} - {body}");
+            var response = await _httpClient.PostAsync(tokenUrl, null);
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Erro ao obter token Hotmart: {StatusCode} - {Body}", response.StatusCode, body);
+                throw new HttpRequestException($"Falha ao obter token Hotmart: {response.StatusCode} - {body}");
+            }
+
+            var json = JsonSerializer.Deserialize<JsonElement>(body);
+            _accessToken = json.GetProperty("access_token").GetString()
+                          ?? throw new InvalidOperationException("access_token não encontrado na resposta");
+
+            _tokenExpiry = DateTime.UtcNow.AddMinutes(55); // Hotmart expira em ~60 min
+
+            _logger.LogInformation("Token Hotmart obtido com sucesso. Expira em: {Expiry}", _tokenExpiry);
+
+            return _accessToken;
         }
-
-        var json = JsonSerializer.Deserialize<JsonElement>(body);
-        _accessToken = json.GetProperty("access_token").GetString()!;
-        _tokenExpiry = DateTime.UtcNow.AddMinutes(55);
-
-        return _accessToken;
+        finally
+        {
+            // Restaura o header Authorization anterior (ou remove se não houver)
+            _httpClient.DefaultRequestHeaders.Authorization = previousAuth;
+        }
     }
 
     public async Task<List<SaleItem>> GetVendasAsync(
@@ -73,78 +83,111 @@ public class HotmartService
     {
         var token = await GetTokenAsync();
 
-        var query = new List<string> { "" };
+        // Configura header de paginação (máximo permitido: 500)
+        _httpClient.DefaultRequestHeaders.Remove("max_results");
+        _httpClient.DefaultRequestHeaders.Add("max_results", "500");
 
-        var startDate = from ?? new DateTime(2025, 1, 10, 0, 0, 0, DateTimeKind.Utc);
-        var endDate = to ?? DateTime.UtcNow.AddDays(1); // +1 dia para incluir hoje
+        var vendasTotais = new List<SaleItem>();
+        string? nextPageToken = null;
 
-        var startTimestamp = ((DateTimeOffset)startDate).ToUnixTimeMilliseconds();
-        var endTimestamp = ((DateTimeOffset)endDate).ToUnixTimeMilliseconds();
-
-        if (productId.HasValue) query.Add($"product_id={productId.Value}");
-        if (!string.IsNullOrWhiteSpace(transactionStatus)) query.Add($"transaction_status={transactionStatus}");
-        if (from.HasValue)
+        do
         {
-            query.Add($"start_date={from.Value:yyyy-MM-dd}");
-        }
-        else
-        {
-            query.Add($"start_date={startTimestamp}");
-        }
-        if (to.HasValue)
-        {
-            query.Add($"end_date={to.Value:yyyy-MM-dd}");
-        }
-        else
-        {
-            query.Add($"end_date={endTimestamp}");
-        }
+            var queryParams = new List<string>();
 
-            ;
-        if (to.HasValue) query.Add($"end_date={to.Value:yyyy-MM-dd}");
+            // Datas padrão mais sensatas: últimos 90 dias se não informado
+            var startDate = from ?? DateTime.UtcNow.AddDays(-90);
+            var endDate = to ?? DateTime.UtcNow.AddDays(1);
 
-        var url = $"{_apiUrl}/sales/history?{string.Join("&", query)}";
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var startTimestamp = ((DateTimeOffset)startDate).ToUnixTimeMilliseconds();
+            var endTimestamp = ((DateTimeOffset)endDate).ToUnixTimeMilliseconds();
 
-        var response = await _httpClient.GetAsync(url);
-        var content = await response.Content.ReadAsStringAsync();
+            if (productId.HasValue && productId > 0)
+                queryParams.Add($"product_id={productId.Value}");
 
-        _logger.LogInformation("Hotmart Sales → {Status} | {Url}", response.StatusCode, url);
+            if (!string.IsNullOrWhiteSpace(transactionStatus))
+                queryParams.Add($"transaction_status={transactionStatus}");
 
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Erro Hotmart API: {response.StatusCode} - {content}");
+            queryParams.Add($"start_date={startTimestamp}");
+            queryParams.Add($"end_date={endTimestamp}");
 
-        if (string.IsNullOrWhiteSpace(content))
-            return new List<SaleItem>();
+            if (!string.IsNullOrEmpty(nextPageToken))
+                queryParams.Add($"page_token={nextPageToken}");
 
-        var json = JsonSerializer.Deserialize<JsonElement>(content);
-        if (!json.TryGetProperty("items", out var itemsArray))
-            return new List<SaleItem>();
+            var url = $"{_apiUrl}/sales/history?{string.Join("&", queryParams)}";
 
-        var vendas = new List<SaleItem>();
-        foreach (var item in itemsArray.EnumerateArray())
-        {
-            var purchase = item.GetProperty("purchase");
-            var buyer = item.GetProperty("buyer");
-            var product = item.GetProperty("product");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            vendas.Add(new SaleItem
+            HttpResponseMessage response;
+            try
             {
-                Transaction = purchase.GetProperty("transaction").GetString() ?? "",
-                Status = purchase.GetProperty("status").GetString() ?? "",
-                ProductId = product.GetProperty("id").GetInt64(),
-                ProductName = product.GetProperty("name").GetString() ?? "",
-                BuyerEmail = buyer.GetProperty("email").GetString() ?? "",
-                BuyerName = buyer.GetProperty("name").GetString() ?? "",
-                TotalValue = purchase.GetProperty("price").GetProperty("value").GetDecimal(),
-                CreatedDate = DateTimeOffset.FromUnixTimeMilliseconds(purchase.GetProperty("order_date").GetInt64()).DateTime
-            });
-        }
+                response = await _httpClient.GetAsync(url);
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                throw new HttpRequestException("Timeout ao consultar API Hotmart", ex);
+            }
 
-        return vendas;
+            var content = await response.Content.ReadAsStringAsync();
+
+            _logger.LogInformation("Hotmart API → {Status} | {Url}", response.StatusCode, url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Erro Hotmart API: {Status} - {Content}", response.StatusCode, content);
+                throw new HttpRequestException($"Erro na API Hotmart: {response.StatusCode} - {content}");
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+                break;
+
+            var json = JsonSerializer.Deserialize<JsonElement>(content);
+
+            if (!json.TryGetProperty("items", out var itemsArray) || itemsArray.GetArrayLength() == 0)
+                break;
+
+            foreach (var item in itemsArray.EnumerateArray())
+            {
+                try
+                {
+                    var purchase = item.GetProperty("purchase");
+                    var buyer = item.GetProperty("buyer");
+                    var product = item.GetProperty("product");
+
+                    var sale = new SaleItem
+                    {
+                        Transaction = purchase.GetProperty("transaction").GetString() ?? "",
+                        Status = purchase.GetProperty("status").GetString() ?? "",
+                        ProductId = product.GetProperty("id").GetInt64(),
+                        ProductName = (product.GetProperty("name").GetString() ?? "").Trim(),
+                        BuyerEmail = buyer.GetProperty("email").GetString() ?? "",
+                        BuyerName = buyer.GetProperty("name").GetString() ?? "",
+                        TotalValue = purchase.GetProperty("price").GetProperty("value").GetDecimal(),
+                        CreatedDate = DateTimeOffset.FromUnixTimeMilliseconds(purchase.GetProperty("order_date").GetInt64()).DateTime
+                    };
+
+                    vendasTotais.Add(sale);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Erro ao processar item individual da venda Hotmart");
+                    // Continua processando os outros itens
+                }
+            }
+
+            // Próxima página
+            nextPageToken = json.TryGetProperty("page_info", out var pageInfo)
+                ? pageInfo.TryGetProperty("next_page_token", out var tokenEl) && tokenEl.ValueKind != JsonValueKind.Null
+                    ? tokenEl.GetString()
+                    : null
+                : null;
+
+        } while (!string.IsNullOrEmpty(nextPageToken));
+
+        _logger.LogInformation("Total de vendas obtidas: {Count}", vendasTotais.Count);
+
+        return vendasTotais;
     }
 
-    // SaleItem atualizado para o seu caso real
     public class SaleItem
     {
         public string Transaction { get; set; } = "";
