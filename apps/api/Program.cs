@@ -104,6 +104,7 @@ builder.Services.AddScoped<PlanejamentoService>();
 builder.Services.AddScoped<EstrategiaService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
+builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
