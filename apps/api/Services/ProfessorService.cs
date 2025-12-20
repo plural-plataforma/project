@@ -242,6 +242,44 @@ namespace api.Services
             }
         }
 
+        /// <summary>
+        /// Verifica quais e-mails da lista já estão cadastrados como professores na plataforma
+        /// </summary>
+        /// <param name="emails">Lista de e-mails para verificar (case-insensitive)</param>
+        /// <returns>Dicionário: email original → true/false (se é professor cadastrado)</returns>
+        public async Task<Dictionary<string, bool>> VerificarEmailsCadastradosComoProfessorAsync(IEnumerable<string> emails)
+        {
+            if (!emails.Any())
+                return new Dictionary<string, bool>();
+
+            // Remove vazios e normaliza para comparação (Identity usa NormalizedEmail em maiúsculo)
+            var emailsValidos = emails
+                .Where(e => !string.IsNullOrWhiteSpace(e))
+                .Select(e => e.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!emailsValidos.Any())
+                return new Dictionary<string, bool>();
+
+            var normalizedEmails = emailsValidos
+                .Select(e => e.ToUpperInvariant())
+                .ToList();
+
+            // Busca apenas os NormalizedEmail dos usuários que são professores
+            var emailsProfessores = await _usuario.Users
+                .Where(u => u.ProfessorId.HasValue && normalizedEmails.Contains(u.NormalizedEmail!))
+                .Select(u => u.NormalizedEmail!)
+                .ToListAsync();
+
+            // Monta o dicionário mantendo o e-mail original como chave
+            return emailsValidos
+                .ToDictionary(
+                    email => email,
+                    email => emailsProfessores.Contains(email.ToUpperInvariant()),
+                    StringComparer.OrdinalIgnoreCase
+                );
+        }
 
     }
 }
