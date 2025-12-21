@@ -1,5 +1,8 @@
-﻿using api.Services;
+﻿using api.Models;
+using api.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/vendas")]
@@ -7,11 +10,13 @@ public class VendasController : ControllerBase
 {
     private readonly HotmartService _hotmart;
     private readonly ProfessorService _professorService;
+    private readonly UserManager<Usuario> _usuario;
 
-    public VendasController(HotmartService hotmart, ProfessorService professorService)
+    public VendasController(HotmartService hotmart, ProfessorService professorService, UserManager<Usuario> usuario)
     {
         _hotmart = hotmart;
         _professorService = professorService;
+        _usuario = usuario;
     }
     [HttpGet("hotmart")]
     public async Task<IActionResult> GetVendasComStatusCadastro(
@@ -41,24 +46,39 @@ public class VendasController : ControllerBase
             // Verifica quem já está cadastrado como professor
             var statusCadastro = await _professorService.VerificarEmailsCadastradosComoProfessorAsync(emailsCompradores);
 
+            var professores = await _professorService.BuscarViaEmail(statusCadastro);
+
+
             var vendasComStatus = vendas
                 .OrderByDescending(v => v.CreatedDate)
-                .Select(v => new
+                .Select(v =>
                 {
-                    v.Transaction,
-                    v.Status,
-                    v.ProductId,
-                    v.ProductName,
-                    v.BuyerEmail,
-                    v.BuyerName,
-                    v.TotalValue,
-                    v.CreatedDate,
-                    JaCadastradoComoProfessor = statusCadastro.GetValueOrDefault(v.BuyerEmail, false),
-                    StatusCadastro = statusCadastro.GetValueOrDefault(v.BuyerEmail, false)
-                        ? "Já cadastrado na plataforma"
-                        : "Ainda não cadastrado"
-                })
-                .ToList();
+                    var jaCadastrado = statusCadastro.GetValueOrDefault(v.BuyerEmail, false);
+
+                    professores.TryGetValue(v.BuyerEmail, out var professor);
+
+                    return new
+                    {
+                        v.Transaction,
+                        v.Status,
+                        v.ProductId,
+                        v.ProductName,
+                        v.BuyerEmail,
+                        v.BuyerName,
+                        v.TotalValue,
+                        v.CreatedDate,
+
+                        JaCadastradoComoProfessor = jaCadastrado,
+
+                        StatusCadastro = jaCadastrado ? "Já cadastrado na plataforma" : "Ainda não cadastrado",
+
+                        NomeCompleto = jaCadastrado ? professor?.NomeCompleto : null,
+                        NivelEnsino = jaCadastrado ? professor?.NivelEnsino : null,
+                        ProfessorId = jaCadastrado ? professor?.ProfessorId : null,
+                        Ativo = jaCadastrado ? professor?.Ativo : null,
+                        Roles = jaCadastrado ? professor?.Roles : null
+                    };
+                }).ToList();
 
             var total = vendasComStatus.Count;
             var cadastrados = vendasComStatus.Count(v => v.JaCadastradoComoProfessor);
