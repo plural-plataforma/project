@@ -7,6 +7,7 @@ import Register from "./pages/User/Register";
 import SkillsList from "./pages/Skills/SkillsList";
 import SkillsEdit from "./pages/Skills/EditSkill";
 import PolicyPrivacy from "./pages/PolicyPrivacy";
+import DataDeletionRequest from "./pages/PrivacyDeletionRequest";
 
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
 
         <Route path="/" element={<Login />} />
        <Route path="/privacy" element={<PolicyPrivacy />} />
+       <Route path="/excluded" element={<DataDeletionRequest />} />.
         <Route path="/dashboard"        element={<ProtectedRoutes><Dashboard /></ProtectedRoutes>}  />
         <Route path="/skills"           element={<ProtectedRoutes><SkillsList /></ProtectedRoutes>} />
         <Route path="/skills/edit"  element={<ProtectedRoutes><SkillsEdit /></ProtectedRoutes>} />
