@@ -21,5 +21,10 @@ export default defineConfig({
   define: {
     // Expõe variáveis do .env no frontend
     'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL)
-  }
+  },
+  resolve: {
+    alias: {
+      'zod/v4/core': 'zod',
+    },
+  },
 })
