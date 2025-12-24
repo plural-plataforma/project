@@ -27,6 +27,7 @@ import {
   Chip,
   Snackbar,
 } from "@mui/material";
+import Sidebar from "../components/Sidebar";
 
 interface Professor {
   transaction: string;
@@ -164,36 +165,7 @@ export default function Dashboard() {
 
       <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, flex: 1 }}>
         {/* Sidebar */}
-        <Box
-          component="aside"
-          sx={{
-            width: { xs: "100%", md: 256 },
-            bgcolor: "white",
-            borderRight: 1,
-            borderColor: "grey.300",
-            boxShadow: 1,
-            position: { md: "sticky" },
-            top: 64,
-            height: { md: "calc(100vh - 64px)" },
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Box sx={{ p: 2, gap: 1, flexGrow: 1 }}>
-            <Button variant="contained" fullWidth sx={{ bgcolor: "#276678", color: "#fff", mb: 1 }}>
-              Gerenciar Usuários
-            </Button>
-            <Button variant="outlined" fullWidth component="a" href="/skills">
-              Habilidades
-            </Button>
-          </Box>
-
-          <Box sx={{ p: 2 }}>
-            <Button variant="contained" fullWidth sx={{ bgcolor: "#276678", color: "#fff" }} onClick={signOut}>
-              Sair
-            </Button>
-          </Box>
-        </Box>
+        <Sidebar activeRoute="/dashboard" onSignOut={signOut} />
 
         {/* Main Content */}
         <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: "auto" }}>

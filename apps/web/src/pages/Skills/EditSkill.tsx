@@ -20,6 +20,7 @@ import {
   Grid,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import Sidebar from "../../components/Sidebar";
 
 interface Habilidade {
   id: number;
@@ -27,7 +28,7 @@ interface Habilidade {
   descricao: string;
   resumo: string;
   ativo: boolean;
-  idnivelensino: number;
+  idNivelEnsino: number;
 }
 
 export default function SkillsEdit() {
@@ -41,7 +42,6 @@ export default function SkillsEdit() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Recebe dados do state
   useEffect(() => {
     if (state && state.id) {
       setFormData(state);
@@ -52,7 +52,6 @@ export default function SkillsEdit() {
     }
   }, [state]);
 
-  // SALVAR: PUT /api/Habilidade/atualizar
   const handleSave = async () => {
     if (!formData.id) return;
 
@@ -69,7 +68,7 @@ export default function SkillsEdit() {
 
     const payload = {
       id: formData.id,
-      idNivelEnsino: formData.idnivelensino,
+      idNivelEnsino: formData.idNivelEnsino,
       tipo: formData.tipo,
       descricao: formData.descricao,
       resumo: formData.resumo,
@@ -88,6 +87,7 @@ export default function SkillsEdit() {
         }
       );
 
+    
       setSuccess(true);
       setTimeout(() => {
         navigate("/skills");
@@ -96,8 +96,8 @@ export default function SkillsEdit() {
       console.error("Erro ao atualizar:", err);
       setError(
         err.response?.data?.mensagem ||
-          err.response?.data?.title ||
-          "Erro ao salvar. Verifique os dados."
+        err.response?.data?.title ||
+        "Erro ao salvar. Verifique os dados."
       );
     } finally {
       setSaving(false);
@@ -106,6 +106,7 @@ export default function SkillsEdit() {
 
   const handleChange = (field: keyof Habilidade, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    console.log(formData);
   };
 
   if (loading) {
@@ -138,45 +139,7 @@ export default function SkillsEdit() {
 
       <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, flex: 1 }}>
         {/* Sidebar */}
-        <Box
-          component="aside"
-          sx={{
-            width: { xs: "100%", md: 256 },
-            bgcolor: "white",
-            borderRight: 1,
-            borderColor: "grey.300",
-            boxShadow: 1,
-            position: { md: "sticky" },
-            top: 64,
-            height: { md: "calc(100vh - 64px)" },
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Box sx={{ display: "flex", flexDirection: "column", p: 2, gap: 1, flexGrow: 1 }}>
-            <Button variant="outlined" fullWidth>Gerenciar Usuários</Button>
-            <Button variant="outlined" fullWidth>Pagamentos</Button>
-            <Button variant="outlined" fullWidth>Relatórios</Button>
-            <Button variant="outlined" fullWidth>Configurações</Button>
-            <Button
-              variant="contained"
-              fullWidth
-              style={{ color: "#FFFF", backgroundColor: "#276678" }}
-            >
-              Habilidades
-            </Button>
-          </Box>
-          <Box sx={{ p: 2 }}>
-            <Button
-              style={{ color: "#FFFF", backgroundColor: "#276678" }}
-              variant="outlined"
-              fullWidth
-              onClick={signOut}
-            >
-              Sair
-            </Button>
-          </Box>
-        </Box>
+        <Sidebar activeRoute="/skills" onSignOut={signOut} />
 
         {/* Formulário */}
         <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 } }}>
@@ -203,17 +166,7 @@ export default function SkillsEdit() {
 
           <Paper sx={{ p: 4 }}>
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Tipo"
-                  fullWidth
-                  value={formData.tipo || ""}
-                  onChange={(e) => handleChange("tipo", e.target.value)}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label="Descrição"
                   fullWidth
@@ -225,7 +178,7 @@ export default function SkillsEdit() {
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label="Resumo"
                   fullWidth
@@ -236,45 +189,68 @@ export default function SkillsEdit() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Ativo</InputLabel>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Tipo</InputLabel>
                   <Select
-                    value={formData.ativo !== undefined ? formData.ativo : true}
-                    onChange={(e) => handleChange("ativo", e.target.value === true)}
+                    value={formData.tipo || ""}
+                    label="Tipo"
+                    onChange={(e) => handleChange("tipo", e.target.value)}
                   >
-                    <MenuItem value={true as any}>Sim</MenuItem>
-                    <MenuItem value={false as any}>Não</MenuItem>
+                    <MenuItem value="1">Cognitivo</MenuItem>
+                    <MenuItem value="2">Socioemocional</MenuItem>
+                    <MenuItem value="3">Comunicação</MenuItem>
+                    <MenuItem value="4">Motora</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  label="Nível de Ensino (ID)"
-                  fullWidth
-                  type="number"
-                  value={formData.idnivelensino || ""}
-                  onChange={(e) =>
-                    handleChange("idnivelensino", parseInt(e.target.value) || 0)
-                  }
-                  InputProps={{ inputProps: { min: 1 } }}
-                />
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Nível de Ensino</InputLabel>
+                  <Select<number>
+                    value={formData.idNivelEnsino ?? ""}
+                    label="Nível de Ensino"
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      handleChange("idNivelEnsino", val === 0 ? undefined : val);
+                    }}
+                  >
+                    <MenuItem value={1}>Educação Infantil</MenuItem>
+                    <MenuItem value={2}>Ensino Fundamental I - Anos Iniciais</MenuItem>
+                    <MenuItem value={3}>Ensino Fundamental II - Anos Finais</MenuItem>
+                    <MenuItem value={4}>Ensino Médio</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
 
-              <Grid item xs={12}>
-                <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Ativo</InputLabel>
+                  <Select
+                    value={formData.ativo !== undefined ? String(formData.ativo) : "true"}
+                    label="Ativo"
+                    onChange={(e) => handleChange("ativo", e.target.value === "true")}
+                  >
+                    <MenuItem value="true">Sim</MenuItem>
+                    <MenuItem value="false">Não</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid size={12}>
+                <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 2 }}>
+                  <Button variant="outlined" size="large" onClick={() => navigate(-1)}>
+                    Cancelar
+                  </Button>
                   <Button
                     variant="contained"
                     size="large"
                     onClick={handleSave}
                     disabled={saving}
-                    sx={{ backgroundColor: "#276678", color: "#FFF" }}
+                    sx={{ backgroundColor: "#276678" }}
                   >
                     {saving ? <CircularProgress size={20} color="inherit" /> : "Salvar"}
-                  </Button>
-                  <Button variant="outlined" size="large" onClick={() => navigate(-1)}>
-                    Cancelar
                   </Button>
                 </Box>
               </Grid>
