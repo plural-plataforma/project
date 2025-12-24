@@ -242,6 +242,136 @@ namespace api.Services
             }
         }
 
+        /// <summary>
+        /// Verifica quais e-mails da lista já estão cadastrados como professores na plataforma
+        /// </summary>
+        /// <param name="emails">Lista de e-mails para verificar (case-insensitive)</param>
+        /// <returns>Dicionário: email original → true/false (se é professor cadastrado)</returns>
+        public async Task<Dictionary<string, bool>> VerificarEmailsCadastradosComoProfessorAsync(IEnumerable<string> emails)
+        {
+            if (!emails.Any())
+                return new Dictionary<string, bool>();
 
+            // Remove vazios e normaliza para comparação (Identity usa NormalizedEmail em maiúsculo)
+            var emailsValidos = emails
+                .Where(e => !string.IsNullOrWhiteSpace(e))
+                .Select(e => e.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!emailsValidos.Any())
+                return new Dictionary<string, bool>();
+
+            var normalizedEmails = emailsValidos
+                .Select(e => e.ToUpperInvariant())
+                .ToList();
+
+            // Busca apenas os NormalizedEmail dos usuários que são professores
+            var emailsProfessores = await _usuario.Users
+                .Where(u => u.ProfessorId.HasValue && normalizedEmails.Contains(u.NormalizedEmail!))
+                .Select(u => u.NormalizedEmail!)
+                .ToListAsync();
+
+            // Monta o dicionário mantendo o e-mail original como chave
+            return emailsValidos
+                .ToDictionary(
+                    email => email,
+                    email => emailsProfessores.Contains(email.ToUpperInvariant()),
+                    StringComparer.OrdinalIgnoreCase
+                );
+        }
+
+        public async Task<Dictionary<string, ProfessorViaEmailDTO>> BuscarViaEmail(Dictionary<string, bool> statusCadastro)
+        {
+            //busca apenas os emails que já possuem cadastro - informacao vem do dicionario passado por parametro
+            List<string> emailsCadastrados = statusCadastro
+                 .Where(x => x.Value)
+                 .Select(x => x.Key)
+                 .ToList();
+
+            if (!emailsCadastrados.Any())
+            {
+                return new Dictionary<string, ProfessorViaEmailDTO>();
+
+            }
+
+            var usuarios = await _usuario.Users
+                .Where(u => u.Email != null && emailsCadastrados.Contains(u.Email))
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Email,
+                    u.ProfessorId,
+                    u.LockoutEnabled,
+                    u.LockoutEnd
+                })
+                .ToListAsync();
+
+            var usuariosIds = usuarios.Select(u => u.Id).ToList();
+
+            var rolesPorUsuario = await (
+                from ur in _contexto.UserRoles
+                join r in _contexto.Roles on ur.RoleId equals r.Id
+                where usuariosIds.Contains(ur.UserId)
+                select new
+                {
+                    ur.UserId,
+                    r.Name
+                }
+            ).ToListAsync();
+
+            var rolesDicionario = rolesPorUsuario
+                .GroupBy(x => x.UserId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.Name).ToList()
+                );
+
+
+            List<int> professorIds = usuarios
+                .Where(u => u.ProfessorId.HasValue)
+                .Select(u => u.ProfessorId.Value)
+                .Distinct()
+                .ToList();
+
+            if (!professorIds.Any())
+            {
+                return new Dictionary<string, ProfessorViaEmailDTO>();
+            }
+
+            var professores = await _contexto.Professores
+                .Where(p => professorIds.Contains(p.ID))
+                .Select(p => new
+                {
+                    p.ID,
+                    p.NomeCompleto,
+                    p.NivelEnsino
+                })
+                .ToListAsync();
+
+            var professoresPorId = professores.ToDictionary(p => p.ID);
+
+            var resultado = new Dictionary<string, ProfessorViaEmailDTO>();
+
+            foreach (var usuario in usuarios)
+            {
+                if (usuario.ProfessorId.HasValue &&
+                    professoresPorId.TryGetValue(usuario.ProfessorId.Value, out var professor))
+                {
+                    rolesDicionario.TryGetValue(usuario.Id, out var roles);
+                    resultado[usuario.Email] = new ProfessorViaEmailDTO
+                    {
+                        Email = usuario.Email,
+                        ProfessorId = professor.ID,
+                        NomeCompleto = professor.NomeCompleto,
+                        NivelEnsino = professor.NivelEnsino,
+                        Ativo = !usuario.LockoutEnd.HasValue || usuario.LockoutEnd <= DateTimeOffset.UtcNow,
+                        Roles = roles ?? new List<string>()
+                    };
+                }
+
+            }
+            return resultado;
+        }
     }
 }

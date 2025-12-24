@@ -17,18 +17,18 @@ try {
 const API_URL = process.env.API_URL || 'http://localhost:5145/api/'
 
 const config: ExpoConfig = {
-  name: 'plural-plataforma',
-  slug: 'plural-plataforma',
+  name: 'app-plural',
+  slug: 'app-plural',
   version: '1.0.0',
   orientation: 'portrait',
   icon: '../../packages/ui/assets/images/icon.png',
   scheme: 'plural-plataforma',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
-  owner: 'plural-plata',
+  owner: 'plural_apps',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.creis.mobile',
+    bundleIdentifier: 'com.criativar.mobile',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false
     }
@@ -36,7 +36,7 @@ const config: ExpoConfig = {
   android: {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    package: 'com.creis.mobile',
+    package: 'com.criativar.mobile',
     adaptiveIcon: {
       backgroundColor: '#ffffff',
       foregroundImage: '../../packages/ui/assets/images/android-icon-foreground.png',
@@ -73,7 +73,7 @@ const config: ExpoConfig = {
   extra: {
     API_URL,
     eas: {
-      projectId: '289acc5b-f6fc-4d6f-a2b5-58e5c0b20bad',
+      projectId: 'af6e8d03-cd76-4399-8f28-2f3d244c8436',
     },
   },
 }

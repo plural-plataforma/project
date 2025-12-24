@@ -1,7 +1,21 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "extends": "../../tsconfig.json",  // Herda strict, paths (@/* → apps/*), types etc. do tsconfig raiz
+  "compilerOptions": {
+    "jsx": "react-jsx",                // ← Muda apenas para a web (runtime automático)
+    "module": "ESNext",                // Necessário para moduleResolution bundler
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/**/*",
+    "../../apps/**/*",
+    "../../packages/**/*"
+  ],
+  "exclude": ["node_modules"]
 }

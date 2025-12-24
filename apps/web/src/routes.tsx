@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import ProtectedRoute from "./components/ProtectedRoutes"; // cuidado com o nome do arquivo
+import ChangePassword from "./pages/User/ChangePassword"; // Caminho atualizado
+import ProtectedRoute from "./components/ProtectedRoutes";
 
 function AppRoutes() {
   return (
@@ -10,12 +11,20 @@ function AppRoutes() {
         {/* Rota pública */}
         <Route path="/" element={<Login />} />
 
-        {/* Rota protegida */}
+        {/* Rotas protegidas */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/change-password"
+          element={
+            <ProtectedRoute>
+              <ChangePassword />
             </ProtectedRoute>
           }
         />

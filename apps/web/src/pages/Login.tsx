@@ -1,6 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+const API_URL = import.meta.env.VITE_API_URL;
+
 import {
   Box,
   Button,
@@ -10,7 +15,13 @@ import {
   FormControlLabel,
   Switch,
   Alert,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
+import React from "react";
 
 export default function Login() {
   const [email, setEmail] = useState<string>("");
@@ -18,44 +29,71 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = React.useState(false);
+
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
+
+  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  }
+  interface LoginResponse {
+    token: {
+      token: string;
+      precisaTrocarSenha: boolean;
+    };
+  }
+
 
   const handleLogin = async (e: FormEvent) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  try {
-    const response = await axios.post(
-      "https://dev-api.runasp.net/api/Autenticacao/login",
-      { email, senha: password },
-      { headers: { Accept: "application/json", "Content-Type": "application/json" } }
-    );
+    try {
+      console.log("API:", API_URL);
+      const response = await axios.post<LoginResponse>(
+        `${API_URL}/Autenticacao/login`,
+        { email, senha: password },
+        {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    const token = response.data.token;
+      const token = response.data.token.token;
 
-    if (!token) {
-      setError("Não foi possível obter o token. Tente novamente.");
-      return;
+      if (!token) {
+        setError("Não foi possível obter o token. Tente novamente.");
+        return;
+      }
+
+      const tokenString = String(token);
+
+      if (rememberMe) {
+        localStorage.setItem("token", tokenString);
+      } else {
+        sessionStorage.setItem("token", tokenString);
+      }
+
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(
+          (err.response?.data as string) ||
+          "Erro ao fazer login. Verifique suas credenciais."
+        );
+        console.error(err.response?.data || err.message);
+      } else {
+        setError("Erro ao fazer login. Verifique suas credenciais.");
+        console.error(err);
+      }
     }
-
-    // Salva token de acordo com "remember me"
-    if (rememberMe) {
-      localStorage.setItem("token", token);
-    } else {
-      sessionStorage.setItem("token", token);
-    }
-
-    // Redireciona para dashboard
-    navigate("/dashboard");
-  } catch (err: unknown) {
-    if (axios.isAxiosError(err)) {
-      setError(err.response?.data || "Erro ao fazer login. Verifique suas credenciais.");
-      console.error(err.response?.data || err.message);
-    } else {
-      setError("Erro ao fazer login. Verifique suas credenciais.");
-      console.error(err);
-    }
-  }
-};
+  };
 
 
   return (
@@ -98,15 +136,32 @@ export default function Login() {
             margin="normal"
             required
           />
-          <TextField
-            label="Senha"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            fullWidth
-            margin="normal"
-            required
-          />
+          <FormControl fullWidth variant="outlined">
+            <InputLabel htmlFor="outlined-adornment-password">Senha</InputLabel>
+            <OutlinedInput
+              id="outlined-adornment-password"
+              type={showPassword ? 'text' : 'password'}
+              endAdornment={
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={
+                      showPassword ? 'hide the password' : 'display the password'
+                    }
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    onMouseUp={handleMouseUpPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              }
+              label="Senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </FormControl>
 
           <FormControlLabel
             control={
@@ -136,7 +191,7 @@ export default function Login() {
             Entrar
           </Button>
 
-          <Typography
+          {/**   <Typography
             variant="body2"
             align="center"
             color="text.secondary"
@@ -145,7 +200,7 @@ export default function Login() {
             Não tem uma conta?{" "}
             <Typography
               component="a"
-              href="/cadastro"
+              href="/register"
               color="primary"
               fontWeight="medium"
               sx={{ textDecoration: "none" }}
@@ -153,6 +208,7 @@ export default function Login() {
               Cadastre-se
             </Typography>
           </Typography>
+           */}
         </Box>
       </Paper>
     </Box>
