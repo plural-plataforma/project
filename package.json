@@ -35,6 +35,8 @@
   "devDependencies": {
     "@types/node": "^24.5.2",
     "@types/react": "~19.1.10",
+    "@types/react-dom": "^19.2.3",
+    "baseline-browser-mapping": "^2.9.11",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.3",
     "eslint": "^9.25.0",
