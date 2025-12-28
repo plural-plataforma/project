@@ -26,5 +26,9 @@ export default defineConfig({
     alias: {
       'zod/v4/core': 'zod',
     },
+    
+  },
+  optimizeDeps: {
+    include: ['zod', '@hookform/resolvers', '@hookform/resolvers/zod'],
   },
 })
