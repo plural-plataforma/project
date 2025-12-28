@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import ChangePassword from "./pages/User/ChangePassword";
+import ChangePassword from "./pages/User/ChangePassword"; // Caminho atualizado
 import ProtectedRoute from "./components/ProtectedRoutes";
 import SkillsList from "./pages/Skills/SkillsList";
 import SkillsEdit from "./pages/Skills/EditSkill";
@@ -13,7 +13,7 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rota pública - Login */}
+        {/* Rota pública */}
         <Route path="/" element={<Login />} />
 
         {/* Todas as rotas PROTEGIDAS agrupadas */}
