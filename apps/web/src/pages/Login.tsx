@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -30,7 +30,6 @@ export default function Login() {
   const [error, setError] = useState<string>("");
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
@@ -48,12 +47,6 @@ export default function Login() {
     };
   }
 
-  useEffect(() => {
-    // Simula verificação (pode adicionar validação real do token aqui depois)
-    setIsLoading(false);
-  }, []);
-
-  if (isLoading) return <div>Carregando...</div>;
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -83,10 +76,8 @@ export default function Login() {
 
       if (rememberMe) {
         localStorage.setItem("token", tokenString);
-        sessionStorage.removeItem("token"); // limpa o outro
       } else {
         sessionStorage.setItem("token", tokenString);
-        localStorage.removeItem("token"); // limpa o outro
       }
 
       navigate("/dashboard");
