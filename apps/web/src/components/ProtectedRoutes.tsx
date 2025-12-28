@@ -1,16 +1,20 @@
-import { Navigate } from "react-router-dom";
-import type { ReactNode } from "react";
+// components/ProtectedRoutes.tsx (ou ProtectedLayout.tsx)
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
+import { Navigate, Outlet } from "react-router-dom";
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+export default function ProtectedRoutes() {
+  const tokenLocal = localStorage.getItem("token");
+  const tokenSession = sessionStorage.getItem("token");
+  const token = tokenLocal || tokenSession;
+
+  // Limpa tokens vazios (boa prática)
+  if (!tokenLocal) localStorage.removeItem("token");
+  if (!tokenSession) sessionStorage.removeItem("token");
 
   if (!token) {
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  // Renderiza a rota filha (dashboard, skills, etc.)
+  return <Outlet />;
 }
