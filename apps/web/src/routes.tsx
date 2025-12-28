@@ -7,6 +7,7 @@ import SkillsList from "./pages/Skills/SkillsList";
 import SkillsEdit from "./pages/Skills/EditSkill";
 import PolicyPrivacy from "./pages/PolicyPrivacy";
 import Register from "./pages/User/Register";
+import PrivacyDeletionRequest from "./pages/PrivacyDeletionRequest";
 
 function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ function AppRoutes() {
 
         {/* Outras rotas públicas */}
         <Route path="/privacy" element={<PolicyPrivacy />} />
+        <Route path="/excluded" element={<PrivacyDeletionRequest />} />
         <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
