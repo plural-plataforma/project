@@ -24,7 +24,16 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+<<<<<<< HEAD
       'zod/v4/core': 'zod', 
     },
+=======
+      'zod/v4/core': 'zod',
+    },
+    
+  },
+  optimizeDeps: {
+    include: ['zod', '@hookform/resolvers', '@hookform/resolvers/zod'],
+>>>>>>> ba8249a355ddb9e52c673718bb4f85e1d9b0c7b1
   },
 })
