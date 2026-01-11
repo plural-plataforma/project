@@ -73,6 +73,7 @@ public class VendasController : ControllerBase
                         StatusCadastro = jaCadastrado ? "Já cadastrado na plataforma" : "Ainda não cadastrado",
 
                         NomeCompleto = jaCadastrado ? professor?.NomeCompleto : null,
+                        Telefone = jaCadastrado ? professor?.Telefone : null,
                         NivelEnsino = jaCadastrado ? professor?.NivelEnsino : null,
                         ProfessorId = jaCadastrado ? professor?.ProfessorId : null,
                         Ativo = jaCadastrado ? professor?.Ativo : null,

@@ -29,13 +29,13 @@ namespace api.Controllers
 
             if (ModelState.IsValid)
             {
-                var resposta = await _adminService.AtualizarStatusUsuario(dto.IdUsuario,dto.Acao);
+                var resposta = await _adminService.AtualizarStatusUsuario(dto);
 
                 if (resposta.Sucesso)
                 {
                     return Ok(resposta);
                 } else
-                {
+                {   
                     BadRequest(resposta);
                 }
             }

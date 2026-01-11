@@ -5,6 +5,7 @@ using api.Responses;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Sprache;
 
 namespace api.Services
 {
@@ -19,34 +20,98 @@ namespace api.Services
             _usuario = usuario;
         }
 
-        public async Task<ServiceResponse<AtualizarStatusUsuarioDTO>> AtualizarStatusUsuario(int idUsuario, string acao)
+        public async Task<ServiceResponse<AtualizarStatusUsuarioDTO>> AtualizarStatusUsuario(AtualizarStatusUsuarioDTO dto)
         {
 
             var resposta = new ServiceResponse<AtualizarStatusUsuarioDTO>();
+            var usuario = await _usuario.Users.FirstOrDefaultAsync(u => u.ProfessorId == dto.IdUsuario);
+            var professor = await _contexto.Professores.FirstOrDefaultAsync(p => p.ID == dto.IdUsuario);
 
-            var usuario = await _usuario.Users.FirstOrDefaultAsync(u => u.ProfessorId == idUsuario);
-            if (usuario == null)
+            if (usuario == null || professor == null)
             {
-                resposta.SetFalha("Usuário não encontrado.");
+                resposta.SetFalha("Usuário ou professor não encontrado.");
                 return resposta;
             }
 
-            switch(acao)
+            var emailAnterior = usuario.Email;
+            var lockoutEndAnterior = usuario.LockoutEnd;
+            var lockoutEnabledAnterior = usuario.LockoutEnabled;
+            var nomeAnterior = professor.NomeCompleto;
+            var telefoneAnterior = professor.Telefone;
+
+
+            if (dto.Acao != null)
             {
-                case "A":
-                    await _usuario.SetLockoutEnabledAsync(usuario, true);
-                    await _usuario.SetLockoutEndDateAsync(usuario, null);
-                    break;
-                case "I":
-                    await _usuario.SetLockoutEnabledAsync(usuario, true);
-                    await _usuario.SetLockoutEndDateAsync(usuario,DateTimeOffset.MaxValue);
-                    break;
+                AtivaInativaUsuario(usuario, dto.Acao);
             }
 
+            if (dto.Email != null)
+            {
+                usuario.Email = dto.Email;
+            }
+
+            if (dto.Nome != null)
+            {
+                professor.NomeCompleto = dto.Nome;
+            }
+
+            if (dto.Telefone != null)
+            {
+                professor.Telefone = dto.Telefone;
+            }
+
+            var identityResult = await _usuario.UpdateAsync(usuario);
+            if (!identityResult.Succeeded)
+            {
+                resposta.SetFalha(
+                    "Erro ao atualizar usuário: " +
+                    string.Join("; ", identityResult.Errors.Select(e => e.Description))
+                );
+                return resposta;
+            }
+
+            try
+            {
+                await _contexto.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                usuario.Email = emailAnterior;
+                usuario.LockoutEnd = lockoutEndAnterior;
+                usuario.LockoutEnabled = lockoutEnabledAnterior;
+
+                await _usuario.UpdateAsync(usuario);
+
+                professor.NomeCompleto = nomeAnterior;
+                professor.Telefone = telefoneAnterior;
+
+                await _contexto.SaveChangesAsync();
+
+                resposta.SetFalha("Erro ao atualizar dados do professor: " + ex.Message);
+                return resposta;
+            }
+
+            var resultadoAtualizacao = await _usuario.UpdateAsync(usuario);
+
             resposta.Sucesso = true;
-            resposta.AdicionaMensagem("Status do usuário atualizado com sucesso");
+            resposta.AdicionaMensagem("Usuário atualizado com sucesso.");
             return resposta;
 
+        }
+
+        private static void AtivaInativaUsuario (IdentityUser usuario, string acao)
+        {
+            switch (acao)
+            {
+                case "A":
+                    usuario.LockoutEnabled = true;
+                    usuario.LockoutEnd = null;
+                    break;
+                case "I":
+                    usuario.LockoutEnabled = true;
+                    usuario.LockoutEnd = DateTimeOffset.MaxValue;
+                    break;
+            }
         }
     }
 }

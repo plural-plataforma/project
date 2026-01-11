@@ -10,5 +10,11 @@ namespace api.DTOs.Admin
         [Required]
         [RegularExpression("^[AI]$", ErrorMessage = "Ação deve ser 'A' (Ativar) ou 'I' (Inativar).")]
         public string Acao { get; set; } = null!;
+
+        public string Nome { get; set; } = null!;
+
+        public string Email { get; set; } = null!;
+
+        public string Telefone { get; set; } = null!;
     }
 }
