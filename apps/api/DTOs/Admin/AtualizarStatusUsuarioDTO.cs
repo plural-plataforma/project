@@ -16,5 +16,8 @@ namespace api.DTOs.Admin
         public string Email { get; set; } = null!;
 
         public string Telefone { get; set; } = null!;
-    }
+
+        public bool IsEmbaixadora { get; set; }
+
+        }
 }

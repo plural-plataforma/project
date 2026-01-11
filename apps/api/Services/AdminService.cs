@@ -60,6 +60,11 @@ namespace api.Services
                 professor.Telefone = dto.Telefone;
             }
 
+            if (dto.IsEmbaixadora != null)
+            {
+                usuario.IsEmbaixadora = dto.IsEmbaixadora;
+            }
+
             var identityResult = await _usuario.UpdateAsync(usuario);
             if (!identityResult.Succeeded)
             {

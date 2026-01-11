@@ -48,7 +48,7 @@ public class VendasController : ControllerBase
 
             var professores = await _professorService.BuscarViaEmail(statusCadastro);
 
-
+            var usuarios = await _usuario.Users.Where(u => emailsCompradores.Contains(u.Email)).ToDictionaryAsync(u => u.Email);
             var vendasComStatus = vendas
                 .OrderByDescending(v => v.CreatedDate)
                 .Select(v =>
@@ -56,6 +56,7 @@ public class VendasController : ControllerBase
                     var jaCadastrado = statusCadastro.GetValueOrDefault(v.BuyerEmail, false);
 
                     professores.TryGetValue(v.BuyerEmail, out var professor);
+                    usuarios.TryGetValue(v.BuyerEmail, out var usuario);
 
                     return new
                     {
@@ -77,6 +78,7 @@ public class VendasController : ControllerBase
                         NivelEnsino = jaCadastrado ? professor?.NivelEnsino : null,
                         ProfessorId = jaCadastrado ? professor?.ProfessorId : null,
                         Ativo = jaCadastrado ? professor?.Ativo : null,
+                        IsEmbaixadora = jaCadastrado && usuario != null ? usuario.IsEmbaixadora : (bool?)null,
                         Roles = jaCadastrado ? professor?.Roles : null
                     };
                 }).ToList();
