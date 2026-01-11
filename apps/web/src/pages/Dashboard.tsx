@@ -40,6 +40,7 @@ interface Professor {
   nivelEnsino: string
   ativo: boolean
   roles: string[]
+  telefone: string
 }
 
 export default function Dashboard() {
@@ -395,7 +396,7 @@ export default function Dashboard() {
                                   idUsuario: prof.professorId,
                                   nome: prof.buyerName,
                                   email: prof.buyerEmail || '',
-                                  telefone: undefined, // ou busque se tiver
+                                  telefone: prof.telefone, // ou busque se tiver
                                   perfil: prof.roles, // valor padrão ou mapeie de roles
                                   ativo: prof.ativo,
                                   idNivelEnsino: mapNivelToId(prof.nivelEnsino) // função auxiliar abaixo

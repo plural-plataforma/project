@@ -75,7 +75,10 @@ export default function ProfileUserAppEdit({
         }
       })
       setSuccess(true)
-      setTimeout(onClose, 2000)
+      setTimeout(() => {
+        onClose()
+        window.location.reload()
+      }, 1200)
     } catch (err: any) {
       setError(err.response?.objeto?.mensagens || 'Erro ao salvar.')
     } finally {
