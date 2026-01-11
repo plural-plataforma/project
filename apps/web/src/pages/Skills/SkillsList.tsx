@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { SignOut } from "../../components/SignOut";
-import PersonIcon from "@mui/icons-material/Person";
-import InfoCard from "../../components/InfoCard";
-import Header from "../../components/Header";
-import { useNavigate } from "react-router-dom";
-const API_URL = import.meta.env.VITE_API_URL;
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import { SignOut } from '../../components/SignOut'
+import PersonIcon from '@mui/icons-material/Person'
+import InfoCard from '../../components/InfoCard'
+import Header from '../../components/Header'
+import { useNavigate } from 'react-router-dom'
+const API_URL = import.meta.env.VITE_API_URL
 
 import {
   Box,
@@ -24,111 +24,147 @@ import {
   Alert,
   FormControl,
   InputLabel,
-  TablePagination,
-} from "@mui/material";
-import Sidebar from "../../components/Sidebar";
+  TablePagination
+} from '@mui/material'
+import Sidebar from '../../components/Sidebar'
 
 interface Habilidade {
-  id: number;
-  tipo: string;
-  descricao: string;
-  resumo: string;
-  ativo: boolean;
-  idnivelensino: number;
+  id: number
+  tipo: number
+  descricao: string
+  resumo: string
+  ativo: boolean
+  idNivelEnsino: number
 }
 
 export default function SkillsList() {
-  const [habilidades, setHabilidades] = useState<Habilidade[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  
+  const [habilidades, setHabilidades] = useState<Habilidade[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+
   // Filtros
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"todos" | "ativo" | "inativo">("todos");
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<
+    'todos' | 'ativo' | 'inativo'
+  >('todos')
 
   // Paginação
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
 
-  const navigate = useNavigate();
-  const signOut = SignOut();
+  const navigate = useNavigate()
+  const signOut = SignOut()
 
   useEffect(() => {
     const fetchHabilidades = async () => {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const token =
+        localStorage.getItem('token') || sessionStorage.getItem('token')
       if (!token) {
-        setError("Nenhum token de autenticação encontrado. Faça login novamente.");
-        setLoading(false);
-        return;
+        setError(
+          'Nenhum token de autenticação encontrado. Faça login novamente.'
+        )
+        setLoading(false)
+        return
       }
       try {
         const response = await axios.get(`${API_URL}/Habilidade/buscar`, {
           headers: {
             Authorization: `Bearer ${token}`,
-            accept: "*/*",
-            "Content-Type": "application/json",
-          },
-        });
-        const Habilidades = response.data?.objeto;
+            accept: '*/*',
+            'Content-Type': 'application/json'
+          }
+        })
+        const Habilidades = response.data?.objeto
         if (Array.isArray(Habilidades)) {
-          setHabilidades(Habilidades);
+          setHabilidades(Habilidades)
         } else if (Habilidades) {
-          setHabilidades([Habilidades]);
+          setHabilidades([Habilidades])
         } else {
-          setHabilidades([]);
+          setHabilidades([])
         }
       } catch (err) {
-        console.error("Erro na requisição:", err);
-        setError("Erro ao carregar as Habilidades.");
+        console.error('Erro na requisição:', err)
+        setError('Erro ao carregar as Habilidades.')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    fetchHabilidades();
-  }, []);
+    }
+    fetchHabilidades()
+  }, [])
 
   // FILTRO COMPLETO (busca + status)
-  const filteredHabilidades = habilidades.filter((h) => {
+  const filteredHabilidades = habilidades.filter(h => {
     const matchesSearch =
       (h.descricao?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      (h.resumo?.toLowerCase().includes(search.toLowerCase()) ?? false);
+      (h.resumo?.toLowerCase().includes(search.toLowerCase()) ?? false)
 
     const matchesStatus =
-      statusFilter === "todos" ||
-      (statusFilter === "ativo" && h.ativo) ||
-      (statusFilter === "inativo" && !h.ativo);
+      statusFilter === 'todos' ||
+      (statusFilter === 'ativo' && h.ativo) ||
+      (statusFilter === 'inativo' && !h.ativo)
 
-    return matchesSearch && matchesStatus;
-  });
+    return matchesSearch && matchesStatus
+  })
+
+  const getTipoLabel = (tipo: number): string => {
+    const tipos: Record<number, string> = {
+      1: 'Cognitivo',
+      2: 'Socioemocional',
+      3: 'Comunicação',
+      4: 'Motora'
+    }
+    return tipos[tipo] || 'Desconhecido'
+  }
+
+  const getNivelEnsinoLabel = (id: number): string => {
+    const niveis: Record<number, string> = {
+      1: 'Educação Infantil',
+      2: 'Ensino Fundamental I - Anos Iniciais',
+      3: 'Ensino Fundamental II - Anos Finais',
+      4: 'Ensino Médio'
+    }
+    return niveis[id] || 'Desconhecido'
+  }
 
   // Paginação
   const paginatedHabilidades = filteredHabilidades.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
-  );
+  )
 
   const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
+    setPage(newPage)
+  }
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setRowsPerPage(parseInt(event.target.value, 10))
+    setPage(0)
+  }
 
   // Reset página ao filtrar
-  const resetPage = () => setPage(0);
+  const resetPage = () => setPage(0)
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
 
-      <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, flex: 1 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          flex: 1
+        }}
+      >
         {/* Sidebar */}
-       <Sidebar activeRoute="/skills" onSignOut={signOut} />
+        <Sidebar activeRoute="/skills" onSignOut={signOut} />
 
         {/* Conteúdo principal */}
-        <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: "auto" }}>
+        <Box
+          component="main"
+          sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: 'auto' }}
+        >
           <Typography variant="h5" fontWeight="bold" mb={1}>
             Gerenciamento de Habilidades
           </Typography>
@@ -137,17 +173,17 @@ export default function SkillsList() {
           </Typography>
 
           {/* Cards */}
-          <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
+          <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
             <InfoCard
               titulo="Habilidades Ativas"
-              valor={habilidades.filter((h) => h.ativo).length}
+              valor={habilidades.filter(h => h.ativo).length}
               icone={<PersonIcon fontSize="small" />}
               corFundo="#f3e8ff"
               corIcone="#8b5cf6"
             />
             <InfoCard
               titulo="Habilidades Inativas"
-              valor={habilidades.filter((h) => !h.ativo).length}
+              valor={habilidades.filter(h => !h.ativo).length}
               icone={<PersonIcon fontSize="small" />}
               corFundo="#fff3cd"
               corIcone="#856404"
@@ -157,11 +193,11 @@ export default function SkillsList() {
           {/* Filtros */}
           <Box
             sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
               gap: 1,
               mb: 3,
-              alignItems: "center",
+              alignItems: 'center'
             }}
           >
             <TextField
@@ -169,9 +205,9 @@ export default function SkillsList() {
               fullWidth
               size="small"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                resetPage();
+              onChange={e => {
+                setSearch(e.target.value)
+                resetPage()
               }}
             />
 
@@ -179,9 +215,9 @@ export default function SkillsList() {
               <InputLabel>Status</InputLabel>
               <Select
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as any);
-                  resetPage();
+                onChange={e => {
+                  setStatusFilter(e.target.value)
+                  resetPage()
                 }}
                 label="Status"
               >
@@ -194,10 +230,10 @@ export default function SkillsList() {
             <Button
               variant="contained"
               sx={{
-                color: "#FFF",
-                backgroundColor: "#276678",
-                heightHeight: "40px",
-                textTransform: "none",
+                color: '#FFF',
+                backgroundColor: '#276678',
+                heightHeight: '40px',
+                textTransform: 'none'
               }}
               onClick={resetPage}
             >
@@ -215,9 +251,9 @@ export default function SkillsList() {
               {error}
             </Alert>
           ) : (
-            <Paper sx={{ overflowX: "auto" }}>
+            <Paper sx={{ overflowX: 'auto' }}>
               <Table sx={{ minWidth: 640 }}>
-                <TableHead sx={{ bgcolor: "grey.100" }}>
+                <TableHead sx={{ bgcolor: 'grey.100' }}>
                   <TableRow>
                     <TableCell>ID</TableCell>
                     <TableCell>Tipo</TableCell>
@@ -229,30 +265,23 @@ export default function SkillsList() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedHabilidades.map((hab) => (
+                  {paginatedHabilidades.map(hab => (
                     <TableRow key={hab.id}>
                       <TableCell>{hab.id}</TableCell>
-                      <TableCell>{hab.tipo}</TableCell>
+                      <TableCell>{getTipoLabel(hab.tipo)}</TableCell>
                       <TableCell>{hab.descricao}</TableCell>
                       <TableCell>{hab.resumo}</TableCell>
-                      <TableCell>{hab.ativo ? "Sim" : "Não"}</TableCell>
-                      <TableCell>{hab.idnivelensino}</TableCell>
+                      <TableCell>{hab.ativo ? 'Sim' : 'Não'}</TableCell>
+                      <TableCell>
+                        {getNivelEnsinoLabel(hab.idNivelEnsino)}
+                      </TableCell>
                       <TableCell>
                         <Button
                           size="small"
                           variant="contained"
-                          style={{ color: "#FFFF", backgroundColor: "#276678" }}
+                          style={{ color: '#FFFF', backgroundColor: '#276678' }}
                           onClick={() =>
-                            navigate("/skills/edit", {
-                              state: {
-                                id: hab.id,
-                                tipo: hab.tipo,
-                                descricao: hab.descricao,
-                                resumo: hab.resumo,
-                                ativo: hab.ativo,
-                                idnivelensino: hab.idnivelensino,
-                              },
-                            })
+                            navigate('/skills/edit', { state: hab })
                           }
                         >
                           Editar
@@ -275,12 +304,12 @@ export default function SkillsList() {
                 labelDisplayedRows={({ from, to, count }) =>
                   `${from}–${to} de ${count}`
                 }
-                sx={{ borderTop: "1px solid rgba(224, 224, 224, 1)" }}
+                sx={{ borderTop: '1px solid rgba(224, 224, 224, 1)' }}
               />
             </Paper>
           )}
         </Box>
       </Box>
     </Box>
-  );
+  )
 }

@@ -1,13 +1,13 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import ProtectedRoutes from "./components/ProtectedRoutes";
-import ChangePassword from "./pages/User/ChangePassword";
-import Register from "./pages/User/Register";
-import SkillsList from "./pages/Skills/SkillsList";
-import SkillsEdit from "./pages/Skills/EditSkill";
-import PolicyPrivacy from "./pages/PolicyPrivacy";
-import DataDeletionRequest from "./pages/PrivacyDeletionRequest";
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import ProtectedRoutes from './components/ProtectedRoutes'
+import ChangePassword from './pages/User/ChangePassword'
+import Register from './pages/User/Register'
+import SkillsList from './pages/Skills/SkillsList'
+import SkillsEdit from './pages/Skills/EditSkill'
+import PolicyPrivacy from './pages/PolicyPrivacy'
+import DataDeletionRequest from './pages/PrivacyDeletionRequest'
 
 function App() {
   return (
@@ -29,7 +29,7 @@ function App() {
         </Route>
       </Routes>
     </BrowserRouter>
-  );
+  )
 }
 
-export default App;
+export default App
