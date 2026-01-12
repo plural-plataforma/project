@@ -14,7 +14,9 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
-  Grid
+  Grid,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material'
 import { Usuario } from '../../types/userTypes'
 
@@ -64,7 +66,8 @@ export default function ProfileUserAppEdit({
       acao: formData.ativo ? 'A' : 'I',
       nome: formData.nome,
       email: formData.email,
-      telefone: formData.telefone
+      telefone: formData.telefone,
+      isEmbaixadora: formData.isEmbaixadora
     }
 
     try {
@@ -208,6 +211,21 @@ export default function ProfileUserAppEdit({
               </Select>
             </FormControl>
           </Grid>
+
+          {/* Embaixadora */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!!formData.isEmbaixadora}  // !! transforma undefined/null → false
+                  onChange={(_, checked) => handleChange('isEmbaixadora', checked)}
+                />
+              }
+              label="É Embaixadora"
+              sx={{ ml: 0 }} // remove margem esquerda padrão se quiser mais colado
+            />
+          </Grid>
+
 
           {/* Botões */}
           <Grid size={{ xs: 12 }}>

@@ -4,6 +4,8 @@ export interface Usuario {
   nome: string
   email: string
   telefone?: number
-  perfil: 'ADMIN' | 'PROFESSOR' | 'RESPONSAVEL' | 'OUTRO'
+  perfil: 'ADMIN' | 'PROFESSOR' | 'RESPONSAVEL' | 'OUTRO' | string
   ativo: boolean
+  isEmbaixadora: boolean
+  idNivelEnsino?: number
 }

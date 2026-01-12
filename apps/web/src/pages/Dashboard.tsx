@@ -30,6 +30,7 @@ import {
 } from '@mui/material'
 import Sidebar from '../components/Sidebar'
 import ProfileUserAppEdit from './UserApp/ProfileUserApp'
+import { Usuario } from '../types/userTypes'
 
 interface Professor {
   transaction: string
@@ -40,7 +41,9 @@ interface Professor {
   nivelEnsino: string
   ativo: boolean
   roles: string[]
-  telefone: string
+  telefone: number
+  perfil: string
+  isEmbaixadora: boolean
 }
 
 export default function Dashboard() {
@@ -397,9 +400,10 @@ export default function Dashboard() {
                                   nome: prof.buyerName,
                                   email: prof.buyerEmail || '',
                                   telefone: prof.telefone, // ou busque se tiver
-                                  perfil: prof.roles, // valor padrão ou mapeie de roles
+                                  perfil: prof.roles[0], // valor padrão ou mapeie de roles
                                   ativo: prof.ativo,
-                                  idNivelEnsino: mapNivelToId(prof.nivelEnsino) // função auxiliar abaixo
+                                  idNivelEnsino: mapNivelToId(prof.nivelEnsino),
+                                  isEmbaixadora: prof.isEmbaixadora
                                 })
                                 setOpenModal(true)
                               }}
