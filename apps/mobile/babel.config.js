@@ -1,7 +1,14 @@
 module.exports = function (api) {
-  api.cache(true)
+  api.cache(true);
   return {
     presets: ['babel-preset-expo'],
-    plugins: []
-  }
-}
+    plugins: [
+      [
+        'expo-router/babel',
+        {
+          root: './src',
+        },
+      ],
+    ],
+  };
+};

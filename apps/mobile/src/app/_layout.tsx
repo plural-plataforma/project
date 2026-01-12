@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider } from '../context/AuthContext'
 import { CustomAlert, useCustomAlert } from '@src/hooks/useCustomAlert'
+import Constants from 'expo-constants'
 
 // Impede que a tela de splash desapareça antes das fontes carregarem
 SplashScreen.preventAutoHideAsync()
@@ -22,6 +23,7 @@ export default function RootLayout() {
     const timer = setTimeout(() => {
       console.warn('Timeout: Fontes não carregaram em 5 segundos');
       SplashScreen.hideAsync();
+      console.log('API_URL:', Constants.expoConfig?.extra?.API_URL);
     }, 5000);
 
     if (fontsLoaded || fontError) {
