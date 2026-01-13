@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { colors, fontSizes } from '@/packages/ui/theme/theme'
+import { colors, fontSizes } from '@packages/ui/theme/theme'
 import { View, StyleSheet, Text, ScrollView } from 'react-native'
 import {
   InputField,

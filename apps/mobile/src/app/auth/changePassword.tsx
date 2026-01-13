@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors, fontSizes } from '@/packages/ui/theme/theme';
+import { colors, fontSizes } from '@packages/ui/theme/theme';
 import { InputField } from '@/packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import Header from '@src/components/Header';

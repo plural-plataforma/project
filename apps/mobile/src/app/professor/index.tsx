@@ -14,7 +14,7 @@ import { fetchEstados, fetchMunicipios } from '../../services/locationsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { buscarEscolas } from '../../services/escolasService';
 import Header from '../../components/Header';
-import { colors, fontSizes } from '@/packages/ui/theme/theme';
+import { colors, fontSizes } from '@packages/ui/theme/theme';
 import { Professor } from '@src/types/professor';
 import { Escola } from '@src/types/escolas';
 import {

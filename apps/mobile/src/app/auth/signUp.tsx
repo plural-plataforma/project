@@ -6,7 +6,7 @@ import {
   Logo,
   SignupLink
 } from '@/packages/ui/components'
-import { colors, fontSizes } from '@/packages/ui/theme/theme'
+import { colors, fontSizes } from '@packages/ui/theme/theme'
 import CustomButton from '../../components/CustomButton'
 import { login as authLogin, register as authRegister } from '../../services/auth'
 import { LoginCredentials, RegisterCredentials } from '../../types/auth'

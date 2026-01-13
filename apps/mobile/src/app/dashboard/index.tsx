@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '@/packages/ui/theme/theme';
+import { colors } from '@packages/ui/theme/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomButton from '../../components/CustomButton';
 import { useRouter } from 'expo-router';
