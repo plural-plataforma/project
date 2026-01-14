@@ -52,7 +52,7 @@ export default function Header({ title, onBack, fixed = false, insets: propInset
 
         {/* Logo */}
         <Image
-          source={require('@/packages/ui/assets/images/logo-small.png')}
+          source={require('@packages/ui/assets/images/logo-small.png')}
           style={[styles.groupIcon, styles.groupIconPosition]}
           resizeMode="contain"
         />

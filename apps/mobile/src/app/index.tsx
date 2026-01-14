@@ -42,7 +42,7 @@ export default function Index() {
         {imagePositions.map((position, index) => (
           <Image 
             key={index}  // Chave única para cada instância
-            source={require('@/packages/ui/assets/images/plur.png')}  // Mesma imagem para todas
+            source={require('@packages/ui/assets/images/plur.png')}  // Mesma imagem para todas
             style={[
               styles.randomImage,
               { left: position.x, top: position.y }  // Posição randômica única

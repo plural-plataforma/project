@@ -24,7 +24,7 @@ import {
 } from '../../services/professorService';
 import { isCadastroCompleto } from '../../utils/professorUtils';
 import ProgressFill from '@src/components/ProgressFill';
-import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
+import { CheckboxWithLabel, InputField } from '@packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import SectionGroup from '@src/components/SectionGroup';
 import ItemButton from '@src/components/ItemButton';

@@ -9,12 +9,12 @@ import {
   SignupLink,
 
   DividerWithText
-} from '@/packages/ui/components'
+} from '@packages/ui/components'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { login as authLogin } from '../../services/auth' // authLogin é o service
 import { LoginCredentials } from '../../types/auth'
-import CustomButton from '../../components/CustomButton'
+import CustomButton from '@src/components/CustomButton'
 import { useAuth } from '../../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Logo from '../../components/Logo'

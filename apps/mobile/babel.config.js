@@ -4,21 +4,18 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       [
-        'expo-router/babel',
-        {
-          root: './src',
-        },
-      ],
-      [
         'module-resolver',
         {
-          root: ['./src'],
+          cwd: 'packagejson',
+          extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
           alias: {
             '@src': './src',
-          },
-          extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
-        },
-      ],
-    ],
+            '@packages/ui': '../../packages/ui'
+          }
+        }
+      ]
+      // Se um dia você usar animações com Reanimated, descomente a linha abaixo:
+      // 'react-native-reanimated/plugin'
+    ]
   };
 };
