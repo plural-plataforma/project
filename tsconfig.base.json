@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["apps/*"]  // só se precisar global, mas evite para apps Expo
+    }
+  },
+  "references": [
+    { "path": "apps/mobile" },
+    { "path": "packages/ui" }
+  ],
+  "files": [],
+  "include": []
+}

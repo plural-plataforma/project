@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '@/packages/ui/theme/theme';
+import { colors } from '@packages/ui/theme/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import CustomButton from '../../components/CustomButton';
+import CustomButton from '@src/components/CustomButton';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
@@ -234,7 +234,7 @@ export default function Dashboard() {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerLeft}>
           <Image
-            source={require('@/packages/ui/assets/images/logo.png')}
+            source={require('@packages/ui/assets/images/logo.png')}
             style={styles.logo}
           />
           <Text style={styles.text}>
