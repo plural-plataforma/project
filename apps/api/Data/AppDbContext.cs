@@ -25,6 +25,7 @@ namespace Data
         public DbSet<EstrategiasXPlanejamento> EstrategiasXPlanejamentos { get; set; }
         public DbSet<Avaliacao> Avaliacao { get; set; }
         public DbSet<AvaliacaoXPlanejamento> AvaliacaoXPlanejamento { get; set; }
+        public DbSet<Bloco> Blocos { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -132,6 +133,8 @@ namespace Data
                 .HasOne(pa => pa.Aluno)
                 .WithMany(a => a.AlunosXPlanejamentos)
                 .HasForeignKey(pa => pa.AlunoId);
+
+            // Bloco ↔ Atividade (1:N)
 
 
         }
