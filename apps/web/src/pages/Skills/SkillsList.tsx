@@ -147,9 +147,7 @@ export default function SkillsList() {
   const resetPage = () => setPage(0)
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
-
+    <Box sx={{ display: 'flex', flexDirection: 'column', }}>
       <Box
         sx={{
           display: 'flex',
@@ -157,20 +155,11 @@ export default function SkillsList() {
           flex: 1
         }}
       >
-        {/* Sidebar */}
-        <Sidebar activeRoute="/skills" onSignOut={signOut} />
-
         {/* Conteúdo principal */}
         <Box
           component="main"
           sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: 'auto' }}
         >
-          <Typography variant="h5" fontWeight="bold" mb={1}>
-            Gerenciamento de Habilidades
-          </Typography>
-          <Typography color="text.secondary" mb={3}>
-            Controle de acesso e vínculos de habilidades
-          </Typography>
 
           {/* Cards */}
           <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>

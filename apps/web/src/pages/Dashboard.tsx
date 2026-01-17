@@ -200,7 +200,7 @@ export default function Dashboard() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header FIXO no topo */}
-      <Header />
+     
 
       {/* Container principal com sidebar fixa + conteúdo com margem */}
       <Box sx={{ display: 'flex', flex: 1 }}>

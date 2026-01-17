@@ -1,38 +1,57 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import ProtectedRoutes from './components/ProtectedRoutes'
-import ChangePassword from './pages/User/ChangePassword'
-import Register from './pages/User/Register'
-import SkillsList from './pages/Skills/SkillsList'
-import SkillsEdit from './pages/Skills/EditSkill'
-import PolicyPrivacy from './pages/PolicyPrivacy'
-import DataDeletionRequest from './pages/PrivacyDeletionRequest'
-import AdminLayout from './components/layouts/AdminLayout'
+// src/App.tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+// Páginas públicas
+import Login from './pages/Login';
+import Register from './pages/User/Register';
+import PolicyPrivacy from './pages/PolicyPrivacy';
+import DataDeletionRequest from './pages/PrivacyDeletionRequest';
+
+// Páginas protegidas
+import Dashboard from './pages/Dashboard';
+import SkillsList from './pages/Skills/SkillsList';
+import SkillsEdit from './pages/Skills/EditSkill';
+import ChangePassword from './pages/User/ChangePassword';
+
+// Componentes de layout e proteção
+import ProtectedRoutes from './components/ProtectedRoutes';
+import AdminLayout from './components/layouts/AdminLayout';
+import Usuarios from './pages/UserApp/Usuarios';
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Rotas públicas - sem header/sidebar */}
         <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />           {/* opcional: alias */}
+        <Route path="/register" element={<Register />} />
         <Route path="/privacy" element={<PolicyPrivacy />} />
         <Route path="/excluded" element={<DataDeletionRequest />} />
-        <Route path="/register" element={<Register />} />
 
-        {/* Rotas protegidas - todas com Header + Sidebar */}
+        {/* Todas as rotas protegidas com layout admin + autenticação */}
         <Route element={<ProtectedRoutes />}>
-          <Route element={<AdminLayout children={undefined} />}>
+          <Route element={<AdminLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/skills" element={<SkillsList />} />
             <Route path="/skills/edit" element={<SkillsEdit />} />
-            <Route path="/config" element={<SkillsEdit />} />
+            
+            {/* Exemplos de rotas que você provavelmente terá */}
+            <Route path="/usuarios" element={<Usuarios />} />
+            <Route path="/blocos" element={<div>Blocos de Avaliação (em breve)</div>} />
+            <Route path="/atividades" element={<div>Banco de Atividades (em breve)</div>} />
+            <Route path="/configuracoes" element={<div>Configurações Gerais (em breve)</div>} />
+            
+            {/* Rotas do usuário */}
             <Route path="/change-password" element={<ChangePassword />} />
-            {/* Adicione aqui todas as outras páginas protegidas */}
           </Route>
         </Route>
+
+        {/* Rota 404 - opcional */}
+        <Route path="*" element={<div>404 - Página não encontrada</div>} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

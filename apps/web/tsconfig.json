@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",  // Herda strict, paths (@/* → apps/*), types etc. do tsconfig raiz
+  "extends": "../../tsconfig.base.json",  // Herda strict, paths (@/* → apps/*), types etc. do tsconfig raiz
   "compilerOptions": {
     "jsx": "react-jsx",                // ← Muda apenas para a web (runtime automático)
     "module": "ESNext",                // Necessário para moduleResolution bundler

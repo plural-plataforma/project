@@ -1,44 +1,71 @@
-// src/components/layouts/AdminLayout.tsx
-import { Box } from '@mui/material'
-import Header from '../Header'         // seu header atualizado
-import Sidebar from '../Sidebar'       // sua sidebar atualizada
+// components/layouts/AdminLayout.tsx
+import { Box, AppBar, Toolbar } from '@mui/material';
+import { Outlet } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import HeaderContent from '../HeaderContent';
 
-interface AdminLayoutProps {
-  children: React.ReactNode
-}
+const drawerWidth = 277; // ← use exatamente o mesmo valor do Drawer
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default function AdminLayout() {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
-      {/* Sidebar fixa à esquerda */}
-      <Sidebar 
-        activeRoute={window.location.pathname} // ou use useLocation se preferir
-        onSignOut={() => {
-          // sua lógica de logout aqui
-          localStorage.removeItem('token')
-          window.location.href = '/'
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Área principal */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          // deslocamento exato = largura do drawer
+          ml: { xs: 0, md: `${drawerWidth}px` },
+          // opcional: garante que não vaze
+          width: { md: `calc(100% - ${drawerWidth}px)` },
         }}
-      />
-
-      {/* Área principal: header fixo + conteúdo com scroll */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Header fixo no topo */}
-        <Header />
-
-        {/* Conteúdo da página - com margem para não sobrepor header/sidebar */}
-        <Box
-          component="main"
+      >
+        {/* Header fixo */}
+        <AppBar
+          position="fixed"
+          elevation={1}
           sx={{
-            flexGrow: 1,
-            ml: { md: '260px' },      // mesma largura da sidebar
-            mt: '64px',               // altura do header
-            p: { xs: 2, md: 4 },
-            overflowY: 'auto',
+            width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
+            ml: { xs: 0, md: `${drawerWidth}px` },
+            bgcolor: 'white',
+            borderBottom: '1px solid',
+            borderColor: 'grey.200',
+            zIndex: (theme) => theme.zIndex.drawer + 1,
           }}
         >
-          {children}
+          <Toolbar
+            sx={{
+              minHeight: 88,
+              px: { xs: 2, lg: 4 },
+            }}
+          >
+            <HeaderContent />
+          </Toolbar>
+        </AppBar>
+
+        {/* Conteúdo da página */}
+        <Box
+          sx={{
+            mt: '88px',  // altura do header (ajuste se necessário)
+            p: { xs: 2, lg: 3 },  // padding pequeno e uniforme
+            bgcolor: 'grey.50',
+            minHeight: 'calc(100vh - 88px)',
+            // Força remoção total de espaçamento à esquerda
+            marginLeft: 0,
+            paddingLeft: 0,
+            // Impede que filhos herdem ou adicionem margem esquerda
+            '& > *': {
+              marginLeft: 0,
+              paddingLeft: 0,
+            },
+          }}
+        >
+          <Outlet />
         </Box>
       </Box>
     </Box>
-  )
+  );
 }

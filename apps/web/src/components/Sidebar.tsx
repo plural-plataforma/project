@@ -1,119 +1,219 @@
-// components/Sidebar.tsx
-import { Box, List, ListItemButton, ListItemIcon, ListItemText, Divider, Avatar, Typography, IconButton } from '@mui/material'
-import DashboardIcon from '@mui/icons-material/Dashboard'
-import PeopleIcon from '@mui/icons-material/People'
-import StarIcon from '@mui/icons-material/Star'
-import AssessmentIcon from '@mui/icons-material/Assessment'
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
-import SettingsIcon from '@mui/icons-material/Settings'
-import LogoutIcon from '@mui/icons-material/Logout'
-import { useNavigate, useLocation } from 'react-router-dom'
+// src/components/Sidebar.tsx
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Typography,
+  Avatar,
+  IconButton,
+  Paper,
+  alpha,
+} from '@mui/material';
+import {
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  School as SchoolIcon,
+  Assessment as AssessmentIcon,
+  LibraryBooks as LibraryBooksIcon,
+  Settings as SettingsIcon,
+  History as HistoryIcon,
+  MoreVert as MoreVertIcon,
+} from '@mui/icons-material';
 
-interface SidebarProps {
-  activeRoute?: string
-  onSignOut: () => void
-}
+// Largura fixa do sidebar (padrão comum)
+const drawerWidth = 277;
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-  { text: 'Usuários', icon: <PeopleIcon />, path: '/usuarios' },
-  { text: 'Habilidades', icon: <StarIcon />, path: '/skills' },
-  { text: 'Blocos de Atividades', icon: <AssessmentIcon />, path: '/blocos-atividades' },
-  { text: 'Banco de Atividades', icon: <LibraryBooksIcon />, path: '/banco-atividades' },
-  { text: 'Configurações', icon: <SettingsIcon />, path: '/configuracoes' },
-]
+export default function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-export default function Sidebar({ activeRoute = '', onSignOut }: SidebarProps) {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Usuários', icon: <PeopleIcon />, path: '/usuarios' },
+  ];
 
-  const isActive = (path: string) => activeRoute ? activeRoute === path : location.pathname === path
+  const cadastrosGroup = [
+    { text: 'Habilidades', icon: <SchoolIcon />, path: '/skills' },
+    { text: 'Blocos de Avaliação', icon: <AssessmentIcon />, path: '/blocos' },
+    { text: 'Banco de Atividades', icon: <LibraryBooksIcon />, path: '/atividades' },
+  ];
+
+  const sistemaGroup = [
+    { text: 'Configurações', icon: <SettingsIcon />, path: '/configuracoes' },
+    { text: 'Logs de Sistema', icon: <HistoryIcon />, path: '/logs' },
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Box
-      component="nav"
+    <Drawer
+      variant="permanent"
       sx={{
-        width: 260,
+        width: drawerWidth,
         flexShrink: 0,
-        position: 'fixed',
-        height: '100vh',
-        borderRight: '1px solid',
-        borderColor: 'grey.200',
-        bgcolor: 'white',
-        overflowY: 'auto',
-        pt: '64px',
-        display: 'flex',
-        flexDirection: 'column',
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          bgcolor: 'white',
+          borderRight: '1px solid',
+          borderColor: 'grey.200',
+        },
       }}
     >
-      {/* Menu principal */}
-      <List sx={{ px: 1.5, flexGrow: 1 }}>
-        {menuItems.map((item) => (
-          <ListItemButton
-            key={item.text}
-            selected={isActive(item.path)}
-            onClick={() => navigate(item.path)}
-            sx={{
-              borderRadius: 2,
-              mb: 0.5,
-              py: 1.2,
-              '&.Mui-selected': {
-                bgcolor: '#276678',
-                color: 'white',
-                '&:hover': { bgcolor: '#1e4e5a' },
-                '& .MuiListItemIcon-root': { color: 'white' },
-              },
-              '&:hover': {
-                bgcolor: 'grey.100',
-              }
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 44, color: 'text.secondary' }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText 
-              primary={item.text} 
-              primaryTypographyProps={{ 
-                fontSize: '0.95rem',
-                fontWeight: isActive(item.path) ? 600 : 500
-              }}
-            />
-          </ListItemButton>
-        ))}
-      </List>
+      {/* Logo / Título da plataforma */}
+      <Box
+        sx={{
+          height: 80,
+          display: 'flex',
+          alignItems: 'center',
+          px: 3,
+          borderBottom: '1px solid',
+          borderColor: 'grey.200',
+        }}
+      >
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          color="#276678"
+          sx={{ letterSpacing: '-0.5px' }}
+        >
+          Plural
+        </Typography>
+      </Box>
 
-      {/* Footer com informações do usuário */}
-      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'grey.200', mt: 'auto' }}>
+      <Box sx={{ overflowY: 'auto', flexGrow: 1, px: 1, py: 2 }}>
+        <List>
+          {menuItems.map((item) => (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                selected={isActive(item.path)}
+                onClick={() => navigate(item.path)}
+                sx={{
+                  borderRadius: 1.5,
+                  mx: 1,
+                  mb: 0.5,
+                  '&.Mui-selected': {
+                    bgcolor: alpha('#276678', 0.12),
+                    color: '#276678',
+                    '&:hover': { bgcolor: alpha('#276678', 0.18) },
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: isActive(item.path) ? '#276678' : 'inherit' }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+
+        <Divider sx={{ my: 2, mx: 2 }} />
+
+        {/* Grupo Cadastros */}
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ px: 3, mb: 1, fontWeight: 600 }}
+        >
+          Cadastros
+        </Typography>
+
+        <List>
+          {cadastrosGroup.map((item) => (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                selected={isActive(item.path)}
+                onClick={() => navigate(item.path)}
+                sx={{
+                  borderRadius: 1.5,
+                  mx: 1,
+                  mb: 0.5,
+                  '&.Mui-selected': {
+                    bgcolor: alpha('#276678', 0.12),
+                    color: '#276678',
+                  },
+                }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+
+        <Divider sx={{ my: 2, mx: 2 }} />
+
+        {/* Grupo Sistema */}
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ px: 3, mb: 1, fontWeight: 600 }}
+        >
+          Sistema
+        </Typography>
+
+        <List>
+          {sistemaGroup.map((item) => (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                selected={isActive(item.path)}
+                onClick={() => navigate(item.path)}
+                sx={{
+                  borderRadius: 1.5,
+                  mx: 1,
+                  mb: 0.5,
+                  '&.Mui-selected': {
+                    bgcolor: alpha('#276678', 0.12),
+                    color: '#276678',
+                  },
+                }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+
+      {/* Perfil do administrador no rodapé */}
+      <Paper
+        elevation={0}
+        sx={{
+          m: 2,
+          p: 2,
+          bgcolor: 'grey.50',
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'grey.200',
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            sx={{
-              width: 44,
-              height: 44,
-              bgcolor: '#276678',
-              fontSize: '1.1rem',
-            }}
-          >
+          <Avatar sx={{ width: 48, height: 48, bgcolor: '#276678' }}>
             AP
           </Avatar>
-          
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="subtitle2" fontWeight={600}>
+
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="subtitle1" fontWeight={600}>
               Admin Plural
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" fontSize="0.85rem">
               admin@plural.com
             </Typography>
           </Box>
 
-          <IconButton 
-            size="small" 
-            onClick={onSignOut}
-            sx={{ color: 'text.secondary' }}
-          >
-            <LogoutIcon fontSize="small" />
+          <IconButton size="small">
+            <MoreVertIcon fontSize="small" />
           </IconButton>
         </Box>
-      </Box>
-    </Box>
-  )
+      </Paper>
+    </Drawer>
+  );
 }
