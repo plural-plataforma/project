@@ -1,6 +1,5 @@
 import { Box, Typography, InputBase, alpha } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
-import ButtonSvg from './button.svg' // seu botão original
 
 export default function Header() {
   return (

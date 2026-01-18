@@ -53,7 +53,8 @@ export default function SkillsList() {
   useEffect(() => {
     const fetchHabilidades = async () => {
       const token =
-        localStorage.getItem('token') || sessionStorage.getItem('token')
+        sessionStorage.getItem('token') || localStorage.getItem('token')
+
       if (!token) {
         setError(
           'Nenhum token de autenticação encontrado. Faça login novamente.'
@@ -62,6 +63,8 @@ export default function SkillsList() {
         return
       }
       try {
+        console.log('Fetching Habilidades from API...')
+        console.log('Using token:', token)
         const response = await axios.get(`${API_URL}/Habilidade/buscar`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -69,6 +72,7 @@ export default function SkillsList() {
             'Content-Type': 'application/json'
           }
         })
+        console.log('Habilidades fetched:', response)
         const Habilidades = response.data?.objeto
         if (Array.isArray(Habilidades)) {
           setHabilidades(Habilidades)
