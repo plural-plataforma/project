@@ -26,6 +26,7 @@ namespace Data
         public DbSet<Avaliacao> Avaliacao { get; set; }
         public DbSet<AvaliacaoXPlanejamento> AvaliacaoXPlanejamento { get; set; }
         public DbSet<Bloco> Blocos { get; set; }
+        public DbSet<Atividade> Atividades { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -135,7 +136,31 @@ namespace Data
                 .HasForeignKey(pa => pa.AlunoId);
 
             // Bloco ↔ Atividade (1:N)
+            modelBuilder.Entity<Bloco>()
+              .HasMany(b => b.Atividades)           // Um Bloco tem muitas Atividades
+              .WithOne(a => a.Bloco)                // Cada Atividade tem um Bloco
+              .HasForeignKey(a => a.BlocoId)        // Nome da coluna FK na tabela Atividades
+              .OnDelete(DeleteBehavior.Restrict);
 
+            // Atividade
+            modelBuilder.Entity<Atividade>()
+                .Property(a => a.Nivel)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Atividade>()
+                .Property(a => a.BlocoId)
+                .IsRequired();
+
+            modelBuilder.Entity<Atividade>()
+                .HasMany(a => a.Habilidades)
+                .WithMany(h => h.Atividades) // Opcional: adicione ICollection<Atividade> Atividades no model Habilidade
+                .UsingEntity<Dictionary<string, object>>(
+                    "AtividadeHabilidade",
+                    j => j.HasOne<Habilidade>().WithMany().HasForeignKey("HabilidadeId"),
+                    j => j.HasOne<Atividade>().WithMany().HasForeignKey("AtividadeId"),
+                    j => j.ToTable("AtividadeHabilidade")
+
+                );
 
         }
 
