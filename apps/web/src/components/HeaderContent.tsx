@@ -47,7 +47,7 @@ export default function HeaderContent() {
         justifyContent: 'space-between',
         width: '100%',
         maxWidth: 1184,
-        mx: 'auto',
+        maxHeight: 89,
         height: '100%'
       }}
     >
@@ -58,7 +58,9 @@ export default function HeaderContent() {
           flexDirection: 'column',
           gap: '4px',
           mt: '16px',
-          ml: { lg: '32px', xs: 15 }
+          
+          ml: { lg: '32px', xs: '16px'},
+          paddingBlockEnd: '16px'
         }}
       >
         <Typography

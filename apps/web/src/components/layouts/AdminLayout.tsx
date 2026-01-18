@@ -38,8 +38,8 @@ export default function AdminLayout() {
         >
           <Toolbar
             sx={{
-              minHeight: 88,
-              px: { xs: 2, lg: 4 }
+              minHeight: 0,
+              px: { xs: 0, lg: 0 }
             }}
           >
             <HeaderContent />
