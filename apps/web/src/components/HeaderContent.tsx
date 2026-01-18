@@ -1,15 +1,14 @@
 // components/HeaderContent.tsx
-import { Box, Typography, InputBase, alpha, Button } from '@mui/material'
+import { Box, Typography, InputBase, alpha, IconButton } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
+import NotificationsIcon from '@mui/icons-material/Notifications'
 import { useLocation } from 'react-router-dom'
-import { Add } from '@mui/icons-material'
 
 // Mapeamento de títulos e descrições por rota
-// Você pode expandir conforme necessário
 const pageInfo: Record<string, { title: string; description: string }> = {
   '/dashboard': {
     title: 'Dashboard Administrativo',
-    description: 'Gerencie a Plural Plataforma de forma eficiente'
+    description: 'Gerencie sua plataforma Plural'
   },
   '/usuarios': {
     title: 'Gerenciamento de Usuários',
@@ -25,61 +24,59 @@ const pageInfo: Record<string, { title: string; description: string }> = {
   },
   '/atividades': {
     title: 'Gerenciamento do Banco de Atividades',
-    description: 'Gerencie todos os banco de atividades do sistema'
+    description: 'Gerencie todos os bancos de atividades do sistema'
   }
-  // adicione outras rotas aqui
+  // Adicione outras rotas conforme necessário
 }
 
 export default function HeaderContent() {
   const location = useLocation()
 
-  // Pega título e descrição da rota atual ou fallback
   const currentPage = pageInfo[location.pathname] || {
     title: 'Plural Plataforma',
     description: 'Gerencie sua plataforma educacional'
+  }
+
+  const handleNotificationsClick = () => {
+    console.log('Notificações clicadas')
+    // Aqui você pode abrir um menu de notificações, modal, etc.
   }
 
   return (
     <Box
       sx={{
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
         maxWidth: 1184,
-        mx: 'auto',
-        height: '100%'
+        maxHeight: 84,
+        // mx: 'auto',
+        px: { xs: 2, lg: 0 },
+        pb: 4,
+        py: 3,
+        gap: 2
       }}
     >
-      {/* Esquerda - Título + descrição */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          mt: '16px',
-          ml: { lg: '32px', xs: 15 }
-        }}
-      >
+      {/* Esquerda: Título + Descrição */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
+          variant="h5"
           sx={{
             color: '#276678',
             fontWeight: 700,
-            fontSize: { xs: 20, md: 22, lg: 24 },
-            lineHeight: '32px',
             letterSpacing: '-0.5px',
-            whiteSpace: 'nowrap'
+            lineHeight: 1.2,
+            mb: 0.5
           }}
         >
           {currentPage.title}
         </Typography>
 
         <Typography
+          variant="body2"
           sx={{
             color: '#6B7280',
-            fontSize: 14,
-            lineHeight: '20px',
-            letterSpacing: '-0.5px',
             display: { xs: 'none', md: 'block' }
           }}
         >
@@ -87,33 +84,44 @@ export default function HeaderContent() {
         </Typography>
       </Box>
 
-      {/* Direita - Busca */}
+      {/* Direita: Busca + Notificações */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: '16px',
-          mt: '22px',
-          flexShrink: 0
+          gap: 2
         }}
       >
+        {/* Campo de busca */}
         <Box
-          sx={{ position: 'relative', width: { xs: 220, sm: 280, md: 340 } }}
+          sx={{
+            position: 'relative',
+            width: { xs: 180, sm: 240, md: 320, lg: 380 }
+          }}
         >
           <InputBase
             placeholder="Buscar..."
             fullWidth
             sx={{
               height: 42,
-              pl: '40px',
+              pl: 5,
               pr: 2,
               bgcolor: 'white',
               border: '1px solid',
-              borderColor: alpha('#276678', 0.42),
+              borderColor: alpha('#276678', 0.3),
               borderRadius: '8px',
-              fontSize: 16,
+              fontSize: 15,
+              transition: 'all 0.2s',
+              '&:hover': {
+                borderColor: alpha('#276678', 0.6),
+                boxShadow: '0 0 0 3px rgba(39, 102, 120, 0.08)'
+              },
+              '&.Mui-focused': {
+                borderColor: '#276678',
+                boxShadow: '0 0 0 3px rgba(39, 102, 120, 0.15)'
+              },
               '& input::placeholder': {
-                color: '#ADAEBc',
+                color: '#9CA3AF',
                 opacity: 1
               }
             }}
@@ -131,18 +139,18 @@ export default function HeaderContent() {
             }
           />
         </Box>
-        {/* Botão de ação principal (opcional por página) */}
-        {/* Você pode condicionar o botão aqui conforme a rota, exemplo: */}
-        {location.pathname === '/skills' && (
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            sx={{ bgcolor: '#276678', height: 44 }}
-          >
-            Nova Habilidade
-          </Button>
-        )}{' '}
-        *
+
+        {/* Botão de notificações */}
+        <IconButton
+          onClick={handleNotificationsClick}
+          size="medium"
+          sx={{
+            color: '#9CA3AF',
+            '&:hover': { color: '#276678', bgcolor: alpha('#276678', 0.08) }
+          }}
+        >
+          <NotificationsIcon />
+        </IconButton>
       </Box>
     </Box>
   )

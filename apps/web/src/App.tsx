@@ -31,10 +31,7 @@ function App() {
         {/* Todas as rotas protegidas com layout admin + autenticação */}
         <Route element={<ProtectedRoutes />}>
           <Route element={<AdminLayout />}>
-            <Route
-              path="/dashboard"
-              element={<div>Dashboard (em breve)</div>}
-            />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/skills" element={<SkillsList />} />
             <Route path="/skills/edit" element={<SkillsEdit />} />
 

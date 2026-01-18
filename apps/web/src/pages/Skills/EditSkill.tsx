@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { SignOut } from '../../components/SignOut'
-import Header from '../../components/Header'
+
 const API_URL = import.meta.env.VITE_API_URL
 
 import {
@@ -138,8 +138,6 @@ export default function SkillsEdit() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
-
       <Box
         sx={{
           display: 'flex',
