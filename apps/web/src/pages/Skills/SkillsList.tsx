@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { SignOut } from '../../components/SignOut'
 import PersonIcon from '@mui/icons-material/Person'
 import InfoCard from '../../components/InfoCard'
-import Header from '../../components/Header'
 import { useNavigate } from 'react-router-dom'
 const API_URL = import.meta.env.VITE_API_URL
 
 import {
   Box,
   Paper,
-  Typography,
   Button,
   TextField,
   Select,
@@ -26,7 +23,6 @@ import {
   InputLabel,
   TablePagination
 } from '@mui/material'
-import Sidebar from '../../components/Sidebar'
 
 interface Habilidade {
   id: number
@@ -53,7 +49,6 @@ export default function SkillsList() {
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const navigate = useNavigate()
-  const signOut = SignOut()
 
   useEffect(() => {
     const fetchHabilidades = async () => {
@@ -147,7 +142,7 @@ export default function SkillsList() {
   const resetPage = () => setPage(0)
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
       <Box
         sx={{
           display: 'flex',
@@ -160,7 +155,6 @@ export default function SkillsList() {
           component="main"
           sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: 'auto' }}
         >
-
           {/* Cards */}
           <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
             <InfoCard

@@ -1,42 +1,43 @@
 // components/HeaderContent.tsx
-import { Box, Typography, InputBase, alpha } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import { useLocation } from 'react-router-dom';
+import { Box, Typography, InputBase, alpha, Button } from '@mui/material'
+import SearchIcon from '@mui/icons-material/Search'
+import { useLocation } from 'react-router-dom'
+import { Add } from '@mui/icons-material'
 
 // Mapeamento de títulos e descrições por rota
 // Você pode expandir conforme necessário
 const pageInfo: Record<string, { title: string; description: string }> = {
   '/dashboard': {
     title: 'Dashboard Administrativo',
-    description: 'Gerencie a Plural Plataforma de forma eficiente',
+    description: 'Gerencie a Plural Plataforma de forma eficiente'
   },
   '/usuarios': {
     title: 'Gerenciamento de Usuários',
-    description: 'Gerencie todos os usuários da plataforma Plural',
+    description: 'Gerencie todos os usuários da plataforma Plural'
   },
   '/skills': {
     title: 'Gerenciamento de Habilidades',
-    description: 'Gerencie e monitore todas as habilidades cadastradas',
+    description: 'Gerencie e monitore todas as habilidades cadastradas'
   },
   '/blocos': {
     title: 'Gerenciamento de Blocos de Atividades',
-    description: 'Gerencie todos os blocos de atividades do sistema',
+    description: 'Gerencie todos os blocos de atividades do sistema'
   },
-    '/atividades': {
-        title: 'Gerenciamento do Banco de Atividades',
-        description: 'Gerencie todos os banco de atividades do sistema',
-    },
+  '/atividades': {
+    title: 'Gerenciamento do Banco de Atividades',
+    description: 'Gerencie todos os banco de atividades do sistema'
+  }
   // adicione outras rotas aqui
-};
+}
 
 export default function HeaderContent() {
-  const location = useLocation();
-  
+  const location = useLocation()
+
   // Pega título e descrição da rota atual ou fallback
   const currentPage = pageInfo[location.pathname] || {
     title: 'Plural Plataforma',
-    description: 'Gerencie sua plataforma educacional',
-  };
+    description: 'Gerencie sua plataforma educacional'
+  }
 
   return (
     <Box
@@ -47,7 +48,7 @@ export default function HeaderContent() {
         width: '100%',
         maxWidth: 1184,
         mx: 'auto',
-        height: '100%',
+        height: '100%'
       }}
     >
       {/* Esquerda - Título + descrição */}
@@ -57,7 +58,7 @@ export default function HeaderContent() {
           flexDirection: 'column',
           gap: '4px',
           mt: '16px',
-          ml: { lg: '32px', xs: 0 },
+          ml: { lg: '32px', xs: 15 }
         }}
       >
         <Typography
@@ -67,7 +68,7 @@ export default function HeaderContent() {
             fontSize: { xs: 20, md: 22, lg: 24 },
             lineHeight: '32px',
             letterSpacing: '-0.5px',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'nowrap'
           }}
         >
           {currentPage.title}
@@ -79,7 +80,7 @@ export default function HeaderContent() {
             fontSize: 14,
             lineHeight: '20px',
             letterSpacing: '-0.5px',
-            display: { xs: 'none', md: 'block' },
+            display: { xs: 'none', md: 'block' }
           }}
         >
           {currentPage.description}
@@ -93,10 +94,12 @@ export default function HeaderContent() {
           alignItems: 'center',
           gap: '16px',
           mt: '22px',
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
-        <Box sx={{ position: 'relative', width: { xs: 220, sm: 280, md: 340 } }}>
+        <Box
+          sx={{ position: 'relative', width: { xs: 220, sm: 280, md: 340 } }}
+        >
           <InputBase
             placeholder="Buscar..."
             fullWidth
@@ -111,8 +114,8 @@ export default function HeaderContent() {
               fontSize: 16,
               '& input::placeholder': {
                 color: '#ADAEBc',
-                opacity: 1,
-              },
+                opacity: 1
+              }
             }}
             startAdornment={
               <SearchIcon
@@ -122,25 +125,25 @@ export default function HeaderContent() {
                   top: '50%',
                   transform: 'translateY(-50%)',
                   color: '#276678',
-                  fontSize: 20,
+                  fontSize: 20
                 }}
               />
             }
           />
         </Box>
-
         {/* Botão de ação principal (opcional por página) */}
         {/* Você pode condicionar o botão aqui conforme a rota, exemplo: */}
-        {/* {location.pathname === '/skills' && (
+        {location.pathname === '/skills' && (
           <Button
             variant="contained"
-            startIcon={<AddIcon />}
+            startIcon={<Add />}
             sx={{ bgcolor: '#276678', height: 44 }}
           >
             Nova Habilidade
           </Button>
-        )} */}
+        )}{' '}
+        *
       </Box>
     </Box>
-  );
+  )
 }

@@ -1,10 +1,10 @@
 // components/layouts/AdminLayout.tsx
-import { Box, AppBar, Toolbar } from '@mui/material';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../Sidebar';
-import HeaderContent from '../HeaderContent';
+import { Box, AppBar, Toolbar } from '@mui/material'
+import { Outlet } from 'react-router-dom'
+import Sidebar from '../Sidebar'
+import HeaderContent from '../HeaderContent'
 
-const drawerWidth = 277; // ← use exatamente o mesmo valor do Drawer
+const drawerWidth = 277 // ← use exatamente o mesmo valor do Drawer
 
 export default function AdminLayout() {
   return (
@@ -18,9 +18,9 @@ export default function AdminLayout() {
         sx={{
           flexGrow: 1,
           // deslocamento exato = largura do drawer
-          ml: { xs: 0, md: `${drawerWidth}px` },
+          // ml: { xs: 0, md: `${drawerWidth}px` },
           // opcional: garante que não vaze
-          width: { md: `calc(100% - ${drawerWidth}px)` },
+          width: { md: `calc(100% - ${drawerWidth}px)` }
         }}
       >
         {/* Header fixo */}
@@ -33,13 +33,13 @@ export default function AdminLayout() {
             bgcolor: 'white',
             borderBottom: '1px solid',
             borderColor: 'grey.200',
-            zIndex: (theme) => theme.zIndex.drawer + 1,
+            zIndex: theme => theme.zIndex.drawer + 1
           }}
         >
           <Toolbar
             sx={{
               minHeight: 88,
-              px: { xs: 2, lg: 4 },
+              px: { xs: 2, lg: 4 }
             }}
           >
             <HeaderContent />
@@ -49,8 +49,8 @@ export default function AdminLayout() {
         {/* Conteúdo da página */}
         <Box
           sx={{
-            mt: '88px',  // altura do header (ajuste se necessário)
-            p: { xs: 2, lg: 3 },  // padding pequeno e uniforme
+            mt: '76px', // altura do header (ajuste se necessário)
+            p: { xs: 2, lg: 3 }, // padding pequeno e uniforme
             bgcolor: 'grey.50',
             minHeight: 'calc(100vh - 88px)',
             // Força remoção total de espaçamento à esquerda
@@ -59,13 +59,13 @@ export default function AdminLayout() {
             // Impede que filhos herdem ou adicionem margem esquerda
             '& > *': {
               marginLeft: 0,
-              paddingLeft: 0,
-            },
+              paddingLeft: 0
+            }
           }}
         >
           <Outlet />
         </Box>
       </Box>
     </Box>
-  );
+  )
 }

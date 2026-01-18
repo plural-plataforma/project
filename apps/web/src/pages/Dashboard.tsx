@@ -26,9 +26,7 @@ import {
   InputLabel,
   Chip,
   Snackbar,
-  Modal,
-  Avatar,
-  Checkbox
+  Modal
 } from '@mui/material'
 import Sidebar from '../components/Sidebar'
 import ProfileUserAppEdit from './UserApp/ProfileUserApp'
@@ -194,48 +192,47 @@ export default function Dashboard() {
   })
 
   const totalCompradores = professores.length
-  const cadastrados = professores.filter(p => p.jaCadastradoComoProfessor).length
+  const cadastrados = professores.filter(
+    p => p.jaCadastradoComoProfessor
+  ).length
   const naoCadastrados = totalCompradores - cadastrados
 
+  const mapNivelToId = (nivel: string): number | undefined => {
+    const map: Record<string, number> = {
+      'Educação Infantil': 1,
+      'Ensino Fundamental I - Anos Iniciais': 2,
+      'Ensino Fundamental II - Anos Finais': 3,
+      'Ensino Médio': 4
+    }
+    return map[nivel] || undefined
+  }
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header FIXO no topo */}
-     
-
-      {/* Container principal com sidebar fixa + conteúdo com margem */}
-      <Box sx={{ display: 'flex', flex: 1 }}>
-        {/* Sidebar FIXA à esquerda */}
-        <Sidebar activeRoute="/dashboard" onSignOut={signOut} />
-
-        {/* Conteúdo principal – com margem esquerda para não ficar sobreposto */}
+    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          flex: 1,
+          p: { xs: 1, md: 2 }
+        }}
+      >
+        {/* Main Content */}
         <Box
           component="main"
-          sx={{
-            flex: 1,
-            ml: { md: '260px' },           // ← IMPORTANTE: mesma largura da sidebar
-            mt: '64px',                    // ← altura do header fixo
-            p: { xs: 2, md: 4 },
-            bgcolor: 'grey.50',
-            minHeight: 'calc(100vh - 64px)',
-            overflowY: 'auto'
-          }}
+          sx={{ flex: 1, p: { xs: 0, sm: 0 }, overflowY: 'auto' }}
         >
-    
-
-          {/* Cards de estatística */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 3, mb: 5 }}>
+          {/* Cards */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
             <InfoCard
-              titulo="Total de Usuários"
+              titulo="Total Compradores"
               valor={totalCompradores}
-              
               icone={<PersonIcon />}
               corFundo="#e3f2fd"
               corIcone="#1976d2"
             />
             <InfoCard
-              titulo="Usuários Ativos"
+              titulo="Já Cadastrados"
               valor={cadastrados}
-             
               icone={<PersonIcon />}
               corFundo="#e8f5e8"
               corIcone="#2e7d32"
@@ -243,113 +240,192 @@ export default function Dashboard() {
             <InfoCard
               titulo="Pendentes"
               valor={naoCadastrados}
-             
               icone={<PersonIcon />}
               corFundo="#fff3e0"
               corIcone="#ed6c02"
             />
           </Box>
 
-          {/* Área de busca e filtros */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4, alignItems: 'center' }}>
+          {/* Filtros */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: 2,
+              mb: 4,
+              alignItems: 'center'
+            }}
+          >
             <TextField
-              placeholder="Buscar por nome ou e-mail..."
+              placeholder="Buscar por nome ou e-mail"
+              fullWidth
               size="small"
-              sx={{ flexGrow: 1, maxWidth: { xs: '100%', sm: 400 } }}
               value={search}
+              label="Buscar por nome ou e-mail"
               onChange={e => setSearch(e.target.value)}
             />
 
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
               <InputLabel>Status</InputLabel>
               <Select
                 value={filtroStatusCadastro}
                 label="Status"
-                onChange={e => setFiltroStatusCadastro(e.target.value as any)}
+                onChange={e => setFiltroStatusCadastro(e.target.value)}
               >
                 <MenuItem value="todos">Todos</MenuItem>
                 <MenuItem value="cadastrado">Ativo</MenuItem>
                 <MenuItem value="Inativo">Inativo</MenuItem>
+
                 <MenuItem value="naoCadastrado">Não Cadastrado</MenuItem>
               </Select>
             </FormControl>
 
-            <Button variant="outlined" onClick={() => {
-              setSearch('')
-              setFiltroStatusCadastro('todos')
-            }}>
+            <Button
+              variant="outlined"
+              sx={{ height: 40, textTransform: 'none' }}
+              onClick={() => {
+                setSearch('')
+                setFiltroStatusCadastro('todos')
+              }}
+            >
               Limpar
             </Button>
           </Box>
 
           {/* Tabela */}
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 10 }}>
-              <CircularProgress />
+            <Box textAlign="center" my={8}>
+              <CircularProgress color="primary" />
             </Box>
           ) : error ? (
-            <Alert severity="error" sx={{ my: 4 }}>
+            <Alert severity="error" sx={{ mb: 3 }}>
               {error}
             </Alert>
           ) : (
-            <Paper elevation={2} sx={{ overflowX: 'auto', borderRadius: 2 }}>
+            <Paper elevation={3} sx={{ overflowX: 'auto' }}>
               <Table sx={{ minWidth: 650 }}>
-                <TableHead sx={{ bgcolor: 'grey.100' }}>
-                  <TableRow>
-                    <TableCell padding="checkbox"><Checkbox /></TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Usuário</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Tipo</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Último Acesso</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>Ações</TableCell>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: 'grey.100' }}>
+                    <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>
+                      Transação
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '25%' }}>
+                      Nome
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '28%' }}>
+                      E-mail
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '17%' }}>
+                      Status
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 'bold',
+                        width: '15%',
+                        textAlign: 'center'
+                      }}
+                    >
+                      Ação
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredProfessores.map(prof => (
-                    <TableRow key={prof.transaction} hover>
-                      <TableCell padding="checkbox"><Checkbox /></TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: '#276678' }}>
-                            {prof.buyerName?.[0] || '?'}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2">{prof.buyerName}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {prof.buyerEmail || '—'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={prof.roles?.[0] || 'Professor'} 
-                          size="small" 
-                          variant="outlined" 
-                          color="primary" 
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={
-                            prof.jaCadastradoComoProfessor 
-                              ? (prof.ativo ? 'Ativo' : 'Inativo') 
-                              : 'Não cadastrado'
-                          }
-                          color={
-                            prof.jaCadastradoComoProfessor 
-                              ? (prof.ativo ? 'success' : 'error') 
-                              : 'warning'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>Há 2 horas</TableCell>
-                      <TableCell align="right">
-                        {/* Coloque aqui seus botões de ação */}
+                  {filteredProfessores.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                        <Typography color="text.secondary">
+                          Nenhum comprador encontrado com os filtros aplicados.
+                        </Typography>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredProfessores.map(prof => (
+                      <TableRow key={prof.transaction} hover>
+                        <TableCell
+                          sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                        >
+                          {prof.transaction}
+                        </TableCell>
+                        <TableCell
+                          sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                        >
+                          {prof.buyerName}
+                        </TableCell>
+                        <TableCell
+                          sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                        >
+                          {prof.buyerEmail || '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={
+                              prof.jaCadastradoComoProfessor
+                                ? prof.ativo
+                                  ? 'Ativo'
+                                  : 'Inativo'
+                                : 'Não cadastrado'
+                            }
+                            color={
+                              !prof.jaCadastradoComoProfessor
+                                ? 'warning'
+                                : prof.ativo
+                                  ? 'success'
+                                  : 'error'
+                            }
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          {prof.jaCadastradoComoProfessor ? (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="primary"
+                              sx={{ minWidth: 110 }}
+                              onClick={() => {
+                                setSelectedProfessor(prof) // ← guarda o professor selecionado
+                                setInitialData({
+                                  idUsuario: prof.professorId,
+                                  nome: prof.buyerName,
+                                  email: prof.buyerEmail || '',
+                                  telefone: prof.telefone, // ou busque se tiver
+                                  perfil: prof.roles[0], // valor padrão ou mapeie de roles
+                                  ativo: prof.ativo,
+                                  idNivelEnsino: mapNivelToId(prof.nivelEnsino),
+                                  isEmbaixadora: prof.isEmbaixadora
+                                })
+                                setOpenModal(true)
+                              }}
+                            >
+                              Ver Perfil
+                            </Button>
+                          ) : (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              sx={{ bgcolor: '#276678', minWidth: 110 }}
+                              onClick={() =>
+                                cadastrarProfessor(
+                                  prof.buyerEmail!,
+                                  prof.buyerName
+                                )
+                              }
+                              disabled={
+                                cadastrandoEmail === prof.buyerEmail ||
+                                !prof.buyerEmail
+                              }
+                            >
+                              {cadastrandoEmail === prof.buyerEmail ? (
+                                <CircularProgress size={20} color="inherit" />
+                              ) : (
+                                'Cadastrar'
+                              )}
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </Paper>
@@ -357,22 +433,32 @@ export default function Dashboard() {
         </Box>
       </Box>
 
-      {/* Componentes de feedback */}
+      {/* Snackbar de feedback */}
       <Snackbar
         open={snackOpen}
-        autoHideDuration={5000}
+        autoHideDuration={6000}
         onClose={() => setSnackOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity={snackSeverity} onClose={() => setSnackOpen(false)}>
+        <Alert
+          onClose={() => setSnackOpen(false)}
+          severity={snackSeverity}
+          sx={{ width: '100%' }}
+        >
           {snackMessage}
         </Alert>
       </Snackbar>
 
-      <Modal open={openModal} onClose={() => setOpenModal(false)}>
+      {/* Modal de Edição */}
+      <Modal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        aria-labelledby="modal-edit-perfil"
+      >
         <ProfileUserAppEdit
           open={openModal}
           onClose={() => setOpenModal(false)}
+          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
           userId={selectedProfessor?.professorId!}
           initialData={initialData}
         />
