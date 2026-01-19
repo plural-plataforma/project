@@ -28,9 +28,9 @@ namespace api.Models;
     public string Icone { get; set; } // Ícone (ex.: nome de arquivo ou classe CSS)
 
     // Campo virtual para quantidade de atividades (assumindo relação com Atividade)
-   // public virtual ICollection<Atividade> Atividades { get; set; } // Relação 1:N com Atividade (crie o model Atividade se não existir)
+    public virtual ICollection<Atividade> Atividades { get; set; } // Relação 1:N com Atividade (crie o model Atividade se não existir)
 
     // Propriedade computada (virtual ou via query)
-  //  public int QuantidadeAtividades => Atividades?.Count ?? 0; // Conta atividades relacionadas (virtual, não armazenado no BD)
+    public int QuantidadeAtividades => Atividades?.Count ?? 0; // Conta atividades relacionadas (virtual, não armazenado no BD)
 }
 

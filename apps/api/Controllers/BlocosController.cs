@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.EntityFrameworkCore;
+using api.DTOs.Bloco;
 
 [Route("api/[controller]")]
     [ApiController]
@@ -62,42 +63,59 @@ using Microsoft.EntityFrameworkCore;
             return Ok(new { Total = total, Blocos = blocos });
         }
 
-        // Criar
-        [HttpPost]
-        public async Task<IActionResult> CreateBloco([FromBody] Bloco bloco)
+    // Criar
+    [HttpPost]
+    public async Task<IActionResult> CreateBloco([FromBody] BlocoCreateDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var bloco = new Bloco
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            Titulo = dto.Titulo,
+            Ordem = dto.Ordem,
+            Observacao = dto.Observacao,
+            Status = dto.Status,
+            Icone = dto.Icone,
 
-            _context.Blocos.Add(bloco);
-            await _context.SaveChangesAsync();
+        };
 
-            return CreatedAtAction(nameof(GetBlocoById), new { id = bloco.Id }, bloco);
-        }
+        _context.Blocos.Add(bloco);
+        await _context.SaveChangesAsync();
 
-        // Editar
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBloco(int id, [FromBody] Bloco bloco)
-        {
-            if (id != bloco.Id) return BadRequest();
+        // Retorna o bloco criado (você pode usar um DTO de saída se quiser)
+        return CreatedAtAction(nameof(GetBlocoById), new { id = bloco.Id }, bloco);
+    }
 
-            var existing = await _context.Blocos.FindAsync(id);
-            if (existing == null) return NotFound();
+    // Editar
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateBloco(int id, [FromBody] BlocoUpdateDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-            // Atualize campos (exclua ID e datas automáticas se necessário)
-            existing.Titulo = bloco.Titulo;
-            existing.Ordem = bloco.Ordem;
-            existing.Observacao = bloco.Observacao;
-            existing.Status = bloco.Status;
-            existing.Icone = bloco.Icone;
-            existing.UpdatedAt = DateTime.UtcNow;
+        var bloco = await _context.Blocos.FindAsync(id);
+        if (bloco == null)
+            return NotFound();
 
-            await _context.SaveChangesAsync();
+        // Atualiza apenas os campos permitidos
+        bloco.Titulo = dto.Titulo;
+        bloco.Ordem = dto.Ordem;
+        bloco.Observacao = dto.Observacao;
+        bloco.Status = dto.Status;
+        bloco.Icone = dto.Icone;
+        bloco.UpdatedAt = DateTime.UtcNow;
 
-            return NoContent();
-        }
+        // Importante: NÃO tocamos na coleção Atividades aqui
+        // Ela só deve ser modificada pelos endpoints próprios de Atividades
 
-        // Excluir (soft delete - marca como inativo)
-        [HttpDelete("{id}")]
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // Excluir (soft delete - marca como inativo)
+    [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBloco(int id)
         {
             var bloco = await _context.Blocos.FindAsync(id);
