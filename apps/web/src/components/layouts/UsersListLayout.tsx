@@ -1,151 +1,221 @@
+// components/layouts/UsersListLayout.tsx
 import {
   Box,
   Paper,
+  Typography,
   Button,
-  TextField,
-  Select,
-  MenuItem,
   Table,
   TableHead,
   TableBody,
   TableRow,
   TableCell,
+  Checkbox,
+  Avatar,
+  Chip,
+  IconButton,
+  TablePagination,
+  Stack,
   CircularProgress,
   Alert,
-  FormControl,
-  InputLabel,
-  Chip
-} from '@mui/material'
-import PersonIcon from '@mui/icons-material/Person'
-import InfoCard from '../InfoCard'
+} from '@mui/material';
+import {
+  Download as DownloadIcon,
+  Add as AddIcon,
+  MoreVert as MoreVertIcon,
+} from '@mui/icons-material';
+import { useEffect, useState } from 'react';
 
 interface Professor {
-  transaction: string
-  buyerName: string
-  buyerEmail?: string
-  jaCadastradoComoProfessor?: boolean
-  professorId: number
-  nivelEnsino: string
-  ativo: boolean
-  roles: string[]
-  telefone: number
-  perfil: string
-  isEmbaixadora: boolean
+  transaction: string;
+  buyerName: string;
+  buyerEmail?: string;
+  jaCadastradoComoProfessor?: boolean;
+  professorId: number;
+  nivelEnsino: string;
+  ativo: boolean;
+  roles: string[];
+  telefone: number;
+  perfil: string;
+  isEmbaixadora: boolean;
 }
 
 interface Props {
-  professores: Professor[]
-  filteredProfessores: Professor[]
-  loading: boolean
-  error: string | null
-  search: string
-  filtroStatusCadastro: string
-  setSearch: (v: string) => void
-  setFiltroStatusCadastro: (v: any) => void
-  totalCompradores: number
-  cadastrados: number
-  naoCadastrados: number
-  cadastrandoEmail: string | null
-  onCadastrar: (email: string, nome: string) => void
-  onVerPerfil: (prof: Professor) => void
+  filteredProfessores: Professor[];
+  loading: boolean;
+  error: string | null;
+  onCadastrar?: (email: string, nome: string) => void;
+  onExportar?: () => void;
+  onVerPerfil: (prof: Professor) => void;
+  onMaisAcoes?: (prof: Professor) => void;
 }
+
 
 export function UsersListLayout({
   filteredProfessores,
   loading,
   error,
-  search,
-  filtroStatusCadastro,
-  setSearch,
-  setFiltroStatusCadastro,
-  totalCompradores,
-  cadastrados,
-  naoCadastrados,
-  cadastrandoEmail,
   onCadastrar,
-  onVerPerfil
+  onExportar,
+  onVerPerfil,
+  onMaisAcoes,
 }: Props) {
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Resetar página para 0 TODA VEZ que filteredProfessores mudar (força re-render completo)
+  useEffect(() => {
+    setPage(0);
+    console.log('[DEBUG] Página resetada para 0. Filtro mudou. Total filtrado:', filteredProfessores.length);
+  }, [filteredProfessores]); // Dependência direta no array (React detecta mudanças profundas)
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const displayedUsers = filteredProfessores.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
   return (
-    <>
-      {/* Cards */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
-        <InfoCard
-          titulo="Total Compradores"
-          valor={totalCompradores}
-          icone={<PersonIcon />}
-          corFundo="#e3f2fd"
-          corIcone="#1976d2"
-        />
-        <InfoCard
-          titulo="Já Cadastrados"
-          valor={cadastrados}
-          icone={<PersonIcon />}
-          corFundo="#e8f5e8"
-          corIcone="#2e7d32"
-        />
-        <InfoCard
-          titulo="Pendentes"
-          valor={naoCadastrados}
-          icone={<PersonIcon />}
-          corFundo="#fff3e0"
-          corIcone="#ed6c02"
-        />
-      </Box>
-
-      {/* Filtros */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
-        <TextField
-          fullWidth
-          size="small"
-          label="Buscar por nome ou e-mail"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={filtroStatusCadastro}
-            label="Status"
-            onChange={e => setFiltroStatusCadastro(e.target.value)}
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: '12px',
+        border: '1px solid rgba(39, 102, 120, 0.42)',
+        overflow: 'hidden',
+        bgcolor: '#fff',
+        mt: 4,
+      }}
+    >
+      {/* Cabeçalho */}
+      <Box
+        sx={{
+          p: 3,
+          borderBottom: '1px solid #e5e7eb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
+        <Box>
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            color="#276678"
+            sx={{ letterSpacing: '-0.5px' }}
           >
-            <MenuItem value="todos">Todos</MenuItem>
-            <MenuItem value="cadastrado">Ativo</MenuItem>
-            <MenuItem value="Inativo">Inativo</MenuItem>
-            <MenuItem value="naoCadastrado">Não Cadastrado</MenuItem>
-          </Select>
-        </FormControl>
+            Lista de Usuários
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Gerencie e monitore todos os usuários cadastrados
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={onExportar}
+            sx={{
+              borderColor: 'rgba(39, 102, 120, 0.42)',
+              color: '#276678',
+              textTransform: 'none',
+            }}
+          >
+            Exportar
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={onCadastrar}
+            sx={{
+              bgcolor: '#276678',
+              '&:hover': { bgcolor: '#1e4d5c' },
+              textTransform: 'none',
+            }}
+          >
+            Novo Usuário
+          </Button>
+        </Stack>
       </Box>
 
-      {/* Tabela */}
+      {/* Conteúdo */}
       {loading ? (
-        <Box textAlign="center" my={8}>
+        <Box sx={{ py: 10, textAlign: 'center' }}>
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error" sx={{ m: 4 }}>
+          {error}
+        </Alert>
+      ) : filteredProfessores.length === 0 ? (
+        <Alert severity="info" sx={{ m: 4 }}>
+          Nenhum usuário encontrado com os filtros aplicados.
+        </Alert>
       ) : (
-        <Paper elevation={3}>
+        <>
           <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: 'grey.100' }}>
-                <TableCell>Transação</TableCell>
-                <TableCell>Nome</TableCell>
-                <TableCell>E-mail</TableCell>
+              <TableRow sx={{ bgcolor: '#f9fafb' }}>
+                <TableCell padding="checkbox">
+                  <Checkbox color="primary" />
+                </TableCell>
+                <TableCell>Usuário</TableCell>
+                <TableCell>Tipo</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell align="center">Ação</TableCell>
+                <TableCell>Último Acesso</TableCell>
+                <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {filteredProfessores.map(prof => (
-                <TableRow key={prof.transaction} hover>
-                  <TableCell>{prof.transaction}</TableCell>
-                  <TableCell>{prof.buyerName}</TableCell>
-                  <TableCell>{prof.buyerEmail || '—'}</TableCell>
+              {displayedUsers.map((prof) => (
+                <TableRow key={prof.professorId} hover>
+                  <TableCell padding="checkbox">
+                    <Checkbox color="primary" />
+                  </TableCell>
+
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Avatar
+                        src={prof.fotoPerfil}
+                        alt={prof.buyerName}
+                        sx={{ width: 40, height: 40 }}
+                      />
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          {prof.buyerName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {prof.buyerEmail || '—'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </TableCell>
+
                   <TableCell>
                     <Chip
+                      label={prof.perfil || 'Professor'}
                       size="small"
+                      sx={{
+                        bgcolor: '#dbeafe',
+                        color: '#1d4ed8',
+                        fontWeight: 600,
+                      }}
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip
                       label={
                         prof.jaCadastradoComoProfessor
                           ? prof.ativo
@@ -153,40 +223,43 @@ export function UsersListLayout({
                             : 'Inativo'
                           : 'Não cadastrado'
                       }
+                      size="small"
                       color={
                         !prof.jaCadastradoComoProfessor
                           ? 'warning'
                           : prof.ativo
-                            ? 'success'
-                            : 'error'
+                          ? 'success'
+                          : 'error'
                       }
                     />
                   </TableCell>
 
-                  <TableCell align="center">
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      Há 2 horas {/* Substitua quando tiver campo real */}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell align="right">
                     {prof.jaCadastradoComoProfessor ? (
-                      <Button
+                      <IconButton
                         size="small"
-                        variant="contained"
                         onClick={() => onVerPerfil(prof)}
+                        sx={{ color: '#276678' }}
                       >
-                        Ver Perfil
-                      </Button>
+                        <MoreVertIcon />
+                      </IconButton>
                     ) : (
                       <Button
                         size="small"
-                        variant="contained"
-                        disabled={
-                          cadastrandoEmail === prof.buyerEmail ||
-                          !prof.buyerEmail
-                        }
+                        variant="outlined"
+                        color="success"
                         onClick={() =>
-                          onCadastrar(prof.buyerEmail!, prof.buyerName)
+                          prof.buyerEmail && onCadastrar?.(prof.buyerEmail, prof.buyerName)
                         }
+                        disabled={!prof.buyerEmail}
                       >
-                        {cadastrandoEmail === prof.buyerEmail
-                          ? '...'
-                          : 'Cadastrar'}
+                        Cadastrar
                       </Button>
                     )}
                   </TableCell>
@@ -194,8 +267,46 @@ export function UsersListLayout({
               ))}
             </TableBody>
           </Table>
-        </Paper>
+
+          {/* Paginação */}
+          <Box
+            sx={{
+              p: 3,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderTop: '1px solid rgba(39, 102, 120, 0.42)',
+              flexWrap: 'wrap',
+              gap: 2,
+            }}
+          >
+            <Typography variant="body2" color="#276678">
+              Mostrando{' '}
+              <strong>
+                {filteredProfessores.length > 0 ? page * rowsPerPage + 1 : 0} a{' '}
+                {Math.min((page + 1) * rowsPerPage, filteredProfessores.length)}
+              </strong>{' '}
+              de <strong>{filteredProfessores.length}</strong> resultados
+            </Typography>
+
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={filteredProfessores.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Linhas por página:"
+              sx={{
+                '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+                  color: '#276678',
+                },
+              }}
+            />
+          </Box>
+        </>
       )}
-    </>
-  )
+    </Paper>
+  );
 }

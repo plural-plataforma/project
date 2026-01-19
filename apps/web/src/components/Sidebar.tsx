@@ -26,6 +26,7 @@ import {
   MoreVert as MoreVertIcon
 } from '@mui/icons-material'
 import logoPlural from '../../../../packages/ui/assets/images/logo-plural-plataforma.png'
+import { ChartDonut } from '@phosphor-icons/react'
 
 // Largura fixa do sidebar (padrão comum)
 const drawerWidth = 277
@@ -35,7 +36,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Dashboard', icon: <ChartDonut size={20} weight="bold" />, path: '/dashboard' },
     { text: 'Usuários', icon: <PeopleIcon />, path: '/usuarios' }
   ]
 
@@ -78,8 +79,6 @@ export default function Sidebar() {
           display: 'flex',
           alignItems: 'center',
           px: 10,
-          borderBottom: '1px solid',
-          borderColor: 'grey.200'
         }}
       >
         <Box
@@ -101,15 +100,17 @@ export default function Sidebar() {
                   borderRadius: 1.5,
                   mx: 1,
                   mb: 0.5,
+                  color: '#276678',
                   '&.Mui-selected': {
-                    bgcolor: alpha('#276678', 0.12),
-                    color: '#276678',
-                    '&:hover': { bgcolor: alpha('#276678', 0.18) }
+                    '&.Mui-selected': {
+                      bgcolor: '#276678',
+                      color: '#FFFFFF'
+                    }
                   }
                 }}
               >
                 <ListItemIcon
-                  sx={{ color: isActive(item.path) ? '#276678' : 'inherit' }}
+                  sx={{ color: isActive(item.path) ? '#ffffff' : '#276678' }}
                 >
                   {item.icon}
                 </ListItemIcon>
@@ -119,12 +120,10 @@ export default function Sidebar() {
           ))}
         </List>
 
-        <Divider sx={{ my: 2, mx: 2 }} />
-
         {/* Grupo Cadastros */}
         <Typography
           variant="subtitle2"
-          color="text.secondary"
+          color='#9CA3AF'
           sx={{ px: 3, mb: 1, fontWeight: 600 }}
         >
           Cadastros
@@ -140,25 +139,28 @@ export default function Sidebar() {
                   borderRadius: 1.5,
                   mx: 1,
                   mb: 0.5,
+                  color: '#276678',
                   '&.Mui-selected': {
-                    bgcolor: alpha('#276678', 0.12),
-                    color: '#276678'
+                    '&.Mui-selected': {
+                      bgcolor: '#276678',
+                      color: '#FFFFFF'
+                    }
                   }
                 }}
               >
-                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemIcon
+                  sx={{ color: isActive(item.path) ? '#ffffff' : '#276678' }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
             </ListItem>
           ))}
         </List>
 
-        <Divider sx={{ my: 2, mx: 2 }} />
-
         {/* Grupo Sistema */}
         <Typography
           variant="subtitle2"
-          color="text.secondary"
+          color='#9CA3AF'
+          gap='8px'
           sx={{ px: 3, mb: 1, fontWeight: 600 }}
         >
           Sistema
@@ -174,13 +176,17 @@ export default function Sidebar() {
                   borderRadius: 1.5,
                   mx: 1,
                   mb: 0.5,
+                  color: '#276678',
                   '&.Mui-selected': {
-                    bgcolor: alpha('#276678', 0.12),
-                    color: '#276678'
+                    '&.Mui-selected': {
+                      bgcolor: '#276678',
+                      color: '#FFFFFF'
+                    }
                   }
                 }}
               >
-                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemIcon
+                  sx={{ color: isActive(item.path) ? '#ffffff' : '#276678' }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
             </ListItem>

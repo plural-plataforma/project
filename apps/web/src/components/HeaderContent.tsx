@@ -1,10 +1,8 @@
-// components/HeaderContent.tsx
 import { Box, Typography, InputBase, alpha, IconButton } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import { useLocation } from 'react-router-dom'
 
-// Mapeamento de títulos e descrições por rota
 const pageInfo: Record<string, { title: string; description: string }> = {
   '/dashboard': {
     title: 'Dashboard Administrativo',
@@ -26,7 +24,6 @@ const pageInfo: Record<string, { title: string; description: string }> = {
     title: 'Gerenciamento do Banco de Atividades',
     description: 'Gerencie todos os bancos de atividades do sistema'
   }
-  // Adicione outras rotas conforme necessário
 }
 
 export default function HeaderContent() {
@@ -37,120 +34,93 @@ export default function HeaderContent() {
     description: 'Gerencie sua plataforma educacional'
   }
 
-  const handleNotificationsClick = () => {
-    console.log('Notificações clicadas')
-    // Aqui você pode abrir um menu de notificações, modal, etc.
-  }
-
   return (
     <Box
       sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         width: '100%',
-        maxWidth: 1184,
-        maxHeight: 84,
-        // mx: 'auto',
-        px: { xs: 2, lg: 0 },
-        pb: 4,
-        py: 3,
-        gap: 2
+        borderBottom: '0 solid #E5E7EB'
       }}
     >
-      {/* Esquerda: Título + Descrição */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          variant="h5"
-          sx={{
-            color: '#276678',
-            fontWeight: 700,
-            letterSpacing: '-0.5px',
-            lineHeight: 1.2,
-            mb: 0.5
-          }}
-        >
-          {currentPage.title}
-        </Typography>
-
-        <Typography
-          variant="body2"
-          sx={{
-            color: '#6B7280',
-            display: { xs: 'none', md: 'block' }
-          }}
-        >
-          {currentPage.description}
-        </Typography>
-      </Box>
-
-      {/* Direita: Busca + Notificações */}
+      {/* Container interno */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 2
+          //maxWidth: 1184,
+          mx: 'auto',
+          px: '32px',     // ✅ padding lateral do Figma
+          py: '16px',     // ✅ padding vertical do Figma
+          gap: '16px'
         }}
       >
-        {/* Campo de busca */}
-        <Box
-          sx={{
-            position: 'relative',
-            width: { xs: 180, sm: 240, md: 320, lg: 380 }
-          }}
-        >
-          <InputBase
-            placeholder="Buscar..."
-            fullWidth
+        {/* Esquerda */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography
             sx={{
-              height: 42,
-              pl: 5,
-              pr: 2,
-              bgcolor: 'white',
-              border: '1px solid',
-              borderColor: alpha('#276678', 0.3),
-              borderRadius: '8px',
-              fontSize: 15,
-              transition: 'all 0.2s',
-              '&:hover': {
-                borderColor: alpha('#276678', 0.6),
-                boxShadow: '0 0 0 3px rgba(39, 102, 120, 0.08)'
-              },
-              '&.Mui-focused': {
-                borderColor: '#276678',
-                boxShadow: '0 0 0 3px rgba(39, 102, 120, 0.15)'
-              },
-              '& input::placeholder': {
-                color: '#9CA3AF',
-                opacity: 1
-              }
+              color: '#276678',
+              fontSize: 20,
+              fontWeight: 700,
+              lineHeight: '24px'
             }}
-            startAdornment={
-              <SearchIcon
-                sx={{
-                  position: 'absolute',
-                  left: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#276678',
-                  fontSize: 20
-                }}
-              />
-            }
-          />
+          >
+            {currentPage.title}
+          </Typography>
+
+          <Typography
+            sx={{
+              color: '#6B7280',
+              fontWeight: 400,
+              fontSize: 14,
+              lineHeight: '20px'
+            }}
+          >
+            {currentPage.description}
+          </Typography>
         </Box>
 
-        {/* Botão de notificações */}
-        <IconButton
-          onClick={handleNotificationsClick}
-          size="medium"
+        {/* Direita */}
+        <Box
           sx={{
-            color: '#9CA3AF',
-            '&:hover': { color: '#276678', bgcolor: alpha('#276678', 0.08) }
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            flexShrink: 0
           }}
         >
-          <NotificationsIcon />
-        </IconButton>
+          {/* Busca */}
+          <Box sx={{ position: 'relative', width: 320 }}>
+            <InputBase
+              placeholder="Buscar..."
+              fullWidth
+              sx={{
+                height: 40,
+                pl: 5,
+                pr: 2,
+                border: '1px solid #2766786B',
+                borderRadius: '8px',
+                fontSize: 14,
+                bgcolor: '#FFF'
+              }}
+              startAdornment={
+                <SearchIcon
+                  sx={{
+                    position: 'absolute',
+                    left: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: 20,
+                    color: '#64748B'
+                  }}
+                />
+              }
+            />
+          </Box>
+
+          {/* Sino */}
+          <IconButton>
+            <NotificationsIcon sx={{ color: '#9CA3AF' }} />
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   )
