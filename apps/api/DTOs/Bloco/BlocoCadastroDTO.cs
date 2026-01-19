@@ -7,7 +7,7 @@ namespace api.DTOs.Bloco
         [Required, MaxLength(100)]
         public string? Titulo { get; set; } = string.Empty;
 
-        public int? Ordem { get; set; }
+        public int Ordem { get; set; }
         public string? Observacao { get; set; }
         public string? Icone { get; set; }
     }
