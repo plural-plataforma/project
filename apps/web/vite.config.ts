@@ -1,17 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import * as dotenv from 'dotenv'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-// Necessário para ESModules
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-// Carregar o .env que está um nível acima
-dotenv.config({
-  path: path.join(__dirname, '..','..', '.env')
-})
 
 export default defineConfig({
   plugins: [react()],
