@@ -1,6 +1,7 @@
 {
   "name": "plural-plataforma",
   "private": true,
+  "packageManager": "npm@10.8.3",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "turbo run dev --parallel",
