@@ -17,6 +17,8 @@ import ChangePassword from './pages/User/ChangePassword'
 import ProtectedRoutes from './components/ProtectedRoutes'
 import AdminLayout from './components/layouts/AdminLayout'
 import UsuariosPage from './pages/UserApp/UsuariosPage'
+import DashboardBlocos from './pages/Blocos/DashboardBlocos'
+import CadastroBloco from './pages/Blocos/CadastrosBloco'
 
 function App() {
   return (
@@ -39,7 +41,14 @@ function App() {
             <Route path="/usuarios" element={<UsuariosPage />} />
             <Route
               path="/blocos"
-              element={<div>Blocos de Avaliação (em breve)</div>}
+              element={<DashboardBlocos />}
+            />
+            <Route path="/blocos/novo" element={<CadastroBloco />} />           {/* create */}
+            <Route path="/blocos/:id/:action?" element={<CadastroBloco />} />    {/* edit */}
+            <Route path="/blocos/:id" element={<CadastroBloco />} />           {/* view */}
+            <Route
+              path="/blocos/novo"
+              element={<CadastroBloco />}
             />
             <Route
               path="/atividades"

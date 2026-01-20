@@ -46,7 +46,7 @@ export default function SearchFilterBar<TStatus extends string>({
         height: 98,
         display: 'flex',
         alignItems: 'center',
-        px: { xs: 2, md: 4 },
+        px: { xs: 2, md: 0 },
         bgcolor: 'grey.50',
       }}
     >
@@ -61,7 +61,7 @@ export default function SearchFilterBar<TStatus extends string>({
           bgcolor: '#FFFFFF',
           p: 2,
           borderRadius: '12px',
-          border: '1px solid #E5E7EB',
+          border: '1px solid rgba(39, 102, 120, 0.42)',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}
       >

@@ -1,29 +1,28 @@
 // components/layouts/AdminLayout.tsx
-import { Box, AppBar, Toolbar } from '@mui/material'
-import { Outlet } from 'react-router-dom'
-import Sidebar from '../Sidebar'
-import HeaderContent from '../HeaderContent'
+import { Box, AppBar, Toolbar } from '@mui/material';
+import { Outlet } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import HeaderContent from '../HeaderContent';
 
-const drawerWidth = 277 // ← use exatamente o mesmo valor do Drawer
+const drawerWidth = 277;
 
 export default function AdminLayout() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
+      {/* Sidebar fixa */}
       <Sidebar />
 
-      {/* Área principal */}
+      {/* Área principal – cresce horizontal e verticalmente */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          // deslocamento exato = largura do drawer
-          // ml: { xs: 0, md: `${drawerWidth}px` },
-          // opcional: garante que não vaze
-          width: { md: `calc(100% - ${drawerWidth}px)` }
+          display: 'flex',
+          flexDirection: 'column',
+          width: { md: `calc(100% - ${drawerWidth}px)` },
         }}
       >
-        {/* Header fixo */}
+        {/* AppBar fixo no topo */}
         <AppBar
           position="fixed"
           elevation={1}
@@ -33,39 +32,50 @@ export default function AdminLayout() {
             bgcolor: 'white',
             borderBottom: '1px solid',
             borderColor: 'grey.200',
-            zIndex: theme => theme.zIndex.drawer + 1
+            zIndex: (theme) => theme.zIndex.drawer + 1,
           }}
         >
           <Toolbar
+            disableGutters // remove padding padrão do Toolbar
             sx={{
-              minHeight: 0,
-              px: { xs: 0, lg: 0 }
+              minHeight: 76,     // defina explicitamente a altura real do header
+              px: { xs: 2, lg: 3 },
             }}
           >
             <HeaderContent />
           </Toolbar>
         </AppBar>
 
-        {/* Conteúdo da página */}
+        {/* Conteúdo da página – cresce para preencher o restante */}
         <Box
           sx={{
-            mt: '76px', // altura do header (ajuste se necessário)
-            p: { xs: 2, lg: 3 }, // padding pequeno e uniforme
+            flexGrow: 1,                      // ← faz crescer verticalmente
+            mt: '40px',                       // exatamente a altura do AppBar + Toolbar
+            display: 'flex',                  // permite que filhos usem flex
+            flexDirection: 'column',
             bgcolor: 'grey.50',
-            minHeight: 'calc(100vh - 88px)',
-            // Força remoção total de espaçamento à esquerda
-            marginLeft: 0,
-            paddingLeft: 0,
-            // Impede que filhos herdem ou adicionem margem esquerda
-            '& > *': {
-              marginLeft: 0,
-              paddingLeft: 0
-            }
+            overflow: 'hidden',               // evita scroll indesejado no layout
           }}
         >
-          <Outlet />
+          {/* Área com padding e scroll interno se necessário */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              overflowY: 'auto',              // scroll só aqui, se o conteúdo for longo
+              p: { xs: 2, sm: 3, lg: 4 },
+              // Remove qualquer margem/padding esquerda indesejada
+              ml: 0,
+              pl: 0,
+              '& > *': {
+                ml: 0,
+                pl: 0,
+              },
+            }}
+          >
+            <Outlet />  {/* Aqui o CadastroBloco vai crescer */}
+          </Box>
         </Box>
       </Box>
     </Box>
-  )
+  );
 }
