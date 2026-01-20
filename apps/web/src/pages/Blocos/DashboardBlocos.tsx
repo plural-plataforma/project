@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Box, Container, Typography } from '@mui/material';
 import StatsGrid, { StatCardData } from '../../components/StatsGrid';
 import SearchFilterBar from '../../components/SearchFilterBar';
@@ -28,12 +28,20 @@ export default function DashboardBlocos() {
     totalAtividades: 0,
   });
 
+const handleTotalChange = useCallback((total: number) => {
+    setStats(prev => {
+      // Só atualiza se o valor mudou (evita loop infinito)
+      if (prev.totalBlocos === total) return prev;
+      return { ...prev, totalBlocos: total };
+    });
+  }, []);
+
   // Cards de estatísticas
   const statCards: StatCardData[] = [
     {
       titulo: 'Total de Blocos',
       valor: stats.totalBlocos,
-      variacao: '+3 este mês', // ← Atualize com dados reais depois
+      variacao: '+3 este mês',
       icone: <School fontSize="large" />,
       corFundoIcone: 'rgba(39,102,120,0.08)',
       corIcone: '#276678',
@@ -64,11 +72,7 @@ export default function DashboardBlocos() {
   useEffect(() => {
     // Aqui você pode fazer fetch para /api/blocos/stats
     // Por enquanto usando valores mock
-    setStats({
-      totalBlocos: 24,
-      blocosAtivos: 21,
-      totalAtividades: 342,
-    });
+   
   }, []);
 
   return (
@@ -91,8 +95,9 @@ export default function DashboardBlocos() {
       {/* 3. Área da lista/tabela de blocos */}
       <Box sx={{ mt: 4 }}>
         <ListaBlocos 
-          search={search}                // ← passando os filtros
-          statusFilter={statusFilter}    // para a tabela filtrar os dados
+          search={search}              
+          statusFilter={statusFilter}
+          onTotalChange={handleTotalChange}
         />
       </Box>
     </Container>

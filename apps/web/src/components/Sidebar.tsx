@@ -26,7 +26,7 @@ import {
   MoreVert as MoreVertIcon
 } from '@mui/icons-material'
 import logoPlural from '../../../../packages/ui/assets/images/logo-plural-plataforma.png'
-import { ChartDonut } from '@phosphor-icons/react'
+import { ChartDonut, ClipboardText, Star, UsersThree } from '@phosphor-icons/react'
 
 // Largura fixa do sidebar (padrão comum)
 const drawerWidth = 277
@@ -37,16 +37,13 @@ export default function Sidebar() {
 
   const menuItems = [
     { text: 'Dashboard', icon: <ChartDonut size={20} weight="bold" />, path: '/dashboard' },
-    { text: 'Usuários', icon: <PeopleIcon />, path: '/usuarios' }
+    { text: 'Usuários', icon: <UsersThree size={20} weight="fill" />, path: '/usuarios' }
   ]
 
   const cadastrosGroup = [
-    { text: 'Habilidades', icon: <SchoolIcon />, path: '/skills' },
+    { text: 'Habilidades', icon: <Star size={20} weight="fill" />, path: '/skills' },
     { text: 'Blocos de Avaliação', icon: <AssessmentIcon />, path: '/blocos' },
-    {
-      text: 'Banco de Atividades',
-      icon: <LibraryBooksIcon />,
-      path: '/atividades'
+    { text: 'Banco de Atividades', icon: <ClipboardText size={20} weight="fill" />, path: '/atividades'
     }
   ]
 

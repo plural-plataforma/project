@@ -43,6 +43,9 @@ function App() {
               path="/blocos"
               element={<DashboardBlocos />}
             />
+            <Route path="/blocos/novo" element={<CadastroBloco />} />           {/* create */}
+            <Route path="/blocos/:id/:action?" element={<CadastroBloco />} />    {/* edit */}
+            <Route path="/blocos/:id" element={<CadastroBloco />} />           {/* view */}
             <Route
               path="/blocos/novo"
               element={<CadastroBloco />}
