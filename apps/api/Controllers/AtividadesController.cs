@@ -28,12 +28,29 @@ namespace api.Controllers
             var response = await _service.GetAtividadePorId(id);
             return response.Sucesso ? Ok(response) : NotFound(response);
         }
-
         [HttpPost]
-        public async Task<IActionResult> Create([FromForm] AtividadeCadastroDTO dto) // FromForm para upload de arquivo
+        public async Task<IActionResult> Create([FromForm] AtividadeCadastroDTO dto)
         {
             var response = await _service.Cadastro(dto);
-            return response.Sucesso ? CreatedAtAction(nameof(GetById), response) : BadRequest(response);
+
+            if (!response.Sucesso)
+            {
+                return BadRequest(response);
+            }
+
+            // Pega o ID da atividade criada
+            // Assumindo que T é Atividade ou um DTO com Id
+            if (response.Objeto == null || response.Objeto.Id <= 0)
+            {
+                // Caso raro: criado mas sem ID retornado → 201 sem Location
+                return StatusCode(201, response);
+            }
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = response.Objeto.Id },
+                response // retorna o objeto criado
+             );  
         }
 
         [HttpPut("{id}")]

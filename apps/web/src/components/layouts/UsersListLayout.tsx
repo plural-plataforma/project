@@ -65,7 +65,6 @@ export function UsersListLayout({
   // Resetar página para 0 TODA VEZ que filteredProfessores mudar (força re-render completo)
   useEffect(() => {
     setPage(0);
-    console.log('[DEBUG] Página resetada para 0. Filtro mudou. Total filtrado:', filteredProfessores.length);
   }, [filteredProfessores]); // Dependência direta no array (React detecta mudanças profundas)
 
   const handleChangePage = (event: unknown, newPage: number) => {

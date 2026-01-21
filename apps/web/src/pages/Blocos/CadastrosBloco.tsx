@@ -45,8 +45,6 @@ export default function CadastroBloco() {
 
   // Log temporário para debug (remova depois de testar)
   useEffect(() => {
-    console.log('Parâmetros da rota:', { id, action });
-    console.log('Modos detectados:', { isCreateMode, isEditMode, isViewMode });
   }, [id, action]);
 
   const [titulo, setTitulo] = useState('');
@@ -72,7 +70,6 @@ export default function CadastroBloco() {
 
       try {
         const bloco: Bloco = await blocosService.getBlocoById(blocoId);
-        console.log('Bloco carregado com sucesso:', bloco);
 
         setTitulo(bloco.titulo || '');
         setOrdem(bloco.ordem?.toString() || '');
@@ -120,11 +117,9 @@ export default function CadastroBloco() {
     if (isEditMode && blocoId) {
       // Atualiza o bloco existente
       const blocoAtualizado = await blocosService.updateBloco(blocoId, payload);
-      console.log('Bloco atualizado com sucesso:', blocoAtualizado);
       // Opcional: toast.success('Bloco atualizado!');
     } else if (isCreateMode) {
       const novoBloco = await blocosService.createBloco(payload);
-      console.log('Bloco criado:', novoBloco);
       // Opcional: toast.success('Bloco criado!');
     }
 

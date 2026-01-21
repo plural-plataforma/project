@@ -109,7 +109,6 @@ export default function SkillsEdit() {
 
   const handleChange = (field: keyof Habilidade, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    console.log(formData)
   }
 
   if (loading) {
@@ -145,9 +144,6 @@ export default function SkillsEdit() {
           flex: 1
         }}
       >
-        {/* Sidebar */}
-        <Sidebar activeRoute="/skills" onSignOut={signOut} />
-
         {/* Formulário */}
         <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>

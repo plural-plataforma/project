@@ -106,6 +106,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
 builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<AtividadeService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
