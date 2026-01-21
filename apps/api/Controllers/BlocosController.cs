@@ -51,7 +51,7 @@ using api.DTOs.Bloco;
                     b.UpdatedAt,
                     b.Status,
                     b.Icone,
-                   // QuantidadeAtividades = b.Atividades.Count() // Conta via query EF
+                    QuantidadeAtividades = b.Atividades.Count() // Conta via query EF
                 })
                 .OrderBy(b => b.Ordem) // Ordena por ordem
                 .Skip((page - 1) * pageSize)

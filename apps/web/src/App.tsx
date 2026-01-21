@@ -19,6 +19,8 @@ import AdminLayout from './components/layouts/AdminLayout'
 import UsuariosPage from './pages/UserApp/UsuariosPage'
 import DashboardBlocos from './pages/Blocos/DashboardBlocos'
 import CadastroBloco from './pages/Blocos/CadastrosBloco'
+import DashboardAtividades from './pages/Atividades/DashboardAtividades'
+import CadastroDeAtividade from './pages/Atividades/CadastroDeAtividade'
 
 function App() {
   return (
@@ -46,14 +48,11 @@ function App() {
             <Route path="/blocos/novo" element={<CadastroBloco />} />           {/* create */}
             <Route path="/blocos/:id/:action?" element={<CadastroBloco />} />    {/* edit */}
             <Route path="/blocos/:id" element={<CadastroBloco />} />           {/* view */}
-            <Route
-              path="/blocos/novo"
-              element={<CadastroBloco />}
-            />
-            <Route
-              path="/atividades"
-              element={<div>Banco de Atividades (em breve)</div>}
-            />
+            <Route path="/blocos/novo" element={<CadastroBloco />}/>
+            <Route path="/atividades" element={<DashboardAtividades />}/>
+            <Route path="/atividades/novo" element={<CadastroDeAtividade />}/>
+            <Route path="/atividades/:id/:action?" element={<CadastroDeAtividade />}/>
+
             <Route
               path="/configuracoes"
               element={<div>Configurações Gerais (em breve)</div>}

@@ -3,6 +3,29 @@ import api from '../api/http';
 import { Bloco, BlocoCreateInput, BlocosResponse, BlocosQueryParams } from '../types/blocos';
 
 export const blocosService = {
+ /**
+   * Lista TODOS os blocos ATIVOS (status = true), sem paginação pesada
+   * Ideal para selects e dropdowns no cadastro
+   */
+  getAllBlocosAtivos: async (): Promise<Bloco[]> => {
+    try {
+      // Usa os parâmetros de query para filtrar apenas ativos e pegar muitos itens
+      const params: BlocosQueryParams = {
+        page: 1,
+        pageSize: 1000,        // valor alto para pegar "todos" (ajuste se o backend limitar)
+        ativo: true,           // ← filtro principal: só ativos
+        // busca: undefined,   // sem busca para listar todos ativos
+      };
+
+      const response = await api.get<BlocosResponse>('/Blocos', { params });
+
+      return response.data.blocos || [];
+    } catch (error: any) {
+      console.error('Erro ao listar blocos ativos:', error);
+      throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos ativos.');
+    }
+  },
+ 
   /**
    * Busca lista paginada de blocos
    */
@@ -69,7 +92,6 @@ getBlocoById: async (id: number): Promise<Bloco> => {
     try {
       await api.delete(`/Blocos/${id}`);
       // Não retorna corpo no 200 OK, então só resolvemos a promise
-      console.log(`Bloco ${id} excluído com sucesso`);
     } catch (error: any) {
       console.error(`Falha ao excluir bloco ${id}:`, error);
 

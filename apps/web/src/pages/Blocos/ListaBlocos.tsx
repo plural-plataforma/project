@@ -71,8 +71,6 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
         ativo,
       };
 
-      console.log('Buscando com params:', params); // ← debug: veja se os filtros chegam
-
       const data = await blocosService.getBlocos(params);
       setBlocos(data.blocos);
       setTotal(data.total);

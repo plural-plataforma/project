@@ -12,13 +12,9 @@ namespace api.Services
     public class AtividadeService
     {
         private readonly AppDbContext _contexto;
-        private readonly IHttpClientFactory _httpClientFactory; // Para upload Imgur
-        private const string ImgurClientId = "SEU_CLIENT_ID_IMGUR"; // Coloque no appsettings.json
-
-        public AtividadeService(AppDbContext contexto, IHttpClientFactory httpClientFactory)
+        public AtividadeService(AppDbContext contexto)
         {
             _contexto = contexto;
-            _httpClientFactory = httpClientFactory;
         }
 
         // Listagem com paginação e filtros
@@ -142,11 +138,14 @@ namespace api.Services
                         Nivel = nivel,
                         EtapaMin = dto.EtapaMin.Trim(),
                         EtapaMax = dto.EtapaMax?.Trim(),
-                        Ativo = true
+                        Ativo = true,
+                        ImagemUrl = dto.ImagemUrl?.Trim(), 
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
                     };
 
-                    if (dto.Imagem != null)
-                        atividade.ImagemUrl = await UploadImagemParaImgur(dto.Imagem);
+                    if (dto.ImagemUrl != null)
+                        atividade.ImagemUrl = dto.ImagemUrl;
 
                     _contexto.Atividades.Add(atividade);
                     await _contexto.SaveChangesAsync();
@@ -214,8 +213,8 @@ namespace api.Services
                 if (dto.Ativo.HasValue)
                     atividade.Ativo = dto.Ativo.Value;
 
-                if (dto.Imagem != null)
-                    atividade.ImagemUrl = await UploadImagemParaImgur(dto.Imagem);
+                if (dto.ImagemUrl != null)
+                    atividade.ImagemUrl = dto.ImagemUrl.Trim();
 
                 atividade.UpdatedAt = DateTime.UtcNow;
 
@@ -309,37 +308,6 @@ namespace api.Services
                 resposta.SetFalha("Erro ao sincronizar habilidades: " + ex.Message);
                 return resposta;
             }
-        }
-
-        // Método privado para upload Imgur
-        private async Task<string?> UploadImagemParaImgur(IFormFile imagem)
-        {
-            if (imagem == null || imagem.Length == 0) return null;
-
-            var client = _httpClientFactory.CreateClient();
-            using var content = new MultipartFormDataContent();
-            using var stream = imagem.OpenReadStream();
-            var fileContent = new StreamContent(stream);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(imagem.ContentType);
-            content.Add(fileContent, "image", imagem.FileName);
-
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Client-ID", ImgurClientId);
-
-            var response = await client.PostAsync("https://api.imgur.com/3/image", content);
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            // Deserializa
-            var imgurResp = JsonSerializer.Deserialize<ImgurResponse>(json);
-
-            if (imgurResp?.Success == true && !string.IsNullOrEmpty(imgurResp.Data?.Link))
-            {
-                return imgurResp.Data.Link;  // Retorna https://i.imgur.com/xxxxxx.png
-            }
-
-            // Log ou throw se falhar
-            throw new Exception("Falha no upload para Imgur: " + json);
         }
     }
 }

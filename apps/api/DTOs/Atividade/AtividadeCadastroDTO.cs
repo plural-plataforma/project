@@ -4,6 +4,8 @@ namespace api.DTOs.Atividade
 {
     public class AtividadeCadastroDTO
     {
+        public int Id { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string Titulo { get; set; } = string.Empty;
@@ -23,7 +25,7 @@ namespace api.DTOs.Atividade
         [MaxLength(10)]
         public string? EtapaMax { get; set; }
 
-        public IFormFile? Imagem { get; set; } // Para upload (não URL direta)
+        public string? ImagemUrl { get; set; } 
 
         public List<int>? HabilidadeIds { get; set; } // Para sync no create
     }

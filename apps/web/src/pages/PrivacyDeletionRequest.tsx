@@ -14,8 +14,7 @@ const DataDeletionRequest: React.FC = () => {
       setError('Nome e e-mail são obrigatórios.');
       return;
     }
-    // Aqui você integra com backend (ex: fetch para API ou e-mail via EmailJS/Node)
-    console.log({ name, email, accountId, reason });
+
     setSuccess(true);
     setError('');
     // Reset form
