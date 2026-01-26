@@ -38,25 +38,25 @@ using api.DTOs.Bloco;
                 query = query.Where(b => b.Status == ativo.Value);
             }
 
-            // Contar quantidade de atividades via query (alternativa ao virtual)
-            // Se usar isso, remova a prop virtual do model e use Select para projetar
-            var blocos = await query
-                .Select(b => new
-                {
-                    b.Id,
-                    b.Titulo,
-                    b.Ordem,
-                    b.Observacao,
-                    b.CreatedAt,
-                    b.UpdatedAt,
-                    b.Status,
-                    b.Icone,
-                    QuantidadeAtividades = b.Atividades.Count() // Conta via query EF
-                })
-                .OrderBy(b => b.Ordem) // Ordena por ordem
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+        // Contar quantidade de atividades via query (alternativa ao virtual)
+        // Se usar isso, remova a prop virtual do model e use Select para projetar
+        var blocos = await query
+            .Select(b => new
+            {
+                b.Id,
+                b.Titulo,
+                b.Ordem,
+                b.Observacao,
+                b.CreatedAt,
+                b.UpdatedAt,
+                b.Status,
+                b.Icone,
+               // QuantidadeAtividades = b.Atividades.Count() // Conta via query EF
+            })
+            .OrderBy(b => b.Ordem) // Ordena por ordem
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
             var total = await query.CountAsync();
 
