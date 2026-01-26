@@ -1,4 +1,4 @@
-import { colors, fontSizes } from '@packages/ui/theme/theme';
+import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import { Text, TextInput, View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity, Platform } from 'react-native';
 import { useState, useRef, useCallback } from 'react';
 import MaskInput, { Masks } from 'react-native-mask-input';

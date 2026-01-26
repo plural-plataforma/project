@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { ArrowLeft, CaretLeft } from 'phosphor-react-native'; // Ícone do phosphor
 import { useRouter } from 'expo-router'; // Para navegação automática
-import { colors, fontSizes } from '@packages/ui/theme/theme';
+import { colors, fontSizes } from '@/packages/ui/theme/theme';
 import ButtonBack from './ButtonBack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Para SafeArea automático se não passado
 
@@ -52,7 +52,7 @@ export default function Header({ title, onBack, fixed = false, insets: propInset
 
         {/* Logo */}
         <Image
-          source={require('@packages/ui/assets/images/logo-small.png')}
+          source={require('@/packages/ui/assets/images/logo-small.png')}
           style={[styles.groupIcon, styles.groupIconPosition]}
           resizeMode="contain"
         />

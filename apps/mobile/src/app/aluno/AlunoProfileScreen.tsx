@@ -2,7 +2,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform, Alert } from 'react-native';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { File, Paths } from 'expo-file-system';
-import { colors, fontSizes } from "@packages/ui/theme/theme";
+import { colors, fontSizes } from "@/packages/ui/theme/theme";
 import CustomButton from "@src/components/CustomButton";
 import Header from "@src/components/Header";
 import { fetchEstados, fetchMunicipios } from "@src/services/locationsService";

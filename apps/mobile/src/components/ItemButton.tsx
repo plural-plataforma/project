@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Trash } from 'phosphor-react-native';
-import { colors, fontSizes } from '@packages/ui/theme/theme';
+import { colors, fontSizes } from '@/packages/ui/theme/theme';
 
 interface ItemButtonProps {
     escola: string;

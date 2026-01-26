@@ -1,6 +1,5 @@
 ﻿using api.DTOs.Autenticacao;
 using api.Models;
-using api.Responses;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -74,30 +73,15 @@ namespace api.Services
             }
         }
 
-        public async Task<ServiceResponse<object>> Login(LoginDTO loginDto)
+        public async Task<object?> Login(LoginDTO loginDto)
         {
-            var resposta = new ServiceResponse<object>();
             var usuario = await _usuario.FindByEmailAsync(loginDto.Email);
-            if (usuario == null)
-            {
-                resposta.SetFalha("Email ou senha inválidos.");
-                return resposta;
-            }
-            ;
+            if (usuario == null) return null;
 
             if (!await _usuario.CheckPasswordAsync(usuario, loginDto.Senha))
-            {
-                resposta.SetFalha("Email ou senha inválidos.");
-                return resposta;
-            }
+                return null;
 
             bool deveAlterarSenha = usuario.DeveAlterarSenha;
-
-            if(!PermiteLogar(usuario))
-            {
-                resposta.SetFalha("Acesso bloqueado.");
-                return resposta;
-            }
 
             var claims = new List<Claim>
             {
@@ -123,16 +107,12 @@ namespace api.Services
             );
 
             string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-          
-            var retorno = new
+
+            return new
             {
                 token = tokenString,
                 precisaTrocarSenha = deveAlterarSenha
             };
-
-            resposta.Sucesso = true;
-            resposta.AdicionaObjeto(retorno);
-            return resposta;
         }
 
         public async Task<IdentityResult> AlterarSenha(AlterarSenhaDTO alterarSenhaDTO, ClaimsPrincipal usuarioController)
@@ -212,20 +192,6 @@ namespace api.Services
 
             return resposta;
 
-        }
-
-        private bool PermiteLogar (Usuario usuario)
-        {
-            if (!usuario.LockoutEnabled)
-                return true;
-
-            if (usuario.LockoutEnd == null)
-                return true;
-
-            if (usuario.LockoutEnd <= DateTimeOffset.UtcNow)
-                return true;
-
-            return false;
         }
     }
 }

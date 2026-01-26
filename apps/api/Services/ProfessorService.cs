@@ -345,8 +345,7 @@ namespace api.Services
                 {
                     p.ID,
                     p.NomeCompleto,
-                    p.NivelEnsino,
-                    p.Telefone
+                    p.NivelEnsino
                 })
                 .ToListAsync();
 
@@ -366,7 +365,6 @@ namespace api.Services
                         ProfessorId = professor.ID,
                         NomeCompleto = professor.NomeCompleto,
                         NivelEnsino = professor.NivelEnsino,
-                        Telefone = professor.Telefone,
                         Ativo = !usuario.LockoutEnd.HasValue || usuario.LockoutEnd <= DateTimeOffset.UtcNow,
                         Roles = roles ?? new List<string>()
                     };
