@@ -5,9 +5,9 @@ import {
   InputField,
   Logo,
   SignupLink
-} from '@packages/ui/components'
-import { colors, fontSizes } from '@packages/ui/theme/theme'
-import CustomButton from '@src/components/CustomButton'
+} from '@/packages/ui/components'
+import { colors, fontSizes } from '@/packages/ui/theme/theme'
+import CustomButton from '../../components/CustomButton'
 import { login as authLogin, register as authRegister } from '../../services/auth'
 import { LoginCredentials, RegisterCredentials } from '../../types/auth'
 import { useRouter } from 'expo-router'

@@ -6,7 +6,7 @@ import {
   TouchableOpacityProps,
   ActivityIndicator
 } from 'react-native'
-import { colors, fontSizes } from '@packages/ui/theme/theme'
+import { colors, fontSizes } from '@/packages/ui/theme/theme'
 import Icon from 'react-native-vector-icons/FontAwesome'
 
 interface CustomButtonProps extends TouchableOpacityProps {

@@ -1,5 +1,5 @@
 import Logo from "@src/components/Logo";
-import { colors } from "@packages/ui/theme/theme";
+import { colors } from "@/packages/ui/theme/theme";
 import { router } from "expo-router";
 import { CaretLeft } from "phosphor-react-native";
 import { StyleSheet,View, TouchableOpacity } from "react-native";

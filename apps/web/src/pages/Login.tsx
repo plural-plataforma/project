@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-import Visibility from '@mui/icons-material/Visibility'
-import VisibilityOff from '@mui/icons-material/VisibilityOff'
-const API_URL = import.meta.env.VITE_API_URL
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+const API_URL = import.meta.env.VITE_API_URL;
 
 import {
   Box,
@@ -19,92 +19,91 @@ import {
   InputLabel,
   OutlinedInput,
   InputAdornment,
-  IconButton
-} from '@mui/material'
-import React from 'react'
+  IconButton,
+} from "@mui/material";
+import React from "react";
 
 export default function Login() {
-  const [email, setEmail] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [rememberMe, setRememberMe] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
-  const navigate = useNavigate()
-  const [showPassword, setShowPassword] = React.useState(false)
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = React.useState(false);
 
-  const handleClickShowPassword = () => setShowPassword(show => !show)
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-  const handleMouseDownPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault()
-  }
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
 
-  const handleMouseUpPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault()
+  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
   }
   interface LoginResponse {
     token: {
-      token: string
-      precisaTrocarSenha: boolean
-    }
+      token: string;
+      precisaTrocarSenha: boolean;
+    };
   }
 
+
   const handleLogin = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     try {
+      console.log("API:", API_URL);
       const response = await axios.post<LoginResponse>(
         `${API_URL}/Autenticacao/login`,
         { email, senha: password },
         {
           headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
-          }
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
         }
-      )
+      );
 
-      const token = response.data.token.token
+      const token = response.data.token.token;
 
       if (!token) {
-        setError('Não foi possível obter o token. Tente novamente.')
-        return
+        setError("Não foi possível obter o token. Tente novamente.");
+        return;
       }
 
-      const tokenString = String(token)
+      const tokenString = String(token);
 
       if (rememberMe) {
-        localStorage.setItem('token', tokenString)
+        localStorage.setItem("token", tokenString);
       } else {
-        sessionStorage.setItem('token', tokenString)
+        sessionStorage.setItem("token", tokenString);
       }
 
-      navigate('/dashboard')
+      navigate("/dashboard");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         setError(
           (err.response?.data as string) ||
-            'Erro ao fazer login. Verifique suas credenciais.'
-        )
-        console.error(err.response?.data || err.message)
+          "Erro ao fazer login. Verifique suas credenciais."
+        );
+        console.error(err.response?.data || err.message);
       } else {
-        setError('Erro ao fazer login. Verifique suas credenciais.')
-        console.error(err)
+        setError("Erro ao fazer login. Verifique suas credenciais.");
+        console.error(err);
       }
     }
-  }
+  };
+
 
   return (
     <Box
       sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        bgcolor: 'grey.100'
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        bgcolor: "grey.100",
       }}
     >
       <Paper
@@ -112,22 +111,18 @@ export default function Login() {
         sx={{
           p: 4,
           borderRadius: 3,
-          width: 380
+          width: 380,
         }}
       >
         {/* Logo */}
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <Box sx={{ textAlign: "center", mb: 3 }}>
           <img
             src="/logo-plural-plataforma.png"
             alt="Plural Logo"
-            style={{
-              height: 80,
-              width: 'auto',
-              marginLeft: 'auto',
-              marginRight: 'auto'
-            }}
+            style={{ height: 80, width: "auto", marginLeft: "auto", marginRight: "auto" }}
           />
-          <Typography variant="h5" fontWeight="bold" mt={2}></Typography>
+          <Typography variant="h5" fontWeight="bold" mt={2}>
+          </Typography>
         </Box>
 
         {/* Formulário */}
@@ -136,7 +131,7 @@ export default function Login() {
             label="E-mail"
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             fullWidth
             margin="normal"
             required
@@ -150,9 +145,7 @@ export default function Login() {
                 <InputAdornment position="end">
                   <IconButton
                     aria-label={
-                      showPassword
-                        ? 'hide the password'
-                        : 'display the password'
+                      showPassword ? 'hide the password' : 'display the password'
                     }
                     onClick={handleClickShowPassword}
                     onMouseDown={handleMouseDownPassword}
@@ -165,7 +158,7 @@ export default function Login() {
               }
               label="Senha"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
           </FormControl>
@@ -174,7 +167,7 @@ export default function Login() {
             control={
               <Switch
                 checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 color="primary"
               />
             }
@@ -191,7 +184,7 @@ export default function Login() {
           <Button
             type="submit"
             variant="contained"
-            style={{ color: '#FFFF', backgroundColor: '#276678' }}
+            style={{ color: "#FFFF", backgroundColor: "#276678" }}
             fullWidth
             sx={{ mt: 3 }}
           >
@@ -219,5 +212,5 @@ export default function Login() {
         </Box>
       </Paper>
     </Box>
-  )
+  );
 }

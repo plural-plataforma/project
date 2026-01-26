@@ -1,0 +1,18 @@
+{
+  "extends": "expo/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "types": ["expo-sharing"],
+    "typeRoots": ["./node_modules/@types", "./node_modules/expo-sharing"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "apps/*"
+      ]
+    }
+  },
+  "include": [
+    "apps/**/*",
+    "packages/**/*"
+  ]
+}

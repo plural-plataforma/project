@@ -2,7 +2,7 @@ import { StyleSheet, TouchableOpacity, View, Image, Text } from "react-native"
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from "react";
 import { Camera } from "phosphor-react-native";
-import { colors } from "@packages/ui/theme/theme";
+import { colors } from "@/packages/ui/theme/theme";
 import { useCustomAlert, CustomAlert } from '../hooks/useCustomAlert';
 
 

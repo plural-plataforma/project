@@ -7,24 +7,26 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@/*": [
+        "../../*"
+      ],
       "@*": [
         "./*"
       ],
-      "@packages/ui/*": [
-        "../../packages/ui/*"
+      "packages/ui/components/*": [
+        "../../packages/ui/components/*"
       ],
       "app": [
         "apps/mobile/src/*"
       ],
-      "types/*": [
+      "-types": [
         "src/types/*"
       ]
     },
     "types": [
-      "node",
-       "react-native",
+      "react-native",
       "@types/react-native"
-    ] // ← Adicione isso aqui! (ou mantenha se já tiver)
+    ]
   },
   "include": [
     "**/*.ts",
@@ -32,8 +34,5 @@
     "src/types/expo.d.ts",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ],
-  "exclude": [
-    "node_modules"
   ]
 }

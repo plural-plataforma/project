@@ -1,4 +1,4 @@
-import { colors } from '@packages/ui/theme/theme'
+import { colors } from '@/packages/ui/theme/theme'
 import Header from '@src/components/Header'
 import InputField from '@src/components/InputField'
 import { buscarHabilidades } from '@src/services/habilidadeService'
