@@ -14,7 +14,7 @@ import { fetchEstados, fetchMunicipios } from '../../services/locationsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { buscarEscolas } from '../../services/escolasService';
 import Header from '../../components/Header';
-import { colors, fontSizes } from '@/packages/ui/theme/theme';
+import { colors, fontSizes } from '@packages/ui/theme/theme';
 import { Professor } from '@src/types/professor';
 import { Escola } from '@src/types/escolas';
 import {
@@ -24,7 +24,7 @@ import {
 } from '../../services/professorService';
 import { isCadastroCompleto } from '../../utils/professorUtils';
 import ProgressFill from '@src/components/ProgressFill';
-import { CheckboxWithLabel, InputField } from '@/packages/ui/components';
+import { CheckboxWithLabel, InputField } from '@packages/ui/components';
 import CustomButton from '@src/components/CustomButton';
 import SectionGroup from '@src/components/SectionGroup';
 import ItemButton from '@src/components/ItemButton';

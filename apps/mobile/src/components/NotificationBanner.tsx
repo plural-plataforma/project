@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
-import { colors, fontSizes } from '@/packages/ui/theme/theme'; // Ajuste o caminho conforme necessário
+import { colors, fontSizes } from '@packages/ui/theme/theme'; // Ajuste o caminho conforme necessário
 import { Warning } from 'phosphor-react-native';
 
 interface NotificationBannerProps {
