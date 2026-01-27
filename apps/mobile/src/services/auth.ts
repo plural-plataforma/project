@@ -9,7 +9,7 @@ import {
 } from '../types/auth';
 import Constants from 'expo-constants';
 
-const API_URL = Constants.expoConfig?.extra?.API_URL?.replace(/\/+$/, '') || 'http://localhost:5145/api/';
+const API_URL = Constants.expoConfig?.extra?.API_URL?.replace(/\/+$/, '');
 
 export const api = axios.create({
   baseURL: API_URL,

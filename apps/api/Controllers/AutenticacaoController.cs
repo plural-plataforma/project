@@ -44,13 +44,13 @@ namespace api.Controllers
         {
             if (ModelState.IsValid)
             {
-                var token = await _autenticacaoService.Login(login);
-                if (token == null)
+                var resposta = await _autenticacaoService.Login(login);
+                if (resposta.Mensagens.Count >0)
                 {
-                    return Unauthorized("Email ou senha inválidos");
+                    return Unauthorized(resposta.Mensagens.FirstOrDefault());
                 }
 
-                return Ok(new { Token = token });
+                return Ok(new { Token = resposta.Objeto});
             }
             else
             {
