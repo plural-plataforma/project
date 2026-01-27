@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, StyleSheet, View, Text, ActivityIndicator, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
-import { colors } from "@packages/ui/theme/theme";
+import { colors } from "@/packages/ui/theme/theme";
 import SelectButton from "@src/components/SelectButton";
 import { Eye, User } from "phosphor-react-native";
 import { buscarEscolasProfessor } from "@src/services/professorService";

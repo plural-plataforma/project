@@ -1,4 +1,4 @@
-import { colors, fontSizes } from "@packages/ui/theme/theme";
+import { colors, fontSizes } from "@/packages/ui/theme/theme";
 import { Dimensions, StyleSheet, View, Text } from "react-native";
 
 const { width } = Dimensions.get('window');

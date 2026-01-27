@@ -1,4 +1,4 @@
-import { colors } from '@packages/ui/theme/theme'
+import { colors } from '@/packages/ui/theme/theme'
 import { Tabs, useSegments } from 'expo-router'
 import {
   Calendar,

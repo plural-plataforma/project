@@ -1,7 +1,7 @@
 import React, { ReactNode, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CaretUp, CaretDown } from "phosphor-react-native";
-import { colors } from '@packages/ui/theme/theme';
+import { colors } from '@/packages/ui/theme/theme';
 
 interface SectionProps {
   title: string;

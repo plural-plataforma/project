@@ -19,6 +19,4 @@ public class Habilidade
     public bool Ativo { get; set; }
     public ICollection<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
 
-    public ICollection<Atividade> Atividades { get; set; }
-
 }

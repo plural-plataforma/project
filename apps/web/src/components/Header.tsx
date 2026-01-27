@@ -1,109 +1,66 @@
-import { Box, Typography, InputBase, alpha } from '@mui/material'
-import SearchIcon from '@mui/icons-material/Search'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppBar, Toolbar, Box, IconButton, Menu, MenuItem } from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
+import { SignOut } from "./SignOut";
 
 export default function Header() {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const signOut = SignOut();
+  const navigate = useNavigate();
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleChangePassword = () => {
+    navigate("/change-password");
+    handleMenuClose();
+  };
+
   return (
-    <Box
+    <AppBar
+      position="sticky"
       sx={{
-        border: '0px',
-        display: 'flex',
-        height: '96px',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        // width: '100%',
-        maxWidth: 1120,
-        //  height: 88,
-        px: { xs: 2, lg: 4 },
-        gap: { lg: '500.6px', md: 6, xs: 3 } // gap grande em desktop
+        bgcolor: "#FFFF",
+        zIndex: (theme) => theme.zIndex.drawer + 1, 
+        width: "100%",
       }}
     >
-      {/* Esquerda: Título + Descrição */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          // mt: '16px',
-          ml: { lg: '16px', xs: 0 },
-          minWidth: 0 // evita overflow
-        }}
-      >
-        <Typography
-          sx={{
-            color: '#276678',
-            fontFamily: '"Inter", "Helvetica", sans-serif',
-            fontWeight: 700,
-            fontSize: { lg: 24, md: 22, xs: 20 },
-            lineHeight: '32px',
-            letterSpacing: '-0.5px',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          Gerenciamento de Usuários
-        </Typography>
-
-        <Typography
-          sx={{
-            color: '#6B7280',
-            fontFamily: '"Inter", "Helvetica", sans-serif',
-            fontWeight: 400,
-            fontSize: 14,
-            lineHeight: '20px',
-            letterSpacing: '-0.5px',
-            whiteSpace: 'nowrap',
-            display: { xs: 'none', md: 'block' }
-          }}
-        >
-          Gerencie todos os usuários da plataforma Plural
-        </Typography>
-      </Box>
-
-      {/* Direita: Busca + Botão */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          mt: '22px',
-          flexShrink: 0
-        }}
-      >
-        {/* Campo de busca */}
-        <Box sx={{ position: 'relative', width: { xs: 240, sm: 256 } }}>
-          {/* Input */}
-          <InputBase
-            placeholder="Buscar..."
-            sx={{
-              width: '100%',
-              height: 42,
-              pl: '40px',
-              pr: 2,
-              bgcolor: 'white',
-              border: '1px solid',
-              borderColor: alpha('#276678', 0.42), // #2766786b ≈ 42% opacidade
-              borderRadius: '8px',
-              fontSize: 16,
-              color: '#276678',
-              '& input::placeholder': {
-                color: '#ADAEBc',
-                opacity: 1
-              }
-            }}
-            startAdornment={
-              <SearchIcon
-                sx={{
-                  position: 'absolute',
-                  left: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#276678',
-                  fontSize: 18
-                }}
-              />
-            }
-          />
+      <Toolbar sx={{ minHeight: 64, px: 2 }}>
+        <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center" }}>
+          <img src="/logo-plural-plataforma.png" alt="Plural Logo" style={{ height: 40 }} onClick={() => navigate("/dashboard")} />
         </Box>
-      </Box>
-    </Box>
-  )
+        <IconButton
+          color="inherit"
+          onClick={handleMenuOpen}
+          aria-label="menu de usuário"
+          sx={{ color: "#000000" }}
+        >
+          <PersonIcon />
+        </IconButton>
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleMenuClose}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "right",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "right",
+          }}
+        >
+          <MenuItem onClick={handleChangePassword}>Trocar Senha</MenuItem>
+          <MenuItem onClick={signOut}>Sair</MenuItem>
+        </Menu>
+      </Toolbar>
+    </AppBar>
+  );
 }
