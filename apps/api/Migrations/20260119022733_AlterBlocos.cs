@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 #nullable disable
 
@@ -19,15 +18,5 @@ namespace api.Migrations
         {
 
         }
-    }
-
-    public class Bloco
-    {
-        public int Id { get; set; }
-        public string Nome { get; set; } = null!;
-        public string? Cor { get; set; }
-
-        [ForeignKey("Bloco")]
-        public int BlocoId { get; set; }
     }
 }

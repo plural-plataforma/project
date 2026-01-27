@@ -31,5 +31,12 @@ namespace api.Migrations
                     table.PrimaryKey("pk_bloco", x => x.id);
                 });
         }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "bloco");
+        }
     }
 }
