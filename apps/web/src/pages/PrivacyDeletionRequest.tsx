@@ -14,7 +14,6 @@ const DataDeletionRequest: React.FC = () => {
       setError('Nome e e-mail são obrigatórios.');
       return;
     }
-
     setSuccess(true);
     setError('');
     // Reset form

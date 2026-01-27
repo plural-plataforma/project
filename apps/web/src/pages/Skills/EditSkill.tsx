@@ -108,8 +108,8 @@ export default function SkillsEdit() {
   }
 
   const handleChange = (field: keyof Habilidade, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   if (loading) {
     return (
