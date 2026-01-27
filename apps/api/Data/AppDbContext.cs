@@ -27,6 +27,13 @@ namespace Data
         public DbSet<AvaliacaoXPlanejamento> AvaliacaoXPlanejamento { get; set; }
         public DbSet<Bloco> Blocos { get; set; }
         public DbSet<Atividade> Atividades { get; set; }
+        public DbSet<AvaliacaoDiagnostica> AvaliacoesDiagnosticas { get; set; }
+        public DbSet<AvaliacaoDiagnosticaBloco> AvaliacoesDiagnosticasBlocos { get; set; }
+        public DbSet<AvaliacaoAluno> AvaliacoesAlunos { get; set; }
+        public DbSet<DesempenhoAtividade> DesempenhosAtividades { get; set; }
+        public DbSet<DiagnosticoFinal> DiagnosticosFinais { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -161,6 +168,16 @@ namespace Data
                     j => j.ToTable("AtividadeHabilidade")
 
                 );
+
+            modelBuilder.Entity<AvaliacaoDiagnosticaBloco>()
+                .HasKey(ab => new { ab.AvaliacaoDiagnosticaId, ab.BlocoId });
+
+            modelBuilder.Entity<AvaliacaoAluno>()
+                .HasKey(aa => new { aa.AvaliacaoDiagnosticaId, aa.AlunoId });
+
+            modelBuilder.Entity<DesempenhoAtividade>()
+                .HasIndex(d => new { d.AvaliacaoDiagnosticaId, d.AlunoId, d.AtividadeId })
+                .IsUnique();
 
         }
 
