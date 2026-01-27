@@ -1,4 +1,4 @@
-import { colors } from "@/packages/ui/theme/theme";
+import { colors } from "@packages/ui/theme/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomButton from "@src/components/CustomButton";
 import Header from "@src/components/Header";

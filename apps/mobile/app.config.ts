@@ -17,6 +17,7 @@ try {
 const API_URL = process.env.API_URL || 'http://localhost:5145/api/'
 
 const config: ExpoConfig = {
+
   name: 'app-plural',
   slug: 'app-plural',
   version: '1.0.0',
@@ -34,16 +35,17 @@ const config: ExpoConfig = {
     }
   },
   android: {
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: 'com.criativar.mobile',
+    allowCleartextTraffic: true,
+    edgeToEdgeEnabled: true,
     adaptiveIcon: {
       backgroundColor: '#ffffff',
       foregroundImage: '../../packages/ui/assets/images/android-icon-foreground.png',
       backgroundImage: '../../packages/ui/assets/images/android-icon-background.png',
       monochromeImage: '../../packages/ui/assets/images/android-icon-monochrome.png',
     },
-  },
+  } as any,
   web: {
     entryPoint: './web/index.tsx',
     bundler: 'metro',
@@ -67,11 +69,12 @@ const config: ExpoConfig = {
     ],
   ],
   experiments: {
+    tsconfigPaths: true,
     typedRoutes: true,
     reactCompiler: true,
   },
   extra: {
-    API_URL,
+    API_URL: process.env.API_URL || 'http://localhost:5145/api/',
     eas: {
       projectId: 'af6e8d03-cd76-4399-8f28-2f3d244c8436',
     },

@@ -2,8 +2,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { View, Text, Image, StyleSheet, Platform, Dimensions } from 'react-native'  // Adicione Dimensions
 import { useRouter } from 'expo-router'
 import { useState, useEffect } from 'react'  // Adicione useState e useEffect
-import { colors } from '@/packages/ui/theme/theme'
-import { Button, Logo } from '@/packages/ui/components'
+import { colors } from '@packages/ui/theme/theme'
+import { Button, Logo } from '@packages/ui/components'
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')  // Pega dimensões da tela
 
@@ -42,7 +42,7 @@ export default function Index() {
         {imagePositions.map((position, index) => (
           <Image 
             key={index}  // Chave única para cada instância
-            source={require('@/packages/ui/assets/images/plur.png')}  // Mesma imagem para todas
+            source={require('@packages/ui/assets/images/plur.png')}  // Mesma imagem para todas
             style={[
               styles.randomImage,
               { left: position.x, top: position.y }  // Posição randômica única
