@@ -1,61 +1,62 @@
-import { colors } from '@packages/ui/theme/theme'
+import { colors } from '@packages/ui/theme/theme';
 import CustomButton from '@src/components/CustomButton';
 import Header from '@src/components/Header';
 import InputField from '@src/components/InputField';
 import SelectButton from '@src/components/SelectButton';
-import { buscarPlanejamento } from '@src/services/planejamentoService';
-import { Planejamento } from '@src/types/planejamento';
+import { buscarAvaliacoesDiagnosticas } from '../../services/avaliacaoDiagnosticaService';
+import { AvaliacaoDiagnosticaResumo } from '../../types/avaliacao-diagnostica'; // Type que sugeri antes
 import { useRouter } from 'expo-router';
-import { BookmarkSimple, CaretRight, Eye } from 'phosphor-react-native';
+import { BookmarkSimple, CaretRight, Plus } from 'phosphor-react-native';
 import { useEffect, useState, useCallback } from 'react';
-import { Text, View, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native'
+import { Text, View, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
-export default function MeusPlanejamentos() {
+export default function MinhasAvaliacoesDiagnosticas() {
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(true);
-  const [planejamentos, setPlanejamentos] = useState<Planejamento[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoDiagnosticaResumo[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  const fetchPlanejamentos = useCallback(async () => {
+  const fetchAvaliacoes = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await buscarPlanejamento();
-      setPlanejamentos(data)
+      const data = await buscarAvaliacoesDiagnosticas(); // Seu endpoint/service
+      setAvaliacoes(data);
     } catch (err) {
-      console.error('Erro ao carregar planejamentos:', err);
+      console.error('Erro ao carregar avaliações diagnósticas:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchPlanejamentos();
-  }, [fetchPlanejamentos]);
+    fetchAvaliacoes();
+  }, [fetchAvaliacoes]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchPlanejamentos();
-    }, [fetchPlanejamentos])
+      fetchAvaliacoes();
+    }, [fetchAvaliacoes])
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchPlanejamentos().finally(() => setRefreshing(false));
-  }, [fetchPlanejamentos]);
+    fetchAvaliacoes().finally(() => setRefreshing(false));
+  }, [fetchAvaliacoes]);
 
-  const filteredPlanejamentos = planejamentos.filter(p => 
-    p.apelido.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAvaliacoes = avaliacoes.filter(a =>
+    a.titulo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const renderPlanejamento = ({ item }: { item: Planejamento }) => (
+  const renderAvaliacao = ({ item }: { item: AvaliacaoDiagnosticaResumo }) => (
     <SelectButton
       onPress={() => router.push({
-        pathname: '/planejamento/PlanejamentoScreen',
+        pathname: '/avaliacaoDiagnostica/AvaliacaoScreen', // Crie essa tela para detalhes/registro
         params: { id: item.id }
       })}
-      title={item.apelido}
+      title={item.titulo}
+     // subtitle={`Alunos: ${item.quantidadeAlunos} • Blocos: ${item.quantidadeBlocos} • ${item.concluida ? 'Concluída' : 'Em andamento'}`}
       iconRight={<CaretRight size={16} color={colors.primary} />}
       buttonColor={colors.greyBlur}
       textColor={colors.primary}
@@ -65,10 +66,11 @@ export default function MeusPlanejamentos() {
 
   return (
     <View style={styles.container}>
-      <Header title="PDI" onBack={() => router.back()} fixed={true} />
+      <Header title="Avaliação Diagnóstica" onBack={() => router.back()} fixed={true} />
+
       <FlatList
-        data={filteredPlanejamentos}
-        renderItem={renderPlanejamento}
+        data={filteredAvaliacoes}
+        renderItem={renderAvaliacao}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
@@ -77,8 +79,8 @@ export default function MeusPlanejamentos() {
           <View>
             <View style={styles.searchContainer}>
               <InputField
-                label="Pesquisar PDI"
-                placeholder="Digite o nome do PDI..."
+                label="Procurar Avaliação"
+                placeholder="Nome da Avaliação"
                 value={searchTerm}
                 onChangeText={setSearchTerm}
                 style={{ flex: 1 }}
@@ -91,20 +93,23 @@ export default function MeusPlanejamentos() {
                 />
               )}
             </View>
+
             <View style={styles.book}>
               <BookmarkSimple size={16} color={colors.primary} />
-              <Text style={styles.textBook}>Meus Cadastros</Text>
+              <Text style={styles.textBook}>Minhas Avaliações</Text>
             </View>
+
             <CustomButton
-              title="+ Novo PDI"
-              onPress={() => router.push('/planejamento/PlanejamentoScreen')}
+              title="+ Criar Avaliação"
+              onPress={() => router.push('/avaliacaoDiagnostica/criacao/step1-identificacao')} // Tela de criação
+             
             />
           </View>
         }
         ListEmptyComponent={
           !loading ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Nenhum planejamento encontrado.</Text>
+              <Text style={styles.emptyText}>Nenhuma avaliação diagnóstica encontrada.</Text>
             </View>
           ) : null
         }
@@ -116,18 +121,12 @@ export default function MeusPlanejamentos() {
   );
 }
 
-export const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 20,
-    
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingTop:90,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -135,14 +134,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  book:{
-    flexDirection:'row',
-    justifyContent:'flex-start'
+  book: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    //alignItems: 'center',
+   // marginVertical: 10,
   },
-  textBook:{
-    color:colors.primary,
-    fontFamily:'Nunito_400Regular',
-    paddingLeft:6,
+  textBook: {
+    color: colors.primary,
+    fontFamily: 'Nunito_400Regular',
+    paddingLeft: 6,
     alignItems: 'flex-start'
   },
   emptyContainer: {
@@ -152,5 +153,6 @@ export const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: colors.secondary,
+    textAlign: 'center',
   },
-})
+});

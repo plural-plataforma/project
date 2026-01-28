@@ -637,7 +637,7 @@ export default function PlanejamentoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingTop: 80 },
+  content: { padding: 20, paddingTop: 90 },
   section: { marginVertical: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: colors.primary, textAlign: 'center', marginBottom: 12 },
   item: {
