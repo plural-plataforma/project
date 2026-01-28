@@ -10,6 +10,7 @@ import { fetchCepData } from "@src/services/validateCep";
 import { Aluno } from "@src/types/aluno"; // Importe os tipos corrigidos
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  ClipboardText,
   ClockCounterClockwise,
   DownloadSimple,
   Note,
@@ -351,6 +352,12 @@ const useAlunoSections = (
     {
       title: "Plano Desenvolvimento Individual",
       icon: <ClockCounterClockwise size={16} weight="fill" color={colors.primary} />,
+      fields: [],
+      plannings: aluno.planejamentos || [],
+    },
+    {
+      title: "Avaliação Diagnóstica",
+      icon: <ClipboardText  size={16} weight="fill" color={colors.primary} />,
       fields: [],
       plannings: aluno.planejamentos || [],
     },
@@ -946,8 +953,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 70
+    paddingHorizontal: 10,
+    paddingTop: 90
   },
   content: {
     paddingBottom: 100,
