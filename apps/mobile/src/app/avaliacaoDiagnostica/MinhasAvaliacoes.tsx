@@ -56,7 +56,7 @@ export default function MinhasAvaliacoesDiagnosticas() {
         params: { id: item.id }
       })}
       title={item.titulo}
-     // subtitle={`Alunos: ${item.quantidadeAlunos} • Blocos: ${item.quantidadeBlocos} • ${item.concluida ? 'Concluída' : 'Em andamento'}`}
+      // subtitle={`Alunos: ${item.quantidadeAlunos} • Blocos: ${item.quantidadeBlocos} • ${item.concluida ? 'Concluída' : 'Em andamento'}`}
       iconRight={<CaretRight size={16} color={colors.primary} />}
       buttonColor={colors.greyBlur}
       textColor={colors.primary}
@@ -103,7 +103,7 @@ export default function MinhasAvaliacoesDiagnosticas() {
             <CustomButton
               title="+ Criar Avaliação"
               onPress={() => router.push('/avaliacaoDiagnostica/criacao/step1-identificacao')} // Tela de criação
-             
+
             />
           </View>
         }
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 20,
-    paddingTop:90,
+    paddingTop: 90,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-start',
     //alignItems: 'center',
-   // marginVertical: 10,
+    // marginVertical: 10,
   },
   textBook: {
     color: colors.primary,
