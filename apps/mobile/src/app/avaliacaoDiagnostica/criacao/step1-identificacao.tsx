@@ -1,70 +1,44 @@
 // src/screens/avaliacao-diagnostica/criacao/step1-identificacao.tsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import ProgressFill from '@src/components/ProgressFill';
 import InputField from '@src/components/InputField';
 import CustomButton from '@src/components/CustomButton';
+import Header from '@src/components/Header';
+import WizardScrollView from '@src/components/WizardScrollView';
 import { colors } from '@packages/ui/theme/theme';
-import { ArrowLeft, Calendar } from 'phosphor-react-native';
+import { Calendar, CalendarPlus } from 'phosphor-react-native';
 import { useProgress } from './context/ProgressContext';
+import { Platform } from 'react-native';
+import DataField from '@src/components/DataField';
 
 export default function Step1Identificacao() {
   const router = useRouter();
-  const { currentStep, totalSteps, goToNext } = useProgress();
+  const { currentStep, totalSteps } = useProgress(); // progresso sincronizado pela rota
 
   const [titulo, setTitulo] = useState('');
   const [resumo, setResumo] = useState('');
-  const [dataAvaliacao, setDataAvaliacao] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dataAvaliacaoStr, setDataAvaliacaoStr] = useState('');
 
-  // Debug: log sempre que os campos mudarem
-  useEffect(() => {
-    console.log('DEBUG - isFormValid:', titulo.trim().length > 0 && dataAvaliacao !== null);
-    console.log('DEBUG - titulo:', titulo);
-    console.log('DEBUG - dataAvaliacao:', dataAvaliacao);
-  }, [titulo, dataAvaliacao]);
 
-  const formatDate = (date: Date | null) => {
-    if (!date) return '';
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    return `${d}/${m}/${y}`;
-  };
-
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setDataAvaliacao(selectedDate);
-    }
-  };
-
-  const isFormValid = titulo.trim().length > 0 && dataAvaliacao !== null;
+  const isFormValid = titulo.trim().length > 0 && dataAvaliacaoStr !== null;
 
   const handleProximaEtapa = () => {
     if (isFormValid) {
-      goToNext();
       router.push('/avaliacaoDiagnostica/criacao/step2-alunos');
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color={colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Avaliação Diagnóstica</Text>
-        </View>
+      {/* Header fixo no topo */}
+      <Header title="Avaliação Diagnóstica" fixed />
 
+      {/* Conteúdo rolável - começa abaixo do header */}
+      <WizardScrollView>
         {/* Progresso */}
         <ProgressFill completedSections={currentStep} totalSections={totalSteps} />
 
@@ -81,29 +55,12 @@ export default function Step1Identificacao() {
         />
 
         {/* Campo Data */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <InputField
-            label="Data da Avaliação"
-            placeholder="DD/MM/AAAA"
-            value={formatDate(dataAvaliacao)}
-            editable={false}
-            rightIcon={<Calendar size={20} color={colors.primary} />}
-            containerStyle={styles.inputContainer}
-          />
-        </TouchableOpacity>
+        <DataField
+          label="Data da Avaliação"
+          value={dataAvaliacaoStr}
+          onChange={setDataAvaliacaoStr} // atualiza o estado do step1
+        />
 
-        {showDatePicker && (
-          <DateTimePicker
-            value={dataAvaliacao || new Date()}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={handleDateChange}
-            minimumDate={new Date()}
-          />
-        )}
 
         {/* Campo Resumo */}
         <InputField
@@ -116,17 +73,19 @@ export default function Step1Identificacao() {
           containerStyle={[styles.inputContainer, styles.textArea]}
         />
 
-        {/* Botão Próxima Etapa - sempre visível, mas cor muda */}
+        {/* Botão Próxima Etapa */}
         <View style={styles.buttonContainer}>
           <CustomButton
             title="Próxima Etapa"
             onPress={handleProximaEtapa}
-            disabled={!isFormValid}               // só isso controla opacity + bloqueio de clique
-            buttonColor={ { backgroundColor: colors.primary2 }}
-            textColor={colors.textSecondary}
+            disabled={!isFormValid}
+            buttonColor={{
+              backgroundColor: isFormValid ? colors.primary2 : colors.greyBlur,
+            }}
+            textColor={isFormValid ? colors.textSecondary : colors.textSecondary}
           />
-        </View> 
-      </ScrollView>
+        </View>
+      </WizardScrollView>
     </SafeAreaView>
   );
 }
@@ -136,31 +95,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 100, // Aumentado para garantir que o botão fique visível
-    minHeight: '100%',  // Força o conteúdo a ocupar tela cheia
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 16,
-
-  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
-    marginBottom: 32,
-    paddingTop: 20,
-    textAlign: 'center', // Centralizado como pedido
+    marginTop: 28,
+    marginBottom: 44 ,
+    textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 24,
@@ -176,7 +117,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     width: '100%',
-    maxWidth: 300,
+    maxWidth: 320,
     borderRadius: 12,
     paddingVertical: 14,
   },

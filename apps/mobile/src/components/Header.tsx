@@ -1,34 +1,18 @@
-// components/CadastroHeader.tsx
+// src/components/Header.tsx
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  Image
-} from 'react-native';
-import { ArrowLeft, CaretLeft } from 'phosphor-react-native'; // Ícone do phosphor
-import { useRouter } from 'expo-router'; // Para navegação automática
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ArrowLeft } from 'phosphor-react-native';
 import { colors, fontSizes } from '@packages/ui/theme/theme';
-import ButtonBack from './ButtonBack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Para SafeArea automático se não passado
 
-const { width: screenWidth } = Dimensions.get('window');
-const HEADER_HEIGHT = 40; // Altura base; ajuste se necessário
-const TOP_SPACING = 10; // Espaçamento superior original (marginTop: 29)
-
-interface CadastroHeaderProps {
-  title: string; // Título customizável
-  onBack?: () => void;
-  fixed?: boolean; // Novo: se true, aplica position absolute e zIndex para fixar no topo
-  insets?: { top: number }; // Opcional: passa insets de SafeArea do parent; senão usa hook interno
+interface HeaderProps {
+  title: string;
+  onBack?: () => void; // opcional: callback customizado para voltar
+  fixed?: boolean;     // se true, fixa no topo (position: absolute)
 }
 
-export default function Header({ title, onBack, fixed = false, insets: propInsets }: CadastroHeaderProps) {
+export default function Header({ title, onBack, fixed = false }: HeaderProps) {
   const router = useRouter();
-  const defaultInsets = useSafeAreaInsets(); // Fallback se não passado
-  const insets = propInsets || defaultInsets;
 
   const handleBack = () => {
     if (onBack) {
@@ -38,74 +22,62 @@ export default function Header({ title, onBack, fixed = false, insets: propInset
     }
   };
 
-  const headerStyle = fixed
-    ? [styles.headerFixed, { top: insets.top, zIndex: 1000 }] // Fixed mode: absolute no topo
-    : [styles.header]; // Modo normal: relative com margins
-
   return (
-    <View style={headerStyle}>
-      <View style={styles.view}>
-        {/* Back Button */}
-        <ButtonBack />
-        {/* Título */}
-        <Text style={[styles.title, styles.groupIconPosition]}>{title}</Text>
+    <View style={[styles.container, fixed && styles.fixed]}>
+      {/* Botão Voltar */}
+      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <ArrowLeft size={24} color={colors.primary} />
+      </TouchableOpacity>
 
-        {/* Logo */}
-        <Image
-          source={require('@packages/ui/assets/images/logo-small.png')}
-          style={[styles.groupIcon, styles.groupIconPosition]}
-          resizeMode="contain"
-        />
-      </View>
+      {/* Título centralizado */}
+      <Text style={styles.title}>{title}</Text>
+
+      {/* Logo à direita */}
+      <Image
+        source={require('@packages/ui/assets/images/logo-small.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginTop: TOP_SPACING,
-    marginBottom: 10,
-    marginHorizontal: 20, // Ajustado para horizontal (seu 'margin:20' era global)
-    paddingBottom: 20,
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+    backgroundColor: colors.background,
   },
-  headerFixed: {
+  fixed: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
-    paddingInline:16,
-    backgroundColor: '#fff', // Evita transparência no scroll
-    paddingTop: TOP_SPACING, // Adicionado: replica o marginTop original para evitar elementos colados no topo
-    elevation: 4, // Sombra Android
-    boxShadow: ' 0px 2px 4px rgba(0, 0, 0, 0.1)',
+    zIndex: 1000,
+    elevation: 4, // sombra no Android
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    paddingTop: 28, // espaço extra para status bar
   },
-  view: {
-    height: HEADER_HEIGHT,
-    marginBottom: 10,
-  },
-  groupIconPosition: {
-    top: '0%',
-    position: 'absolute',
+  backButton: {
+    padding: 8,
   },
   title: {
-    left: '20%',
-    fontWeight: '600',
     fontSize: fontSizes.f20,
-    fontFamily: 'Nunito_400Regular',
-    textAlign: 'left',
-    display: 'flex',
-    alignItems: 'center',
-    width: 220,
+    fontFamily: 'Nunito_700Bold',
     color: colors.primary,
-    height: '100%',
+    paddingHorizontal: 16,
+    textAlign: 'left',
+    flex: 1,
   },
-  groupIcon: {
-    marginTop: 8,
-    height: '72.84%',
-    width: '12.43%',
-    right: '0%',
-    left: '87.57%',
-    maxHeight: '100%',
-    overflow: 'hidden',
-    maxWidth: '100%',
+  logo: {
+    width: 40,
+    height: 40,
   },
 });
