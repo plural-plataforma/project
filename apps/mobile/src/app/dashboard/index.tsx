@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import NotificationBanner from './../../components/NotificationBanner';
-import { Backpack, NoteBlank, SignOut, Users } from 'phosphor-react-native';
+import { Backpack, ClipboardText, NoteBlank, SignOut, Users } from 'phosphor-react-native';
 import { Professor } from '@src/types/professor';
 import { Escola } from '@src/types/escolas'; // NOVO: Import Escola para tipagem
 import { buscarProfessor, buscarEscolasProfessor } from '@src/services/professorService';
@@ -163,18 +163,19 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-            <View style={[styles.cell, { borderWidth: 0 }]}>
+            <View style={[styles.cell]}>
               <SelectButton
-                key="btnPdi"
-                onPress={() => ({})}
-                title=""
-                iconLeft={""}
+                key="btnAvalDiagnostica"
+                onPress={() => router.push('/avaliacaoDiagnostica/MinhasAvaliacoes')}
+                title="Avaliação Diagnóstica"
+                iconLeft={<ClipboardText  size={16} color={colors.primary} />}
                 buttonColor={colors.greyBlur}
                 textColor={colors.primary}
                 borderColor={colors.primary}
                 style={styles.button}
               />
             </View>
+
 
           </View>
         </View>
