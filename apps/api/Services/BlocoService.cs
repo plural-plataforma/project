@@ -1,4 +1,5 @@
-﻿using api.DTOs.Bloco;
+﻿using api.DTOs.Atividade;
+using api.DTOs.Bloco;
 using api.Models;
 using api.Responses;
 using Data;
@@ -245,6 +246,59 @@ namespace api.Services
             catch (Exception ex)
             {
                 resposta.SetFalha("Erro ao excluir bloco: " + ex.Message);
+                return resposta;
+            }
+        }
+        // Retorna todos os blocos ativos com todas as suas atividades ativas
+        public async Task<ServiceResponse<List<BlocoComAtividadesDTO>>> GetBlocosComAtividades()
+        {
+            var resposta = new ServiceResponse<List<BlocoComAtividadesDTO>>();
+
+            try
+            {
+                var blocos = await _contexto.Blocos
+                    .Where(b => b.Status)
+                    .OrderBy(b => b.Ordem)
+                    .Select(b => new BlocoComAtividadesDTO
+                    {
+                        Id = b.Id,
+                        Titulo = b.Titulo,
+                        Ordem = b.Ordem,
+                        Observacao = b.Observacao,
+                        Icone = b.Icone,
+                        QuantidadeAtividades = b.Atividades.Count(a => a.Ativo),
+                        Atividades = b.Atividades
+                            .Where(a => a.Ativo)
+                            .Select(a => new AtividadeBuscarDTO
+                            {
+                                Id = a.Id,
+                                Titulo = a.Titulo,
+                                Enunciado = a.Enunciado,
+                                BlocoId = a.BlocoId,
+                                Nivel = a.Nivel.ToString(),
+                                EtapaMin = a.EtapaMin,
+                                EtapaMax = a.EtapaMax,
+                                ImagemUrl = a.ImagemUrl,
+                                Ativo = a.Ativo,
+                                HabilidadeIds = a.Habilidades.Select(h => h.Id).ToList()
+                            })
+                            .OrderBy(a => a.Titulo) // ou .OrderBy(a => a.Id) se preferir
+                            .ToList()
+                    })
+                    .ToListAsync();
+
+                // Opcional: filtrar apenas blocos que têm pelo menos uma atividade ativa
+                // var blocosComAtividades = blocos.Where(b => b.QuantidadeAtividades > 0).ToList();
+                // resposta.AdicionaObjeto(blocosComAtividades);
+
+                resposta.AdicionaObjeto(blocos);
+                resposta.Sucesso = true;
+                resposta.AdicionaMensagem("Blocos com atividades carregados com sucesso.");
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha("Erro ao buscar blocos com atividades: " + ex.Message);
                 return resposta;
             }
         }

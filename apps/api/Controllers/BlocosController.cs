@@ -1,13 +1,13 @@
 ﻿namespace api.Controllers;
+using api.DTOs.Atividade;
+using api.DTOs.Bloco;
 using api.Models;
 using api.Services;
 using Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-
-using Microsoft.EntityFrameworkCore;
-using api.DTOs.Bloco;
 
 [Route("api/[controller]")]
     [ApiController]
@@ -152,5 +152,47 @@ using api.DTOs.Bloco;
 
             return Ok(bloco);
         }
+
+    // Retorna todos os blocos ativos com todas as suas atividades ativas
+    [HttpGet("com-atividades")]
+    public async Task<IActionResult> GetBlocosComAtividades()
+    {
+        var blocos = await _context.Blocos
+            .Where(b => b.Status)
+            .OrderBy(b => b.Ordem)
+            .Select(b => new BlocoComAtividadesDTO
+            {
+                Id = b.Id,
+                Titulo = b.Titulo,
+                Ordem = b.Ordem,
+                Observacao = b.Observacao,
+                Icone = b.Icone,
+                QuantidadeAtividades = b.Atividades.Count(a => a.Ativo),
+                Atividades = b.Atividades
+                    .Where(a => a.Ativo)
+                    .Select(a => new AtividadeBuscarDTO
+                    {
+                        Id = a.Id,
+                        Titulo = a.Titulo,
+                        Enunciado = a.Enunciado,
+                        BlocoId = a.BlocoId,
+                        Nivel = a.Nivel.ToString(),
+                        EtapaMin = a.EtapaMin,
+                        EtapaMax = a.EtapaMax,
+                        ImagemUrl = a.ImagemUrl,
+                        Ativo = a.Ativo,
+                        HabilidadeIds = a.Habilidades.Select(h => h.Id).ToList()
+                    })
+                    .OrderBy(a => a.Titulo) // ou .OrderBy(a => a.Id) se preferir por ordem de inserção
+                    .ToList()
+            })
+            .ToListAsync();
+
+        // Opcional: filtrar apenas blocos que têm pelo menos uma atividade ativa
+        // var blocosComAtividades = blocos.Where(b => b.QuantidadeAtividades > 0).ToList();
+        // if (!blocosComAtividades.Any()) return NotFound("Nenhum bloco com atividades encontrado.");
+
+        return Ok(blocos);
     }
+}
 
