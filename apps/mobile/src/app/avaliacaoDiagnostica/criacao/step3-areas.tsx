@@ -21,7 +21,6 @@ interface Atividade {
 }
 
 
-
 type AreaSelecionada = {
   areaId: number;
   atividades: number[];
