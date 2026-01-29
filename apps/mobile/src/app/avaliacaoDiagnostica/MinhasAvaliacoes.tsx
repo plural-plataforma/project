@@ -75,6 +75,7 @@ export default function MinhasAvaliacoesDiagnosticas() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
+        
         ListHeaderComponent={
           <View>
             <View style={styles.searchContainer}>
