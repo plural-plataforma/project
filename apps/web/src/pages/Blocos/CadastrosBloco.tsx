@@ -91,7 +91,6 @@ export default function CadastroBloco() {
 
     fetchBloco();
 
-
   }, [blocoId]);
 
   useEffect(() => {
@@ -326,7 +325,6 @@ export default function CadastroBloco() {
                 </TextField>
 
               </FormControl>
-
 
             </Box>
 
