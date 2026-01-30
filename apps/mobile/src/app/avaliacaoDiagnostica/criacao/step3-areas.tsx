@@ -11,17 +11,16 @@ import WizardScrollView from '@src/components/WizardScrollView';
 import Header from '@src/components/Header';
 import { ExpandableArea } from '@src/components/ExpandableArea';
 import { is } from 'zod/v4/locales';
+import { BlocoArea, BlocoComAtividade, BlocoUI } from '@src/types/bloco';
+import { buscarBlocosComAtividades } from '@src/services/blocosService';
+import { api } from '@src/services/auth';
 
 interface Atividade {
   id: number;
   descricao: string;
 }
 
-interface BlocoArea {
-  id: number;
-  titulo: string;
-  atividades: Atividade[];
-}
+
 
 type AreaSelecionada = {
   areaId: number;
@@ -51,8 +50,9 @@ const areasMock: BlocoArea[] = [
 export default function Step2Areas() {
   const router = useRouter();
   const { currentStep, totalSteps } = useProgress();
+  const [loading, setLoading] = useState(true)
 
-  const [bloco, setBloco] = useState<BlocoArea[]>([]);
+  const [blocos, setBlocos] = useState<BlocoUI[]>([]);
   const [expandedBlocos, setExpandedBlocos] = useState<number[]>([]);
   const [areasSelecionadas, setAreasSelecionadas] = useState<AreaSelecionada[]>([])
   const isValid = areasSelecionadas.length > 0;
@@ -107,15 +107,31 @@ export default function Step2Areas() {
 
 
   useEffect(() => {
-    // async function carregarBloco() {
-    //   const response = await fetch('https://sua-api/blocos/1');
-    //   const data = await response.json();
-    //   setBloco(data);
-    // }
+    const carregar = async () => {
+    setLoading(true)
 
-    // carregarBloco();
+    const data = await buscarBlocosComAtividades()
 
-    setBloco(areasMock);
+console.log(
+  'RAW RESPONSE',
+  JSON.stringify((await api.get('/Blocos/com-atividades')).data, null, 2)
+);
+
+
+    const blocosUI = data.map(bloco => ({
+      id: bloco.id,
+      titulo: bloco.titulo,
+      atividades: bloco.atividades.map(a => ({
+        id: a.id,
+        descricao: a.enunciado, // 👈 OU titulo, depende do que você quer mostrar
+      })),
+    }))
+
+    setBlocos(blocosUI)
+    setLoading(false)
+  }
+
+  carregar()
   }, []);
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -128,7 +144,7 @@ export default function Step2Areas() {
         <Text style={styles.sectionTitle}>Quais áreas deseja avaliar agora?</Text>
 
         {/* Conteúdo da etapa 1 - será expandido depois */}
-        {bloco.map(area => (
+        {blocos.map(area => (
           <ExpandableArea
             key={area.id}
             areaId={area.id}
