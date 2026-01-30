@@ -123,7 +123,7 @@ console.log(
       titulo: bloco.titulo,
       atividades: bloco.atividades.map(a => ({
         id: a.id,
-        descricao: a.enunciado, // 👈 OU titulo, depende do que você quer mostrar
+        descricao: a.titulo, // 👈 OU titulo, depende do que você quer mostrar
       })),
     }))
 
