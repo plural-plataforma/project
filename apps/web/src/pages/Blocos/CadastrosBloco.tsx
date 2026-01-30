@@ -17,6 +17,7 @@ import {
   Alert,
   Divider,
   CircularProgress,
+  MenuItem,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -54,6 +55,7 @@ export default function CadastroBloco() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(!!blocoId);
+  const [ordensUsadas, setOrdensUsadas] = useState<number[]>([]);
 
   const navigate = useNavigate();
 
@@ -84,6 +86,22 @@ export default function CadastroBloco() {
     };
 
     fetchBloco();
+
+    const fetchOrdens = async () => {
+      try {
+        const blocos: Bloco[] = await blocosService.getAllBlocosAtivos();
+        // Pega todas as ordens, exceto a do bloco atual (se estiver editando)
+        const ordens = blocos
+          .filter(b => !blocoId || b.id !== blocoId)
+          .map(b => b.ordem)
+          .filter(Boolean) as number[];
+        setOrdensUsadas(ordens);
+      } catch (err) {
+        console.error('Erro ao carregar ordens existentes:', err);
+      }
+    };
+
+    fetchOrdens();
   }, [blocoId]);
 
   const handleVoltar = useCallback(() => {
@@ -91,46 +109,46 @@ export default function CadastroBloco() {
   }, [navigate]);
 
   const handleSalvar = useCallback(async () => {
-  if (isViewMode) return;
+    if (isViewMode) return;
 
-  if (!titulo.trim()) {
-    setError('O título é obrigatório');
-    return;
-  }
-  if (!ordem) {
-    setError('A ordem é obrigatória');
-    return;
-  }
-
-  setError(null);
-  setLoading(true);
-
-  try {
-    const payload: BlocoCreateInput = {
-      titulo: titulo.trim(),
-      ordem: Number(ordem),
-      observacao: observacoes.trim() || null,
-      status: status === 'ativo',
-      icone: null, // ajuste se tiver ícone/upload
-    };
-
-    if (isEditMode && blocoId) {
-      // Atualiza o bloco existente
-      const blocoAtualizado = await blocosService.updateBloco(blocoId, payload);
-      // Opcional: toast.success('Bloco atualizado!');
-    } else if (isCreateMode) {
-      const novoBloco = await blocosService.createBloco(payload);
-      // Opcional: toast.success('Bloco criado!');
+    if (!titulo.trim()) {
+      setError('O título é obrigatório');
+      return;
+    }
+    if (!ordem) {
+      setError('A ordem é obrigatória');
+      return;
     }
 
-    navigate('/blocos', { replace: true });
-  } catch (err: any) {
-    setError(err.message || 'Erro ao salvar o bloco.');
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-}, [titulo, ordem, observacoes, status, isCreateMode, isEditMode, blocoId, navigate, isViewMode]);
+    setError(null);
+    setLoading(true);
+
+    try {
+      const payload: BlocoCreateInput = {
+        titulo: titulo.trim(),
+        ordem: Number(ordem),
+        observacao: observacoes.trim() || null,
+        status: status === 'ativo',
+        icone: null, // ajuste se tiver ícone/upload
+      };
+
+      if (isEditMode && blocoId) {
+        // Atualiza o bloco existente
+        const blocoAtualizado = await blocosService.updateBloco(blocoId, payload);
+        // Opcional: toast.success('Bloco atualizado!');
+      } else if (isCreateMode) {
+        const novoBloco = await blocosService.createBloco(payload);
+        // Opcional: toast.success('Bloco criado!');
+      }
+
+      navigate('/blocos', { replace: true });
+    } catch (err: any) {
+      setError(err.message || 'Erro ao salvar o bloco.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [titulo, ordem, observacoes, status, isCreateMode, isEditMode, blocoId, navigate, isViewMode]);
   const handleExcluir = useCallback(async () => {
     if (!blocoId || isViewMode) return;
 
@@ -206,8 +224,8 @@ export default function CadastroBloco() {
               {isViewMode
                 ? 'Visualizar Bloco de Avaliação'
                 : isEditMode
-                ? 'Editar Bloco de Avaliação'
-                : 'Cadastro de Bloco de Avaliação'}
+                  ? 'Editar Bloco de Avaliação'
+                  : 'Cadastro de Bloco de Avaliação'}
             </Typography>
           </Box>
 
@@ -268,15 +286,19 @@ export default function CadastroBloco() {
                   size="medium"
                   sx={{ mt: 1 }}
                   disabled={isViewMode}
-                  InputProps={isViewMode ? { readOnly: true } : undefined}
                 >
                   {[1, 2, 3, 4, 5, 6].map((num) => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
+                    <MenuItem
+                      key={num}
+                      value={num.toString()}
+                      disabled={ordensUsadas.includes(num)}
+                    >
+                      {num} {ordensUsadas.includes(num) ? '(já usado)' : ''}
+                    </MenuItem>
                   ))}
                 </TextField>
               </FormControl>
+
             </Box>
 
             {/* Observações */}

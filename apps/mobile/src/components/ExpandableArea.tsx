@@ -14,21 +14,18 @@ import {
 } from 'phosphor-react-native';
 import { colors } from '@packages/ui/theme/theme';
 import DetailsAtividades from '@src/app/avaliacaoDiagnostica/criacao/detailsAtividades';
+import { UIAtividade } from '@src/types/atividades';
 
 type AreaSelecionada = {
   areaId: number;
   atividades: number[];
 };
 
-interface Atividade {
-  id: number;
-  descricao: string;
-}
 
 interface Props {
   titulo: string;
   areaId: number;
-  atividades: Atividade[];
+  atividades: UIAtividade[];
   onChange?: (data: AreaSelecionada | null, areaId: number) => void;
 }
 
