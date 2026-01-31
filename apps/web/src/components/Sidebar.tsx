@@ -13,7 +13,8 @@ import {
   Avatar,
   IconButton,
   Paper,
-  alpha
+  alpha,
+  Button
 } from '@mui/material'
 import {
   Dashboard as DashboardIcon,
@@ -26,14 +27,19 @@ import {
   MoreVert as MoreVertIcon
 } from '@mui/icons-material'
 import logoPlural from '../../../../packages/ui/assets/images/logo-plural-plataforma.png'
-import { ChartDonut, ClipboardText, Star, UsersThree } from '@phosphor-icons/react'
+import { ChartDonut, ClipboardText, SignOut, Star, UsersThree } from '@phosphor-icons/react'
+import { useEffect, useState } from 'react'
 
 // Largura fixa do sidebar (padrão comum)
-const drawerWidth = 277
+const drawerWidth = 310
 
 export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [user, setUser] = useState<{
+    nome: string;
+    email: string;
+  } | null>(null);
 
   const menuItems = [
     { text: 'Dashboard', icon: <ChartDonut size={20} weight="bold" />, path: '/dashboard' },
@@ -43,7 +49,8 @@ export default function Sidebar() {
   const cadastrosGroup = [
     { text: 'Habilidades', icon: <Star size={20} weight="fill" />, path: '/skills' },
     { text: 'Blocos de Avaliação', icon: <AssessmentIcon />, path: '/blocos' },
-    { text: 'Banco de Atividades', icon: <ClipboardText size={20} weight="fill" />, path: '/atividades'
+    {
+      text: 'Banco de Atividades', icon: <ClipboardText size={20} weight="fill" />, path: '/atividades'
     }
   ]
 
@@ -54,6 +61,33 @@ export default function Sidebar() {
 
   const isActive = (path: string) => location.pathname === path
 
+  useEffect(() => {
+    const userString = localStorage.getItem('user')|| sessionStorage.getItem('user');
+    console.log(userString)
+    if (userString) {
+      try {
+        setUser(JSON.parse(userString));
+      } catch {
+        setUser(null);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
+    localStorage.removeItem('user')
+    sessionStorage.removeItem('user')
+    navigate('/login')
+  }
+  
+  const getInitials = (name?: string) => {
+  if (!name) return 'AP';
+  const parts = name.split(' ');
+  return parts.length > 1
+    ? `${parts[0][0]}${parts[1][0]}`
+    : parts[0][0];
+};
   return (
     <Drawer
       variant="permanent"
@@ -192,38 +226,27 @@ export default function Sidebar() {
       </Box>
 
       {/* Perfil do administrador no rodapé */}
-      <Paper
-        elevation={0}
-        sx={{
-          m: 2,
-          p: 2,
-          bgcolor: 'grey.50',
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'grey.200'
-        }}
-      >
+      <Paper elevation={0} sx={{ m: 2, p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ width: 48, height: 48, bgcolor: '#276678' }}>AP</Avatar>
+          <Avatar sx={{ width: 48, height: 48, bgcolor: '#276678' }}>
+            {getInitials(user?.nome)}
+          </Avatar>
 
           <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" fontWeight={600}>
-              Admin Plural
+            <Typography variant="subtitle1" fontWeight={600} sx={{ color: '#276678' }}>
+              {user?.nome || 'Admin Plural'}
             </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              fontSize="0.85rem"
-            >
-              admin@plural.com
+            <Typography variant="body2" fontSize="0.85rem" color="#276678">
+              {user?.email || 'admin@plural.com'}
             </Typography>
           </Box>
 
-          <IconButton size="small">
-            <MoreVertIcon fontSize="small" />
+          <IconButton onClick={handleLogout} sx={{ color: '#276678' }}>
+            <SignOut size={26} />
           </IconButton>
         </Box>
       </Paper>
+
     </Drawer>
   )
 }

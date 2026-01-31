@@ -3,6 +3,7 @@ using api.Models;
 using api.Responses;
 using Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -123,11 +124,20 @@ namespace api.Services
             );
 
             string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-          
+
+            Professor professor = await _contexto.Professores
+                .FirstOrDefaultAsync(p => p.ID == usuario.ProfessorId);
+
             var retorno = new
             {
                 token = tokenString,
-                precisaTrocarSenha = deveAlterarSenha
+                precisaTrocarSenha = deveAlterarSenha,
+                user = new
+                {
+                    nome = professor?.NomeCompleto,
+                    email = usuario.Email,
+                    roles = roles
+                }
             };
 
             resposta.Sucesso = true;

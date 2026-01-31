@@ -3,6 +3,7 @@ using api.DTOs.Bloco;
 using api.Models;
 using api.Responses;
 using Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Services
@@ -10,10 +11,12 @@ namespace api.Services
     public class BlocoService
     {
         private readonly AppDbContext _contexto;
+        private readonly UserManager<Usuario> _usuario;
 
-        public BlocoService(AppDbContext contexto)
+        public BlocoService(AppDbContext contexto, UserManager<Usuario> usuario)
         {
             _contexto = contexto;
+            _usuario = usuario;
         }
 
         // Listagem de todos os blocos (sem filtro de ativo)
