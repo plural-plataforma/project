@@ -1,11 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-
-import Visibility from '@mui/icons-material/Visibility'
-import VisibilityOff from '@mui/icons-material/VisibilityOff'
-const API_URL = import.meta.env.VITE_API_URL
-
+import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -20,82 +14,41 @@ import {
   OutlinedInput,
   InputAdornment,
   IconButton
-} from '@mui/material'
-import React from 'react'
+} from '@mui/material';
+
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+
+import authService from '../api/authService'
 
 export default function Login() {
-  const [email, setEmail] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [rememberMe, setRememberMe] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
-  const navigate = useNavigate()
-  const [showPassword, setShowPassword] = React.useState(false)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleClickShowPassword = () => setShowPassword(show => !show)
-
-  const handleMouseDownPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault()
-  }
-
-  const handleMouseUpPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault()
-  }
-  interface LoginResponse {
-    token: {
-      token: string
-      precisaTrocarSenha: boolean
-    }
-  }
+  const navigate = useNavigate();
 
   const handleLogin = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
 
     try {
-      const response = await axios.post<LoginResponse>(
-        `${API_URL}/Autenticacao/login`,
-        { email, senha: password },
-        {
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
-          }
-        }
-      )
+      await authService.login({
+        email,
+        password,
+        rememberMe
+      });
 
-      const token = response.data.token.token
-
-      if (!token) {
-        setError('Não foi possível obter o token. Tente novamente.')
-        return
-      }
-
-      const tokenString = String(token)
-
-      if (rememberMe) {
-        localStorage.setItem('token', tokenString)
-      } else {
-        sessionStorage.setItem('token', tokenString)
-      }
-
-      navigate('/dashboard')
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(
-          (err.response?.data as string) ||
-            'Erro ao fazer login. Verifique suas credenciais.'
-        )
-        console.error(err.response?.data || err.message)
-      } else {
-        setError('Erro ao fazer login. Verifique suas credenciais.')
-        console.error(err)
-      }
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          'Erro ao fazer login. Verifique suas credenciais.'
+      );
     }
-  }
+  };
 
   return (
     <Box
@@ -107,30 +60,11 @@ export default function Login() {
         bgcolor: 'grey.100'
       }}
     >
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          borderRadius: 3,
-          width: 380
-        }}
-      >
-        {/* Logo */}
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 3, width: 380 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <img
-            src="/logo-plural-plataforma.png"
-            alt="Plural Logo"
-            style={{
-              height: 80,
-              width: 'auto',
-              marginLeft: 'auto',
-              marginRight: 'auto'
-            }}
-          />
-          <Typography variant="h5" fontWeight="bold" mt={2}></Typography>
+          <img src="/logo-plural-plataforma.png" height={80} />
         </Box>
 
-        {/* Formulário */}
         <Box component="form" onSubmit={handleLogin}>
           <TextField
             label="E-mail"
@@ -141,31 +75,21 @@ export default function Login() {
             margin="normal"
             required
           />
-          <FormControl fullWidth variant="outlined">
-            <InputLabel htmlFor="outlined-adornment-password">Senha</InputLabel>
+
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Senha</InputLabel>
             <OutlinedInput
-              id="outlined-adornment-password"
               type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               endAdornment={
                 <InputAdornment position="end">
-                  <IconButton
-                    aria-label={
-                      showPassword
-                        ? 'hide the password'
-                        : 'display the password'
-                    }
-                    onClick={handleClickShowPassword}
-                    onMouseDown={handleMouseDownPassword}
-                    onMouseUp={handleMouseUpPassword}
-                    edge="end"
-                  >
+                  <IconButton onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
               }
               label="Senha"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
               required
             />
           </FormControl>
@@ -175,11 +99,9 @@ export default function Login() {
               <Switch
                 checked={rememberMe}
                 onChange={e => setRememberMe(e.target.checked)}
-                color="primary"
               />
             }
             label="Lembrar-me"
-            sx={{ mt: 1 }}
           />
 
           {error && (
@@ -190,34 +112,14 @@ export default function Login() {
 
           <Button
             type="submit"
-            variant="contained"
-            style={{ color: '#FFFF', backgroundColor: '#276678' }}
             fullWidth
-            sx={{ mt: 3 }}
+            sx={{ mt: 3, bgcolor: '#276678' }}
+            variant="contained"
           >
             Entrar
           </Button>
-
-          {/**   <Typography
-            variant="body2"
-            align="center"
-            color="text.secondary"
-            sx={{ mt: 3 }}
-          >
-            Não tem uma conta?{" "}
-            <Typography
-              component="a"
-              href="/register"
-              color="primary"
-              fontWeight="medium"
-              sx={{ textDecoration: "none" }}
-            >
-              Cadastre-se
-            </Typography>
-          </Typography>
-           */}
         </Box>
       </Paper>
     </Box>
-  )
+  );
 }

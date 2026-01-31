@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../Sidebar';
 import HeaderContent from '../HeaderContent';
 
-const drawerWidth = 277;
+const drawerWidth = 310;
 
 export default function AdminLayout() {
   return (

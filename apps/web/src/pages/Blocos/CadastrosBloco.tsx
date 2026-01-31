@@ -35,6 +35,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import blocosService from '../../services/blocosService';
 import { BlocoCreateInput, Bloco } from '../../types/blocos';
 
+const NUMERO_INICIAL_ORDENS = 6;
+
 export default function CadastroBloco() {
   const { id, action } = useParams<{ id?: string; action?: string }>();
   const blocoId = id ? Number(id) : undefined;
@@ -56,6 +58,7 @@ export default function CadastroBloco() {
   const [error, setError] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(!!blocoId);
   const [ordensUsadas, setOrdensUsadas] = useState<number[]>([]);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -77,6 +80,7 @@ export default function CadastroBloco() {
         setOrdem(bloco.ordem?.toString() || '');
         setObservacoes(bloco.observacao || '');
         setStatus(bloco.status ? 'ativo' : 'inativo');
+        setUpdatedAt(bloco.updatedAt);
       } catch (err: any) {
         console.error('Erro ao carregar bloco:', err);
         setError(err.message || 'Não foi possível carregar os dados do bloco.');
@@ -87,6 +91,10 @@ export default function CadastroBloco() {
 
     fetchBloco();
 
+
+  }, [blocoId]);
+
+  useEffect(() => {
     const fetchOrdens = async () => {
       try {
         const blocos: Bloco[] = await blocosService.getAllBlocosAtivos();
@@ -96,13 +104,14 @@ export default function CadastroBloco() {
           .map(b => b.ordem)
           .filter(Boolean) as number[];
         setOrdensUsadas(ordens);
+        console.log(ordens)
       } catch (err) {
         console.error('Erro ao carregar ordens existentes:', err);
       }
     };
 
     fetchOrdens();
-  }, [blocoId]);
+  }, [])
 
   const handleVoltar = useCallback(() => {
     navigate(-1);
@@ -186,6 +195,23 @@ export default function CadastroBloco() {
     );
   }
 
+  const gerarOrdensDisponiveis = () => {
+    let ordens = [1, 2, 3, 4, 5, 6];
+    const usadas = ordensUsadas;
+
+    // Filtra as ordens já usadas
+    let disponiveis = ordens.filter((num) => !usadas.includes(num));
+
+    // Se só sobrar 1 disponível, incrementa o array
+    while (disponiveis.length <= 1) {
+      const proximo = ordens[ordens.length - 1] + 1;
+      ordens.push(proximo);
+      disponiveis = ordens.filter((num) => !usadas.includes(num));
+    }
+
+    return ordens;
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#f9fafb' }}>
       <Paper
@@ -230,10 +256,11 @@ export default function CadastroBloco() {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              Última modificação: 15/01/2024
+
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Última modificação: {updatedAt ? new Date(updatedAt).toLocaleString('pt-BR') : '—'}
             </Typography>
-            <Chip label="JD" size="small" color="primary" />
+            {/** <Chip label="JD" size="small" color="primary" /> */}
           </Box>
         </Box>
 
@@ -287,17 +314,19 @@ export default function CadastroBloco() {
                   sx={{ mt: 1 }}
                   disabled={isViewMode}
                 >
-                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                  {gerarOrdensDisponiveis().map((num) => (
                     <MenuItem
                       key={num}
                       value={num.toString()}
-                      disabled={ordensUsadas.includes(num)}
+                      disabled={ordensUsadas.includes(num)} // bloqueia as usadas
                     >
                       {num} {ordensUsadas.includes(num) ? '(já usado)' : ''}
                     </MenuItem>
                   ))}
                 </TextField>
+
               </FormControl>
+
 
             </Box>
 
