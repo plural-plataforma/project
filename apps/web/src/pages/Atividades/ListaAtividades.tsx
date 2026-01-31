@@ -29,6 +29,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import atividadesService from '../../services/atividadesService';
 import { Atividade, AtividadeResponse } from '../../types/atividades'; // ajuste o import conforme seu tipo
+import blocosService from '../../services/blocosService';
+import { Bloco } from '../../types/blocos';
 
 interface ListaAtividadesProps {
   search: string;
@@ -45,6 +47,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocosMap, setBlocosMap] = useState<Map<number, string>>(new Map());
 
   const fetchAtividades = async () => {
     setLoading(true);
@@ -68,6 +71,23 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+  const fetchBlocoTitulo = async (blocoId: number) => {
+    if (!blocoId || blocosMap.has(blocoId)) return; // já buscado
+
+    try {
+      const bloco: Bloco = await blocosService.getBlocoById(blocoId);
+      setBlocosMap(prev => new Map(prev).set(bloco.id, bloco.titulo));
+    } catch (err) {
+      console.error(`Erro ao buscar bloco ${blocoId}:`, err);
+      setBlocosMap(prev => new Map(prev).set(blocoId, 'Sem bloco'));
+    }
+  };
+
+  atividades.forEach(a => fetchBlocoTitulo(a.blocoId));
+}, [atividades, blocosMap]);
+
 
   useEffect(() => {
     fetchAtividades();
@@ -218,7 +238,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
 
                     <TableCell>
                       <Chip
-                        label={atividade.titulo || 'Sem bloco'}
+                        label={blocosMap.get(atividade.blocoId) || 'Sem bloco'}
                         size="small"
                         sx={{ bgcolor: '#f3f4f6', fontWeight: 500 }}
                       />

@@ -1,53 +1,64 @@
+// src/api/authService.ts
 import api from './http';
-import { AxiosResponse } from 'axios';
 
 export interface LoginCredentials {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
-export interface AuthResponse {
-  token: string;
-  user: {
-    id: number;
-    nome: string;
-    email: string;
-    role?: string;
+interface LoginApiResponse {
+  token: {
+    token: string;
+    precisaTrocarSenha: boolean;
+    user: {
+      nome: string;
+      email: string;
+      roles: string[];
+    };
   };
-  expiresIn?: number;
 }
+
 
 export const authService = {
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response: AxiosResponse<AuthResponse> = await api.post('/api/auth/login', credentials);
-    const { token } = response.data;
+  login: async ({ email, password, rememberMe }: LoginCredentials) => {
+    const response = await api.post<LoginApiResponse>(
+      '/Autenticacao/login',
+      { email, senha: password }
+    );
 
-    // Salva o token (escolha um dos dois, ou use ambos com lógica)
-    localStorage.setItem('token', token);
-    // sessionStorage.setItem('token', token); // se quiser sessão por aba
+    const jwt = response.data.token.token;
+    const user = response.data.token.user;
+
+    if (rememberMe) {
+      localStorage.setItem('token', jwt);
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      sessionStorage.setItem('token', jwt);
+      sessionStorage.setItem('user', JSON.stringify(user));
+    }
 
     return response.data;
   },
 
   logout: () => {
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
-    // Se usar refresh token em cookie HttpOnly → backend limpa
-    // window.location.href = '/login';
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/login';
   },
 
-  isAuthenticated: (): boolean => {
-    return !! (localStorage.getItem('token') || sessionStorage.getItem('token'));
+  getUser: () => {
+    const user =
+      localStorage.getItem('user') || sessionStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   },
 
-  getToken: (): string | null => {
-    return localStorage.getItem('token') || sessionStorage.getItem('token');
-  },
-
-  // Exemplo futuro: refresh token
-  // refreshToken: async () => { ... },
-
-  // getCurrentUser: async () => { ... }
+  isAuthenticated: () => {
+    return !!(
+      localStorage.getItem('token') || sessionStorage.getItem('token')
+    );
+  }
 };
+
 
 export default authService;
