@@ -1,5 +1,5 @@
 // src/screens/avaliacao-diagnostica/criacao/step1-identificacao.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,17 +14,18 @@ import { Calendar, CalendarPlus } from 'phosphor-react-native';
 import { useProgress } from './context/ProgressContext';
 import { Platform } from 'react-native';
 import DataField from '@src/components/DataField';
+import { useCreation } from './context/CreationContext';
+import { Escola } from '@src/types/escolas';
+import { buscarEscolas } from '@src/services/escolasService';
 
 export default function Step1Identificacao() {
   const router = useRouter();
-  const { currentStep, totalSteps } = useProgress(); // progresso sincronizado pela rota
-
-  const [titulo, setTitulo] = useState('');
-  const [resumo, setResumo] = useState('');
-  const [dataAvaliacaoStr, setDataAvaliacaoStr] = useState('');
-
-
-  const isFormValid = titulo.trim().length > 0 && dataAvaliacaoStr !== null;
+  const { currentStep, totalSteps } = useProgress();
+  const { data, updateData } = useCreation();
+  
+  const isFormValid = 
+  data.titulo.trim().length > 0 && 
+  data.dataAplicacao.length === 10 
 
   const handleProximaEtapa = () => {
     if (isFormValid) {
@@ -49,16 +50,16 @@ export default function Step1Identificacao() {
         <InputField
           label="Nome da Avaliação"
           placeholder="Ex: Diagnóstico Janeiro 2026"
-          value={titulo}
-          onChangeText={setTitulo}
+          value={data.titulo}
+          onChangeText={(t) => updateData({ titulo: t })}
           containerStyle={styles.inputContainer}
         />
 
         {/* Campo Data */}
         <DataField
           label="Data da Avaliação"
-          value={dataAvaliacaoStr}
-          onChange={setDataAvaliacaoStr} // atualiza o estado do step1
+          value={data.dataAplicacao}
+          onChange={(text) => updateData({ dataAplicacao: text })}
         />
 
 
@@ -66,8 +67,8 @@ export default function Step1Identificacao() {
         <InputField
           label="O que deseja buscar na avaliação"
           placeholder="Resumo / Objetivo da avaliação"
-          value={resumo}
-          onChangeText={setResumo}
+          value={data.objetivo} 
+          onChangeText={(t) => updateData({ objetivo: t })}
           multiline
           numberOfLines={4}
           containerStyle={[styles.inputContainer, styles.textArea]}
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
     marginTop: 28,
-    marginBottom: 44 ,
+    marginBottom: 44,
     textAlign: 'center',
   },
   inputContainer: {

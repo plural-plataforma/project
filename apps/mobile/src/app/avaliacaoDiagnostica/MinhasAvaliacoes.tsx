@@ -22,6 +22,7 @@ export default function MinhasAvaliacoesDiagnosticas() {
     try {
       setLoading(true);
       const data = await buscarAvaliacoesDiagnosticas(); // Seu endpoint/service
+      console.log(data)
       setAvaliacoes(data);
     } catch (err) {
       console.error('Erro ao carregar avaliações diagnósticas:', err);

@@ -11,18 +11,22 @@ import {
 // Busca lista resumida de avaliações diagnósticas (para tela de listagem)
 export const buscarAvaliacoesDiagnosticas = async (): Promise<AvaliacaoDiagnosticaResumo[]> => {
   try {
-    const response = await api.get('/api/avaliacoes-diagnosticas');
-    return response.data;
+    const response = await api.get('/avaliacaodiagnostica/buscarTodos');
+
+    const lista = response.data?.objeto;
+
+    return Array.isArray(lista) ? lista : [];
   } catch (error) {
     console.error('Erro ao buscar avaliações diagnósticas:', error);
-    throw error; // Pode ser tratado no componente com toast ou retry
+    return [];
   }
 };
+
 
 // Busca detalhes completos de uma avaliação específica (para tela de detalhes)
 export const buscarAvaliacaoPorId = async (id: number): Promise<AvaliacaoDiagnosticaDetalhada> => {
   try {
-    const response = await api.get(`/api/avaliacoes-diagnosticas/${id}`);
+    const response = await api.get(`/avaliacaodiagnostica/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Erro ao buscar detalhes da avaliação ${id}:`, error);
@@ -33,10 +37,10 @@ export const buscarAvaliacaoPorId = async (id: number): Promise<AvaliacaoDiagnos
 // Cria uma nova avaliação diagnóstica
 export const criarAvaliacaoDiagnostica = async (
   dados: CreateAvaliacaoDiagnosticaRequest
-): Promise<CreateAvaliacaoDiagnosticaResponse> => {
+): Promise<any> => {
   try {
-    const response = await api.post('/api/avaliacoes-diagnosticas', dados);
-    return response.data;
+    const response = await api.post('/avaliacaodiagnostica/cadastro', dados);
+    return response.data.objeto; // backend retorna ServiceResponse com .objeto (detail)
   } catch (error) {
     console.error('Erro ao criar avaliação diagnóstica:', error);
     throw error;
@@ -48,7 +52,7 @@ export const registrarDesempenhoBatch = async (
   dados: RegistrarDesempenhoBatchRequest
 ): Promise<{ mensagem: string }> => {
   try {
-    const response = await api.post('/api/desempenhos/batch', dados);
+    const response = await api.post('/desempenhos/batch', dados);
     return response.data;
   } catch (error) {
     console.error('Erro ao registrar desempenhos em batch:', error);
@@ -62,7 +66,7 @@ export const buscarDiagnosticoFinal = async (
   alunoId: number
 ): Promise<DiagnosticoFinal> => {
   try {
-    const response = await api.get(`/api/diagnosticos-finais/${avaliacaoId}/${alunoId}`);
+    const response = await api.get(`/diagnosticos-finais/${avaliacaoId}/${alunoId}`);
     return response.data;
   } catch (error) {
     console.error(`Erro ao buscar diagnóstico final (avaliação ${avaliacaoId}, aluno ${alunoId}):`, error);
@@ -73,7 +77,7 @@ export const buscarDiagnosticoFinal = async (
 // Finaliza a avaliação (opcional - marca como concluída e gera diagnósticos se necessário)
 export const finalizarAvaliacao = async (id: number): Promise<{ mensagem: string }> => {
   try {
-    const response = await api.post(`/api/avaliacoes-diagnosticas/${id}/finalizar`);
+    const response = await api.post(`/avaliacaodiagnostica/${id}/finalizar`);
     return response.data;
   } catch (error) {
     console.error(`Erro ao finalizar avaliação ${id}:`, error);
