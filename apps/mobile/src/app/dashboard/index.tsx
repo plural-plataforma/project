@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [dataFetched, setDataFetched] = useState(false); // Flag para evitar re-runs
   const { showAlert, handleDismiss, visible, config } = useCustomAlert();
   const { precisaTrocarSenha } = useAuth();
-
+  const [shouldRedirectToLogin, setShouldRedirectToLogin] = useState(false);
 
   // NOVO: Função para fetch dados (reutilizável para useEffect e useFocusEffect)
   const fetchData = useCallback(async () => {
@@ -50,7 +50,7 @@ export default function Dashboard() {
       setLoading(true);
       if (!isLoggedIn) {
         console.warn('⚠️ Usuário não está logado. Redirecionando para login...');
-        router.replace('/auth/login');
+        setShouldRedirectToLogin(true);
         return;
       }
 
@@ -101,6 +101,21 @@ export default function Dashboard() {
       setLoading(false);
     }
   }, [isLoggedIn, router, showAlert, signOut]); // Dependências corretas
+
+  useEffect(() => {
+    if (shouldRedirectToLogin) {
+      router.replace('/auth/login');
+    }
+  }, [shouldRedirectToLogin, router]);
+
+  // Mantenha o useFocusEffect para recarregar quando voltar à tela
+  useFocusEffect(
+    useCallback(() => {
+      if (isLoggedIn) {
+        fetchData();
+      }
+    }, [fetchData, isLoggedIn])
+  );
 
   const sections: SectionItem[] = React.useMemo(() => {
     return [

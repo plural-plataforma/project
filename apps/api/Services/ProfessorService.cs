@@ -95,6 +95,16 @@ namespace api.Services
                 {
                     professor.Sexo = professorDto.Sexo.ToUpper();
                 }
+                // Substitua esta linha incorreta:
+                // _usuario.AceitouTermos = professorDto.AceitouTermos;
+
+                // Pelo seguinte bloco, que busca o usuário relacionado ao professor e atualiza o campo AceitouTermos:
+                var usuarioProfessor = await _usuario.Users.FirstOrDefaultAsync(u => u.ProfessorId == professor.ID);
+                if (usuarioProfessor != null && professorDto.AceitouTermos.HasValue)
+                {
+                    usuarioProfessor.AceitouTermos = professorDto.AceitouTermos.Value;
+                    await _usuario.UpdateAsync(usuarioProfessor);
+                }
 
                 await _contexto.SaveChangesAsync();
             }

@@ -90,3 +90,16 @@ export const atualizaEscolas = async (escolasData: Partial<Escola>): Promise<Esc
     throw error;
   }
 };
+
+// services/professorService.ts
+export const vincularEscolaProfessor = async (idEscola: number) => {
+  return api.post('/Professor/vincularescola', {
+    idEscola,
+  });
+};
+
+export const desvincularEscolaProfessor = async (idEscola: number) => {
+  return api.post('/Professor/desvincularescola', {
+    idEscola,
+  });
+};

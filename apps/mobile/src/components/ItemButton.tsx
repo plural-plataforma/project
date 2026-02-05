@@ -37,6 +37,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.primary,
         marginBottom: 10,
+        marginTop:10
     },
     cardText: {
         color: colors.textSecondary,

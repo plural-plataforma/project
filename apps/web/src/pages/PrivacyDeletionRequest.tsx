@@ -15,7 +15,6 @@ const DataDeletionRequest: React.FC = () => {
       return;
     }
     // Aqui você integra com backend (ex: fetch para API ou e-mail via EmailJS/Node)
-    console.log({ name, email, accountId, reason });
     setSuccess(true);
     setError('');
     // Reset form
