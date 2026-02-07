@@ -196,7 +196,7 @@ namespace api.Services
             var resposta = new ServiceResponse<List<EscolaComIdDTO>>();
             try
             {
-                var escolas = _contexto.Escolas
+                var escolas = await _contexto.Escolas
                     .Where(e => e.EscolaXProfessores.Any(ep => ep.ProfessorId == idProfessor))
                     .Select(e => new EscolaComIdDTO
                     {
@@ -211,7 +211,9 @@ namespace api.Services
                         Estado = e.Estado,
                         Cidade = e.Cidade
                     })
-                    .ToList();
+                    .AsNoTracking()
+                    .ToListAsync();
+
                 resposta.AdicionaObjeto(escolas);
                 resposta.Sucesso = true;
                 return resposta;
@@ -306,6 +308,7 @@ namespace api.Services
             }
 
             var usuarios = await _usuario.Users
+                .AsNoTracking()
                 .Where(u => u.Email != null && emailsCadastrados.Contains(u.Email))
                 .Select(u => new
                 {
@@ -350,6 +353,7 @@ namespace api.Services
             }
 
             var professores = await _contexto.Professores
+                .AsNoTracking()
                 .Where(p => professorIds.Contains(p.ID))
                 .Select(p => new
                 {

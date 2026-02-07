@@ -494,12 +494,12 @@ export default function CadastroProfessor() {
         </View>
       ),
     },
-    {
+  /*  {
       id: 'preferencias',
       title: 'Preferências',
       icon: <Bell size={16} weight="fill" color={colors.primary} />,
       fields: [],
-    },
+    },*/
   ];
 
   if (loading) {
