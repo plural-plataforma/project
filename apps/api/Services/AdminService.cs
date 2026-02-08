@@ -1,5 +1,4 @@
 ﻿using api.DTOs.Admin;
-using api.DTOs.Aluno;
 using api.Models;
 using api.Responses;
 using Data;
