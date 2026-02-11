@@ -243,4 +243,25 @@ export const trocarSenha = async (request: TrocarSenha): Promise<AuthResponse> =
     console.error(`❌ Detalhes do erro: Status ${axiosError.response?.status}, Mensagem: ${msg}`);
     throw new Error(msg); // Lança com a mensagem formatada
   }
+
+  
+};
+
+export const adiarTrocaSenha = async (): Promise<{ success: boolean }> => {
+  try {
+    const response = await api.post('Autenticacao/adiar-troca-senha');
+    
+    if (response.data.success === true) {
+      // Limpa localmente
+      await AsyncStorage.removeItem('precisaTrocarSenha');
+      // Opcional: se você tiver um setter no contexto Auth, use aqui
+      return { success: true };
+    }
+
+    throw new Error('Resposta inesperada do servidor');
+  } catch (error) {
+    console.error('❌ Erro ao adiar troca de senha:', error);
+    // Não lança erro para não travar a UX — apenas loga
+    return { success: false };
+  }
 };

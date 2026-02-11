@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     margin: 20,
-    maxWidth: 300,
+    maxWidth: 400,
     width: '80%',
     ...Platform.select({
       web: { boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }, // Sombra no Web

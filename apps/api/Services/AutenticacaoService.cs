@@ -193,5 +193,38 @@ namespace api.Services
             return resposta;
 
         }
+
+        public async Task<IdentityResult> AdiarTrocaSenha(ClaimsPrincipal usuarioController)
+        {
+            var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idUsuario))
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não autenticado."
+                });
+            }
+
+            var usuario = await _usuario.FindByIdAsync(idUsuario);
+            if (usuario == null)
+            {
+                return IdentityResult.Failed(new IdentityError
+                {
+                    Description = "Usuário não encontrado."
+                });
+            }
+
+            // Zera o flag
+            if (usuario.DeveAlterarSenha)
+            {
+                usuario.DeveAlterarSenha = false;
+                var resultado = await _usuario.UpdateAsync(usuario);
+                return resultado;
+            }
+
+            // Já estava falso → sucesso sem alteração
+            return IdentityResult.Success;
+        }
+
     }
 }

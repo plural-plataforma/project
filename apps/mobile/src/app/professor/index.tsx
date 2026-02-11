@@ -494,12 +494,20 @@ export default function CadastroProfessor() {
         </View>
       ),
     },
-  /*  {
+    {
       id: 'preferencias',
       title: 'Preferências',
       icon: <Bell size={16} weight="fill" color={colors.primary} />,
-      fields: [],
-    },*/
+      extraContent: ( 
+        <View style={{ marginTop: 10 }}>
+          <CustomButton
+            title="Trocar senha"
+            onPress={() => router.push('/auth/changePassword')}
+            buttonColor={{ backgroundColor: colors.primary }}
+          />
+        </View>
+      ),
+    },
   ];
 
   if (loading) {

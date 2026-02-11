@@ -101,5 +101,23 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
         }
+
+        [HttpPost("adiar-troca-senha")]
+        [Authorize]  // ← importante: só usuário logado pode chamar
+        public async Task<IActionResult> AdiarTrocaSenha()
+        {
+            var resultado = await _autenticacaoService.AdiarTrocaSenha(User);
+
+            if (!resultado.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    errors = resultado.Errors.Select(e => e.Description)
+                });
+            }
+
+            return Ok(new { success = true });
+        }
     }
 }
