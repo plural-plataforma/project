@@ -24,7 +24,6 @@ export default function RootLayout() {
     const timer = setTimeout(() => {
       console.warn('Timeout: Fontes não carregaram em 5 segundos');
       SplashScreen.hideAsync();
-      console.log('API_URL:', Constants.expoConfig?.extra?.API_URL);
     }, 5000);
 
     if (fontsLoaded || fontError) {

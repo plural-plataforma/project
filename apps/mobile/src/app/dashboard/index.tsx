@@ -221,16 +221,11 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-
-            <View style={[styles.cell, { borderWidth: 0 }]}>
+            <View style={[styles.cell]}>
               <SelectButton
                 onPress={() => {}}
                 title=""
                 iconLeft={null}
-                key="btnAvalDiagnostica"
-                onPress={() => router.push('/avaliacaoDiagnostica/MinhasAvaliacoes')}
-                title="Avaliação Diagnóstica"
-                iconLeft={<ClipboardText  size={16} color={colors.primary} />}
                 buttonColor={colors.greyBlur}
                 textColor={colors.primary}
                 borderColor={colors.primary}

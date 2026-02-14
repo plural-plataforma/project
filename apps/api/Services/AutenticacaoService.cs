@@ -223,7 +223,19 @@ namespace api.Services
             return resposta;
 
         }
+        private bool PermiteLogar (Usuario usuario)
+        {
+            if (!usuario.LockoutEnabled)
+                return true;
 
+            if (usuario.LockoutEnd == null)
+                return true;
+
+            if (usuario.LockoutEnd <= DateTimeOffset.UtcNow)
+                return true;
+
+            return false;
+        }
         public async Task<IdentityResult> AdiarTrocaSenha(ClaimsPrincipal usuarioController)
         {
             var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
