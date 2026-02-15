@@ -47,6 +47,7 @@ interface Props {
   onExportar?: () => void;
   onVerPerfil: (prof: Professor) => void;
   onMaisAcoes?: (prof: Professor) => void;
+  onNovoUsuarioClick?: () => void;
 }
 
 
@@ -58,6 +59,7 @@ export function UsersListLayout({
   onExportar,
   onVerPerfil,
   onMaisAcoes,
+  onNovoUsuarioClick
 }: Props) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -133,17 +135,17 @@ export function UsersListLayout({
           </Button>
 
           <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={onCadastrar}
-            sx={{
-              bgcolor: '#276678',
-              '&:hover': { bgcolor: '#1e4d5c' },
-              textTransform: 'none',
-            }}
-          >
-            Novo Usuário
-          </Button>
+  variant="contained"
+  startIcon={<AddIcon />}
+  onClick={onNovoUsuarioClick}  // ← aqui! substitua o onCadastrar por isso
+  sx={{
+    bgcolor: '#276678',
+    '&:hover': { bgcolor: '#1e4d5c' },
+    textTransform: 'none',
+  }}
+>
+  Novo Usuário
+</Button>
         </Stack>
       </Box>
 
@@ -227,8 +229,8 @@ export function UsersListLayout({
                         !prof.jaCadastradoComoProfessor
                           ? 'warning'
                           : prof.ativo
-                          ? 'success'
-                          : 'error'
+                            ? 'success'
+                            : 'error'
                       }
                     />
                   </TableCell>

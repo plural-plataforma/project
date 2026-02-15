@@ -1,6 +1,4 @@
-// pages/Usuarios.tsx
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
   Box,
   Typography,
@@ -19,26 +17,17 @@ import StatsGrid, { StatCardData } from '../../components/StatsGrid';
 
 import { UsersThree, UserCheck } from '@phosphor-icons/react';
 
-const API_URL = import.meta.env.VITE_API_URL;
+import { fetchHotmartSales, HotmartSale } from '../../services/hotmartService';
+import { registerUser } from '../../services/authService';
+import NewUserDialog from '../../components/dialogs/NewUserDialog'; // ← novo componente
 
-interface Professor {
-  transaction: string;
-  buyerName: string;
-  buyerEmail?: string;
-  jaCadastradoComoProfessor?: boolean;
-  professorId: number;
-  nivelEnsino: string;
-  ativo: boolean;
-  roles: string[];
-  telefone: number;
-  perfil: string;
-  isEmbaixadora: boolean;
-}
+const FIXED_PRODUCT_ID = '6420317';
+const FIXED_FROM_DATE = '01/06/2025';
 
 export default function UsuariosPage() {
   const theme = useTheme();
 
-  const [professores, setProfessores] = useState<Professor[]>([]);
+  const [sales, setSales] = useState<HotmartSale[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,44 +40,39 @@ export default function UsuariosPage() {
   const [snackMessage, setSnackMessage] = useState('');
   const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
 
-  const [cadastrandoEmail, setCadastrandoEmail] = useState<string | null>(null);
-
-  const [openModal, setOpenModal] = useState(false);
-  const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(null);
+  const [openNewUserModal, setOpenNewUserModal] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<HotmartSale | null>(null);
   const [initialData, setInitialData] = useState<Partial<Usuario> | undefined>(undefined);
 
   useEffect(() => {
-    const fetchProfessores = async () => {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-      if (!token) {
-        setError('Nenhum token de autenticação encontrado. Faça login novamente.');
-        setLoading(false);
-        return;
-      }
+    const loadSales = async () => {
+      setLoading(true);
+      setError(null);
 
       try {
-        const response = await axios.get(`${API_URL}/vendas/hotmart`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const fetchedSales = await fetchHotmartSales({
+          productId: FIXED_PRODUCT_ID,
+          from: FIXED_FROM_DATE,
+          to: undefined,
+          transactionStatus: ' ',
         });
 
-        const data = response.data.data || [];
-        setProfessores(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Erro na requisição:', err);
-        setError('Erro ao carregar os dados. Tente novamente mais tarde.');
+        setSales(Array.isArray(fetchedSales) ? fetchedSales : []);
+      } catch (err: any) {
+        console.error('Erro ao carregar vendas Hotmart:', err);
+        setError(err.message || 'Não foi possível carregar os dados.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfessores();
+    loadSales();
   }, []);
 
-  // Cálculo das estatísticas
-  const totalCompradores = professores.length;
-  const cadastrados = professores.filter((p) => p.jaCadastradoComoProfessor).length;
-  const naoCadastrados = totalCompradores - cadastrados;
+  // Estatísticas
+  const totalCompradores = sales.length;
+  const cadastrados = sales.filter((p) => p.jaCadastradoComoProfessor).length;
   const percentualAtivos =
     totalCompradores > 0 ? Math.round((cadastrados / totalCompradores) * 1000) / 10 : 0;
 
@@ -96,7 +80,7 @@ export default function UsuariosPage() {
     {
       titulo: 'Total de Usuários',
       valor: totalCompradores.toLocaleString(),
-      variacao: '+12%', // ← substituir por cálculo real quando disponível
+      variacao: '+12%',
       icone: <UsersThree size={32} weight="duotone" />,
       corFundoIcone: '#DBEAFE',
       corIcone: '#2563EB',
@@ -111,28 +95,24 @@ export default function UsuariosPage() {
     },
   ];
 
-  const filteredProfessores = professores.filter(prof => {
-    const searchTerm = search.toLowerCase().trim()
+  const filteredSales = sales.filter((prof) => {
+    const searchTerm = search.toLowerCase().trim();
+    const nome = prof.buyerName?.toLowerCase() ?? '';
+    const email = prof.buyerEmail?.toLowerCase() ?? '';
 
-    const nome = prof.buyerName?.toLowerCase() ?? ''
-    const email = prof.buyerEmail?.toLowerCase() ?? ''
+    const matchesSearch = searchTerm === '' || nome.includes(searchTerm) || email.includes(searchTerm);
 
-    const matchesSearch =
-      searchTerm === '' ||
-      nome.includes(searchTerm) ||
-      email.includes(searchTerm)
-
-    const isCadastrado = prof.jaCadastradoComoProfessor === true
-    const isAtivo = prof.ativo === true
+    const isCadastrado = prof.jaCadastradoComoProfessor === true;
+    const isAtivo = prof.ativo === true;
 
     const matchesStatus =
       filtroStatusCadastro === 'todos' ||
       (filtroStatusCadastro === 'cadastrado' && isCadastrado && isAtivo) ||
       (filtroStatusCadastro === 'naoCadastrado' && !isCadastrado) ||
-      (filtroStatusCadastro === 'Inativo' && isCadastrado && !isAtivo)
+      (filtroStatusCadastro === 'Inativo' && isCadastrado && !isAtivo);
 
-    return matchesSearch && matchesStatus
-  })
+    return matchesSearch && matchesStatus;
+  });
 
   const mapNivelToId = (nivel: string): number | undefined => {
     const map: Record<string, number> = {
@@ -145,74 +125,43 @@ export default function UsuariosPage() {
   };
 
   const cadastrarProfessor = async (email: string, nome: string) => {
-    if (!email || !nome) {
-      setSnackMessage('E-mail ou nome não informado.')
-      setSnackSeverity('error')
-      setSnackOpen(true)
-      return
+    if (!email?.trim() || !nome?.trim()) {
+      setSnackMessage('E-mail ou nome não informado.');
+      setSnackSeverity('error');
+      setSnackOpen(true);
+      return;
     }
-
-    setCadastrandoEmail(email)
 
     try {
-      const token =
-        localStorage.getItem('token') || sessionStorage.getItem('token')
+      await registerUser({
+        email: email.trim(),
+        senha: 'Plural@2025',
+        nomeCompleto: nome.trim(),
+        aceitouTermos: true,
+        deveAlterarSenha: true,
+      });
 
-      await axios.post(
-        `${API_URL}/autenticacao/registro`,
-        {
-          email: email.trim(),
-          senha: 'Plural@2025',
-          nomeCompleto: nome.trim(),
-          aceitouTermos: true,
-          deveAlterarSenha: true
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-
-      // Atualiza o estado local: marca como cadastrado
-      setProfessores(prev =>
-        prev.map(p =>
+      setSales((prev) =>
+        prev.map((p) =>
           p.buyerEmail?.toLowerCase() === email.toLowerCase()
-            ? { ...p, jaCadastradoComoProfessor: true }
+            ? { ...p, jaCadastradoComoProfessor: true, ativo: true }
             : p
         )
-      )
+      );
 
-      setSnackMessage(
-        `Professor ${nome} cadastrado com sucesso! Senha inicial: Plural@2025. Agora você pode acessar o perfil.`
-      )
-      setSnackSeverity('success')
-      setSnackOpen(true)
-    } catch (err: unknown) {
-      console.error('Erro ao cadastrar:', err)
-
-      let mensagemErro = 'Erro ao cadastrar. O e-mail pode já estar em uso.'
-
-      if (axios.isAxiosError(err)) {
-        mensagemErro =
-          err.response?.data?.mensagem ||
-          err.response?.data?.title ||
-          mensagemErro
-      }
-
-      setSnackMessage(mensagemErro)
-      setSnackSeverity('error')
-      setSnackOpen(true)
+      setSnackMessage(`Professor ${nome} cadastrado com sucesso! Senha inicial: Plural@2025.`);
+      setSnackSeverity('success');
+    } catch (err: any) {
+      setSnackMessage(err.message || 'Erro ao cadastrar professor.');
+      setSnackSeverity('error');
     } finally {
-      setCadastrandoEmail(null)
+      setSnackOpen(true);
     }
-  }
+  };
+
   return (
     <Box sx={{ width: '100%', bgcolor: 'grey.50', minHeight: '100vh' }}>
-
-
-      {/* 2. Cards de estatísticas */}
+      {/* Cards de estatísticas */}
       <Box sx={{ px: { xs: 2, md: 4 }, pt: 3, pb: 5 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -227,7 +176,7 @@ export default function UsuariosPage() {
         )}
       </Box>
 
-      {/* 1. Barra de busca e filtros */}
+      {/* Barra de busca */}
       <SearchFilterBar
         search={search}
         setSearch={setSearch}
@@ -241,43 +190,67 @@ export default function UsuariosPage() {
         ]}
         placeholder="Buscar por nome ou e-mail do usuário..."
       />
-      {/* 3. Lista de usuários */}
+
+      {/* Lista de usuários */}
       <Box sx={{ px: { xs: 2, md: 4 }, pb: 6 }}>
         <UsersListLayout
-          filteredProfessores={filteredProfessores}
+          filteredProfessores={filteredSales}
           loading={loading}
           error={error}
           onCadastrar={cadastrarProfessor}
           onVerPerfil={(prof) => {
-            setSelectedProfessor(prof);
+            setSelectedSale(prof);
             setInitialData({
               idUsuario: prof.professorId,
               nome: prof.buyerName,
               email: prof.buyerEmail || '',
               telefone: prof.telefone,
-              perfil: prof.roles[0],
+              perfil: prof.roles?.[0],
               ativo: prof.ativo,
               idNivelEnsino: mapNivelToId(prof.nivelEnsino),
               isEmbaixadora: prof.isEmbaixadora,
             });
-            setOpenModal(true);
+            setOpenEditModal(true);
           }}
+          onNovoUsuarioClick={() => setOpenNewUserModal(true)}
         />
       </Box>
 
+      {/* Dialog de Novo Usuário */}
+      <NewUserDialog
+        open={openNewUserModal}
+        onClose={() => setOpenNewUserModal(false)}
+        onSuccess={(email, name) => {
+          setSnackMessage(`Novo usuário ${name} cadastrado com sucesso! Senha inicial informada.`);
+          setSnackSeverity('success');
+          setSnackOpen(true);
+          // Opcional: recarregar a lista de vendas se desejar atualizar stats
+        }}
+        onError={(msg) => {
+          setSnackMessage(msg);
+          setSnackSeverity('error');
+          setSnackOpen(true);
+        }}
+      />
+
       {/* Snackbar */}
-      <Snackbar open={snackOpen} onClose={() => setSnackOpen(false)}>
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
         <Alert onClose={() => setSnackOpen(false)} severity={snackSeverity}>
           {snackMessage}
         </Alert>
       </Snackbar>
 
-      {/* Modal de edição */}
-      <Modal open={openModal} onClose={() => setOpenModal(false)}>
+      {/* Modal de edição de perfil */}
+      <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
         <ProfileUserAppEdit
-          open={openModal}
-          onClose={() => setOpenModal(false)}
-          userId={selectedProfessor?.professorId!}
+          open={openEditModal}
+          onClose={() => setOpenEditModal(false)}
+          userId={selectedSale?.professorId ?? 0}
           initialData={initialData}
         />
       </Modal>

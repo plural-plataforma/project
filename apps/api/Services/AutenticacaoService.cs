@@ -33,7 +33,6 @@ namespace api.Services
                 try
                 {
                     int? perfilId = null;
-
                     Professor professor = new Professor { NomeCompleto = registroDto.NomeCompleto };
                     _contexto.Professores.Add(professor);
                     await _contexto.SaveChangesAsync();
@@ -45,11 +44,14 @@ namespace api.Services
                         Email = registroDto.Email,
                         ProfessorId = perfilId,
                         AceitouTermos = registroDto.AceitouTermos,
-                        DeveAlterarSenha = registroDto.DeveAlterarSenha
+                        DeveAlterarSenha = registroDto.DeveAlterarSenha,
+
+                        // Novo: define a data de expiração
+                        // Se não vier no DTO → null (vitalício)
+                        ExpirationDate = registroDto.ExpirationDate
                     };
 
                     var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
-
                     if (!result.Succeeded)
                     {
                         await transacao.RollbackAsync();
@@ -62,29 +64,26 @@ namespace api.Services
                     }
 
                     await _usuario.AddToRoleAsync(usuarioApp, "Professor");
-
                     await transacao.CommitAsync();
                     return IdentityResult.Success;
                 }
                 catch (Exception)
                 {
-
                     await transacao.RollbackAsync();
                     throw;
                 }
             }
         }
-
         public async Task<ServiceResponse<object>> Login(LoginDTO loginDto)
         {
             var resposta = new ServiceResponse<object>();
+
             var usuario = await _usuario.FindByEmailAsync(loginDto.Email);
             if (usuario == null)
             {
                 resposta.SetFalha("Email ou senha inválidos.");
                 return resposta;
             }
-            ;
 
             if (!await _usuario.CheckPasswordAsync(usuario, loginDto.Senha))
             {
@@ -92,19 +91,21 @@ namespace api.Services
                 return resposta;
             }
 
-            bool deveAlterarSenha = usuario.DeveAlterarSenha;
-
-            if(!PermiteLogar(usuario))
+            // Validação centralizada de permissão de login
+            var (podeLogar, motivo) = await PodeLogarAsync(usuario);
+            if (!podeLogar)
             {
-                resposta.SetFalha("Acesso bloqueado.");
+                resposta.SetFalha(motivo);
                 return resposta;
             }
 
+            bool deveAlterarSenha = usuario.DeveAlterarSenha;
+
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, usuario.Id),
-                new Claim(ClaimTypes.Email, usuario.Email)
-            };
+    {
+        new Claim(ClaimTypes.NameIdentifier, usuario.Id),
+        new Claim(ClaimTypes.Email, usuario.Email!)
+    };
 
             var roles = await _usuario.GetRolesAsync(usuario);
             foreach (var role in roles)
@@ -112,7 +113,7 @@ namespace api.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")));
+            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuracao["JwtSettings:Secret"] ?? Environment.GetEnvironmentVariable("JWT_SECRET")!));
             var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
@@ -125,7 +126,7 @@ namespace api.Services
 
             string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
-            Professor professor = await _contexto.Professores
+            var professor = await _contexto.Professores
                 .FirstOrDefaultAsync(p => p.ID == usuario.ProfessorId);
 
             var retorno = new
@@ -144,7 +145,6 @@ namespace api.Services
             resposta.AdicionaObjeto(retorno);
             return resposta;
         }
-
         public async Task<IdentityResult> AlterarSenha(AlterarSenhaDTO alterarSenhaDTO, ClaimsPrincipal usuarioController)
         {
             var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -223,19 +223,7 @@ namespace api.Services
             return resposta;
 
         }
-        private bool PermiteLogar (Usuario usuario)
-        {
-            if (!usuario.LockoutEnabled)
-                return true;
-
-            if (usuario.LockoutEnd == null)
-                return true;
-
-            if (usuario.LockoutEnd <= DateTimeOffset.UtcNow)
-                return true;
-
-            return false;
-        }
+       
         public async Task<IdentityResult> AdiarTrocaSenha(ClaimsPrincipal usuarioController)
         {
             var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -268,18 +256,31 @@ namespace api.Services
             return IdentityResult.Success;
         }
 
-        private bool PermiteLogar (Usuario usuario)
+        private async Task<(bool podeLogar, string motivo)> PodeLogarAsync(Usuario usuario)
         {
-            if (!usuario.LockoutEnabled)
-                return true;
+            // Bloqueio temporário do Identity
+            if (usuario.LockoutEnabled &&
+                usuario.LockoutEnd.HasValue &&
+                usuario.LockoutEnd > DateTimeOffset.UtcNow)
+            {
+                return (false, "Conta bloqueada temporariamente.");
+            }
 
-            if (usuario.LockoutEnd == null)
-                return true;
+            // Conta inativada manualmente
+            if (!usuario.IsActive)
+            {
+                return (false, "Sua conta foi inativada. Contate o suporte.");
+            }
 
-            if (usuario.LockoutEnd <= DateTimeOffset.UtcNow)
-                return true;
+            // Expiração: só bloqueia se tiver data E já passou
+            if (usuario.ExpirationDate.HasValue &&
+                usuario.ExpirationDate.Value < DateTime.UtcNow)
+            {
+                return (false, "Sua conta expirou. Renove o acesso.");
+            }
 
-            return false;
+            // Se chegou aqui: ativo + (vitalício OU ainda dentro da validade)
+            return (true, string.Empty);
         }
     }
 }

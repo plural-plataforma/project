@@ -1,52 +1,39 @@
-﻿
-using api.DTOs.Admin;
-using api.Models;
+﻿using api.DTOs.Admin;
+using api.Responses;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace api.Controllers
 {
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Coordenador")] // descomente quando roles estiverem funcionando
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/admin")]
     public class AdminController : ControllerBase
     {
-        private readonly UserManager<Usuario> _usuario;
         private readonly AdminService _adminService;
 
-        public AdminController(UserManager<Usuario> usuario, AdminService adminService)
+        public AdminController(AdminService adminService)
         {
-            _usuario = usuario;
             _adminService = adminService;
         }
 
-        [HttpPatch("atualizarStatusUsuario")]
-        public async Task<IActionResult> AtualizarStatusUsuario([FromBody] AtualizarStatusUsuarioDTO dto)
+        [HttpPatch("usuarios/atualizar")]
+        public async Task<IActionResult> AtualizarUsuario([FromBody] AtualizarStatusUsuarioDTO dto)
         {
-
-            if (ModelState.IsValid)
-            {
-                var resposta = await _adminService.AtualizarStatusUsuario(dto);
-
-                if (resposta.Sucesso)
-                {
-                    return Ok(resposta);
-                } else
-                {   
-                    BadRequest(resposta);
-                }
-            }
-            else
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            return BadRequest();
+            var resposta = await _adminService.AtualizarUsuarioAsync(dto);
+
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+
+            return BadRequest(resposta);
         }
-
-
     }
 }

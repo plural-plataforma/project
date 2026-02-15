@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260214223145_AddIsActiveAndExpirationDateToUsuario")]
+    partial class AddIsActiveAndExpirationDateToUsuario
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1168,7 +1171,6 @@ namespace api.Migrations
                         .HasDatabaseName("usernameindex");
 
                     b.HasIndex("ProfessorId")
-                        .IsUnique()
                         .HasDatabaseName("ix_aspnetusers_professorid");
 
                     b.ToTable("aspnetusers", (string)null);
@@ -1525,9 +1527,9 @@ namespace api.Migrations
             modelBuilder.Entity("api.Models.Usuario", b =>
                 {
                     b.HasOne("api.Models.Professor", "Professor")
-                        .WithOne("Usuario")
-                        .HasForeignKey("api.Models.Usuario", "ProfessorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithMany()
+                        .HasForeignKey("ProfessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_aspnetusers_professores_professorid");
 
                     b.Navigation("Professor");
@@ -1590,8 +1592,6 @@ namespace api.Migrations
                     b.Navigation("EscolaXProfessores");
 
                     b.Navigation("Planejamentos");
-
-                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>

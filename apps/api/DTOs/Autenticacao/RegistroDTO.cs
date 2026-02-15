@@ -20,6 +20,8 @@ namespace api.DTOs.Autenticacao
 
         public bool DeveAlterarSenha { get; set; } = false;
 
-
+        // Se null → vitalício
+        // Se preenchido → expira nessa data
+        public DateTime? ExpirationDate { get; set; }
     }
 }

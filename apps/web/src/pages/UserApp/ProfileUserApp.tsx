@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import { X } from '@phosphor-icons/react'
-const API_URL = import.meta.env.VITE_API_URL
+import { useState, useEffect } from 'react';
+import { X } from '@phosphor-icons/react';
 
 import {
   Box,
@@ -16,248 +14,268 @@ import {
   Alert,
   Grid,
   FormControlLabel,
-  Checkbox
-} from '@mui/material'
-import { Usuario } from '../../types/userTypes'
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
+} from '@mui/material';
+
+import { updateUserProfile } from '../../services/userProfileService'; // ajuste o caminho conforme sua estrutura
+import { Usuario } from '../../types/userTypes';
 
 interface EditProfileModalProps {
-  open: boolean
-  onClose: () => void
-  userId: number
-  initialData?: Partial<Usuario>
+  open: boolean;
+  onClose: () => void;
+  userId: number;
+  initialData?: Partial<Usuario>;
 }
 
 export default function ProfileUserAppEdit({
   open,
   onClose,
+  userId,
   initialData
 }: EditProfileModalProps) {
-  const [formData, setFormData] = useState<Partial<Usuario>>(initialData || {})
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [formData, setFormData] = useState<Partial<Usuario>>(initialData || {});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    if (initialData && Object.keys(initialData).length > 0) {
-      setFormData(initialData)
-      setLoading(false)
-      return
+    // Verifica se é admin
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        if (user?.roles?.includes('Admin')) {
+          setIsAdmin(true);
+        }
+      } catch (err) {
+        console.error('Erro ao parsear usuário do localStorage', err);
+      }
     }
-  }, [initialData])
+
+    if (initialData && Object.keys(initialData).length > 0) {
+      setFormData(initialData);
+      setLoading(false);
+    }
+  }, [initialData]);
 
   const handleSave = async () => {
-    if (!formData.idUsuario) return
+    if (!formData.idUsuario) return;
 
-    setSaving(true)
-    setError(null)
-    setSuccess(false)
+    setSaving(true);
+    setError(null);
+    setSuccess(false);
 
-    const token =
-      localStorage.getItem('token') || sessionStorage.getItem('token')
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
-      setError('Token não encontrado.')
-      setSaving(false)
-      return
+      setError('Sessão expirada. Faça login novamente.');
+      setSaving(false);
+      return;
     }
 
+    // Monta o payload exatamente como o backend espera
     const payload = {
       idUsuario: formData.idUsuario,
       acao: formData.ativo ? 'A' : 'I',
-      nome: formData.nome,
-      email: formData.email,
-      telefone: formData.telefone,
-      isEmbaixadora: formData.isEmbaixadora
-    }
+      nome: formData.nome?.trim(),
+      email: formData.email?.trim(),
+      telefone: String(formData.telefone ?? '').trim(),
+      isEmbaixadora: formData.isEmbaixadora ?? false,
+      // Apenas admin pode enviar/alterar perfil
+      ...(isAdmin && formData.perfil ? { perfil: formData.perfil } : {})
+    };
 
     try {
-      await axios.patch(`${API_URL}/Admin/atualizarStatusUsuario`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      setSuccess(true)
+      await updateUserProfile(payload, token);
+
+      setSuccess(true);
       setTimeout(() => {
-        onClose()
-        window.location.reload()
-      }, 1200)
+        onClose();
+        window.location.reload();
+      }, 1500);
     } catch (err: any) {
-      setError(err.response?.objeto?.mensagens || 'Erro ao salvar.')
+      setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleChange = (field: keyof Usuario, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-  if (!open) return null
+  if (!open) return null;
 
   return (
-    <Box
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
       sx={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: { xs: '90%', sm: 700 },
-        bgcolor: 'background.paper',
-        boxShadow: 40,
-        p: 4,
-        borderRadius: 2,
-        maxHeight: '120vh',
-        overflowY: 'auto'
+        '& .MuiDialog-paper': {
+          borderRadius: 4,
+          boxShadow: 24,
+        }
       }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2
-        }}
-      >
-        <Typography variant="h6" fontWeight="bold">
-          Editar Perfil de {formData.nome || 'Usuário'}
-        </Typography>
-        <Button onClick={onClose} sx={{ minWidth: 'auto' }}>
-          <X size={24} weight="bold" />
-        </Button>
-      </Box>
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Perfil atualizado com sucesso!
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
+      <DialogTitle sx={{ bgcolor: '#276678', color: 'white', py: 2, px: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6" fontWeight="bold">
+            Editar Perfil
+          </Typography>
+          <Button onClick={onClose} sx={{ color: 'white', minWidth: 'auto' }}>
+            <X size={24} weight="bold" />
+          </Button>
         </Box>
-      ) : (
-        <Grid container spacing={2}>
-          {/* Nome */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              label="Nome completo"
-              fullWidth
-              value={formData.nome || ''}
-              onChange={e => handleChange('nome', e.target.value)}
-              required
-            />
-          </Grid>
+      </DialogTitle>
 
-          {/* Email */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              label="E-mail"
-              fullWidth
-              type="email"
-              value={formData.email || ''}
-              onChange={e => handleChange('email', e.target.value)}
-              required
-            />
-          </Grid>
+      <DialogContent sx={{ pt: 3 }}>
+        {success && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            Perfil atualizado com sucesso!
+          </Alert>
+        )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-          {/* Telefone */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              label="Telefone / WhatsApp"
-              fullWidth
-              value={formData.telefone || ''}
-              onChange={e => handleChange('telefone', e.target.value)}
-              placeholder="(00) 00000-0000"
-            />
-          </Grid>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={3} sx={{ paddingTop: 2 }}>
+            {/* Nome completo */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Nome completo"
+                fullWidth
+                value={formData.nome || ''}
+                onChange={e => handleChange('nome', e.target.value)}
+                required
+                variant="outlined"
+              />
+            </Grid>
 
-          {/* Perfil */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControl fullWidth required>
-              <InputLabel>Perfil</InputLabel>
-              <Select
-                value={formData.perfil || ''}
-                label="Perfil"
-                onChange={e => handleChange('perfil', e.target.value)}
-              >
-                <MenuItem value="ADMIN">Administrador</MenuItem>
-                <MenuItem value="PROFESSOR">Professor</MenuItem>
-                <MenuItem value="RESPONSAVEL">Responsável</MenuItem>
-                <MenuItem value="OUTRO">Outro</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+            {/* E-mail */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="E-mail"
+                fullWidth
+                type="email"
+                value={formData.email || ''}
+                onChange={e => handleChange('email', e.target.value)}
+                required
+                variant="outlined"
+              />
+            </Grid>
 
-          {/* Status Ativo */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={
-                  formData.ativo !== undefined ? String(formData.ativo) : 'true'
-                }
-                label="Status"
-                onChange={e => handleChange('ativo', e.target.value === 'true')}
-              >
-                <MenuItem value="true">Ativo</MenuItem>
-                <MenuItem value="false">Inativo</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+            {/* Telefone */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Telefone / WhatsApp"
+                fullWidth
+                value={formData.telefone || ''}
+                onChange={e => handleChange('telefone', e.target.value)}
+                placeholder="(00) 00000-0000"
+                variant="outlined"
+              />
+            </Grid>
 
-          {/* Embaixadora */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={!!formData.isEmbaixadora}  // !! transforma undefined/null → false
-                  onChange={(_, checked) => handleChange('isEmbaixadora', checked)}
+            {/* Perfil (somente Admin pode editar) */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              {isAdmin ? (
+                <FormControl fullWidth required>
+                  <InputLabel>Perfil</InputLabel>
+                  <Select
+                    value={formData.perfil || ''}
+                    label="Perfil"
+                    onChange={e => handleChange('perfil', e.target.value)}
+                    variant="outlined"
+                  >
+                    <MenuItem value="Admin">Administrador</MenuItem>
+                    <MenuItem value="Professor">Professor</MenuItem>
+                  </Select>
+                </FormControl>
+              ) : (
+                <TextField
+                  label="Perfil Atual"
+                  fullWidth
+                  value={formData.perfil || 'Professor'}
+                  disabled
+                  variant="outlined"
+                  helperText="Alterações de perfil são gerenciadas pela administração."
                 />
-              }
-              label="É Embaixadora"
-              sx={{ ml: 0 }} // remove margem esquerda padrão se quiser mais colado
-            />
-          </Grid>
+              )}
+            </Grid>
 
+            {/* Status Ativo/Inativo */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Status da Conta</InputLabel>
+                <Select
+                  value={formData.ativo !== undefined ? String(formData.ativo) : 'true'}
+                  label="Status da Conta"
+                  onChange={e => handleChange('ativo', e.target.value === 'true')}
+                  variant="outlined"
+                >
+                  <MenuItem value="true">Ativo</MenuItem>
+                  <MenuItem value="false">Inativo</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-          {/* Botões */}
-          <Grid size={{ xs: 12 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: 2,
-                mt: 2
-              }}
-            >
-              <Button variant="outlined" onClick={onClose} disabled={saving}>
-                Cancelar
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleSave}
-                disabled={
-                  saving || !formData.nome?.trim() || !formData.email?.trim()
+            {/* Embaixadora */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={!!formData.isEmbaixadora}
+                    onChange={(_, checked) => handleChange('isEmbaixadora', checked)}
+                    color="primary"
+                  />
                 }
-                sx={{ backgroundColor: '#276678' }}
-              >
-                {saving ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  'Salvar'
-                )}
-              </Button>
-            </Box>
+                label="Sou Embaixadora / Parceira"
+                sx={{ mt: 1 }}
+              />
+            </Grid>
+
+            {/* Aviso */}
+            <Grid size={{ xs: 12 }}>
+              <Typography variant="caption" color="text.secondary">
+                Alterações avançadas (ex: tipo de acesso, data de expiração, roles) são gerenciadas pelo time administrativo.
+              </Typography>
+            </Grid>
           </Grid>
-        </Grid>
-      )}
-    </Box>
-  )
+        )}
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onClose} disabled={saving} sx={{ color: '#276678' }}>
+          Cancelar
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={
+            saving ||
+              !formData.nome?.trim() ||
+              !formData.email?.trim() 
+          }
+          sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5a' } }}
+        >
+          {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 }

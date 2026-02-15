@@ -54,6 +54,6 @@ namespace api.Models
     public ICollection<EscolaXProfessor>? EscolaXProfessores { get; set; }
 
     public ICollection<Planejamento> Planejamentos { get; set; }
-
+    public Usuario Usuario { get; set; }
     }
 }

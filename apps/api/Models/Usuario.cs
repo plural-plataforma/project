@@ -12,5 +12,9 @@ namespace api.Models
         public bool DeveAlterarSenha { get; set; }
 
         public bool IsEmbaixadora { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime? ExpirationDate { get; set; }
     }
 }

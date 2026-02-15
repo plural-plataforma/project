@@ -43,10 +43,10 @@ export default function SearchFilterBar<TStatus extends string>({
     <Box
       sx={{
         width: '100%',
-        height: 98,
+        height: '100%',
         display: 'flex',
         alignItems: 'center',
-        px: { xs: 2, md: 0 },
+        px: { xs: 2, md: 4 },
         bgcolor: 'grey.50',
       }}
     >
@@ -56,7 +56,7 @@ export default function SearchFilterBar<TStatus extends string>({
           alignItems: 'center',
           gap: { xs: 2, md: 3 },
           width: '100%',
-          maxWidth: 1400,
+          maxWidth: '100%',
           flexWrap: 'wrap',
           bgcolor: '#FFFFFF',
           p: 2,
@@ -72,7 +72,7 @@ export default function SearchFilterBar<TStatus extends string>({
           onChange={handleSearchChange}
           fullWidth
           sx={{
-            maxWidth: { xs: '100%', md: 740 },
+            maxWidth: { xs: '100%', md: '85%'},
             '& .MuiOutlinedInput-root': {
               height: 50,
               borderRadius: '8px',
@@ -96,8 +96,8 @@ export default function SearchFilterBar<TStatus extends string>({
           }}
         />
 
-        {/* Filtro de Status - genérico */}
-        <FormControl sx={{ minWidth: 180 }}>
+        {/* Filtro de Status */}
+        <FormControl sx={{ minWidth: 250 }}>
           <Select
             value={statusFilter}
             onChange={handleStatusChange}
@@ -124,7 +124,7 @@ export default function SearchFilterBar<TStatus extends string>({
           </Select>
         </FormControl>
 
-        {/* Botão de filtros avançados */}
+        {/* Botão de filtros avançados (mantido como placeholder) 
         <Button
           variant="outlined"
           startIcon={<FilterListIcon sx={{ color: '#276678' }} />}
@@ -144,7 +144,7 @@ export default function SearchFilterBar<TStatus extends string>({
           onClick={() => alert('Filtros avançados ainda não implementados')}
         >
           Filtros
-        </Button>
+        </Button>*/}
       </Box>
     </Box>
   );

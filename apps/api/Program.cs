@@ -1,15 +1,13 @@
-using System.ComponentModel;
 using DotNetEnv;
-using System.Text;
-using api.Models;
-using api.Services;
-using Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Text.Json.Serialization;
+using System.Text;
+using api.Models;
+using api.Services;
+using Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,46 +35,72 @@ builder.Services.AddCors(options =>
 
 // Carrega .env da raiz do Turborepo
 DotNetEnv.Env.TraversePath().Load();
+
+// Adiciona variáveis de ambiente (sobrescreve placeholders)
 builder.Configuration.AddEnvironmentVariables();
 
-var requiredVars = new[]
-{"HOTMART_CLIENT_ID", "HOTMART_CLIENT_SECRET",
-    "API_HOTMART_URL", "HOTMART_TOKEN_URL"
-};
-
-// Validações básicas das vars do .env
-var dbPassword = builder.Configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("DB_PASSWORD não encontrada no .env");
-var userId = builder.Configuration["USER_ID"] ?? throw new InvalidOperationException("USER_ID não encontrada no .env");
-var serverUrl = builder.Configuration["SERVER_URL"] ?? throw new InvalidOperationException("SERVER_URL não encontrada no .env");
-var jwtSecret = builder.Configuration["JWT_SECRET"] ?? throw new InvalidOperationException("JWT_SECRET não encontrada no .env");
-var portApi = builder.Configuration["PORT_API"] ?? throw new InvalidOperationException("PORT_API não encontrada no .env");
-
-// Carrega appsettings.json e substitui placeholders
+// Carrega appsettings.json
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-var appSettings = builder.Configuration.GetSection("JwtSettings");
-var secret = appSettings["Secret"].Replace("{JWT_SECRET}", jwtSecret); // Substitui o placeholder
-appSettings["Secret"] = secret; // Atualiza a configuração
 
+// Substituição para JwtSettings:Secret
+var jwtSecret = builder.Configuration["JWT_SECRET"]
+    ?? throw new InvalidOperationException("JWT_SECRET não encontrada no .env");
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+jwtSettings["Secret"] = jwtSettings["Secret"]?.Replace("{JWT_SECRET}", jwtSecret);
 
-// Monte connection string com substituições do .env
+// Substituição para o bloco inteiro de Hotmart
+var hotmartSection = builder.Configuration.GetSection("Hotmart");
+if (hotmartSection.Exists())
+{
+    hotmartSection["ClientId"] = hotmartSection["ClientId"]
+        ?.Replace("{HOTMART_CLIENT_ID}", builder.Configuration["HOTMART_CLIENT_ID"]
+            ?? throw new InvalidOperationException("HOTMART_CLIENT_ID não encontrada"));
+
+    hotmartSection["ClientSecret"] = hotmartSection["ClientSecret"]
+        ?.Replace("{HOTMART_CLIENT_SECRET}", builder.Configuration["HOTMART_CLIENT_SECRET"]
+            ?? throw new InvalidOperationException("HOTMART_CLIENT_SECRET não encontrada"));
+
+    hotmartSection["ProductId"] = hotmartSection["ProductId"]
+        ?.Replace("{PRODUCT_ID}", builder.Configuration["PRODUCT_ID"]
+            ?? throw new InvalidOperationException("PRODUCT_ID não encontrada"));
+
+    hotmartSection["Hottok"] = hotmartSection["Hottok"]
+        ?.Replace("{HOTTOK}", builder.Configuration["HOTTOK"]
+            ?? throw new InvalidOperationException("HOTTOK não encontrada"));
+}
+else
+{
+    throw new InvalidOperationException("Seção 'Hotmart' não encontrada no appsettings.json");
+}
+
+// Validações básicas das variáveis de ambiente (obrigatórias)
+var requiredEnvVars = new[] { "DB_PASSWORD", "USER_ID", "SERVER_URL", "PORT_API", "JWT_SECRET", "HOTTOK" };
+foreach (var varName in requiredEnvVars)
+{
+    if (string.IsNullOrWhiteSpace(builder.Configuration[varName]))
+        throw new InvalidOperationException($"{varName} não encontrada no .env ou configuração");
+}
+
+// Monta connection string com substituições
 var baseConnectionString = builder.Configuration.GetConnectionString("AppDbContext")
     ?? throw new InvalidOperationException("AppDbContext não encontrada no appsettings.json");
-var connectionString = baseConnectionString
-    .Replace("{USER_ID}", userId)
-    .Replace("{DB_PASSWORD}", dbPassword)
-    .Replace("{SERVER_URL}", serverUrl)
-.Replace("{PORT_API}", portApi);
 
-// Registra DbContext com a string montada
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+var connectionString = baseConnectionString
+    .Replace("{USER_ID}", builder.Configuration["USER_ID"])
+    .Replace("{DB_PASSWORD}", builder.Configuration["DB_PASSWORD"])
+    .Replace("{SERVER_URL}", builder.Configuration["SERVER_URL"])
+    .Replace("{PORT_API}", builder.Configuration["PORT_API"]);
+
+// Registra DbContext
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // Identity
-builder.Services.AddIdentity<Usuario, IdentityRole>().AddEntityFrameworkStores<AppDbContext>()
+builder.Services.AddIdentity<Usuario, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-var chave = Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Secret"]);
-
+// JWT Authentication
+var jwtKey = Encoding.ASCII.GetBytes(builder.Configuration["JwtSettings:Secret"]);
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -86,7 +110,7 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(chave),
+        IssuerSigningKey = new SymmetricSecurityKey(jwtKey),
         ValidateIssuer = true,
         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidateAudience = true,
@@ -94,7 +118,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Add services to the container.
+// Services
 builder.Services.AddScoped<AutenticacaoService>();
 builder.Services.AddScoped<ProfessorService>();
 builder.Services.AddScoped<EscolaService>();
@@ -107,6 +131,8 @@ builder.Services.AddScoped<HotmartService>();
 builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
+builder.Services.AddScoped<HotmartWebhookService>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>

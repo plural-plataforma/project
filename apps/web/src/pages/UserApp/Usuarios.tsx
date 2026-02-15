@@ -169,9 +169,8 @@ export default function Usuarios() {
             <InfoCard
               titulo={stat.titulo}
               valor={stat.valor}
-              variacao={stat.variacao}
               icone={stat.icone}
-              corFundoIcone={stat.corFundoIcone}
+              corFundo={stat.corFundoIcone}
               corIcone={stat.corIcone}
             />
           </Grid>
