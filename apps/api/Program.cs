@@ -131,6 +131,7 @@ builder.Services.AddScoped<HotmartService>();
 builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<HotmartWebhookService>();
 
 builder.Services.AddControllers();

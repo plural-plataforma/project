@@ -11,6 +11,7 @@ namespace api.Controllers
     public class AutenticacaoController : ControllerBase
     {
         private readonly AutenticacaoService _autenticacaoService;
+ 
 
         public AutenticacaoController(AutenticacaoService autenticacaoService)
         {

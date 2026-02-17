@@ -1,4 +1,5 @@
 ﻿using api.DTOs.Autenticacao;
+using api.DTOs.Email;
 using api.Models;
 using api.Responses;
 using Data;
@@ -17,13 +18,15 @@ namespace api.Services
         private readonly RoleManager<IdentityRole> _tipo;
         private readonly AppDbContext _contexto;
         private readonly IConfiguration _configuracao;
+        private readonly EmailService _emailService;
 
-        public AutenticacaoService(UserManager<Usuario> usuario, RoleManager<IdentityRole> tipo, AppDbContext contexto, IConfiguration configuracao)
+        public AutenticacaoService(UserManager<Usuario> usuario, RoleManager<IdentityRole> tipo, AppDbContext contexto, IConfiguration configuracao, EmailService emailService)
         {
             _usuario = usuario;
             _tipo = tipo;
             _contexto = contexto;
             _configuracao = configuracao;
+            _emailService = emailService;
         }
 
         public async Task<IdentityResult> Registro(RegistroDTO registroDto)
@@ -35,6 +38,7 @@ namespace api.Services
                     int? perfilId = null;
                     Professor professor = new Professor { NomeCompleto = registroDto.NomeCompleto };
                     _contexto.Professores.Add(professor);
+
                     await _contexto.SaveChangesAsync();
                     perfilId = professor.ID;
 
@@ -64,6 +68,27 @@ namespace api.Services
                     }
 
                     await _usuario.AddToRoleAsync(usuarioApp, "Professor");
+
+                    EmailDTO email = new EmailDTO
+                    {
+                        Destino = registroDto.Email,
+                        Assunto = "Bem-vindo à Plural Plataforma",
+                        NomeDestinatario = registroDto.NomeCompleto
+                    };
+                    
+                    var resultadoEmail = await _emailService.EnviarEmail(email);
+
+                    if (!resultadoEmail.Sucesso)
+                    {
+                        await transacao.RollbackAsync();
+                        return IdentityResult.Failed(
+                         new IdentityError
+                         {
+                             Description = "Falha ao enviar o e-mail de confirmação."
+                         });
+                    }
+
+
                     await transacao.CommitAsync();
                     return IdentityResult.Success;
                 }
