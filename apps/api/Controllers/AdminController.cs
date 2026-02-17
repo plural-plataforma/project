@@ -35,5 +35,37 @@ namespace api.Controllers
 
             return BadRequest(resposta);
         }
+
+        [HttpGet("usuarios/listar")]
+        public async Task<IActionResult> ListarParaAdmin(
+            [FromQuery] int pagina = 1,
+            [FromQuery] int tamanhoPagina = 20,
+            [FromQuery] bool? ativo = null,
+            [FromQuery] bool? isEmbaixadora = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? nivelEnsino = null)
+        {
+            // Chama o serviço com exatamente os mesmos parâmetros
+            var resposta = await _adminService.ListarTodosParaAdminAsync(
+                pagina: pagina,
+                tamanhoPagina: tamanhoPagina,
+                ativo: ativo,
+                isEmbaixadora: isEmbaixadora,
+                search: search,
+                nivelEnsino: nivelEnsino
+            );
+
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta.Objeto); // Retorna o PaginatedResult<ProfessorAdminListDTO>
+            }
+
+            // Em caso de erro, retorna 500 com a mensagem do serviço
+            return StatusCode(500, new
+            {
+                erro = "Falha ao listar professores",
+                detalhe = resposta.Mensagens.FirstOrDefault() ?? "Erro interno"
+            });
+        }
     }
 }

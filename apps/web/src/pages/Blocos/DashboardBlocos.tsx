@@ -76,9 +76,9 @@ const handleTotalChange = useCallback((total: number) => {
   }, []);
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, px: { xs: 2, md: 4 } }}>
+    <Box sx={{ width: '100%', bgcolor: 'grey.50', pb: 8 }}>
       {/* 1. Cards de estatísticas */}
-      <Box sx={{ mb: 5 }}>
+      <Box sx={{ px: { xs: 2, md: 4 }, pt: 3 }}>
         <StatsGrid cards={statCards} spacing={3} />
       </Box>
 
@@ -93,13 +93,13 @@ const handleTotalChange = useCallback((total: number) => {
       />
 
       {/* 3. Área da lista/tabela de blocos */}
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ mt:  3, px: { xs: 2, md: 4 } }}>
         <ListaBlocos 
           search={search}              
           statusFilter={statusFilter}
           onTotalChange={handleTotalChange}
         />
       </Box>
-    </Container>
+    </Box>
   );
 }

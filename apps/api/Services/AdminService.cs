@@ -185,5 +185,119 @@ namespace api.Services
                     break;
             }
         }
+
+        public async Task<ServiceResponse<PaginatedResult<UsuarioListDTO>>> ListarTodosParaAdminAsync(
+            int pagina = 1,
+            int tamanhoPagina = 20,
+            bool? ativo = null,
+            bool? isEmbaixadora = null,
+            string? search = null,           // nome, email ou telefone
+            string? nivelEnsino = null)
+        {
+            var resposta = new ServiceResponse<PaginatedResult<UsuarioListDTO>>();
+
+            // Validação básica de parâmetros
+            if (pagina < 1) pagina = 1;
+            if (tamanhoPagina < 1 || tamanhoPagina > 100) tamanhoPagina = 20;
+
+            try
+            {
+                var query = _contexto.Professores
+                    .Include(p => p.Usuario)
+                    .AsNoTracking()
+                    .Where(p => p.Usuario != null); // garante que tem usuário associado
+
+                // Filtros
+                if (ativo.HasValue)
+                {
+                    query = query.Where(p => p.Usuario.IsActive == ativo.Value);
+                }
+
+                if (isEmbaixadora.HasValue)
+                {
+                    query = query.Where(p => p.Usuario.IsEmbaixadora == isEmbaixadora.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(nivelEnsino))
+                {
+                    query = query.Where(p =>
+                        p.NivelEnsino != null &&
+                        p.NivelEnsino.Contains(nivelEnsino.Trim()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var termo = search.Trim().ToLowerInvariant();
+                    query = query.Where(p =>
+                        (p.NomeCompleto != null && EF.Functions.Like(p.NomeCompleto.ToLower(), $"%{termo}%")) ||
+                        (p.Usuario.Email != null && EF.Functions.Like(p.Usuario.Email.ToLower(), $"%{termo}%")) ||
+                        (p.Telefone != null && p.Telefone.Contains(termo))
+                    );
+                }
+
+                // Contagem total antes da paginação
+                var total = await query.CountAsync();
+
+                // Ordenação: ExpirationDate descendente (os que expiram primeiro aparecem no topo)
+                // Se quiser mudar, pode ser por DataCriacao, NomeCompleto, etc.
+                var itens = await query
+                    .OrderByDescending(p => p.Usuario!.ExpirationDate ?? DateTime.MinValue)
+                    .ThenBy(p => p.NomeCompleto ?? string.Empty) // desempate alfabético
+                    .Skip((pagina - 1) * tamanhoPagina)
+                    .Take(tamanhoPagina)
+                    .Select(p => new UsuarioListDTO
+                    {
+                        idUsuario = p.ID,
+                        NomeCompleto = p.NomeCompleto,
+                        Email = p.Usuario.Email,
+                        Telefone = p.Telefone,
+                        Ativo = p.Usuario.IsActive,
+                        IsEmbaixadora = p.Usuario.IsEmbaixadora,
+                        PossuiLockout = p.Usuario.LockoutEnd.HasValue &&
+                                       p.Usuario.LockoutEnd > DateTimeOffset.UtcNow,
+                        StatusConta = p.Usuario.LockoutEnd.HasValue &&
+                                      p.Usuario.LockoutEnd > DateTimeOffset.UtcNow
+                                          ? "Bloqueada"
+                                          : (p.Usuario.ExpirationDate.HasValue &&
+                                             p.Usuario.ExpirationDate < DateTime.UtcNow
+                                                 ? "Expirada"
+                                                 : "Ativa"),
+                        ExpirationDate = p.Usuario.ExpirationDate
+
+                        // Se quiser incluir vendas Hotmart no futuro:
+                        // NumeroComprasHotmart = _contexto.VendasHotmart?
+                        //     .Count(v => v.ProfessorId == p.ID) ?? 0,
+                    })
+                    .ToListAsync();
+
+                var resultado = new PaginatedResult<UsuarioListDTO>
+                {
+                    Itens = itens,
+                    PaginaAtual = pagina,
+                    TamanhoPagina = tamanhoPagina,
+                    TotalItens = total,
+                    TotalPaginas = (int)Math.Ceiling((double)total / tamanhoPagina)
+                };
+
+                resposta.AdicionaObjeto(resultado);
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao listar professores para admin: {ex.Message}");
+                // Opcional: logar o erro completo
+                // _logger?.LogError(ex, "Erro em ListarTodosParaAdminAsync");
+                return resposta;
+            }
+        }
+
+        public class PaginatedResult<T>
+        {
+            public List<T> Itens { get; set; } = new();
+            public int PaginaAtual { get; set; }
+            public int TamanhoPagina { get; set; }
+            public int TotalItens { get; set; }
+            public int TotalPaginas { get; set; }
+        }
     }
 }

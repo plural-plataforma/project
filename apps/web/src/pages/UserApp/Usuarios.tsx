@@ -1,497 +1,251 @@
 // pages/Usuarios.tsx
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { useState, useEffect } from 'react';
 import {
   Box,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Checkbox,
-  IconButton,
-  Button,
-  Chip,
-  Avatar,
-  InputBase,
-  alpha,
-  Stack,
   Snackbar,
   Alert,
-  CircularProgress
-} from '@mui/material'
-import {
-  People as PeopleIcon,
-  CheckCircle as CheckIcon,
-  Star as StarIcon,
-  Folder as FolderIcon,
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  MoreVert as MoreVertIcon,
-  FilterList as FilterIcon,
-  Download as DownloadIcon,
-  Search as SearchIcon,
-  ArrowForward as ArrowForwardIcon
-} from '@mui/icons-material'
-import React from 'react'
-import InfoCard from '../../components/InfoCard'
+  CircularProgress,
+  Modal,
+  Pagination,
+  Stack,
+  Typography,
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
-const API_URL = import.meta.env.VITE_API_URL
+import SearchFilterBar from '../../components/SearchFilterBar';
+import { UsersListLayout } from '../../components/layouts/UsersListLayout';
+import ProfileUserAppEdit from './ProfileUserApp';
+import { Usuario } from '../../types/userTypes';
+import StatsGrid, { StatCardData } from '../../components/StatsGrid';
 
-interface Professor {
-  transaction: string
-  buyerName: string
-  buyerEmail?: string
-  jaCadastradoComoProfessor?: boolean
-  professorId: number
-  nivelEnsino: string
-  ativo: boolean
-  roles: string[]
-  telefone: number
-  perfil: string
-  isEmbaixadora: boolean
-}
+import { UsersThree, UserCheck } from '@phosphor-icons/react';
 
-export default function Usuarios() {
-  const [professores, setProfessores] = useState<Professor[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<string[]>([])
+import { fetchUsuariosAdmin, PaginatedUsuarios } from '../../services/adminService';
+import { registerUser } from '../../services/authService';
+import NewUserDialog from '../../components/dialogs/NewUserDialog';
 
-  const [snackOpen, setSnackOpen] = useState(false)
-  const [snackMessage, setSnackMessage] = useState('')
-  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>(
-    'success'
-  )
+export default function UsuariosPage() {
+  const theme = useTheme();
+
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [paginatedData, setPaginatedData] = useState<PaginatedUsuarios | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [search, setSearch] = useState('');
+  const [filtroStatusCadastro, setFiltroStatusCadastro] = useState<
+    'todos' | 'ativos' | 'inativos'
+  >('todos');
+
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
+
+  const [openNewUserModal, setOpenNewUserModal] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [selectedProfessor, setSelectedProfessor] = useState<Usuario | null>(null);
+  const [initialData, setInitialData] = useState<Partial<Usuario> | undefined>(undefined);
+
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
   useEffect(() => {
-    const fetchProfessores = async () => {
-      const token =
-        localStorage.getItem('token') || sessionStorage.getItem('token')
+    if (!token) {
+      setError('Sessão expirada. Faça login novamente.');
+      setLoading(false);
+      return;
+    }
 
-      if (!token) {
-        setError('Sessão expirada. Faça login novamente.')
-        setLoading(false)
-        return
-      }
+    const loadProfessores = async () => {
+      setLoading(true);
+      setError(null);
 
       try {
-        const response = await axios.get(`${API_URL}/vendas/hotmart`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const params: any = {
+          pagina: currentPage,
+          tamanhoPagina: 20,
+          search: search.trim() || undefined,
+        };
 
-        const data = response.data.data || []
-        setProfessores(Array.isArray(data) ? data : [])
-      } catch (err) {
-        console.error('Erro ao carregar usuários:', err)
-        setError('Não foi possível carregar a lista de usuários.')
+        if (filtroStatusCadastro === 'ativos') params.ativo = true;
+        if (filtroStatusCadastro === 'inativos') params.ativo = false;
+
+        const data = await fetchUsuariosAdmin(params, token);
+
+        setPaginatedData(data);
+        setUsuarios(data.itens || []);
+      } catch (err: any) {
+        setError(err.message || 'Não foi possível carregar a lista de professores.');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchProfessores()
-  }, [])
+    loadProfessores();
+  }, [currentPage, search, filtroStatusCadastro, token]);
 
-  // Seleção múltipla
-  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      setSelected(professores.map(p => p.transaction))
-    } else {
-      setSelected([])
-    }
-  }
+  // Estatísticas
+  const totalProfessores = paginatedData?.totalItens || 0;
+  const usuariosAtivos = usuarios.filter(p => p.ativo).length;
+  const percentualAtivos = totalProfessores > 0 
+    ? Math.round((usuariosAtivos / totalProfessores) * 1000) / 10 
+    : 0;
 
-  const handleSelect = (transaction: string) => {
-    setSelected(prev =>
-      prev.includes(transaction)
-        ? prev.filter(id => id !== transaction)
-        : [...prev, transaction]
-    )
-  }
-
-  const filteredProfessores = professores.filter(
-    prof =>
-      prof.buyerName?.toLowerCase().includes(search.toLowerCase()) ||
-      prof.buyerEmail?.toLowerCase().includes(search.toLowerCase())
-  )
-
-  // Dados mock para os cards (substitua por API real se tiver)
-  const stats = [
+  const statsCards: StatCardData[] = [
     {
-      titulo: 'Total de Usuários',
-      valor: '2.847',
+      titulo: 'Total de Professores',
+      valor: totalProfessores.toLocaleString(),
       variacao: '+12%',
-      icone: <PeopleIcon fontSize="large" />,
-      corFundoIcone: '#E3F2FD',
-      corIcone: '#276678'
+      icone: <UsersThree size={32} weight="duotone" />,
+      corFundoIcone: '#DBEAFE',
+      corIcone: '#2563EB',
     },
     {
-      titulo: 'Usuários Ativos',
-      valor: '2.654',
-      variacao: '+8%',
-      icone: <CheckIcon fontSize="large" />,
-      corFundoIcone: '#E8F5E9',
-      corIcone: '#4CAF50'
+      titulo: 'Professores Ativos',
+      valor: usuariosAtivos.toLocaleString(),
+      variacao: `${percentualAtivos}% do total`,
+      icone: <UserCheck size={32} weight="duotone" />,
+      corFundoIcone: '#DCFCE7',
+      corIcone: '#16A34A',
     },
-    {
-      titulo: 'Habilidades',
-      valor: '156',
-      variacao: '+25',
-      icone: <StarIcon fontSize="large" />,
-      corFundoIcone: '#F3E5F5',
-      corIcone: '#9C27B0'
-    },
-    {
-      titulo: 'Atividades',
-      valor: '1.234',
-      variacao: '+42',
-      icone: <FolderIcon fontSize="large" />,
-      corFundoIcone: '#FFF3E0',
-      corIcone: '#FF9800'
+  ];
+
+  const handleCadastrarProfessor = async (email: string, nome: string) => {
+    if (!email?.trim() || !nome?.trim()) {
+      setSnackMessage('E-mail ou nome não informado.');
+      setSnackSeverity('error');
+      setSnackOpen(true);
+      return;
     }
-  ]
+
+    try {
+      await registerUser({
+        email: email.trim(),
+        senha: 'Plural@2025',
+        nomeCompleto: nome.trim(),
+        aceitouTermos: true,
+        deveAlterarSenha: true,
+      });
+
+      setSnackMessage(`Professor ${nome} cadastrado com sucesso! Senha inicial: Plural@2025.`);
+      setSnackSeverity('success');
+      setCurrentPage(1);
+    } catch (err: any) {
+      setSnackMessage(err.message || 'Erro ao cadastrar professor.');
+      setSnackSeverity('error');
+    } finally {
+      setSnackOpen(true);
+    }
+  };
+
+  const handleVerPerfil = (prof: Usuario) => {
+    setSelectedProfessor(prof);
+    setInitialData({
+      idUsuario: prof.idUsuario,
+      nomeCompleto: prof.nomeCompleto,
+      email: prof.email,
+      telefone: prof.telefone,
+      perfil: prof.perfil,
+      ativo: prof.ativo,
+      isEmbaixadora: prof.isEmbaixadora,
+      possuiLockout: prof.possuiLockout,
+      statusConta: prof.statusConta,
+      expirationDate: prof.expirationDate,
+    });
+    setOpenEditModal(true);
+  };
 
   return (
-    <Box sx={{ width: '100%', bgcolor: 'grey.50', minHeight: '100vh' }}>
-      {/* Cards de Estatísticas */}
-      <Grid container spacing={3}>
-        {stats.map((stat, index) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-            <InfoCard
-              titulo={stat.titulo}
-              valor={stat.valor}
-              icone={stat.icone}
-              corFundo={stat.corFundoIcone}
-              corIcone={stat.corIcone}
-            />
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Lista de Usuários */}
-      <Box sx={{ px: { xs: 2, md: 4 }, pb: 8 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: 'grey.200',
-            overflow: 'hidden'
-          }}
-        >
-          {/* Cabeçalho */}
-          <Box
-            sx={{ p: 3, borderBottom: '1px solid', borderColor: 'grey.200' }}
-          >
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', sm: 'center' }}
-              spacing={2}
-            >
-              <Box>
-                <Typography variant="h6" fontWeight="bold" color="#276678">
-                  Lista de Usuários
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Gerencie e monitore todos os usuários cadastrados
-                </Typography>
-              </Box>
-
-              <Stack direction="row" spacing={1.5} flexWrap="wrap">
-                <Button
-                  variant="outlined"
-                  startIcon={<FilterIcon />}
-                  size="small"
-                >
-                  Filtrar
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  size="small"
-                >
-                  Exportar
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5a' } }}
-                  size="small"
-                >
-                  Novo Usuário
-                </Button>
-              </Stack>
-            </Stack>
+    <Box sx={{ width: '100%', bgcolor: 'grey.50', minHeight: '100vh', pb: 8 }}>
+      {/* Cards de estatísticas */}
+      <Box sx={{ px: { xs: 2, md: 4 }, pt: 3 }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
           </Box>
-
-          {/* Conteúdo da tabela */}
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Box sx={{ p: 4 }}>
-              <Alert severity="error">{error}</Alert>
-            </Box>
-          ) : (
-            <>
-              <TableContainer>
-                <Table sx={{ minWidth: 650 }}>
-                  <TableHead sx={{ bgcolor: 'grey.50' }}>
-                    <TableRow>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          indeterminate={
-                            selected.length > 0 &&
-                            selected.length < filteredProfessores.length
-                          }
-                          checked={
-                            selected.length === filteredProfessores.length &&
-                            filteredProfessores.length > 0
-                          }
-                          onChange={handleSelectAll}
-                        />
-                      </TableCell>
-                      <TableCell>Usuário</TableCell>
-                      <TableCell>Tipo</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Último Acesso</TableCell>
-                      <TableCell align="right">Ações</TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {filteredProfessores.slice(0, 5).map(prof => {
-                      // limitando a 5 para exemplo
-                      const isSelected = selected.includes(prof.transaction)
-                      const statusText = prof.jaCadastradoComoProfessor
-                        ? prof.ativo
-                          ? 'Ativo'
-                          : 'Inativo'
-                        : 'Não cadastrado'
-
-                      return (
-                        <TableRow
-                          key={prof.transaction}
-                          hover
-                          selected={isSelected}
-                        >
-                          <TableCell padding="checkbox">
-                            <Checkbox
-                              checked={isSelected}
-                              onChange={() => handleSelect(prof.transaction)}
-                            />
-                          </TableCell>
-
-                          <TableCell>
-                            <Stack
-                              direction="row"
-                              spacing={2}
-                              alignItems="center"
-                            >
-                              <Avatar sx={{ bgcolor: '#276678' }}>
-                                {prof.buyerName?.[0] || '?'}
-                              </Avatar>
-                              <Box>
-                                <Typography variant="subtitle2">
-                                  {prof.buyerName}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  {prof.buyerEmail || '—'}
-                                </Typography>
-                              </Box>
-                            </Stack>
-                          </TableCell>
-
-                          <TableCell>
-                            <Chip
-                              label={prof.roles?.[0] || 'Professor'}
-                              size="small"
-                              sx={{
-                                bgcolor: prof.roles?.[0]?.includes(
-                                  'Coordenador'
-                                )
-                                  ? '#F3E5F5'
-                                  : '#E3F2FD',
-                                color: prof.roles?.[0]?.includes('Coordenador')
-                                  ? '#9C27B0'
-                                  : '#276678',
-                                borderColor: alpha('#276678', 0.3)
-                              }}
-                              variant="outlined"
-                            />
-                          </TableCell>
-
-                          <TableCell>
-                            <Chip
-                              label={statusText}
-                              size="small"
-                              color={
-                                statusText === 'Ativo'
-                                  ? 'success'
-                                  : statusText === 'Inativo'
-                                    ? 'error'
-                                    : 'warning'
-                              }
-                            />
-                          </TableCell>
-
-                          <TableCell>
-                            {/* Mock - adicione campo real se tiver */}Há 2
-                            horas
-                          </TableCell>
-
-                          <TableCell align="right">
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              justifyContent="flex-end"
-                            >
-                              <IconButton size="small">
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small" color="error">
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small">
-                                <MoreVertIcon fontSize="small" />
-                              </IconButton>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {/* Paginação */}
-              <Box
-                sx={{
-                  p: 2,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderTop: '1px solid',
-                  borderColor: 'grey.200',
-                  flexWrap: 'wrap',
-                  gap: 2
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  Mostrando 1 a 5 de {filteredProfessores.length} resultados
-                </Typography>
-
-                <Stack direction="row" spacing={1}>
-                  <Button size="small" disabled>
-                    &lt;
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    sx={{ minWidth: 32 }}
-                  >
-                    1
-                  </Button>
-                  <Button size="small">2</Button>
-                  <Button size="small">3</Button>
-                  <Button size="small">...</Button>
-                  <Button size="small">570</Button>
-                  <Button size="small">&gt;</Button>
-                </Stack>
-              </Box>
-            </>
-          )}
-        </Paper>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        ) : (
+          <StatsGrid cards={statsCards} spacing={3} />
+        )}
       </Box>
 
-      {/* Cards inferiores */}
-      <Box sx={{ px: { xs: 2, md: 4 }, pb: 6 }}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card
-              sx={{
-                height: '100%',
-                borderRadius: 3,
-                bgcolor: 'linear-gradient(135deg, #5C6BC0 0%, #3F51B5 100%)',
-                color: 'white',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <CardContent sx={{ p: 5 }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold">
-                      Gerenciar Habilidades
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9, mt: 1 }}>
-                      Adicione, edite ou desabilite habilidades da plataforma
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.2)' }}
-                  >
-                    <ArrowForwardIcon />
-                  </IconButton>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+      {/* Barra de busca */}
+      <SearchFilterBar
+        search={search}
+        setSearch={setSearch}
+        statusFilter={filtroStatusCadastro}
+        setStatusFilter={setFiltroStatusCadastro}
+        statusOptions={[
+          { value: 'todos', label: 'Todos os Status' },
+          { value: 'cadastrado', label: 'Ativos' },
+          { value: 'Inativo', label: 'Inativos' },
+        ]}
+        placeholder="Buscar por nome, e-mail ou telefone..."
+      />
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card
-              sx={{
-                height: '100%',
-                borderRadius: 3,
-                bgcolor: 'linear-gradient(135deg, #AB47BC 0%, #7B1FA2 100%)',
-                color: 'white',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <CardContent sx={{ p: 5 }}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold">
-                      Blocos de Avaliação
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9, mt: 1 }}>
-                      Crie e configure blocos para avaliações diagnósticas
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.2)' }}
-                  >
-                    <ArrowForwardIcon />
-                  </IconButton>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+      {/* Lista principal */}
+      <Box sx={{ px: { xs: 2, md: 4 } }}>
+        <UsersListLayout
+          filteredUsuarios={usuarios}
+          loading={loading}
+          error={error}
+          onVerPerfil={handleVerPerfil}
+          onNovoUsuarioClick={() => setOpenNewUserModal(true)}
+        />
+
+        {paginatedData && paginatedData.totalPaginas > 1 && (
+          <Stack alignItems="center" sx={{ mt: 4, mb: 6 }}>
+            <Pagination
+              count={paginatedData.totalPaginas}
+              page={paginatedData.paginaAtual}
+              onChange={(_, page) => setCurrentPage(page)}
+              color="primary"
+              showFirstButton
+              showLastButton
+              size="large"
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Mostrando {usuarios.length} de {paginatedData.totalItens} usuários
+            </Typography>
+          </Stack>
+        )}
       </Box>
+
+      {/* Dialog Novo Professor */}
+      <NewUserDialog
+        open={openNewUserModal}
+        onClose={() => setOpenNewUserModal(false)}
+        onSuccess={() => {
+          setSnackMessage('Novo professor cadastrado com sucesso!');
+          setSnackSeverity('success');
+          setSnackOpen(true);
+          setCurrentPage(1);
+        }}
+        onError={(msg) => {
+          setSnackMessage(msg);
+          setSnackSeverity('error');
+          setSnackOpen(true);
+        }}
+      />
+
+      {/* Modal Edição de Perfil do Professor */}
+      <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
+        <ProfileUserAppEdit
+          open={openEditModal}
+          onClose={() => setOpenEditModal(false)}
+          userId={selectedProfessor?.idUsuario ?? 0}
+          initialData={initialData}
+          onSuccess={() => {
+            setSnackMessage('Perfil do professor atualizado com sucesso!');
+            setSnackSeverity('success');
+            setSnackOpen(true);
+            setCurrentPage(currentPage);
+          }}
+        />
+      </Modal>
 
       {/* Snackbar */}
       <Snackbar
@@ -505,5 +259,5 @@ export default function Usuarios() {
         </Alert>
       </Snackbar>
     </Box>
-  )
+  );
 }

@@ -29,13 +29,15 @@ interface EditProfileModalProps {
   onClose: () => void;
   userId: number;
   initialData?: Partial<Usuario>;
+  onSuccess?: () => void;  // ← adicionado aqui (opcional)
 }
 
 export default function ProfileUserAppEdit({
   open,
   onClose,
   userId,
-  initialData
+  initialData,
+  onSuccess
 }: EditProfileModalProps) {
   const [formData, setFormData] = useState<Partial<Usuario>>(initialData || {});
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,7 @@ export default function ProfileUserAppEdit({
     const payload = {
       idUsuario: formData.idUsuario,
       acao: formData.ativo ? 'A' : 'I',
-      nome: formData.nome?.trim(),
+      nome: formData.nomeCompleto?.trim(),
       email: formData.email?.trim(),
       telefone: String(formData.telefone ?? '').trim(),
       isEmbaixadora: formData.isEmbaixadora ?? false,
@@ -95,9 +97,15 @@ export default function ProfileUserAppEdit({
       await updateUserProfile(payload, token);
 
       setSuccess(true);
+
+      // Chama o callback onSuccess se ele existir
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Opcional: fecha o modal após sucesso
       setTimeout(() => {
         onClose();
-        window.location.reload();
       }, 1500);
     } catch (err: any) {
       setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
@@ -159,8 +167,8 @@ export default function ProfileUserAppEdit({
               <TextField
                 label="Nome completo"
                 fullWidth
-                value={formData.nome || ''}
-                onChange={e => handleChange('nome', e.target.value)}
+                value={formData.nomeCompleto || ''}
+                onChange={e => handleChange('nomeCompleto', e.target.value)}
                 required
                 variant="outlined"
               />
@@ -268,7 +276,7 @@ export default function ProfileUserAppEdit({
           onClick={handleSave}
           disabled={
             saving ||
-              !formData.nome?.trim() ||
+              !formData.nomeCompleto?.trim() ||
               !formData.email?.trim() 
           }
           sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5a' } }}

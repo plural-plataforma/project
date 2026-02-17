@@ -1,4 +1,5 @@
 // components/layouts/UsersListLayout.tsx
+import { useState } from 'react';
 import {
   Box,
   Paper,
@@ -17,57 +18,41 @@ import {
   Stack,
   CircularProgress,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
   Add as AddIcon,
   MoreVert as MoreVertIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
-import { useEffect, useState } from 'react';
+import { Star as StarIcon } from '@phosphor-icons/react';
 
-interface Professor {
-  transaction: string;
-  buyerName: string;
-  buyerEmail?: string;
-  jaCadastradoComoProfessor?: boolean;
-  professorId: number;
-  nivelEnsino: string;
-  ativo: boolean;
-  roles: string[];
-  telefone: number;
-  perfil: string;
-  isEmbaixadora: boolean;
-}
+import { Usuario } from '../../types/userTypes';
 
 interface Props {
-  filteredProfessores: Professor[];
+  filteredUsuarios: Usuario[];
   loading: boolean;
   error: string | null;
   onCadastrar?: (email: string, nome: string) => void;
   onExportar?: () => void;
-  onVerPerfil: (prof: Professor) => void;
-  onMaisAcoes?: (prof: Professor) => void;
+  onVerPerfil: (user: Usuario) => void;
+  onMaisAcoes?: (user: Usuario) => void;
   onNovoUsuarioClick?: () => void;
 }
 
-
 export function UsersListLayout({
-  filteredProfessores,
+  filteredUsuarios,
   loading,
   error,
   onCadastrar,
   onExportar,
   onVerPerfil,
   onMaisAcoes,
-  onNovoUsuarioClick
+  onNovoUsuarioClick,
 }: Props) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  // Resetar página para 0 TODA VEZ que filteredProfessores mudar (força re-render completo)
-  useEffect(() => {
-    setPage(0);
-  }, [filteredProfessores]); // Dependência direta no array (React detecta mudanças profundas)
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -78,7 +63,8 @@ export function UsersListLayout({
     setPage(0);
   };
 
-  const displayedUsers = filteredProfessores.slice(
+  // Cálculo dos itens exibidos (paginação local)
+  const displayedUsuarios = filteredUsuarios.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -135,17 +121,17 @@ export function UsersListLayout({
           </Button>
 
           <Button
-  variant="contained"
-  startIcon={<AddIcon />}
-  onClick={onNovoUsuarioClick}  // ← aqui! substitua o onCadastrar por isso
-  sx={{
-    bgcolor: '#276678',
-    '&:hover': { bgcolor: '#1e4d5c' },
-    textTransform: 'none',
-  }}
->
-  Novo Usuário
-</Button>
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={onNovoUsuarioClick}
+            sx={{
+              bgcolor: '#276678',
+              '&:hover': { bgcolor: '#1e4d5c' },
+              textTransform: 'none',
+            }}
+          >
+            Novo Usuário
+          </Button>
         </Stack>
       </Box>
 
@@ -158,7 +144,7 @@ export function UsersListLayout({
         <Alert severity="error" sx={{ m: 4 }}>
           {error}
         </Alert>
-      ) : filteredProfessores.length === 0 ? (
+      ) : filteredUsuarios.length === 0 ? (
         <Alert severity="info" sx={{ m: 4 }}>
           Nenhum usuário encontrado com os filtros aplicados.
         </Alert>
@@ -171,33 +157,31 @@ export function UsersListLayout({
                   <Checkbox color="primary" />
                 </TableCell>
                 <TableCell>Usuário</TableCell>
-                <TableCell>Tipo</TableCell>
+                <TableCell>Perfil</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Último Acesso</TableCell>
+                <TableCell>Embaixadora</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {displayedUsers.map((prof) => (
-                <TableRow key={prof.professorId} hover>
+              {displayedUsuarios.map((user) => (
+                <TableRow key={user.idUsuario} hover>
                   <TableCell padding="checkbox">
                     <Checkbox color="primary" />
                   </TableCell>
 
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar
-                        src={prof.fotoPerfil}
-                        alt={prof.buyerName}
-                        sx={{ width: 40, height: 40 }}
-                      />
+                      <Avatar sx={{ bgcolor: '#276678' }}>
+                        {user.nomeCompleto?.[0] || '?'}
+                      </Avatar>
                       <Box>
                         <Typography variant="body2" fontWeight={600}>
-                          {prof.buyerName}
+                          {user.nomeCompleto}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {prof.buyerEmail || '—'}
+                          {user.email || '—'}
                         </Typography>
                       </Box>
                     </Box>
@@ -205,7 +189,7 @@ export function UsersListLayout({
 
                   <TableCell>
                     <Chip
-                      label={prof.perfil || 'Professor'}
+                      label={user.perfil || 'Professor'}
                       size="small"
                       sx={{
                         bgcolor: '#dbeafe',
@@ -217,59 +201,50 @@ export function UsersListLayout({
 
                   <TableCell>
                     <Chip
-                      label={
-                        prof.jaCadastradoComoProfessor
-                          ? prof.ativo
-                            ? 'Ativo'
-                            : 'Inativo'
-                          : 'Não cadastrado'
-                      }
+                      label={user.ativo ? 'Ativo' : 'Inativo'}
                       size="small"
-                      color={
-                        !prof.jaCadastradoComoProfessor
-                          ? 'warning'
-                          : prof.ativo
-                            ? 'success'
-                            : 'error'
-                      }
+                      color={user.ativo ? 'success' : 'error'}
                     />
                   </TableCell>
 
                   <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      Há 2 horas {/* Substitua quando tiver campo real */}
-                    </Typography>
+                    {user.isEmbaixadora ? (
+                      <Chip
+                        label="Embaixadora"
+                        size="small"
+                        color="secondary"
+                        icon={<StarIcon fontSize="small" />}
+                      />
+                    ) : (
+                      '—'
+                    )}
                   </TableCell>
 
                   <TableCell align="right">
-                    {prof.jaCadastradoComoProfessor ? (
+                    
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Tooltip title="Editar">
                       <IconButton
                         size="small"
-                        onClick={() => onVerPerfil(prof)}
+                        onClick={() => onVerPerfil(user)}
                         sx={{ color: '#276678' }}
                       >
-                        <MoreVertIcon />
+                        <EditIcon />
                       </IconButton>
-                    ) : (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="success"
-                        onClick={() =>
-                          prof.buyerEmail && onCadastrar?.(prof.buyerEmail, prof.buyerName)
-                        }
-                        disabled={!prof.buyerEmail}
-                      >
-                        Cadastrar
-                      </Button>
-                    )}
+                      </Tooltip>
+                      {onMaisAcoes && (
+                        <IconButton size="small" onClick={() => onMaisAcoes(user)}>
+                          <EditIcon />
+                        </IconButton>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
 
-          {/* Paginação */}
+          {/* Paginação local */}
           <Box
             sx={{
               p: 3,
@@ -284,16 +259,16 @@ export function UsersListLayout({
             <Typography variant="body2" color="#276678">
               Mostrando{' '}
               <strong>
-                {filteredProfessores.length > 0 ? page * rowsPerPage + 1 : 0} a{' '}
-                {Math.min((page + 1) * rowsPerPage, filteredProfessores.length)}
+                {page * rowsPerPage + 1} a{' '}
+                {Math.min((page + 1) * rowsPerPage, filteredUsuarios.length)}
               </strong>{' '}
-              de <strong>{filteredProfessores.length}</strong> resultados
+              de <strong>{filteredUsuarios.length}</strong> usuários
             </Typography>
 
             <TablePagination
-              rowsPerPageOptions={[5, 10, 25]}
+              rowsPerPageOptions={[10, 20, 50]}
               component="div"
-              count={filteredProfessores.length}
+              count={filteredUsuarios.length}
               rowsPerPage={rowsPerPage}
               page={page}
               onPageChange={handleChangePage}

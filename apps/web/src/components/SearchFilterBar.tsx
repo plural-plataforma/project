@@ -47,6 +47,7 @@ export default function SearchFilterBar<TStatus extends string>({
         display: 'flex',
         alignItems: 'center',
         px: { xs: 2, md: 4 },
+        paddingTop: 3,
         bgcolor: 'grey.50',
       }}
     >
