@@ -157,26 +157,26 @@ export default function SkillsList() {
   ];
 
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'grey.50', p: { xs: 2, md: 4 } }}>
+    <Box sx={{ width: '100%', bgcolor: 'grey.50', p: { xs: 2, md: 4 } }}>
       {/* Cards superiores */}
       <Box sx={{ mb: 5 }}>
         <StatsGrid cards={statsCards} spacing={3} />
+
+
+        {/* Barra de busca e filtros */}
+        <SearchFilterBar
+          search={search}
+          setSearch={setSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          statusOptions={[
+            { value: 'todos', label: 'Todos os Status' },
+            { value: 'ativo', label: 'Ativo' },
+            { value: 'inativo', label: 'Inativo' },
+          ]}
+          placeholder="Buscar por descrição ou resumo..."
+        />
       </Box>
-
-      {/* Barra de busca e filtros */}
-      <SearchFilterBar
-        search={search}
-        setSearch={setSearch}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        statusOptions={[
-          { value: 'todos', label: 'Todos os Status' },
-          { value: 'ativo', label: 'Ativo' },
-          { value: 'inativo', label: 'Inativo' },
-        ]}
-        placeholder="Buscar por descrição ou resumo..."
-      />
-
       {/* Lista de Habilidades */}
       <Paper
         sx={{

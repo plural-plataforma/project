@@ -91,7 +91,6 @@ export default function CadastroBloco() {
 
     fetchBloco();
 
-
   }, [blocoId]);
 
   useEffect(() => {

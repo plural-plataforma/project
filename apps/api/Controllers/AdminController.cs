@@ -1,52 +1,71 @@
-﻿
-using api.DTOs.Admin;
-using api.Models;
+﻿using api.DTOs.Admin;
+using api.Responses;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace api.Controllers
 {
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Coordenador")] // descomente quando roles estiverem funcionando
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/admin")]
     public class AdminController : ControllerBase
     {
-        private readonly UserManager<Usuario> _usuario;
         private readonly AdminService _adminService;
 
-        public AdminController(UserManager<Usuario> usuario, AdminService adminService)
+        public AdminController(AdminService adminService)
         {
-            _usuario = usuario;
             _adminService = adminService;
         }
 
-        [HttpPatch("atualizarStatusUsuario")]
-        public async Task<IActionResult> AtualizarStatusUsuario([FromBody] AtualizarStatusUsuarioDTO dto)
+        [HttpPatch("usuarios/atualizar")]
+        public async Task<IActionResult> AtualizarUsuario([FromBody] AtualizarStatusUsuarioDTO dto)
         {
-
-            if (ModelState.IsValid)
-            {
-                var resposta = await _adminService.AtualizarStatusUsuario(dto);
-
-                if (resposta.Sucesso)
-                {
-                    return Ok(resposta);
-                } else
-                {   
-                    BadRequest(resposta);
-                }
-            }
-            else
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            return BadRequest();
+            var resposta = await _adminService.AtualizarUsuarioAsync(dto);
+
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+
+            return BadRequest(resposta);
         }
 
+        [HttpGet("usuarios/listar")]
+        public async Task<IActionResult> ListarParaAdmin(
+            [FromQuery] int pagina = 1,
+            [FromQuery] int tamanhoPagina = 20,
+            [FromQuery] bool? ativo = null,
+            [FromQuery] bool? isEmbaixadora = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? nivelEnsino = null)
+        {
+            // Chama o serviço com exatamente os mesmos parâmetros
+            var resposta = await _adminService.ListarTodosParaAdminAsync(
+                pagina: pagina,
+                tamanhoPagina: tamanhoPagina,
+                ativo: ativo,
+                isEmbaixadora: isEmbaixadora,
+                search: search,
+                nivelEnsino: nivelEnsino
+            );
 
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta.Objeto); // Retorna o PaginatedResult<ProfessorAdminListDTO>
+            }
+
+            // Em caso de erro, retorna 500 com a mensagem do serviço
+            return StatusCode(500, new
+            {
+                erro = "Falha ao listar professores",
+                detalhe = resposta.Mensagens.FirstOrDefault() ?? "Erro interno"
+            });
+        }
     }
 }

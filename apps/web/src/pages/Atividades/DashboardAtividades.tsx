@@ -41,9 +41,9 @@ export default function DashboardAtividades() {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, px: { xs: 2, md: 4 } }}>
+    <Box sx={{ width: '100%', bgcolor: 'grey.50', pb: 8 }}>
       {/* Cards de estatística */}
-      <Box sx={{ mb: 5 }}>
+      <Box sx={{ px: { xs: 2, md: 4 }, pt: 3 }}>
         <StatsGrid cards={statCards} spacing={3} />
       </Box>
 
@@ -58,9 +58,9 @@ export default function DashboardAtividades() {
       />
 
       {/* Lista de atividades */}
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ mt:  3, px: { xs: 2, md: 4 } }}>
         <ListaAtividades search={search} statusFilter={statusFilter} />
       </Box>
-    </Container>
+    </Box>
   );
 }

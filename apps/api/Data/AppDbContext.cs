@@ -81,9 +81,9 @@ namespace Data
 
             modelBuilder.Entity<Usuario>()
                 .HasOne(u => u.Professor)
-                .WithMany()
-                .HasForeignKey(u => u.ProfessorId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .WithOne(p => p.Usuario)
+                .HasForeignKey<Usuario>(u => u.ProfessorId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Planejamento ↔ Habilidade (N:N)
             modelBuilder.Entity<HabilidadesXPlanejamento>()

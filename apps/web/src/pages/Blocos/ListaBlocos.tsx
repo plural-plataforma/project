@@ -136,7 +136,6 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
         borderRadius: '12px',
         overflow: 'hidden',
         height: '100%',
-        minHeight: '658px',
         display: 'flex',
         flexDirection: 'column',
       }}
