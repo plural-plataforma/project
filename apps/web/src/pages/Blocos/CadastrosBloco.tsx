@@ -212,18 +212,17 @@ export default function CadastroBloco() {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#f9fafb' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#f9fafb', padding: { xs: 2, md: 4 }}}>
       <Paper
         elevation={0}
         sx={{
           flex: 1,
-          m: { xs: 2, md: 3, lg: 4 },
           borderRadius: '12px',
           overflow: 'hidden',
           border: '1px solid #e5e7eb',
           display: 'flex',
           flexDirection: 'column',
-          maxWidth: { xs: '100%', md: 1180 },
+          maxWidth: { xs: '100%'},
           mx: 'auto',
           width: '100%',
         }}

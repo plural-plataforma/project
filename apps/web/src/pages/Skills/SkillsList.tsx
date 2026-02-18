@@ -10,8 +10,9 @@ import {
   CircularProgress,
   Alert,
   TablePagination,
+  Tooltip,
 } from '@mui/material';
-import { Download as DownloadIcon, Add as AddIcon } from '@mui/icons-material';
+import { Download as DownloadIcon, Add as AddIcon, Edit } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 import StatsGrid, { StatCardData } from '../../components/StatsGrid';
@@ -297,13 +298,15 @@ export default function SkillsList() {
                     </TableCell>
                     <TableCell>{getNivelEnsinoLabel(hab.idNivelEnsino)}</TableCell>
                     <TableCell align="right">
+                      <Tooltip title="Editar">
                       <IconButton
                         size="small"
-                        onClick={() => navigate(`/skills/edit/${hab.id}`)}
+                        onClick={() => navigate(`/skills/edit/${hab.id}`, { state: hab })}
                         sx={{ color: '#276678' }}
                       >
-                        <MoreVertIcon />
+                         <Edit fontSize="small" />
                       </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}

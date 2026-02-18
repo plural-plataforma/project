@@ -22,7 +22,7 @@ namespace api.Models
         public string Titulo { get; set; } = string.Empty;
 
         [Column(TypeName = "text")]
-        public string Enunciado { get; set; } = string.Empty;
+        public string? Enunciado { get; set; } = string.Empty;
 
         [ForeignKey("bloco")]
         public int BlocoId { get; set; }

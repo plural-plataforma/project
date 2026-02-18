@@ -21,6 +21,7 @@ import DashboardBlocos from './pages/Blocos/DashboardBlocos'
 import CadastroBloco from './pages/Blocos/CadastrosBloco'
 import DashboardAtividades from './pages/Atividades/DashboardAtividades'
 import CadastroDeAtividade from './pages/Atividades/CadastroDeAtividade'
+import SkillsNew from './pages/Skills/SkillsNew'
 
 function App() {
   return (
@@ -37,7 +38,8 @@ function App() {
           <Route element={<AdminLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/skills" element={<SkillsList />} />
-            <Route path="/skills/edit" element={<SkillsEdit />} />
+            <Route path="/skills/edit/:id" element={<SkillsEdit />} />
+            <Route path="/skills/new" element={<SkillsNew />} />
 
             {/* Exemplos de rotas que você provavelmente terá */}
             <Route path="/usuarios" element={<UsuariosPage />} />
