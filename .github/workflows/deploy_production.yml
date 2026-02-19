@@ -2,7 +2,7 @@ name: Build & Deploy to MonsterASP
 
 on:
   push:
-    branches: [ main ]          # ou master, ou a branch que você usa em produção
+    branches: [ production ]          # ou master, ou a branch que você usa em produção
 
 jobs:
   build-and-deploy:
