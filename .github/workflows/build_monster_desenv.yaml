@@ -14,18 +14,18 @@ jobs:
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0  # ajuste para sua versão (ex: 8.0.x ou 9.0.x)
+        dotnet-version: 8.0.x  
 
-    - name: Install dependencies
+    - name: Restore
       run: dotnet restore
 
     - name: Build
       run: dotnet build --configuration Release --no-restore
 
     - name: Publish
-      run: dotnet publish --configuration Release --output ./publish --runtime win-x86  # ou win-x64 se preferir
+      run: dotnet publish --configuration Release --output ./publish
 
-    - name: Deploy to MonsterASP.NET via WebDeploy
+    - name: Deploy
       uses: rasmusbuchholdt/simply-web-deploy@2.1.0
       with:
         website-name: ${{ secrets.WEBSITE_NAME_DEVELOPMENT }}
