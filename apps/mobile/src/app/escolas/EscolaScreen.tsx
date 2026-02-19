@@ -1,4 +1,4 @@
-import { colors } from "@/packages/ui/theme/theme";
+import { colors } from "@packages/ui/theme/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomButton from "@src/components/CustomButton";
 import Header from "@src/components/Header";
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 70
+    paddingTop: 90
   },
   loading: {
     flex: 1,

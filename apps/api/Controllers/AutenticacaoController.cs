@@ -6,11 +6,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
+    
     [ApiController]
     [Route("api/[controller]")]
     public class AutenticacaoController : ControllerBase
     {
         private readonly AutenticacaoService _autenticacaoService;
+ 
 
         public AutenticacaoController(AutenticacaoService autenticacaoService)
         {
@@ -18,6 +20,8 @@ namespace api.Controllers
         }
 
         [HttpPost("registro")]
+        [AllowAnonymous]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> Registro([FromBody] RegistroDTO registro)
         {
             if (ModelState.IsValid)
@@ -40,22 +44,22 @@ namespace api.Controllers
 
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDTO login)
         {
-            if (ModelState.IsValid)
-            {
-                var token = await _autenticacaoService.Login(login);
-                if (token == null)
-                {
-                    return Unauthorized("Email ou senha inválidos");
-                }
-
-                return Ok(new { Token = token });
-            }
-            else
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+
+            var resposta = await _autenticacaoService.Login(login);
+
+            if (resposta.Mensagens.Count > 0)
+            {
+                return Unauthorized(resposta.Mensagens.FirstOrDefault());
+            }
+
+            return Ok(new { Token = resposta.Objeto });
         }
 
         [Authorize]
@@ -102,8 +106,8 @@ namespace api.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("adiar-troca-senha")]
-        [Authorize]  // ← importante: só usuário logado pode chamar
         public async Task<IActionResult> AdiarTrocaSenha()
         {
             var resultado = await _autenticacaoService.AdiarTrocaSenha(User);

@@ -1,4 +1,4 @@
-import { colors, fontSizes } from "@/packages/ui/theme/theme";
+import { colors, fontSizes } from "@packages/ui/theme/theme";
 import Header from "@src/components/Header";
 import CustomButton from "@src/components/CustomButton";
 import InputField from "@src/components/InputField";
@@ -217,7 +217,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: 70
+    paddingHorizontal: 10,
+    paddingTop: 90
   },
   innerContainer: {
     flex: 1,

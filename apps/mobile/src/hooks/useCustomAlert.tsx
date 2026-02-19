@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Modal, View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { colors } from "@/packages/ui/theme/theme"; // Ajuste o path
+import { colors } from "@packages/ui/theme/theme"; // Ajuste o path
 
 interface AlertButton {
   text: string;

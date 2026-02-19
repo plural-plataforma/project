@@ -1,4 +1,4 @@
-import { colors } from '@/packages/ui/theme/theme'
+import { colors } from '@packages/ui/theme/theme'
 import Header from '@src/components/Header'
 import InputField from '@src/components/InputField'
 import { buscarHabilidades } from '@src/services/habilidadeService'
@@ -38,6 +38,9 @@ import DatePicker, { DateType } from 'react-native-ui-datepicker'
 import { Avaliacao } from '@src/types/avaliacao'
 import { buscarAvaliacoes } from '@src/services/avaliacaoService'
 import { set } from 'react-hook-form'
+import AlunoSelection from '@src/components/AlunoSelection'
+import { buscarEscolas } from '@src/services/escolasService'
+import { Escola } from '@src/types/escolas'
 
 interface FormField {
   id: string
@@ -61,6 +64,7 @@ export default function PlanejamentoScreen() {
   const [estrategias, setEstrategias] = useState<Estrategia[]>([])
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
   const [alunos, setAlunos] = useState<Aluno[]>([])
+  const [escolas, setEscolas] = useState<Escola[]>([])
 
   const [filteredHabilidades, setFilteredHabilidades] = useState<Habilidade[]>([])
   const [filteredEstrategias, setFilteredEstrategias] = useState<Estrategia[]>([])
@@ -132,11 +136,12 @@ export default function PlanejamentoScreen() {
   // Carregamento inicial
   useEffect(() => {
     const load = async () => {
-      const [habs, ests, aval, als] = await Promise.all([
+      const [habs, ests, aval, als, escs] = await Promise.all([
         buscarHabilidades(),
         buscarEstrategias(),
         buscarAvaliacoes(),
-        buscarAlunos()
+        buscarAlunos(),
+        buscarEscolas()
       ])
       setHabilidades(habs)
       setFilteredHabilidades(habs)
@@ -145,7 +150,8 @@ export default function PlanejamentoScreen() {
       setAvaliacoes(aval),
         setFilteredAvaliacoes(aval),
         setAlunos(als)
-      setFilteredAlunos(als)
+      setFilteredAlunos(als),
+      setEscolas(escs)
     }
     load()
   }, [])
@@ -596,23 +602,12 @@ export default function PlanejamentoScreen() {
         </View>
 
         {/* Alunos */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Alunos Vinculados</Text>
-          <InputField
-            label="Buscar aluno"
-            placeholder="Nome..."
-            value={searchAlunos}
-            onChangeText={setSearchAlunos}
-            style={{ marginBottom: 10 }}
-          />
-          <FlatList
-            data={filteredAlunos}
-            renderItem={renderAluno}
-            keyExtractor={item => item.id?.toString() ?? 'temp'}
-            scrollEnabled={false}
-          />
-          <Text style={styles.summary}>Alunos: {selectedAlunos.length}</Text>
-        </View>
+       <AlunoSelection
+          alunos={alunos}
+          escolas={escolas}
+          selectedAlunos={selectedAlunos}
+          onToggleAluno={toggleAluno}
+        />
       </ScrollView>
 
       <View style={styles.footer}>
@@ -637,7 +632,7 @@ export default function PlanejamentoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingTop: 80 },
+  content: { padding: 20, paddingTop: 90 },
   section: { marginVertical: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: colors.primary, textAlign: 'center', marginBottom: 12 },
   item: {

@@ -1,105 +1,106 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { SignOut } from "../../components/SignOut";
-import PersonIcon from "@mui/icons-material/Person";
-import InfoCard from "../../components/InfoCard";
-import Header from "../../components/Header";
-import { useNavigate } from "react-router-dom";
-const API_URL = import.meta.env.VITE_API_URL;
-
+// pages/SkillsList.tsx
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Box,
   Paper,
   Typography,
   Button,
-  TextField,
-  Select,
-  MenuItem,
+  Stack,
+  CircularProgress,
+  Alert,
+  TablePagination,
+  Tooltip,
+} from '@mui/material';
+import { Download as DownloadIcon, Add as AddIcon, Edit } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+
+import StatsGrid, { StatCardData } from '../../components/StatsGrid';
+import SearchFilterBar from '../../components/SearchFilterBar';
+
+import {
   Table,
   TableHead,
   TableBody,
   TableRow,
   TableCell,
-  CircularProgress,
-  Alert,
-  FormControl,
-  InputLabel,
-  TablePagination,
-} from "@mui/material";
-import Sidebar from "../../components/Sidebar";
+  Checkbox,
+  Chip,
+  IconButton,
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { PersonIcon } from '@phosphor-icons/react';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Habilidade {
   id: number;
-  tipo: string;
+  tipo: number;
   descricao: string;
   resumo: string;
   ativo: boolean;
-  idnivelensino: number;
+  idNivelEnsino: number;
 }
 
 export default function SkillsList() {
+  const navigate = useNavigate();
+
   const [habilidades, setHabilidades] = useState<Habilidade[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filtros
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"todos" | "ativo" | "inativo">("todos");
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'ativo' | 'inativo'>('todos');
 
   // Paginação
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const navigate = useNavigate();
-  const signOut = SignOut();
-
   useEffect(() => {
     const fetchHabilidades = async () => {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) {
-        setError("Nenhum token de autenticação encontrado. Faça login novamente.");
+        setError('Token não encontrado. Faça login novamente.');
         setLoading(false);
         return;
       }
+
       try {
         const response = await axios.get(`${API_URL}/Habilidade/buscar`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            accept: "*/*",
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        const Habilidades = response.data?.objeto;
-        if (Array.isArray(Habilidades)) {
-          setHabilidades(Habilidades);
-        } else if (Habilidades) {
-          setHabilidades([Habilidades]);
-        } else {
-          setHabilidades([]);
-        }
+        const data = response.data?.objeto || [];
+        setHabilidades(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Erro na requisição:", err);
-        setError("Erro ao carregar as Habilidades.");
+        console.error('Erro ao carregar habilidades:', err);
+        setError('Erro ao carregar as habilidades.');
       } finally {
         setLoading(false);
       }
     };
+
     fetchHabilidades();
   }, []);
 
-  // FILTRO COMPLETO (busca + status)
+  // Filtragem completa (sempre parte da lista completa)
   const filteredHabilidades = habilidades.filter((h) => {
     const matchesSearch =
-      (h.descricao?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      (h.resumo?.toLowerCase().includes(search.toLowerCase()) ?? false);
+      h.descricao?.toLowerCase().includes(search.toLowerCase().trim()) ||
+      h.resumo?.toLowerCase().includes(search.toLowerCase().trim());
 
     const matchesStatus =
-      statusFilter === "todos" ||
-      (statusFilter === "ativo" && h.ativo) ||
-      (statusFilter === "inativo" && !h.ativo);
+      statusFilter === 'todos' ||
+      (statusFilter === 'ativo' && h.ativo) ||
+      (statusFilter === 'inativo' && !h.ativo);
 
     return matchesSearch && matchesStatus;
   });
+
+  // Resetar página ao mudar filtro ou busca
+  useEffect(() => {
+    setPage(0);
+  }, [search, statusFilter]);
 
   // Paginação
   const paginatedHabilidades = filteredHabilidades.slice(
@@ -116,171 +117,237 @@ export default function SkillsList() {
     setPage(0);
   };
 
-  // Reset página ao filtrar
-  const resetPage = () => setPage(0);
+  const getTipoLabel = (tipo: number) => {
+    const tipos: Record<number, string> = {
+      1: 'Cognitivo',
+      2: 'Socioemocional',
+      3: 'Comunicação',
+      4: 'Motora',
+    };
+    return tipos[tipo] || 'Desconhecido';
+  };
+
+  const getNivelEnsinoLabel = (id: number) => {
+    const niveis: Record<number, string> = {
+      1: 'Educação Infantil',
+      2: 'Ensino Fundamental I',
+      3: 'Ensino Fundamental II',
+      4: 'Ensino Médio',
+    };
+    return niveis[id] || 'Desconhecido';
+  };
+
+  // Dados para StatsGrid (cards superiores)
+  const statsCards: StatCardData[] = [
+    {
+      titulo: 'Habilidades Ativas',
+      valor: habilidades.filter((h) => h.ativo).length.toLocaleString(),
+      variacao: '+25',
+      icone: <PersonIcon fontSize="large" />,
+      corFundoIcone: '#eff6ff',
+      corIcone: '#2563eb',
+    },
+    {
+      titulo: 'Atividades',
+      valor: habilidades.length.toLocaleString(),
+      variacao: '+42',
+      icone: <PersonIcon fontSize="large" />,
+      corFundoIcone: '#f0fdf4',
+      corIcone: '#16a34a',
+    },
+  ];
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <Header />
+    <Box sx={{ width: '100%', bgcolor: 'grey.50', p: { xs: 2, md: 4 } }}>
+      {/* Cards superiores */}
+      <Box sx={{ mb: 5 }}>
+        <StatsGrid cards={statsCards} spacing={3} />
 
-      <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, flex: 1 }}>
-        {/* Sidebar */}
-       <Sidebar activeRoute="/skills" onSignOut={signOut} />
 
-        {/* Conteúdo principal */}
-        <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 4 }, overflowY: "auto" }}>
-          <Typography variant="h5" fontWeight="bold" mb={1}>
-            Gerenciamento de Habilidades
-          </Typography>
-          <Typography color="text.secondary" mb={3}>
-            Controle de acesso e vínculos de habilidades
-          </Typography>
-
-          {/* Cards */}
-          <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
-            <InfoCard
-              titulo="Habilidades Ativas"
-              valor={habilidades.filter((h) => h.ativo).length}
-              icone={<PersonIcon fontSize="small" />}
-              corFundo="#f3e8ff"
-              corIcone="#8b5cf6"
-            />
-            <InfoCard
-              titulo="Habilidades Inativas"
-              valor={habilidades.filter((h) => !h.ativo).length}
-              icone={<PersonIcon fontSize="small" />}
-              corFundo="#fff3cd"
-              corIcone="#856404"
-            />
+        {/* Barra de busca e filtros */}
+        <SearchFilterBar
+          search={search}
+          setSearch={setSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          statusOptions={[
+            { value: 'todos', label: 'Todos os Status' },
+            { value: 'ativo', label: 'Ativo' },
+            { value: 'inativo', label: 'Inativo' },
+          ]}
+          placeholder="Buscar por descrição ou resumo..."
+        />
+      </Box>
+      {/* Lista de Habilidades */}
+      <Paper
+        sx={{
+          mt: 4,
+          borderRadius: '12px',
+          border: '1px solid rgba(39, 102, 120, 0.42)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Cabeçalho */}
+        <Box
+          sx={{
+            p: 3,
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography variant="h6" fontWeight={600} color="#276678">
+              Lista de Habilidades
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Gerencie e monitore todas as habilidades cadastradas
+            </Typography>
           </Box>
 
-          {/* Filtros */}
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              gap: 1,
-              mb: 3,
-              alignItems: "center",
-            }}
-          >
-            <TextField
-              placeholder="Buscar por descrição ou resumo..."
-              fullWidth
-              size="small"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                resetPage();
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              sx={{
+                borderColor: 'rgba(39,102,120,0.42)',
+                color: '#276678',
+                textTransform: 'none',
               }}
-            />
-
-            <FormControl sx={{ minWidth: 120 }} size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as any);
-                  resetPage();
-                }}
-                label="Status"
-              >
-                <MenuItem value="todos">Todos</MenuItem>
-                <MenuItem value="ativo">Ativo</MenuItem>
-                <MenuItem value="inativo">Inativo</MenuItem>
-              </Select>
-            </FormControl>
-
+            >
+              Exportar
+            </Button>
             <Button
               variant="contained"
+              startIcon={<AddIcon />}
               sx={{
-                color: "#FFF",
-                backgroundColor: "#276678",
-                heightHeight: "40px",
-                textTransform: "none",
+                bgcolor: '#276678',
+                '&:hover': { bgcolor: '#1e4d5c' },
+                textTransform: 'none',
               }}
-              onClick={resetPage}
+              onClick={() => navigate('/skills/new')}
             >
-              Filtrar
+              Nova Habilidade
             </Button>
-          </Box>
+          </Stack>
+        </Box>
 
-          {/* Tabela */}
-          {loading ? (
-            <Box textAlign="center" mt={5}>
-              <CircularProgress color="warning" />
-            </Box>
-          ) : error ? (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          ) : (
-            <Paper sx={{ overflowX: "auto" }}>
-              <Table sx={{ minWidth: 640 }}>
-                <TableHead sx={{ bgcolor: "grey.100" }}>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell>Descrição</TableCell>
-                    <TableCell>Resumo</TableCell>
-                    <TableCell>Ativo</TableCell>
-                    <TableCell>Nível Ensino</TableCell>
-                    <TableCell>Ações</TableCell>
+        {/* Tabela */}
+        {loading ? (
+          <Box sx={{ py: 10, textAlign: 'center' }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ m: 4 }}>
+            {error}
+          </Alert>
+        ) : filteredHabilidades.length === 0 ? (
+          <Alert severity="info" sx={{ m: 4 }}>
+            Nenhuma habilidade encontrada com os filtros aplicados.
+          </Alert>
+        ) : (
+          <>
+            <Table>
+              <TableHead sx={{ bgcolor: '#f9fafb' }}>
+                <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox />
+                  </TableCell>
+                  <TableCell>Tipo</TableCell>
+                  <TableCell>ID</TableCell>
+                  <TableCell>Descrição / Resumo</TableCell>
+                  <TableCell>Ativo</TableCell>
+                  <TableCell>Nível Ensino</TableCell>
+                  <TableCell align="right">Ações</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {paginatedHabilidades.map((hab) => (
+                  <TableRow key={hab.id} hover>
+                    <TableCell padding="checkbox">
+                      <Checkbox />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getTipoLabel(hab.tipo)}
+                        size="small"
+                        sx={{ bgcolor: '#dbeafe', color: '#1d4ed8' }}
+                      />
+                    </TableCell>
+                    <TableCell>{hab.id}</TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" fontWeight={500}>
+                          {hab.descricao}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {hab.resumo}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={hab.ativo ? 'Sim' : 'Não'}
+                        size="small"
+                        color={hab.ativo ? 'success' : 'error'}
+                      />
+                    </TableCell>
+                    <TableCell>{getNivelEnsinoLabel(hab.idNivelEnsino)}</TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Editar">
+                      <IconButton
+                        size="small"
+                        onClick={() => navigate(`/skills/edit/${hab.id}`, { state: hab })}
+                        sx={{ color: '#276678' }}
+                      >
+                         <Edit fontSize="small" />
+                      </IconButton>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedHabilidades.map((hab) => (
-                    <TableRow key={hab.id}>
-                      <TableCell>{hab.id}</TableCell>
-                      <TableCell>{hab.tipo}</TableCell>
-                      <TableCell>{hab.descricao}</TableCell>
-                      <TableCell>{hab.resumo}</TableCell>
-                      <TableCell>{hab.ativo ? "Sim" : "Não"}</TableCell>
-                      <TableCell>{hab.idnivelensino}</TableCell>
-                      <TableCell>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          style={{ color: "#FFFF", backgroundColor: "#276678" }}
-                          onClick={() =>
-                            navigate("/skills/edit", {
-                              state: {
-                                id: hab.id,
-                                tipo: hab.tipo,
-                                descricao: hab.descricao,
-                                resumo: hab.resumo,
-                                ativo: hab.ativo,
-                                idnivelensino: hab.idnivelensino,
-                              },
-                            })
-                          }
-                        >
-                          Editar
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                ))}
+              </TableBody>
+            </Table>
+
+            {/* Paginação */}
+            <Box
+              sx={{
+                p: 3,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderTop: '1px solid rgba(39,102,120,0.42)',
+                flexWrap: 'wrap',
+                gap: 2,
+              }}
+            >
+              <Typography variant="body2" color="#276678">
+                Mostrando{' '}
+                <strong>
+                  {page * rowsPerPage + 1} a{' '}
+                  {Math.min((page + 1) * rowsPerPage, filteredHabilidades.length)}
+                </strong>{' '}
+                de <strong>{filteredHabilidades.length}</strong> resultados
+              </Typography>
 
               <TablePagination
+                rowsPerPageOptions={[5, 10, 25]}
                 component="div"
                 count={filteredHabilidades.length}
+                rowsPerPage={rowsPerPage}
                 page={page}
                 onPageChange={handleChangePage}
-                rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[10, 20, 50]}
-                labelRowsPerPage="Registros por página:"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}–${to} de ${count}`
-                }
-                sx={{ borderTop: "1px solid rgba(224, 224, 224, 1)" }}
+                labelRowsPerPage="Linhas por página:"
               />
-            </Paper>
-          )}
-        </Box>
-      </Box>
+            </Box>
+          </>
+        )}
+      </Paper>
     </Box>
   );
 }

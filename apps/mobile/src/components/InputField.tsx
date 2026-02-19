@@ -1,4 +1,4 @@
-import { colors, fontSizes } from '@/packages/ui/theme/theme';
+import { colors, fontSizes } from '@packages/ui/theme/theme';
 import { Text, TextInput, View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity, Platform } from 'react-native';
 import { useState, useRef, useCallback } from 'react';
 import MaskInput, { Masks } from 'react-native-mask-input';
@@ -150,25 +150,29 @@ const InputField: React.FC<InputFieldProps> = ({
             items={options}
             setOpen={setOpen}
             setValue={(callback) => {
-              const newValue = typeof callback === 'function' ? callback(localValue) : callback;
-              if (newValue === null || typeof newValue === 'string' || typeof newValue === 'number') {
+              const newValue =
+                typeof callback === 'function' ? callback(localValue) : callback;
+              if (
+                newValue === null ||
+                typeof newValue === 'string' ||
+                typeof newValue === 'number'
+              ) {
                 handleValueChange(newValue);
               }
             }}
+            listMode="FLATLIST"   // ✅ obrigatório para scroll grande
             flatListProps={{
-              keyboardShouldPersistTaps: 'always',
-              initialNumToRender: 20,
+              keyboardShouldPersistTaps: 'handled',
               nestedScrollEnabled: true,
-              scrollEnabled: true,
+              showsVerticalScrollIndicator: true,
             }}
-            placeholder={placeholder || 'Selecione uma opção'}
-            onOpen={() => setIsFocused(true)}
-            onClose={() => setIsFocused(false)}
-            listMode="FLATLIST"
-            dropDownContainerStyle={{
-              zIndex: zIndex + 1,
-              maxHeight: 300,
+            scrollViewProps={{
+              nestedScrollEnabled: true,
             }}
+            dropDownContainerStyle={[
+              { zIndex: zIndex + 1, maxHeight: 300 },
+              dropDownContainerStyle,
+            ]}
             style={{ flex: 1 }}
             textStyle={[
               styles.dropdownText,
@@ -179,6 +183,7 @@ const InputField: React.FC<InputFieldProps> = ({
               <CaretDown size={20} color={isFocused ? colors.primary : colors.secondary} />
             )}
           />
+
         </View>
         {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
@@ -204,7 +209,7 @@ const InputField: React.FC<InputFieldProps> = ({
             placeholder={placeholder || ''}
             placeholderFillCharacter={'_'}
             style={[
-              styles.input, 
+              styles.input,
               isFocused && styles.inputFocused,
               error && styles.inputError
             ]}
@@ -222,7 +227,7 @@ const InputField: React.FC<InputFieldProps> = ({
       ) : (
         <View>
           <View style={[
-            styles.inputWrapper, 
+            styles.inputWrapper,
             isFocused && styles.inputFocused,
             error && styles.inputErrorWrapper
           ]}>
@@ -366,11 +371,11 @@ const styles = StyleSheet.create({
     // No Web, o ícone fica ao lado para simular a seta
   },
   errorText: {
-  color: 'red',
-  fontSize: fontSizes.f12,
-  marginTop: 4,
-  fontFamily: 'Nunito_400Regular',
-},
+    color: 'red',
+    fontSize: fontSizes.f12,
+    marginTop: 4,
+    fontFamily: 'Nunito_400Regular',
+  },
 });
 
 export default InputField;

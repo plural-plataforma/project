@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, StyleSheet, View, Text, ActivityIndicator, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
-import { colors } from "@/packages/ui/theme/theme";
+import { colors } from "@packages/ui/theme/theme";
 import SelectButton from "@src/components/SelectButton";
 import { Eye, User } from "phosphor-react-native";
 import { buscarEscolasProfessor } from "@src/services/professorService";
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
         paddingHorizontal: 20,
-        paddingTop: 70
+        paddingTop: 90
     },
     fixedHeader: { 
         marginBottom: 10,

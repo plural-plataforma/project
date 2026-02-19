@@ -1,0 +1,301 @@
+import { useState, useEffect } from 'react';
+import { X } from '@phosphor-icons/react';
+
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+  Alert,
+  Grid,
+  FormControlLabel,
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
+} from '@mui/material';
+
+import { updateUserProfile } from '../../services/userProfileService'; // ajuste o caminho conforme sua estrutura
+import { Usuario } from '../../types/userTypes';
+import { jwtDecode } from 'jwt-decode';
+
+interface EditProfileModalProps {
+  open: boolean;
+  onClose: () => void;
+  userId: number;
+  initialData?: Partial<Usuario>;
+  onSuccess?: () => void;  // ← adicionado aqui (opcional)
+}
+
+export default function ProfileUserAppEdit({
+  open,
+  onClose,
+  userId,
+  initialData,
+  onSuccess
+}: EditProfileModalProps) {
+  const [formData, setFormData] = useState<Partial<Usuario>>(initialData || {});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    if (token) {
+      try {
+        const decoded: any = jwtDecode(token);
+
+        // Chave correta do seu backend (ASP.NET Identity)
+        const roleClaimKey = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+        const role = decoded[roleClaimKey]; // "Admin" ou "Professor"
+
+        const isAdminFromToken = role && role.toLowerCase() === 'admin';
+
+        setIsAdmin(isAdminFromToken);
+
+        console.log('Token decodificado no modal - Role:', role);
+        console.log('isAdmin no modal:', isAdminFromToken);
+      } catch (err) {
+        console.error('Erro ao decodificar token no modal de edição:', err);
+      }
+    } else {
+      console.log('Nenhum token encontrado no modal');
+    }
+
+    // Carrega initialData normalmente
+    if (initialData && Object.keys(initialData).length > 0) {
+      setFormData(initialData);
+      setLoading(false);
+    }
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!formData.idUsuario) return;
+
+    setSaving(true);
+    setError(null);
+    setSuccess(false);
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      setError('Sessão expirada. Faça login novamente.');
+      setSaving(false);
+      return;
+    }
+
+    // Monta o payload exatamente como o backend espera
+    const payload = {
+      idUsuario: formData.idUsuario,
+      acao: formData.ativo ? 'A' : 'I',
+      nome: formData.nomeCompleto?.trim(),
+      email: formData.email?.trim(),
+      telefone: String(formData.telefone ?? '').trim(),
+      isEmbaixadora: formData.isEmbaixadora ?? false,
+      // Apenas admin pode enviar/alterar perfil
+      ...(isAdmin && formData.perfil ? { perfil: formData.perfil } : {})
+    };
+
+    try {
+      await updateUserProfile(payload, token);
+
+      setSuccess(true);
+
+      // Chama o callback onSuccess se ele existir
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Opcional: fecha o modal após sucesso
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChange = (field: keyof Usuario, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (!open) return null;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          borderRadius: 4,
+          boxShadow: 24,
+        }
+      }}
+    >
+      <DialogTitle sx={{ bgcolor: '#276678', color: 'white', py: 2, px: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6" fontWeight="bold">
+            Editar Perfil
+          </Typography>
+          <Button onClick={onClose} sx={{ color: 'white', minWidth: 'auto' }}>
+            <X size={24} weight="bold" />
+          </Button>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent sx={{ pt: 3 }}>
+        {success && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            Perfil atualizado com sucesso!
+          </Alert>
+        )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={3} sx={{ paddingTop: 2 }}>
+            {/* Nome completo */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Nome completo"
+                fullWidth
+                value={formData.nomeCompleto || ''}
+                onChange={e => handleChange('nomeCompleto', e.target.value)}
+                required
+                variant="outlined"
+              />
+            </Grid>
+
+            {/* E-mail */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="E-mail"
+                fullWidth
+                type="email"
+                value={formData.email || ''}
+                onChange={e => handleChange('email', e.target.value)}
+                required
+                variant="outlined"
+              />
+            </Grid>
+
+            {/* Telefone */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Telefone / WhatsApp"
+                fullWidth
+                value={formData.telefone || ''}
+                onChange={e => handleChange('telefone', e.target.value)}
+                placeholder="(00) 00000-0000"
+                variant="outlined"
+              />
+            </Grid>
+
+            {/* Perfil (somente Admin pode editar) */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              {isAdmin ? (
+                <FormControl fullWidth required>
+                  <InputLabel>Perfil</InputLabel>
+                  <Select
+                    value={formData.roles?.[0] || ''}
+                    label="Perfil"
+                    onChange={e => handleChange('roles', [e.target.value])}
+                    variant="outlined"
+                  >
+                    <MenuItem value="Admin">Administrador</MenuItem>
+                    <MenuItem value="Professor">Professor</MenuItem>
+                  </Select>
+                </FormControl>
+              ) : (
+                <TextField
+                  label="Perfil Atual"
+                  fullWidth
+                  value={formData.perfil || 'Professor'}
+                  disabled
+                  variant="outlined"
+                  helperText="Alterações de perfil são gerenciadas pela administração."
+                />
+              )}
+            </Grid>
+
+            {/* Status Ativo/Inativo */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Status da Conta</InputLabel>
+                <Select
+                  value={formData.ativo !== undefined ? String(formData.ativo) : 'true'}
+                  label="Status da Conta"
+                  onChange={e => handleChange('ativo', e.target.value === 'true')}
+                  variant="outlined"
+                >
+                  <MenuItem value="true">Ativo</MenuItem>
+                  <MenuItem value="false">Inativo</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Embaixadora */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={!!formData.isEmbaixadora}
+                    onChange={(_, checked) => handleChange('isEmbaixadora', checked)}
+                    color="primary"
+                  />
+                }
+                label="Sou Embaixadora / Parceira"
+                sx={{ mt: 1 }}
+              />
+            </Grid>
+
+            {/* Aviso */}
+            <Grid size={{ xs: 12 }}>
+              <Typography variant="caption" color="text.secondary">
+                Alterações avançadas (ex: tipo de acesso, data de expiração, roles) são gerenciadas pelo time administrativo.
+              </Typography>
+            </Grid>
+          </Grid>
+        )}
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onClose} disabled={saving} sx={{ color: '#276678' }}>
+          Cancelar
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={
+            saving ||
+            !formData.nomeCompleto?.trim() ||
+            !formData.email?.trim()
+          }
+          sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5a' } }}
+        >
+          {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}

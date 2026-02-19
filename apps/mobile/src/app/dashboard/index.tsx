@@ -9,13 +9,14 @@ import {
 } from 'react-native';
 import { Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '@/packages/ui/theme/theme';
+import { colors } from '@packages/ui/theme/theme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomButton from '@src/components/CustomButton';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import NotificationBanner from './../../components/NotificationBanner';
-import { Backpack, NoteBlank, SignOut, Users } from 'phosphor-react-native';
+import { Backpack, ClipboardText, NoteBlank, SignOut, Users } from 'phosphor-react-native';
 import { Professor } from '@src/types/professor';
 import { Escola } from '@src/types/escolas';
 import { buscarProfessor, buscarEscolasProfessor } from '@src/services/professorService';
@@ -28,6 +29,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importe a função (ajuste o caminho conforme sua estrutura de pastas)
 import { adiarTrocaSenha } from '@src/services/auth';  // ← adicione isso
 
+
+import {  Logo } from '@packages/ui/components'
 interface SectionItem {
   type: 'banner' | 'tasks';
 }
@@ -220,11 +223,13 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-
-            <View style={[styles.cell, { borderWidth: 0 }]}>
+            <View style={[styles.cell, { borderColor: colors.background }]}>
+              
+            </View>
+           {/*  <View style={[styles.cell]}>
               <SelectButton
-                onPress={() => {}}
-                title=""
+                onPress={() => router.push('/avaliacaoDiagnostica/MinhasAvaliacoes')}
+                title="Avaliação Diagnóstica"
                 iconLeft={null}
                 buttonColor={colors.greyBlur}
                 textColor={colors.primary}
@@ -232,6 +237,8 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
+*/}
+
           </View>
         </View>
       );
@@ -254,7 +261,8 @@ export default function Dashboard() {
 
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerLeft}>
-          <Image source={require('@/packages/ui/assets/images/logo.png')} style={styles.logo} />
+          <Logo width={42.79} height={33.65} styles={{ logo: { marginBottom: 10 } }} href="logo"/>
+   
           <Text style={styles.text}>
             Plural <Text style={styles.textSecondary}>PLATAFORMA</Text>
           </Text>

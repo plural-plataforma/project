@@ -2,7 +2,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform, Alert } from 'react-native';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { File, Paths } from 'expo-file-system';
-import { colors, fontSizes } from "@/packages/ui/theme/theme";
+import { colors, fontSizes } from "@packages/ui/theme/theme";
 import CustomButton from "@src/components/CustomButton";
 import Header from "@src/components/Header";
 import { fetchEstados, fetchMunicipios } from "@src/services/locationsService";
@@ -10,6 +10,7 @@ import { fetchCepData } from "@src/services/validateCep";
 import { Aluno } from "@src/types/aluno"; // Importe os tipos corrigidos
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  ClipboardText,
   ClockCounterClockwise,
   DownloadSimple,
   Note,
@@ -354,6 +355,12 @@ const useAlunoSections = (
       fields: [],
       plannings: aluno.planejamentos || [],
     },
+   // {
+   //   title: "Avaliação Diagnóstica",
+   //   icon: <ClipboardText  size={16} weight="fill" color={colors.primary} />,
+   //   fields: [],
+   //   plannings: aluno.planejamentos || [],
+   // },
   ], [aluno, ufs, ufsLoaded, cidadesDisponiveis, cidadesPorUf, cepLoading, enderecoEnabled, handleCepChange, handleEstadoFocus, handleCidadeFocus, escolas, escolasLoading, handleAddressFocus, aluno.planejamentos]);
 }
 
@@ -946,8 +953,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 70
+    paddingHorizontal: 10,
+    paddingTop: 90
   },
   content: {
     paddingBottom: 100,
