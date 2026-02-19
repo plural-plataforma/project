@@ -4,7 +4,8 @@ export interface Usuario {
   nomeCompleto: string
   email: string
   telefone?: number
-  perfil: 'Admin' | 'Professor' | undefined | string;
+  perfil?: 'Admin' | 'Professor' | undefined | string;
+  roles?: string[];
   ativo: boolean
   isEmbaixadora: boolean
   idNivelEnsino?: number

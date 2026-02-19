@@ -16,5 +16,7 @@
         // Datas úteis
         public DateTime? DataCadastro { get; set; }
         public DateTime? ExpirationDate { get; set; }
+
+        public List<string> Roles { get; set; } = new List<string>();
     }
 }

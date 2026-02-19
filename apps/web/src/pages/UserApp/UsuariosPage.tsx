@@ -150,6 +150,7 @@ export default function UsuariosPage() {
       possuiLockout: user.possuiLockout,
       statusConta: user.statusConta,
       expirationDate: user.expirationDate,
+      roles: user.roles || []
     });
     setOpenEditModal(true);
   };

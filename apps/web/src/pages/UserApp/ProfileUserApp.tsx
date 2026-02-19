@@ -23,6 +23,7 @@ import {
 
 import { updateUserProfile } from '../../services/userProfileService'; // ajuste o caminho conforme sua estrutura
 import { Usuario } from '../../types/userTypes';
+import { jwtDecode } from 'jwt-decode';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -48,19 +49,30 @@ export default function ProfileUserAppEdit({
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Verifica se é admin
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    if (token) {
       try {
-        const user = JSON.parse(storedUser);
-        if (user?.roles?.includes('Admin')) {
-          setIsAdmin(true);
-        }
+        const decoded: any = jwtDecode(token);
+
+        // Chave correta do seu backend (ASP.NET Identity)
+        const roleClaimKey = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+        const role = decoded[roleClaimKey]; // "Admin" ou "Professor"
+
+        const isAdminFromToken = role && role.toLowerCase() === 'admin';
+
+        setIsAdmin(isAdminFromToken);
+
+        console.log('Token decodificado no modal - Role:', role);
+        console.log('isAdmin no modal:', isAdminFromToken);
       } catch (err) {
-        console.error('Erro ao parsear usuário do localStorage', err);
+        console.error('Erro ao decodificar token no modal de edição:', err);
       }
+    } else {
+      console.log('Nenhum token encontrado no modal');
     }
 
+    // Carrega initialData normalmente
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData(initialData);
       setLoading(false);
@@ -205,9 +217,9 @@ export default function ProfileUserAppEdit({
                 <FormControl fullWidth required>
                   <InputLabel>Perfil</InputLabel>
                   <Select
-                    value={formData.perfil || ''}
+                    value={formData.roles?.[0] || ''}
                     label="Perfil"
-                    onChange={e => handleChange('perfil', e.target.value)}
+                    onChange={e => handleChange('roles', [e.target.value])}
                     variant="outlined"
                   >
                     <MenuItem value="Admin">Administrador</MenuItem>
@@ -276,8 +288,8 @@ export default function ProfileUserAppEdit({
           onClick={handleSave}
           disabled={
             saving ||
-              !formData.nomeCompleto?.trim() ||
-              !formData.email?.trim() 
+            !formData.nomeCompleto?.trim() ||
+            !formData.email?.trim()
           }
           sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5a' } }}
         >
