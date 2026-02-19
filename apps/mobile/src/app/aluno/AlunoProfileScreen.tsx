@@ -355,12 +355,12 @@ const useAlunoSections = (
       fields: [],
       plannings: aluno.planejamentos || [],
     },
-    {
-      title: "Avaliação Diagnóstica",
-      icon: <ClipboardText  size={16} weight="fill" color={colors.primary} />,
-      fields: [],
-      plannings: aluno.planejamentos || [],
-    },
+   // {
+   //   title: "Avaliação Diagnóstica",
+   //   icon: <ClipboardText  size={16} weight="fill" color={colors.primary} />,
+   //   fields: [],
+   //   plannings: aluno.planejamentos || [],
+   // },
   ], [aluno, ufs, ufsLoaded, cidadesDisponiveis, cidadesPorUf, cepLoading, enderecoEnabled, handleCepChange, handleEstadoFocus, handleCidadeFocus, escolas, escolasLoading, handleAddressFocus, aluno.planejamentos]);
 }
 

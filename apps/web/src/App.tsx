@@ -22,6 +22,8 @@ import CadastroBloco from './pages/Blocos/CadastrosBloco'
 import DashboardAtividades from './pages/Atividades/DashboardAtividades'
 import CadastroDeAtividade from './pages/Atividades/CadastroDeAtividade'
 import SkillsNew from './pages/Skills/SkillsNew'
+import AcessoRestrito from './pages/AcessoRestrito'
+import RequireAdmin from './components/RequireAdmin'
 
 function App() {
   return (
@@ -33,35 +35,38 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/privacy" element={<PolicyPrivacy />} />
         <Route path="/excluded" element={<DataDeletionRequest />} />
+        <Route path="/acesso-restrito" element={<AcessoRestrito />} />
         {/* Todas as rotas protegidas com layout admin + autenticação */}
         <Route element={<ProtectedRoutes />}>
           <Route element={<AdminLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/skills" element={<SkillsList />} />
-            <Route path="/skills/edit/:id" element={<SkillsEdit />} />
-            <Route path="/skills/new" element={<SkillsNew />} />
+            <Route element={<RequireAdmin />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/skills" element={<SkillsList />} />
+              <Route path="/skills/edit/:id" element={<SkillsEdit />} />
+              <Route path="/skills/new" element={<SkillsNew />} />
 
-            {/* Exemplos de rotas que você provavelmente terá */}
-            <Route path="/usuarios" element={<UsuariosPage />} />
-            <Route
-              path="/blocos"
-              element={<DashboardBlocos />}
-            />
-            <Route path="/blocos/novo" element={<CadastroBloco />} />           {/* create */}
-            <Route path="/blocos/:id/:action?" element={<CadastroBloco />} />    {/* edit */}
-            <Route path="/blocos/:id" element={<CadastroBloco />} />           {/* view */}
-            <Route path="/blocos/novo" element={<CadastroBloco />}/>
-            <Route path="/atividades" element={<DashboardAtividades />}/>
-            <Route path="/atividades/novo" element={<CadastroDeAtividade />}/>
-            <Route path="/atividades/:id/:action?" element={<CadastroDeAtividade />}/>
+              {/* Exemplos de rotas que você provavelmente terá */}
+              <Route path="/usuarios" element={<UsuariosPage />} />
+              <Route
+                path="/blocos"
+                element={<DashboardBlocos />}
+              />
+              <Route path="/blocos/novo" element={<CadastroBloco />} />           {/* create */}
+              <Route path="/blocos/:id/:action?" element={<CadastroBloco />} />    {/* edit */}
+              <Route path="/blocos/:id" element={<CadastroBloco />} />           {/* view */}
+              <Route path="/blocos/novo" element={<CadastroBloco />} />
+              <Route path="/atividades" element={<DashboardAtividades />} />
+              <Route path="/atividades/novo" element={<CadastroDeAtividade />} />
+              <Route path="/atividades/:id/:action?" element={<CadastroDeAtividade />} />
 
-            <Route
-              path="/configuracoes"
-              element={<div>Configurações Gerais (em breve)</div>}
-            />
+              <Route
+                path="/configuracoes"
+                element={<div>Configurações Gerais (em breve)</div>}
+              />
 
-            {/* Rotas do usuário */}
-            <Route path="/change-password" element={<ChangePassword />} />
+              {/* Rotas do usuário */}
+              <Route path="/change-password" element={<ChangePassword />} />
+            </Route>
           </Route>
         </Route>
         {/* Rota 404 - opcional */}

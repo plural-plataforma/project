@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Authorize(Roles = "Admin,Coordenador")] // descomente quando roles estiverem funcionando
+    [Authorize(Roles = "Admin")] // descomente quando roles estiverem funcionando
     [ApiController]
     [Route("api/admin")]
     public class AdminController : ControllerBase
