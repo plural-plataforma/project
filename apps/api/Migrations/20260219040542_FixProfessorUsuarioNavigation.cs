@@ -14,10 +14,6 @@ namespace api.Migrations
                 name: "fk_aspnetusers_professores_professorid",
                 table: "aspnetusers");
 
-            migrationBuilder.DropIndex(
-                name: "ix_aspnetusers_professorid",
-                table: "aspnetusers");
-
             migrationBuilder.CreateIndex(
                 name: "ix_aspnetusers_professorid",
                 table: "aspnetusers",

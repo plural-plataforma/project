@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260214232156_FixProfessorUsuarioNavigation")]
+    [Migration("20260219040542_FixProfessorUsuarioNavigation")]
     partial class FixProfessorUsuarioNavigation
     {
         /// <inheritdoc />
