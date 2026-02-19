@@ -186,6 +186,9 @@ using (var scope = app.Services.CreateScope())
     {
         context.Database.CanConnect();
         Console.WriteLine("Conexão com o banco de dados estabelecida com sucesso.");
+
+        // APLICA AS MIGRATIONS PENDENTES
+        context.Database.Migrate();
     }
     catch (Exception ex)
     {
