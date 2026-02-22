@@ -90,31 +90,31 @@ export default function ProfileUserAppEdit({
     }
 
     // Preparar roles delta (só se for admin e houver mudança)
-   let rolesAdicionar: string[] = [];
-  let rolesRemover:   string[] = [];
+    let rolesAdicionar: string[] = [];
+    let rolesRemover: string[] = [];
 
-  if (isAdmin) {
-    const novoRole = formData.roles?.[0];
-    const roleAtual = initialData?.roles?.[0] ?? initialData?.perfil;
+    if (isAdmin) {
+      const novoRole = formData.roles?.[0];
+      const roleAtual = initialData?.roles?.[0] ?? initialData?.perfil;
 
-    if (novoRole && novoRole !== roleAtual) {
-      if (roleAtual) rolesRemover = [roleAtual];
-      rolesAdicionar = [novoRole];
+      if (novoRole && novoRole !== roleAtual) {
+        if (roleAtual) rolesRemover = [roleAtual];
+        rolesAdicionar = [novoRole];
+      }
     }
-  }
 
-  const payload = {
-    idUsuario:       formData.idUsuario!,
-    acao:            formData.ativo ? 'A' : 'I',
-    nome:            (formData.nomeCompleto ?? '').trim() || undefined,
-    email:           (formData.email ?? '').trim() || undefined,
-    telefone:        String(formData.telefone ?? ''),
-    isActive:        !!formData.ativo,
-    isEmbaixadora:   !!formData.isEmbaixadora,
-    expirationDate:  formData.expirationDate ?? initialData?.expirationDate ?? null,
-    rolesAdicionar,
-    rolesRemover,
-  };
+    const payload = {
+      idUsuario: formData.idUsuario!,
+      acao: formData.ativo ? 'A' : 'I',
+      nome: (formData.nomeCompleto ?? '').trim() || undefined,
+      email: (formData.email ?? '').trim() || undefined,
+      telefone: String(formData.telefone ?? ''),
+      isActive: !!formData.ativo,
+      isEmbaixadora: !!formData.isEmbaixadora,
+      expirationDate: formData.expirationDate ?? initialData?.expirationDate ?? null,
+      rolesAdicionar,
+      rolesRemover,
+    };
 
     // Se quiser forçar envio mesmo vazio (alguns backends exigem os campos)
     // payload.rolesAdicionar = rolesAdicionar;
@@ -263,6 +263,27 @@ export default function ProfileUserAppEdit({
                 </Select>
               </FormControl>
             </Grid>
+            {/* Data de Expiração */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Data de Expiração"
+                type="date"
+                fullWidth
+                value={
+                  formData.expirationDate
+                    ? new Date(formData.expirationDate).toISOString().split('T')[0]
+                    : ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Converte '' → null e mantém formato ISO se quiser
+                  handleChange('expirationDate', value ? new Date(value).toISOString() : null);
+                }}
+                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+                helperText="Deixe em branco para nunca expirar"
+              />
+            </Grid>
 
             {/* Embaixadora */}
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -278,6 +299,7 @@ export default function ProfileUserAppEdit({
                 sx={{ mt: 1 }}
               />
             </Grid>
+
 
             {/* Aviso */}
             <Grid size={{ xs: 12 }}>
