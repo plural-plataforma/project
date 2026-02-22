@@ -63,13 +63,9 @@ export default function ProfileUserAppEdit({
 
         setIsAdmin(isAdminFromToken);
 
-        console.log('Token decodificado no modal - Role:', role);
-        console.log('isAdmin no modal:', isAdminFromToken);
       } catch (err) {
         console.error('Erro ao decodificar token no modal de edição:', err);
       }
-    } else {
-      console.log('Nenhum token encontrado no modal');
     }
 
     // Carrega initialData normalmente
@@ -93,34 +89,48 @@ export default function ProfileUserAppEdit({
       return;
     }
 
-    // Monta o payload exatamente como o backend espera
-    const payload = {
-      idUsuario: formData.idUsuario,
-      acao: formData.ativo ? 'A' : 'I',
-      nome: formData.nomeCompleto?.trim(),
-      email: formData.email?.trim(),
-      telefone: String(formData.telefone ?? '').trim(),
-      isEmbaixadora: formData.isEmbaixadora ?? false,
-      // Apenas admin pode enviar/alterar perfil
-      ...(isAdmin && formData.perfil ? { perfil: formData.perfil } : {})
-    };
+    // Preparar roles delta (só se for admin e houver mudança)
+   let rolesAdicionar: string[] = [];
+  let rolesRemover:   string[] = [];
+
+  if (isAdmin) {
+    const novoRole = formData.roles?.[0];
+    const roleAtual = initialData?.roles?.[0] ?? initialData?.perfil;
+
+    if (novoRole && novoRole !== roleAtual) {
+      if (roleAtual) rolesRemover = [roleAtual];
+      rolesAdicionar = [novoRole];
+    }
+  }
+
+  const payload = {
+    idUsuario:       formData.idUsuario!,
+    acao:            formData.ativo ? 'A' : 'I',
+    nome:            (formData.nomeCompleto ?? '').trim() || undefined,
+    email:           (formData.email ?? '').trim() || undefined,
+    telefone:        String(formData.telefone ?? ''),
+    isActive:        !!formData.ativo,
+    isEmbaixadora:   !!formData.isEmbaixadora,
+    expirationDate:  formData.expirationDate ?? initialData?.expirationDate ?? null,
+    rolesAdicionar,
+    rolesRemover,
+  };
+
+    // Se quiser forçar envio mesmo vazio (alguns backends exigem os campos)
+    // payload.rolesAdicionar = rolesAdicionar;
+    // payload.rolesRemover  = rolesRemover;
 
     try {
       await updateUserProfile(payload, token);
 
       setSuccess(true);
+      if (onSuccess) onSuccess();
 
-      // Chama o callback onSuccess se ele existir
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      // Opcional: fecha o modal após sucesso
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      setTimeout(() => onClose(), 1800);
     } catch (err: any) {
-      setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
+      const msg = err.message || 'Erro ao salvar. Verifique os campos obrigatórios.';
+      setError(msg);
+      console.error('Payload enviado:', payload); // ← ajuda a debugar
     } finally {
       setSaving(false);
     }

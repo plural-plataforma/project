@@ -63,7 +63,6 @@ export default function Sidebar() {
 
   useEffect(() => {
     const userString = localStorage.getItem('user')|| sessionStorage.getItem('user');
-    console.log(userString)
     if (userString) {
       try {
         setUser(JSON.parse(userString));

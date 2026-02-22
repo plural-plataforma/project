@@ -47,8 +47,8 @@ namespace api.Controllers
         {
             // Chama o serviço com exatamente os mesmos parâmetros
             var resposta = await _adminService.ListarTodosParaAdminAsync(
-                pagina: pagina,
-                tamanhoPagina: tamanhoPagina,
+              // pagina: pagina,
+              // tamanhoPagina: tamanhoPagina,
                 ativo: ativo,
                 isEmbaixadora: isEmbaixadora,
                 search: search,

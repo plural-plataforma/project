@@ -59,10 +59,6 @@ export default function Login() {
 
     // Verifica se é admin (case-insensitive)
     const isAdmin = role && role.toString().toLowerCase() === 'admin';
-
-    console.log('Role detectada:', role);         // ← para debug
-    console.log('É Admin?', isAdmin);             // ← para debug
-
     if (isAdmin) {
       navigate('/dashboard');
     } else {

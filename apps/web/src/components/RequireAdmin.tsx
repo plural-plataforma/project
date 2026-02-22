@@ -16,10 +16,6 @@ export default function RequireAdmin() {
     const role = decoded[roleClaimKey];
 
     const isAdmin = role && role.toString().toLowerCase() === 'admin';
-
-    console.log('[RequireAdmin] Role detectada:', role);   // ← debug importante
-    console.log('[RequireAdmin] É Admin?', isAdmin);
-
     if (!isAdmin) {
       return <Navigate to="/acesso-restrito" replace />;
     }

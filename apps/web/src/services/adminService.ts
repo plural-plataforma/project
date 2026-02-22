@@ -26,6 +26,7 @@ export const fetchUsuariosAdmin = async (
   token: string
 ): Promise<PaginatedUsuarios> => {
   try {
+
     const response = await axios.get(`${API_URL}/admin/usuarios/listar`, {
       params,
       headers: {
@@ -34,14 +35,41 @@ export const fetchUsuariosAdmin = async (
       },
     });
 
-    // Ajuste conforme o formato exato da resposta do seu backend
-    // Se o backend retornar { sucesso: true, objeto: { ... } }, use response.data.objeto
-    return response.data.objeto || response.data;
+    // Possíveis estruturas comuns do seu backend:
+    let result: PaginatedUsuarios;
+
+    if (response.data?.objeto) {
+      // Caso comum: { sucesso: true, objeto: { itens: [], ... } }
+      result = response.data.objeto;
+    } else if (response.data?.itens) {
+      // Caso direto: { itens: [], paginaAtual: 1, ... }
+      result = response.data;
+    } else if (response.data?.data?.itens) {
+      // Algumas APIs aninhadas
+      result = response.data.data;
+    } else {
+      console.warn('[fetchUsuariosAdmin] Formato inesperado da resposta');
+      throw new Error('Formato de resposta da API inválido');
+    }
+
+    // Garantia mínima: sempre retorna algo válido
+    return {
+      itens: result.itens || [],
+      paginaAtual: result.paginaAtual || 1,
+      tamanhoPagina: result.tamanhoPagina || result.itens?.length || 0,
+      totalItens: result.totalItens || result.itens?.length || 0,
+      totalPaginas: result.totalPaginas || 1,
+    };
   } catch (error: any) {
-    throw new Error(
+    console.error('[fetchUsuariosAdmin] Erro completo:', error);
+
+    const mensagemErro =
       error.response?.data?.detalhe ||
       error.response?.data?.erro ||
-      'Erro ao carregar lista de professores. Verifique sua conexão ou permissões.'
-    );
+      error.response?.data?.message ||
+      error.message ||
+      'Erro desconhecido ao carregar usuários';
+
+    throw new Error(mensagemErro);
   }
 };

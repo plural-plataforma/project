@@ -187,17 +187,12 @@ namespace api.Services
         }
 
         public async Task<ServiceResponse<PaginatedResult<UsuarioListDTO>>> ListarTodosParaAdminAsync(
-            int pagina = 1,
-            int tamanhoPagina = 20,
             bool? ativo = null,
             bool? isEmbaixadora = null,
             string? search = null,
             string? nivelEnsino = null)
         {
             var resposta = new ServiceResponse<PaginatedResult<UsuarioListDTO>>();
-
-            if (pagina < 1) pagina = 1;
-            if (tamanhoPagina < 1 || tamanhoPagina > 100) tamanhoPagina = 20;
 
             try
             {
@@ -206,19 +201,22 @@ namespace api.Services
                     .AsNoTracking()
                     .Where(p => p.Usuario != null);
 
-                // Filtros (mantidos iguais)
+                // Aplicação dos filtros (exatamente como antes)
                 if (ativo.HasValue)
                 {
                     query = query.Where(p => p.Usuario.IsActive == ativo.Value);
                 }
+
                 if (isEmbaixadora.HasValue)
                 {
                     query = query.Where(p => p.Usuario.IsEmbaixadora == isEmbaixadora.Value);
                 }
+
                 if (!string.IsNullOrWhiteSpace(nivelEnsino))
                 {
                     query = query.Where(p => p.NivelEnsino != null && p.NivelEnsino.Contains(nivelEnsino.Trim()));
                 }
+
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var termo = search.Trim().ToLowerInvariant();
@@ -229,22 +227,20 @@ namespace api.Services
                     );
                 }
 
-                var total = await query.CountAsync();
-
+                // Busca TODOS os registros de uma vez
                 var professores = await query
                     .OrderByDescending(p => p.Usuario!.ExpirationDate ?? DateTime.MinValue)
                     .ThenBy(p => p.NomeCompleto ?? string.Empty)
-                    .Skip((pagina - 1) * tamanhoPagina)
-                    .Take(tamanhoPagina)
                     .ToListAsync();
 
-                // Agora enriquecemos cada item com as roles
+                var total = professores.Count;
+
+                // Enriquecimento com roles
                 var itens = new List<UsuarioListDTO>();
 
                 foreach (var p in professores)
                 {
                     var usuario = p.Usuario!;
-
                     var roles = await _usuario.GetRolesAsync(usuario);
 
                     itens.Add(new UsuarioListDTO
@@ -262,25 +258,27 @@ namespace api.Services
                                 ? "Expirada"
                                 : "Ativa"),
                         ExpirationDate = usuario.ExpirationDate,
-                        Roles = roles.ToList()  // ← aqui adicionamos as roles!
+                        Roles = roles.ToList()
                     });
                 }
 
+                // Retorna como se fosse uma única "página" com tudo
                 var resultado = new PaginatedResult<UsuarioListDTO>
                 {
                     Itens = itens,
-                    PaginaAtual = pagina,
-                    TamanhoPagina = tamanhoPagina,
+                    PaginaAtual = 1,
+                    TamanhoPagina = total,      // indica que trouxe tudo
                     TotalItens = total,
-                    TotalPaginas = (int)Math.Ceiling((double)total / tamanhoPagina)
+                    TotalPaginas = 1
                 };
 
                 resposta.AdicionaObjeto(resultado);
+                resposta.Sucesso = true;
                 return resposta;
             }
             catch (Exception ex)
             {
-                resposta.SetFalha($"Erro ao listar professores para admin: {ex.Message}");
+                resposta.SetFalha($"Erro ao listar todos os usuários: {ex.Message}");
                 return resposta;
             }
         }
