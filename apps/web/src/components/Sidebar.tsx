@@ -31,7 +31,7 @@ import { ChartDonut, ClipboardText, SignOut, Star, UsersThree } from '@phosphor-
 import { useEffect, useState } from 'react'
 
 // Largura fixa do sidebar (padrão comum)
-const drawerWidth = 310
+const drawerWidth = 350
 
 export default function Sidebar() {
   const location = useLocation()
@@ -63,7 +63,6 @@ export default function Sidebar() {
 
   useEffect(() => {
     const userString = localStorage.getItem('user')|| sessionStorage.getItem('user');
-    console.log(userString)
     if (userString) {
       try {
         setUser(JSON.parse(userString));
@@ -226,7 +225,7 @@ export default function Sidebar() {
       </Box>
 
       {/* Perfil do administrador no rodapé */}
-      <Paper elevation={0} sx={{ m: 2, p: 2 }}>
+      <Paper elevation={0} sx={{ m: 1, p: 1 , borderRadius: 2, bgcolor: alpha('#276678', 0.1) }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar sx={{ width: 48, height: 48, bgcolor: '#276678' }}>
             {getInitials(user?.nome)}
@@ -241,7 +240,7 @@ export default function Sidebar() {
             </Typography>
           </Box>
 
-          <IconButton onClick={handleLogout} sx={{ color: '#276678' }}>
+          <IconButton onClick={handleLogout} sx={{ color: '#276678', marginLeft:5 }}>
             <SignOut size={26} />
           </IconButton>
         </Box>

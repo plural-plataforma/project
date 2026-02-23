@@ -63,18 +63,18 @@ export default function ProfileUserAppEdit({
 
         setIsAdmin(isAdminFromToken);
 
-        console.log('Token decodificado no modal - Role:', role);
-        console.log('isAdmin no modal:', isAdminFromToken);
       } catch (err) {
         console.error('Erro ao decodificar token no modal de edição:', err);
       }
-    } else {
-      console.log('Nenhum token encontrado no modal');
     }
 
     // Carrega initialData normalmente
     if (initialData && Object.keys(initialData).length > 0) {
-      setFormData(initialData);
+      // Garante que expirationDate venha como string ISO ou null
+      setFormData({
+        ...initialData,
+        expirationDate: initialData.expirationDate ?? null,
+      });
       setLoading(false);
     }
   }, [initialData]);
@@ -93,34 +93,50 @@ export default function ProfileUserAppEdit({
       return;
     }
 
-    // Monta o payload exatamente como o backend espera
+    // Preparar roles delta (só se for admin e houver mudança)
+    let rolesAdicionar: string[] = [];
+    let rolesRemover: string[] = [];
+
+    if (isAdmin) {
+      const novoRole = formData.roles?.[0];
+      const roleAtual = initialData?.roles?.[0] ?? initialData?.perfil;
+
+      if (novoRole && novoRole !== roleAtual) {
+        if (roleAtual) rolesRemover = [roleAtual];
+        rolesAdicionar = [novoRole];
+      }
+    }
+
     const payload = {
-      idUsuario: formData.idUsuario,
+      idUsuario: formData.idUsuario!,
       acao: formData.ativo ? 'A' : 'I',
-      nome: formData.nomeCompleto?.trim(),
-      email: formData.email?.trim(),
-      telefone: String(formData.telefone ?? '').trim(),
-      isEmbaixadora: formData.isEmbaixadora ?? false,
-      // Apenas admin pode enviar/alterar perfil
-      ...(isAdmin && formData.perfil ? { perfil: formData.perfil } : {})
+      nome: (formData.nomeCompleto ?? '').trim() || undefined,
+      email: (formData.email ?? '').trim() || undefined,
+      telefone: String(formData.telefone ?? ''),
+      isActive: !!formData.ativo,
+      isEmbaixadora: !!formData.isEmbaixadora,
+      expirationDate: formData.expirationDate
+        ? new Date(formData.expirationDate).toISOString()
+        : null,
+      rolesAdicionar,
+      rolesRemover,
     };
+
+    // Se quiser forçar envio mesmo vazio (alguns backends exigem os campos)
+    // payload.rolesAdicionar = rolesAdicionar;
+    // payload.rolesRemover  = rolesRemover;
 
     try {
       await updateUserProfile(payload, token);
 
       setSuccess(true);
+      if (onSuccess) onSuccess();
 
-      // Chama o callback onSuccess se ele existir
-      if (onSuccess) {
-        onSuccess();
-      }
-
-      // Opcional: fecha o modal após sucesso
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      setTimeout(() => onClose(), 1800);
     } catch (err: any) {
-      setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
+      const msg = err.message || 'Erro ao salvar. Verifique os campos obrigatórios.';
+      setError(msg);
+      console.error('Payload enviado:', payload); // ← ajuda a debugar
     } finally {
       setSaving(false);
     }
@@ -253,6 +269,27 @@ export default function ProfileUserAppEdit({
                 </Select>
               </FormControl>
             </Grid>
+            {/* Data de Expiração */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Data de Expiração"
+                type="date"
+                fullWidth
+                value={
+                  formData.expirationDate
+                    ? new Date(formData.expirationDate).toISOString().split('T')[0]
+                    : ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Converte '' → null e mantém formato ISO se quiser
+                  handleChange('expirationDate', value ? new Date(value).toISOString() : null);
+                }}
+                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+                helperText="Deixe em branco para nunca expirar"
+              />
+            </Grid>
 
             {/* Embaixadora */}
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -268,6 +305,7 @@ export default function ProfileUserAppEdit({
                 sx={{ mt: 1 }}
               />
             </Grid>
+
 
             {/* Aviso */}
             <Grid size={{ xs: 12 }}>

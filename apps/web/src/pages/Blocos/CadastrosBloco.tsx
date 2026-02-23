@@ -103,7 +103,6 @@ export default function CadastroBloco() {
           .map(b => b.ordem)
           .filter(Boolean) as number[];
         setOrdensUsadas(ordens);
-        console.log(ordens)
       } catch (err) {
         console.error('Erro ao carregar ordens existentes:', err);
       }

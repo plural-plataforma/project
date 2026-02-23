@@ -1,5 +1,5 @@
 // pages/Usuarios.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Snackbar,
@@ -25,13 +25,12 @@ export default function UsuariosPage() {
   const theme = useTheme();
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [paginatedData, setPaginatedData] = useState<PaginatedUsuarios | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [filtroStatusCadastro, setFiltroStatusCadastro] = useState<
-    'todos' | 'cadastrado' | 'naoCadastrado' | 'Inativo'
+    'todos' | 'cadastrado' | 'Inativo'
   >('todos');
 
   const [snackOpen, setSnackOpen] = useState(false);
@@ -45,48 +44,61 @@ export default function UsuariosPage() {
 
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  useEffect(() => {
+  // Função de carregamento extraída para poder chamar várias vezes
+  const loadUsuarios = useCallback(async () => {
     if (!token) {
       setError('Sessão expirada. Faça login novamente.');
       setLoading(false);
       return;
     }
 
-    const loadUsuarios = async () => {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const params: any = {
-          pagina: 1, // sempre 1, pois a paginação é local agora
-          tamanhoPagina: 1000, // ou um valor grande para trazer todos os dados
-          search: search.trim() || undefined,
-        };
+    try {
+      const params: any = {
+        // tente 5000, 9999 ou deixe vazio — depende do backend
+        // tamanhoPagina: 5000,
+      };
 
-        if (filtroStatusCadastro === 'cadastrado') params.ativo = true;
-        if (filtroStatusCadastro === 'Inativo') params.ativo = false;
-        // 'naoCadastrado' não suportado — só cadastrados
+      const data: PaginatedUsuarios = await fetchUsuariosAdmin(params, token);
+      setUsuarios(data.itens || []);
+    } catch (err: any) {
+      setError(err.message || 'Não foi possível carregar a lista de usuários.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
-        const data = await fetchUsuariosAdmin(params, token);
-
-        setPaginatedData(data);
-        setUsuarios(data.itens || []);
-      } catch (err: any) {
-        setError(err.message || 'Não foi possível carregar a lista de usuários.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  // Carrega inicialmente
+  useEffect(() => {
     loadUsuarios();
-  }, [search, filtroStatusCadastro, token]); // sem currentPage na dependência
+  }, [loadUsuarios]);
+
+  // Filtro local
+  const filteredUsuarios = useMemo(() => {
+    const term = search.toLowerCase().trim();
+
+    return usuarios.filter((user) => {
+      const matchesSearch =
+        !term ||
+        (user.nomeCompleto?.toLowerCase().includes(term) ?? false) ||
+        (user.email?.toLowerCase().includes(term) ?? false);
+
+      const matchesStatus =
+        filtroStatusCadastro === 'todos' ||
+        (filtroStatusCadastro === 'cadastrado' && user.ativo === true) ||
+        (filtroStatusCadastro === 'Inativo' && user.ativo === false);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [usuarios, search, filtroStatusCadastro]);
 
   // Estatísticas
-  const totalUsuarios = paginatedData?.totalItens || 0;
-  const usuariosAtivos = usuarios.filter(p => p.ativo).length;
-  const percentualAtivos = totalUsuarios > 0 
-    ? Math.round((usuariosAtivos / totalUsuarios) * 1000) / 10 
-    : 0;
+  const totalUsuarios = usuarios.length;
+  const usuariosAtivos = usuarios.filter((u) => u.ativo).length;
+  const percentualAtivos =
+    totalUsuarios > 0 ? Math.round((usuariosAtivos / totalUsuarios) * 1000) / 10 : 0;
 
   const statsCards: StatCardData[] = [
     {
@@ -126,8 +138,7 @@ export default function UsuariosPage() {
 
       setSnackMessage(`Professor ${nome} cadastrado com sucesso! Senha inicial: Plural@2025.`);
       setSnackSeverity('success');
-      // Recarrega dados
-      setSearch(search); // força re-render do useEffect
+      await loadUsuarios(); // ← recarrega a lista
     } catch (err: any) {
       setSnackMessage(err.message || 'Erro ao cadastrar professor.');
       setSnackSeverity('error');
@@ -150,7 +161,7 @@ export default function UsuariosPage() {
       possuiLockout: user.possuiLockout,
       statusConta: user.statusConta,
       expirationDate: user.expirationDate,
-      roles: user.roles || []
+      roles: user.roles || [],
     });
     setOpenEditModal(true);
   };
@@ -172,7 +183,6 @@ export default function UsuariosPage() {
         )}
       </Box>
 
-      {/* Busca */}
       <SearchFilterBar
         search={search}
         setSearch={setSearch}
@@ -186,10 +196,9 @@ export default function UsuariosPage() {
         placeholder="Buscar por nome, e-mail ou telefone..."
       />
 
-      {/* Lista */}
       <Box sx={{ px: { xs: 2, md: 4 } }}>
         <UsersListLayout
-          filteredUsuarios={usuarios}
+          filteredUsuarios={filteredUsuarios}
           loading={loading}
           error={error}
           onVerPerfil={handleVerPerfil}
@@ -197,15 +206,14 @@ export default function UsuariosPage() {
         />
       </Box>
 
-      {/* Dialog Novo Usuário */}
       <NewUserDialog
         open={openNewUserModal}
         onClose={() => setOpenNewUserModal(false)}
-        onSuccess={() => {
+        onSuccess={async () => {
           setSnackMessage('Novo professor cadastrado com sucesso!');
           setSnackSeverity('success');
           setSnackOpen(true);
-          setSearch(search); // força recarregar dados
+          await loadUsuarios(); // ← recarrega após criar
         }}
         onError={(msg) => {
           setSnackMessage(msg);
@@ -214,23 +222,21 @@ export default function UsuariosPage() {
         }}
       />
 
-      {/* Modal Edição */}
       <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
         <ProfileUserAppEdit
           open={openEditModal}
           onClose={() => setOpenEditModal(false)}
           userId={selectedUsuario?.idUsuario ?? 0}
           initialData={initialData}
-          onSuccess={() => {
+          onSuccess={async () => {
             setSnackMessage('Perfil atualizado com sucesso!');
             setSnackSeverity('success');
             setSnackOpen(true);
-            setSearch(search); // força recarregar dados
+            await loadUsuarios(); // ← recarrega após editar
           }}
         />
       </Modal>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackOpen}
         autoHideDuration={6000}

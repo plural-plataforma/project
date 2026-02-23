@@ -4,12 +4,16 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL;
 
 interface UpdateProfilePayload {
-  idUsuario: number;
-  acao?: 'A' | 'I' | string;  
-  nome?: string;
-  email?: string;
-  telefone?: string;
-  isEmbaixadora?: boolean;
+  idUsuario:       number;
+  acao?:            'A' | 'I' | string;              
+  nome?:           string;
+  email?:          string;
+  telefone?:       string;
+  isActive:        boolean;                
+  isEmbaixadora?:  boolean;
+  expirationDate?: string | null;           
+  rolesAdicionar?: string[];              
+  rolesRemover?:   string[];
 }
 
 export const updateUserProfile = async (payload: UpdateProfilePayload, token: string) => {
