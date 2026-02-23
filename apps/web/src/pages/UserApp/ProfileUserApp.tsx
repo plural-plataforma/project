@@ -70,7 +70,11 @@ export default function ProfileUserAppEdit({
 
     // Carrega initialData normalmente
     if (initialData && Object.keys(initialData).length > 0) {
-      setFormData(initialData);
+      // Garante que expirationDate venha como string ISO ou null
+      setFormData({
+        ...initialData,
+        expirationDate: initialData.expirationDate ?? null,
+      });
       setLoading(false);
     }
   }, [initialData]);
@@ -111,7 +115,9 @@ export default function ProfileUserAppEdit({
       telefone: String(formData.telefone ?? ''),
       isActive: !!formData.ativo,
       isEmbaixadora: !!formData.isEmbaixadora,
-      expirationDate: formData.expirationDate ?? initialData?.expirationDate ?? null,
+      expirationDate: formData.expirationDate
+        ? new Date(formData.expirationDate).toISOString()
+        : null,
       rolesAdicionar,
       rolesRemover,
     };
