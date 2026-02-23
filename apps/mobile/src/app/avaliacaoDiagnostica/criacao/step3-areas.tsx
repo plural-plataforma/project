@@ -14,6 +14,8 @@ import { is } from 'zod/v4/locales';
 import { BlocoArea, BlocoComAtividade, BlocoUI } from '@src/types/bloco';
 import { buscarBlocosComAtividades } from '@src/services/blocosService';
 import { api } from '@src/services/auth';
+import { useCreation } from './context/CreationContext';
+import { BlocoSelecionadoDTO } from '@src/types/avaliacao-diagnostica';
 
 interface Atividade {
   id: number;
@@ -49,12 +51,13 @@ const areasMock: BlocoArea[] = [
 export default function Step2Areas() {
   const router = useRouter();
   const { currentStep, totalSteps } = useProgress();
+  const { updateData, data } = useCreation();
   const [loading, setLoading] = useState(true)
 
   const [blocos, setBlocos] = useState<BlocoUI[]>([]);
   const [expandedBlocos, setExpandedBlocos] = useState<number[]>([]);
   const [areasSelecionadas, setAreasSelecionadas] = useState<AreaSelecionada[]>([])
-  const isValid = areasSelecionadas.length > 0;
+  const isFormValid = data.blocos.length > 0;
 
   const toggleBloco = (id: number) => {
     setExpandedBlocos(prev =>
@@ -68,9 +71,6 @@ export default function Step2Areas() {
   const [titulo, setTitulo] = useState('');
   const [dataAvaliacao, setDataAvaliacao] = useState<Date | null>(null);
 
-  // Validação simples para habilitar o botão
-  const isFormValid = true;
-
   const handleGerarAvaliacao = () => {
     if (isFormValid) {
       // Aqui você salva os dados no contexto global do wizard (se tiver)
@@ -83,54 +83,48 @@ export default function Step2Areas() {
     router.push('/avaliacaoDiagnostica/criacao/detailsAtividades');
   }
 
-  const handleAreaChange = (
-    data: AreaSelecionada | null,
-    areaId: number
-  ) => {
-    setAreasSelecionadas(prev => {
-      if (!data) {
-        return prev.filter(a => a.areaId !== areaId);
-      }
+  const handleAreaChange = (atividadeIds: number[], areaId: number) => {
+    const currentBlocos = data.blocos || [];
 
-      const exists = prev.some(a => a.areaId === areaId);
+    const filtered = currentBlocos.filter(b => b.blocoId !== areaId);
 
-      if (exists) {
-        return prev.map(a =>
-          a.areaId === areaId ? data : a
-        );
-      }
+    let newBlocos: BlocoSelecionadoDTO[] = filtered;
 
-      return [...prev, data];
-    });
+    if (atividadeIds.length > 0) {
+      newBlocos = [...filtered, { blocoId: areaId, atividadeIds }];
+    }
+
+    updateData({ blocos: newBlocos });
   };
+
 
 
   useEffect(() => {
     const carregar = async () => {
-    setLoading(true)
+      setLoading(true)
 
-    const data = await buscarBlocosComAtividades()
+      const data = await buscarBlocosComAtividades()
 
-console.log(
-  'RAW RESPONSE',
-  JSON.stringify((await api.get('/Blocos/com-atividades')).data, null, 2)
-);
+      console.log(
+        'RAW RESPONSE',
+        JSON.stringify((await api.get('/Blocos/com-atividades')).data, null, 2)
+      );
 
 
-    const blocosUI = data.map(bloco => ({
-      id: bloco.id,
-      titulo: bloco.titulo,
-      atividades: bloco.atividades.map(a => ({
-        id: a.id,
-        descricao: a.titulo, // 👈 OU titulo, depende do que você quer mostrar
-      })),
-    }))
+      const blocosUI = data.map(bloco => ({
+        id: bloco.id,
+        titulo: bloco.titulo,
+        atividades: bloco.atividades.map(a => ({
+          id: a.id,
+          descricao: a.titulo, // 👈 OU titulo, depende do que você quer mostrar
+        })),
+      }))
 
-    setBlocos(blocosUI)
-    setLoading(false)
-  }
+      setBlocos(blocosUI)
+      setLoading(false)
+    }
 
-  carregar()
+    carregar()
   }, []);
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -149,16 +143,16 @@ console.log(
             areaId={area.id}
             titulo={area.titulo}
             atividades={area.atividades}
-            onChange={handleAreaChange}
+            onChange={(ids) => handleAreaChange(ids, area.id)}
           />
         ))}
 
         {/* Botão Próxima Etapa - sempre visív el, opacity só quando disabled */}
         <View style={styles.buttonContainer}>
           <CustomButton
-            title="Visualizar Prévia "
+            title="Gerar Avaliação Diagnóstica"
             onPress={handleGerarAvaliacao}
-            disabled={!isValid}
+            disabled={!isFormValid}
             buttonColor={{
               backgroundColor: colors.primary2,
             }}

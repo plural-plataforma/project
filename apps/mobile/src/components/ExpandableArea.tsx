@@ -16,17 +16,11 @@ import { colors } from '@packages/ui/theme/theme';
 import DetailsAtividades from '@src/app/avaliacaoDiagnostica/criacao/detailsAtividades';
 import { UIAtividade } from '@src/types/atividades';
 
-type AreaSelecionada = {
-  areaId: number;
-  atividades: number[];
-};
-
-
 interface Props {
   titulo: string;
   areaId: number;
   atividades: UIAtividade[];
-  onChange?: (data: AreaSelecionada | null, areaId: number) => void;
+  onChange?: (atividadeIds: number[]) => void;
 }
 
 export function ExpandableArea({
@@ -51,25 +45,21 @@ export function ExpandableArea({
       : [...selectedActivities, id];
 
     setSelectedActivities(updated);
-
-    onChange?.(
-      updated.length === 0
-        ? null
-        : { areaId, atividades: updated },
-      areaId
-    );
+    onChange?.(updated);
   };
+
 
   const toggleArea = () => {
     if (areaSelected) {
       setAreaSelected(false);
       setSelectedActivities([]);
-      onChange?.(null, areaId);
+      onChange?.([]); 
     } else {
       setAreaSelected(true);
       setExpanded(true);
     }
   };
+
 
   return (
     <View style={styles.container}>

@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260201213351_AddAtividadesSelecionadas")]
+    partial class AddAtividadesSelecionadas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -460,7 +463,7 @@ namespace api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dataaplicacao");
 
-                    b.Property<int?>("EscolaId")
+                    b.Property<int>("EscolaId")
                         .HasColumnType("integer")
                         .HasColumnName("escolaid");
 
@@ -1116,14 +1119,6 @@ namespace api.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("emailconfirmed");
 
-                    b.Property<DateTime?>("ExpirationDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expirationdate");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("isactive");
-
                     b.Property<bool>("IsEmbaixadora")
                         .HasColumnType("boolean")
                         .HasColumnName("isembaixadora");
@@ -1186,7 +1181,6 @@ namespace api.Migrations
                         .HasDatabaseName("usernameindex");
 
                     b.HasIndex("ProfessorId")
-                        .IsUnique()
                         .HasDatabaseName("ix_aspnetusers_professorid");
 
                     b.ToTable("aspnetusers", (string)null);
@@ -1353,7 +1347,8 @@ namespace api.Migrations
                     b.HasOne("api.Models.Escola", "Escola")
                         .WithMany()
                         .HasForeignKey("EscolaId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
                         .HasConstraintName("fk_avaliacoes_diagnosticas_escolas_escolaid");
 
                     b.Navigation("Escola");
@@ -1563,9 +1558,9 @@ namespace api.Migrations
             modelBuilder.Entity("api.Models.Usuario", b =>
                 {
                     b.HasOne("api.Models.Professor", "Professor")
-                        .WithOne("Usuario")
-                        .HasForeignKey("api.Models.Usuario", "ProfessorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithMany()
+                        .HasForeignKey("ProfessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_aspnetusers_professores_professorid");
 
                     b.Navigation("Professor");
@@ -1630,8 +1625,6 @@ namespace api.Migrations
                     b.Navigation("EscolaXProfessores");
 
                     b.Navigation("Planejamentos");
-
-                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>

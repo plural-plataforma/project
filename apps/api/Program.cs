@@ -128,7 +128,7 @@ builder.Services.AddScoped<PlanejamentoService>();
 builder.Services.AddScoped<EstrategiaService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
-builder.Services.AddScoped<AvaliacaoService>();
+builder.Services.AddScoped<AvaliacaoDiagnosticaService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
 builder.Services.AddScoped<EmailService>();

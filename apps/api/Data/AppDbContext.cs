@@ -29,6 +29,7 @@ namespace Data
         public DbSet<Atividade> Atividades { get; set; }
         public DbSet<AvaliacaoDiagnostica> AvaliacoesDiagnosticas { get; set; }
         public DbSet<AvaliacaoDiagnosticaBloco> AvaliacoesDiagnosticasBlocos { get; set; }
+        public DbSet<AvaliacaoDiagnosticaAtividade> AvaliacoesDiagnosticasAtividades { get; set; } = null!;
         public DbSet<AvaliacaoAluno> AvaliacoesAlunos { get; set; }
         public DbSet<DesempenhoAtividade> DesempenhosAtividades { get; set; }
         public DbSet<DiagnosticoFinal> DiagnosticosFinais { get; set; }
@@ -168,9 +169,18 @@ namespace Data
                     j => j.ToTable("AtividadeHabilidade")
 
                 );
+            modelBuilder.Entity<AvaliacaoDiagnostica>()
+                .HasOne(a => a.Escola)
+                .WithMany()
+                .HasForeignKey(a => a.EscolaId)
+                .IsRequired(false) 
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<AvaliacaoDiagnosticaBloco>()
                 .HasKey(ab => new { ab.AvaliacaoDiagnosticaId, ab.BlocoId });
+
+            modelBuilder.Entity<AvaliacaoDiagnosticaAtividade>()
+               .HasKey(ab => new { ab.AvaliacaoDiagnosticaId, ab.AtividadeId });
 
             modelBuilder.Entity<AvaliacaoAluno>()
                 .HasKey(aa => new { aa.AvaliacaoDiagnosticaId, aa.AlunoId });

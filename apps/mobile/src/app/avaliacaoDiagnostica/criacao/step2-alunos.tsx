@@ -16,38 +16,46 @@ import { Aluno } from '@src/types/aluno'
 import { Escola } from '@src/types/escolas'
 import { buscarAlunos } from '@src/services/alunoService'
 import { buscarEscolas } from '@src/services/escolasService'
+import { useCreation } from './context/CreationContext'
 
 
 export default function Step2Alunos() {
   const router = useRouter()
   const { currentStep, totalSteps } = useProgress()
-
+  const { updateData } = useCreation();
   const [alunosSelecionados, setAlunosSelecionados] = useState<Aluno[]>([])
 
 
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [escolas, setEscolas] = useState<Escola[]>([])
 
-   useEffect(() => {
-      const load = async () => {
-        const [als, escs] = await Promise.all([
-          buscarAlunos(),
-          buscarEscolas()
-        ])
+  useEffect(() => {
+    const load = async () => {
+      const [als, escs] = await Promise.all([
+        buscarAlunos(),
+        buscarEscolas()
+      ])
 
-          setAlunos(als)
+      setAlunos(als)
 
-        setEscolas(escs)
-      }
-      load()
-    }, [])
+      setEscolas(escs)
+    }
+    load()
+  }, [])
   const toggleAluno = (aluno: Aluno) => {
-    setAlunosSelecionados(prev =>
-      prev.some(a => a.id === aluno.id)
-        ? prev.filter(a => a.id !== aluno.id)
-        : [...prev, aluno]
-    )
-  }
+    const novo = alunosSelecionados.some(a => a.id === aluno.id)
+      ? alunosSelecionados.filter(a => a.id !== aluno.id)
+      : [...alunosSelecionados, aluno];
+
+    setAlunosSelecionados(novo);
+
+    // Fix: garante number[] puro
+    const alunoIdsValidos: number[] = novo
+      .map(a => a.id)
+      .filter((id): id is number => id !== undefined && id !== null);
+
+    updateData({ alunoIds: alunoIdsValidos });
+  };
 
   const isFormValid = alunosSelecionados.length > 0
 
