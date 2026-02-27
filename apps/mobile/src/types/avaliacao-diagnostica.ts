@@ -145,3 +145,29 @@ export interface DiagnosticoResumo {
   resumoCurto: string;
   geradoEm: string;
 }
+
+export interface AvaliacaoDiagnosticaEdicaoResponse {
+  sucesso: boolean;
+  mensagens: string[];
+  objeto: {
+    id: number;
+    titulo: string;
+    objetivo?: string;
+    dataAplicacao: string;
+    escolaId?: number | null;
+    concluida: boolean;
+    alunoIds: number[];
+    blocosComAtividades: Array<{
+      id: number;
+      titulo: string;
+      ordem: number;
+      observacao?: string | null;
+      icone?: string | null;
+      quantidadeAtividades: number;
+      atividades: Array<{
+        id: number;
+        titulo: string;
+      }>;
+    }>;
+  };
+}

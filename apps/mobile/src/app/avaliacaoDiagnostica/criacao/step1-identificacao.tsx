@@ -23,10 +23,12 @@ export default function Step1Identificacao() {
   const { currentStep, totalSteps } = useProgress();
   const { data, updateData } = useCreation();
 
-  const { startCreation } = useCreation();
+  const { startCreation, isEditing, isLoading } = useCreation();
   useEffect(() => {
-    startCreation(); // Garante modo criação limpo
-  }, []);
+    if (!isEditing) {
+      startCreation();
+    }
+  }, [isEditing]);
 
   const isFormValid =
     data.titulo.trim().length > 0 &&
@@ -38,6 +40,13 @@ export default function Step1Identificacao() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Header title="Avaliação Diagnóstica" fixed />
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header fixo no topo */}

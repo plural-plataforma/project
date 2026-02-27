@@ -52,10 +52,12 @@ export default function MinhasAvaliacoesDiagnosticas() {
 
   const renderAvaliacao = ({ item }: { item: AvaliacaoDiagnosticaResumo }) => (
     <SelectButton
-      onPress={() => router.push({
-        pathname: '/avaliacaoDiagnostica/AvaliacaoScreen', // Crie essa tela para detalhes/registro
-        params: { id: item.id }
-      })}
+      onPress={() =>
+        router.push({
+          pathname: '/avaliacaoDiagnostica/criacao/step1-identificacao',
+          params: { avaliacaoId: item.id }
+        })
+      }
       title={item.titulo}
       // subtitle={`Alunos: ${item.quantidadeAlunos} • Blocos: ${item.quantidadeBlocos} • ${item.concluida ? 'Concluída' : 'Em andamento'}`}
       iconRight={<CaretRight size={16} color={colors.primary} />}
@@ -76,7 +78,7 @@ export default function MinhasAvaliacoesDiagnosticas() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
-        
+
         ListHeaderComponent={
           <View>
             <View style={styles.searchContainer}>

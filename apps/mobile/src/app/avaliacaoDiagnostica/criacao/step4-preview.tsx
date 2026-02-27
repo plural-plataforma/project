@@ -1,5 +1,3 @@
-// src/screens/avaliacao-diagnostica/criacao/step4-preview.tsx
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -19,7 +17,6 @@ import * as Sharing from 'expo-sharing';
 
 import ProgressFill from '@src/components/ProgressFill';
 import CustomButton from '@src/components/CustomButton';
-import WizardScrollView from '@src/components/WizardScrollView';
 import Header from '@src/components/Header';
 import { colors } from '@packages/ui/theme/theme';
 import { useProgress } from './context/ProgressContext';
@@ -32,7 +29,7 @@ export default function Step4Preview() {
   const { currentStep, totalSteps } = useProgress();
   const { data, dataVersion, resetData } = useCreation();
 
-  const [pdfUri, setPdfUri] = useState<string | null>(null);
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(true);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
@@ -48,9 +45,8 @@ export default function Step4Preview() {
       setPdfError(null);
 
       try {
-        // Chama o service (responsável por tudo técnico)
         const base64 = await gerarPdfBase64(Number(avaliacaoId));
-        setPdfUri(`data:application/pdf;base64,${base64}`);
+        setPdfBase64(base64);
       } catch (err: any) {
         setPdfError(err.message || 'Não foi possível carregar a pré-visualização do PDF.');
       } finally {
@@ -62,26 +58,34 @@ export default function Step4Preview() {
   }, [avaliacaoId, dataVersion]);
 
   const handleBaixarPdf = async () => {
-    if (!pdfUri || !avaliacaoId) return;
+    if (!pdfBase64 || !avaliacaoId) return;
+
+    if (Platform.OS === 'web') {
+      const linkSource = `data:application/pdf;base64,${pdfBase64}`;
+      const downloadLink = document.createElement("a");
+      downloadLink.href = linkSource;
+      downloadLink.download = `avaliacao-diagnostica-${avaliacaoId}.pdf`;
+      downloadLink.click();
+      return;
+    }
 
     try {
       const fileUri = `${FileSystem.documentDirectory}avaliacao-diagnostica-${avaliacaoId}.pdf`;
-      const base64 = pdfUri.split(',')[1];
 
-      await FileSystem.writeAsStringAsync(fileUri, base64, {
+      await FileSystem.writeAsStringAsync(fileUri, pdfBase64, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
-          dialogTitle: 'Salvar ou compartilhar PDF',
           mimeType: 'application/pdf',
+          dialogTitle: 'Baixar PDF',
         });
       } else {
-        Alert.alert('Sucesso', 'PDF salvo nos arquivos do dispositivo.');
+        Alert.alert('Sucesso', 'PDF salvo no dispositivo.');
       }
     } catch (err) {
-      console.error('Erro ao baixar PDF:', err);
+      console.error(err);
       Alert.alert('Erro', 'Não foi possível salvar o PDF.');
     }
   };
@@ -95,60 +99,71 @@ export default function Step4Preview() {
     <SafeAreaView style={styles.safeArea}>
       <Header title="Pré-visualização" fixed />
 
-      <WizardScrollView>
-        <ProgressFill completedSections={currentStep} totalSections={totalSteps} />
+      <View style={styles.container}>
 
-        <Text style={styles.sectionTitle}>Pré-visualização da Avaliação</Text>
+        {/* Parte superior rolável */}
+        <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+          <ProgressFill completedSections={currentStep} totalSections={totalSteps} />
 
-        <View style={styles.previewContainer}>
-          <Text style={styles.previewText}>Título: {data.titulo || '—'}</Text>
-          <Text style={styles.previewText}>Objetivo: {data.objetivo || 'Não informado'}</Text>
-          <Text style={styles.previewText}>Data: {data.dataAplicacao || '—'}</Text>
-          <Text style={styles.previewText}>Alunos selecionados: {data.alunoIds.length}</Text>
-          <Text style={styles.previewText}>Blocos/Áreas: {data.blocos.length}</Text>
-        </View>
+          <Text style={styles.sectionTitle}>
+            Pré-visualização da Avaliação
+          </Text>
 
+          <View style={styles.previewContainer}>
+            <Text style={styles.previewText}>Título: {data.titulo || '—'}</Text>
+            <Text style={styles.previewText}>Objetivo: {data.objetivo || 'Não informado'}</Text>
+            <Text style={styles.previewText}>Data: {data.dataAplicacao || '—'}</Text>
+            <Text style={styles.previewText}>Alunos selecionados: {data.alunoIds.length}</Text>
+            <Text style={styles.previewText}>Blocos/Áreas: {data.blocos.length}</Text>
+          </View>
+        </ScrollView>
+
+        {/* PDF ocupa o espaço restante */}
         <View style={styles.pdfContainer}>
           {loadingPdf ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Carregando pré-visualização do PDF...</Text>
+              <Text style={styles.loadingText}>
+                Carregando pré-visualização do PDF...
+              </Text>
             </View>
           ) : pdfError ? (
             <Text style={styles.errorText}>{pdfError}</Text>
-          ) : pdfUri ? (
+          ) : pdfBase64  ? (
             Platform.OS === 'web' ? (
               <iframe
-                src={pdfUri}
-                style={StyleSheet.flatten([
-                  styles.webview,           // reusa o estilo { flex: 1 }
-                  { height: '100%', width: '100%' } // garante 100% do container
-                ])}
+                src={`data:application/pdf;base64,${pdfBase64}`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none'
+                }}
                 title="Pré-visualização da Avaliação Diagnóstica"
               />
             ) : (
               <WebView
-                source={{ uri: pdfUri }}
+                source={{ uri: `data:application/pdf;base64,${pdfBase64}` }}
                 style={styles.webview}
-                onError={(syntheticEvent) => {
-                  const { nativeEvent } = syntheticEvent;
-                  console.warn('WebView error:', nativeEvent);
-                }}
               />
             )
           ) : (
-            <Text style={styles.noPdfText}>Pré-visualização indisponível</Text>
+            <Text style={styles.noPdfText}>
+              Pré-visualização indisponível
+            </Text>
           )}
         </View>
 
+        {/* Botões fixos */}
         <View style={styles.buttonContainer}>
           <CustomButton
             title="Baixar PDF"
             onPress={handleBaixarPdf}
-            disabled={loadingPdf || !!pdfError || !pdfUri}
+            disabled={loadingPdf || !!pdfError || !pdfBase64}
             buttonColor={{ backgroundColor: colors.primary2 }}
           />
-          <p style={styles.button}></p>
+
+          <View style={{ height: 12 }} />
+
           <CustomButton
             title="Finalizar"
             onPress={handleFinalizar}
@@ -157,14 +172,19 @@ export default function Step4Preview() {
           />
         </View>
 
-
-      </WizardScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -177,7 +197,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
     marginHorizontal: 16,
-    marginBottom: 24,
   },
   previewText: {
     fontSize: 16,
@@ -185,10 +204,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   pdfContainer: {
-    height: Platform.OS === 'web' ? 600 : 500,
-    minHeight: 400,
-    marginHorizontal: 16,
-    marginVertical: 16,
+    flex: 1,
+    margin: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#ddd',
@@ -218,15 +235,9 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
-    width: '100%',
-    height: '100%',
   },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-
-  },
-  button: {
-    marginBottom: 12,
+    paddingBottom: 24,
   },
 });

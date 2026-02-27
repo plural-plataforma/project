@@ -82,30 +82,32 @@ export const CreationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setAvaliacaoIdState(id);
 
     try {
-      const detalhes = await buscarAvaliacaoPorId(id);
+      const response = await buscarAvaliacaoPorId(id);
+      const detalhes = response.objeto;
 
       updateData({
-        id: detalhes.id,                          // ou detalhes.Id se o backend usar Id
-        titulo: detalhes.titulo?.trim() ?? '',
-        objetivo: detalhes.objetivo?.trim() ?? '',
-       dataAplicacao: detalhes.dataAplicacao
-  ? new Date(detalhes.dataAplicacao).toISOString().split('T')[0] || ''
-  : '',
-        escolaId: detalhes.escola?.id ?? undefined,
-        alunoIds: detalhes.alunos?.map((aluno: any) => aluno.id) ?? [],
-        blocos: detalhes.blocos?.map((bloco: any) => ({ ...bloco })) ?? [],  // ajuste se o nome for diferente
+        id: detalhes.id,
+        titulo: detalhes.titulo ?? '',
+        objetivo: detalhes.objetivo ?? '',
+        dataAplicacao: detalhes.dataAplicacao
+          ? new Date(detalhes.dataAplicacao).toISOString().split('T')[0]
+          : '',
+        escolaId: detalhes.escolaId ?? undefined,
+
+        alunoIds: detalhes.alunoIds ?? [],
+
+        blocos: detalhes.blocosComAtividades?.map((b) => ({
+          blocoId: b.id,
+          atividadeIds: b.atividades?.map((a) => a.id) ?? [],
+        })) ?? [],
       });
-    } catch (err: any) {
-      console.error('[startEditing] Erro ao carregar avaliação:', err);
-      Alert.alert(
-        'Erro ao carregar',
-        'Não foi possível carregar os dados da avaliação. Verifique a conexão ou tente novamente.',
-        [{ text: 'OK', onPress: resetData }]
-      );
+
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
-  }, [avaliacaoId, updateData, resetData]);
+  }, [avaliacaoId]);
 
   const setAvaliacaoId = useCallback((id: number | null) => {
     setAvaliacaoIdState(id);

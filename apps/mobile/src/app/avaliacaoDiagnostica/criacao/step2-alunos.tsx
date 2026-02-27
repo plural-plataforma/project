@@ -22,12 +22,20 @@ import { useCreation } from './context/CreationContext'
 export default function Step2Alunos() {
   const router = useRouter()
   const { currentStep, totalSteps } = useProgress()
-  const { updateData } = useCreation();
+  const { data, updateData } = useCreation();
   const [alunosSelecionados, setAlunosSelecionados] = useState<Aluno[]>([])
 
 
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [escolas, setEscolas] = useState<Escola[]>([])
+
+ useEffect(() => {
+  if (!data.alunoIds?.length || !alunos.length) return;
+
+  setAlunosSelecionados(
+    alunos.filter(a => data.alunoIds.includes(a.id))
+  );
+}, [data.alunoIds, alunos]);
 
   useEffect(() => {
     const load = async () => {

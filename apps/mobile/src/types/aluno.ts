@@ -1,7 +1,7 @@
 import { PlanejamentoAluno } from "./planejamento";
 
 export interface Aluno {
-  id?: number;
+  id: number;
   nomeCompleto: string;
   cep?: string;
   logradouro?: string;

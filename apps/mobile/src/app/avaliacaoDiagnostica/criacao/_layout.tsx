@@ -8,7 +8,7 @@ export default function CriacaoLayout() {
     <ProgressProvider>
       <CreationProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="criacao/step1-identificacao" />
+        <Stack.Screen name="step1-identificacao" />
         <Stack.Screen name="step2-alunos" />
         <Stack.Screen name="step3-areas" />
         <Stack.Screen name="step4-preview" />

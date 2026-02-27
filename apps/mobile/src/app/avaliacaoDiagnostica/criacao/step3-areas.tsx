@@ -30,25 +30,6 @@ type AreaSelecionada = {
   atividades: number[];
 };
 
-const areasMock: BlocoArea[] = [
-  {
-    id: 1,
-    titulo: 'Alfabeto',
-    atividades: [
-      { id: 1, descricao: 'Leia as palavras e faça os desenhos' },
-      { id: 2, descricao: 'Circule a letra que a professora disser' },
-      { id: 3, descricao: 'Leia o pequeno texto para a professora' },
-    ],
-  },
-  {
-    id: 2,
-    titulo: 'Sílabas',
-    atividades: [
-      { id: 4, descricao: 'Complete as sílabas faltantes' },
-      { id: 5, descricao: 'Ligue as sílabas às figuras' },
-    ],
-  },
-];
 
 export default function Step2Areas() {
   const router = useRouter();
@@ -76,15 +57,15 @@ export default function Step2Areas() {
   const [dataAvaliacao, setDataAvaliacao] = useState<Date | null>(null);
 
   const handleGerarAvaliacao = async () => {
-   // if (!isFormValid) {
-     // Alert.alert('Atenção', 'Selecione pelo menos um bloco/área antes de gerar.');
+    // if (!isFormValid) {
+    // Alert.alert('Atenção', 'Selecione pelo menos um bloco/área antes de gerar.');
     //  return;
-   // }
+    // }
 
-   // if (!data.dataAplicacao || data.dataAplicacao.trim() === '') {
-   //   Alert.alert('Atenção', 'A data de aplicação é obrigatória.');
+    // if (!data.dataAplicacao || data.dataAplicacao.trim() === '') {
+    //   Alert.alert('Atenção', 'A data de aplicação é obrigatória.');
     //  return;
-   // }
+    // }
 
     const dataIso = parseDateToIso(data.dataAplicacao);
     if (!dataIso || dataIso === 'Invalid Date') {
@@ -93,6 +74,7 @@ export default function Step2Areas() {
     }
 
     const payload = {
+      id: avaliacaoId,
       titulo: data.titulo?.trim() || '',
       objetivo: data.objetivo?.trim() || '',
       dataAplicacao: dataIso,  // já parseado corretamente
@@ -179,6 +161,10 @@ export default function Step2Areas() {
   };
 
 
+  const getSelectedIds = (areaId: number) => {
+    const bloco = data.blocos?.find(b => b.blocoId === areaId);
+    return bloco?.atividadeIds || [];
+  };
 
   useEffect(() => {
     const carregar = async () => {
@@ -224,6 +210,7 @@ export default function Step2Areas() {
             areaId={area.id}
             titulo={area.titulo}
             atividades={area.atividades}
+            selectedIds={getSelectedIds(area.id)} // 👈 ADICIONE ISSO
             onChange={(ids) => handleAreaChange(ids, area.id)}
           />
         ))}

@@ -1,11 +1,11 @@
 import { api } from '../services/auth';
 import { 
   AvaliacaoDiagnosticaResumo,
-  AvaliacaoDiagnosticaDetalhada,
   CreateAvaliacaoDiagnosticaRequest,
   CreateAvaliacaoDiagnosticaResponse,
   RegistrarDesempenhoBatchRequest,
-  DiagnosticoFinal
+  DiagnosticoFinal,
+  AvaliacaoDiagnosticaEdicaoResponse
 } from '../types/avaliacao-diagnostica';
 
 // Busca lista resumida de avaliações diagnósticas (para tela de listagem)
@@ -24,29 +24,12 @@ export const buscarAvaliacoesDiagnosticas = async (): Promise<AvaliacaoDiagnosti
 
 
 // Busca detalhes completos de uma avaliação específica (para tela de detalhes)
-export const buscarAvaliacaoPorId = async (id: number): Promise<AvaliacaoDiagnosticaDetalhada> => {
+export const buscarAvaliacaoPorId = async (
+  id: number
+): Promise<AvaliacaoDiagnosticaEdicaoResponse> => {
   try {
     const response = await api.get(`/avaliacaodiagnostica/buscar/${id}`);
-    const raw = response.data; // ou response.data.objeto
-
-    // Transforma PascalCase → camelCase
-    return {
-      id: raw.Id,
-      titulo: raw.Titulo,
-      objetivo: raw.Objetivo,
-      dataAplicacao: raw.DataAplicacao,
-      escola: raw.EscolaId,
-      alunos: raw.AlunoIds ?? [],
-      blocos: raw.BlocosComAtividades?.map((b: any) => ({
-        id: b.Id,
-        titulo: b.Titulo,
-        ordemApresentacao: b.OrdemApresentacao,
-        quantidadeAtividades: b.QuantidadeAtividades,
-        icone: b.Icone,
-        status: b.Status,
-      })) || [],
-      concluida: raw.Concluida
-    };
+    return response.data; // ✅ retorna o ServiceResponse completo
   } catch (error) {
     console.error(`Erro ao buscar detalhes da avaliação ${id}:`, error);
     throw error;

@@ -17,21 +17,21 @@ import DetailsAtividades from '@src/app/avaliacaoDiagnostica/criacao/detailsAtiv
 import { UIAtividade } from '@src/types/atividades';
 
 interface Props {
-  titulo: string;
   areaId: number;
-  atividades: UIAtividade[];
-  onChange?: (atividadeIds: number[]) => void;
+  titulo: string;
+  atividades: { id: number; descricao: string }[];
+  selectedIds: number[]; // 👈 precisa existir
+  onChange: (ids: number[]) => void;
 }
 
 export function ExpandableArea({
   titulo,
   areaId,
   atividades,
+  selectedIds,
   onChange,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [areaSelected, setAreaSelected] = useState(false);
-  const [selectedActivities, setSelectedActivities] = useState<number[]>([]);
   const [atividadeModal, setAtividadeModal] = useState<{
     id: number;
     descricao: string;
@@ -40,22 +40,18 @@ export function ExpandableArea({
   } | null>(null);
 
   const toggleActivity = (id: number) => {
-    const updated = selectedActivities.includes(id)
-      ? selectedActivities.filter(i => i !== id)
-      : [...selectedActivities, id];
+    const updated = selectedIds.includes(id)
+      ? selectedIds.filter(i => i !== id)
+      : [...selectedIds, id];
 
-    setSelectedActivities(updated);
     onChange?.(updated);
   };
 
 
   const toggleArea = () => {
-    if (areaSelected) {
-      setAreaSelected(false);
-      setSelectedActivities([]);
-      onChange?.([]); 
+    if (selectedIds.length > 0) {
+      onChange?.([]);
     } else {
-      setAreaSelected(true);
       setExpanded(true);
     }
   };
@@ -72,7 +68,7 @@ export function ExpandableArea({
           <CheckSquare
             size={22}
             color={colors.primary}
-            weight={areaSelected ? 'fill' : 'regular'}
+            weight={selectedIds.length ? 'fill' : 'regular'}
           />
         </Pressable>
 
@@ -85,7 +81,7 @@ export function ExpandableArea({
       {expanded && (
         <View style={styles.body}>
           {atividades.map(atividade => {
-            const selected = selectedActivities.includes(atividade.id);
+            const selected = selectedIds.includes(atividade.id);
 
             return (
               <View
