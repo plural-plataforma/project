@@ -24,3 +24,15 @@ export interface AtividadeResponse {
   mensagens: string[]
   listaObjetos: Atividade[]
 }
+
+interface AtividadeDetalhe {
+  id: number;
+  titulo: string;
+  enunciado: string;
+  nivel: string;
+  etapaMin?: string | null;
+  etapaMax?: string | null;
+  imagemUrl?: string | null;
+  habilidadeIds: number[];
+  areaTitulo: string;
+}

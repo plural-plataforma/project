@@ -5,17 +5,26 @@ import {
   Text,
   Pressable,
   StyleSheet,
+  Image,
+  ScrollView,
 } from 'react-native';
 import { colors } from '@packages/ui/theme/theme';
 
+interface AtividadeDetalhe {
+  id: number;
+  titulo: string;
+  enunciado: string;
+  nivel: string;
+  etapaMin?: string | null;
+  etapaMax?: string | null;
+  imagemUrl?: string | null;
+  habilidadeIds: number[];
+  areaTitulo: string;
+}
+
 interface Props {
   visible: boolean;
-  atividade: {
-    id: number;
-    descricao: string;
-    areaId: number;
-    areaTitulo: string;
-  } | null;
+  atividade: AtividadeDetalhe | null;
   onClose: () => void;
 }
 
@@ -36,17 +45,56 @@ export default function DetailsAtividades({
       <Pressable style={styles.overlay} onPress={onClose} />
 
       <View style={styles.modal}>
-        <Text style={styles.areaTitle}>{atividade.areaTitulo}</Text>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Text style={styles.areaTitle}>{atividade.areaTitulo}</Text>
 
-        <Text style={styles.title}>Detalhes da Atividade</Text>
+          <Text style={styles.title}>{atividade.titulo}</Text>
 
-        <Text style={styles.description}>
-          {atividade.descricao}
-        </Text>
+          <Text style={styles.label}>Nível</Text>
+          <Text style={styles.value}>{atividade.nivel}</Text>
 
-        <Pressable style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeText}>Fechar</Text>
-        </Pressable>
+          {(atividade.etapaMin || atividade.etapaMax) && (
+            <>
+              <Text style={styles.label}>Etapas</Text>
+              <Text style={styles.value}>
+                {atividade.etapaMin ?? '-'} até {atividade.etapaMax ?? '-'}
+              </Text>
+            </>
+          )}
+
+          {atividade.enunciado ? (
+            <>
+              <Text style={styles.label}>Enunciado</Text>
+              <Text style={styles.value}>{atividade.enunciado}</Text>
+            </>
+          ) : (
+            <Text style={styles.value}>Sem enunciado.</Text>
+          )}
+
+          {atividade.imagemUrl && (
+            <>
+              <Text style={styles.label}>Imagem</Text>
+              <Image
+                source={{ uri: atividade.imagemUrl }}
+                style={styles.image}
+                resizeMode="contain"
+              />
+            </>
+          )}
+
+          {atividade.habilidadeIds?.length > 0 && (
+            <>
+              <Text style={styles.label}>Habilidades</Text>
+              <Text style={styles.value}>
+                {atividade.habilidadeIds.join(', ')}
+              </Text>
+            </>
+          )}
+
+          <Pressable style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeText}>Fechar</Text>
+          </Pressable>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -89,4 +137,23 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
   },
+  label: {
+  marginTop: 12,
+  fontSize: 13,
+  fontWeight: '600',
+  color: colors.primary,
+},
+
+value: {
+  fontSize: 14,
+  color: '#444',
+  marginTop: 4,
+},
+
+image: {
+  width: '100%',
+  height: 180,
+  marginTop: 8,
+  borderRadius: 8,
+},
 });
