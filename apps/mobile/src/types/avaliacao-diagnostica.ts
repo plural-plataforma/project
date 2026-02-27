@@ -54,8 +54,8 @@ export interface AvaliacaoDiagnosticaDetalhada {
     status?: 'Pendente' | 'EmAndamento' | 'Concluido';
   }>;
   concluida: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -73,7 +73,7 @@ export interface CreateAvaliacaoDiagnosticaRequest {
   titulo: string;
   objetivo?: string;
   dataAplicacao?: string;          // ISO date, opcional (usa hoje se não vier)
-  escolaId?: number;
+  escolaId?: number| null;
   alunoIds: number[];              // IDs dos alunos selecionados
   blocos: BlocoSelecionadoDTO[];   // Blocos com atividades específicas selecionadas
 }

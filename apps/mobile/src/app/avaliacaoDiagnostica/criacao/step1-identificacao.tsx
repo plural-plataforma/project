@@ -22,10 +22,15 @@ export default function Step1Identificacao() {
   const router = useRouter();
   const { currentStep, totalSteps } = useProgress();
   const { data, updateData } = useCreation();
-  
-  const isFormValid = 
-  data.titulo.trim().length > 0 && 
-  data.dataAplicacao.length === 10 
+
+  const { startCreation } = useCreation();
+  useEffect(() => {
+    startCreation(); // Garante modo criação limpo
+  }, []);
+
+  const isFormValid =
+    data.titulo.trim().length > 0 &&
+    data.dataAplicacao.length === 10
 
   const handleProximaEtapa = () => {
     if (isFormValid) {
@@ -58,8 +63,20 @@ export default function Step1Identificacao() {
         {/* Campo Data */}
         <DataField
           label="Data da Avaliação"
-          value={data.dataAplicacao}
-          onChange={(text) => updateData({ dataAplicacao: text })}
+          value={data.dataAplicacao ?? ''}  // força string vazia
+          onChange={(text) => {
+            let isoDate = text.trim();
+            if (text.includes('/')) {
+              const parts = text.split('/');
+              if (parts.length === 3) {
+                const [d, m, y] = parts;
+                if (d.length === 2 && m.length === 2 && y.length === 4) {
+                  isoDate = `${y}-${m}-${d}`;
+                }
+              }
+            }
+            updateData({ dataAplicacao: isoDate });
+          }}
         />
 
 
@@ -67,7 +84,7 @@ export default function Step1Identificacao() {
         <InputField
           label="O que deseja buscar na avaliação"
           placeholder="Resumo / Objetivo da avaliação"
-          value={data.objetivo} 
+          value={data.objetivo}
           onChangeText={(t) => updateData({ objetivo: t })}
           multiline
           numberOfLines={4}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import ProgressFill from '@src/components/ProgressFill';
@@ -16,6 +16,8 @@ import { buscarBlocosComAtividades } from '@src/services/blocosService';
 import { api } from '@src/services/auth';
 import { useCreation } from './context/CreationContext';
 import { BlocoSelecionadoDTO } from '@src/types/avaliacao-diagnostica';
+import { atualizarAvaliacaoDiagnostica, criarAvaliacaoDiagnostica } from '@src/services/avaliacaoDiagnosticaService';
+import parseDateToIso from '@src/utils/parseDateToIso';
 
 interface Atividade {
   id: number;
@@ -59,6 +61,8 @@ export default function Step2Areas() {
   const [areasSelecionadas, setAreasSelecionadas] = useState<AreaSelecionada[]>([])
   const isFormValid = data.blocos.length > 0;
 
+  const { avaliacaoId, isEditing, startEditing } = useCreation();
+
   const toggleBloco = (id: number) => {
     setExpandedBlocos(prev =>
       prev.includes(id)
@@ -71,10 +75,87 @@ export default function Step2Areas() {
   const [titulo, setTitulo] = useState('');
   const [dataAvaliacao, setDataAvaliacao] = useState<Date | null>(null);
 
-  const handleGerarAvaliacao = () => {
-    if (isFormValid) {
-      // Aqui você salva os dados no contexto global do wizard (se tiver)
-      router.push('/avaliacaoDiagnostica/criacao/step4-preview');
+  const handleGerarAvaliacao = async () => {
+   // if (!isFormValid) {
+     // Alert.alert('Atenção', 'Selecione pelo menos um bloco/área antes de gerar.');
+    //  return;
+   // }
+
+   // if (!data.dataAplicacao || data.dataAplicacao.trim() === '') {
+   //   Alert.alert('Atenção', 'A data de aplicação é obrigatória.');
+    //  return;
+   // }
+
+    const dataIso = parseDateToIso(data.dataAplicacao);
+    if (!dataIso || dataIso === 'Invalid Date') {
+      Alert.alert('Erro', 'Data de aplicação inválida. Use o formato correto (ex: DD/MM/AAAA).');
+      return;
+    }
+
+    const payload = {
+      titulo: data.titulo?.trim() || '',
+      objetivo: data.objetivo?.trim() || '',
+      dataAplicacao: dataIso,  // já parseado corretamente
+      escolaId: data.escolaId ?? null,
+      alunoIds: data.alunoIds || [],
+      blocos: data.blocos.map(b => ({
+        blocoId: b.blocoId,
+        atividadeIds: b.atividadeIds || []
+      })),
+      concluida: false,
+    };
+
+    if (!payload.titulo) {
+      Alert.alert('Erro', 'O título da avaliação é obrigatório.');
+      return;
+    }
+
+    try {
+      let idSalvo: number;
+
+      // Decisão correta: se já tem ID e está em edição → PUT
+      if (isEditing && avaliacaoId) {
+        console.log('Atualizando avaliação existente ID:', avaliacaoId);
+        const resposta = await atualizarAvaliacaoDiagnostica(avaliacaoId, payload);
+        idSalvo = avaliacaoId; // mantém o ID
+      } else {
+        // Criação (POST)
+        console.log('Criando nova avaliação...');
+        console.log('Payload final enviado:', JSON.stringify(payload, null, 2));
+        const resposta = await criarAvaliacaoDiagnostica(payload);
+        idSalvo = resposta.id || resposta.Id; // ajuste conforme o campo retornado
+        console.log('Criada com ID:', idSalvo);
+      }
+
+      // Sincroniza o contexto (recarrega dados frescos do backend)
+      await startEditing(idSalvo);
+
+      // Navega para preview com o ID (atualizado ou novo)
+      router.push({
+        pathname: '/avaliacaoDiagnostica/criacao/step4-preview',
+        params: { avaliacaoId: idSalvo.toString() },
+      });
+
+      Alert.alert('Sucesso', 'Avaliação salva com sucesso!');
+
+    } catch (err: any) {
+      console.error('Erro completo Axios:', err);
+
+      let mensagem = 'Erro ao salvar avaliação';
+
+      if (err.response) {
+        console.log('Status:', err.response.status);
+        console.log('Headers:', err.response.headers);
+        console.log('Data do erro:', err.response.data);
+
+        const backendData = err.response.data;
+        mensagem = backendData?.mensagem ||
+          (Array.isArray(backendData?.mensagens) ? backendData.mensagens.join('\n') : '') ||
+          backendData?.title ||
+          err.message;
+      }
+
+      Alert.alert('Erro ao salvar', mensagem);
     }
   };
 

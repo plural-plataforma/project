@@ -26,8 +26,27 @@ export const buscarAvaliacoesDiagnosticas = async (): Promise<AvaliacaoDiagnosti
 // Busca detalhes completos de uma avaliação específica (para tela de detalhes)
 export const buscarAvaliacaoPorId = async (id: number): Promise<AvaliacaoDiagnosticaDetalhada> => {
   try {
-    const response = await api.get(`/avaliacaodiagnostica/${id}`);
-    return response.data;
+    const response = await api.get(`/avaliacaodiagnostica/buscar/${id}`);
+    const raw = response.data; // ou response.data.objeto
+
+    // Transforma PascalCase → camelCase
+    return {
+      id: raw.Id,
+      titulo: raw.Titulo,
+      objetivo: raw.Objetivo,
+      dataAplicacao: raw.DataAplicacao,
+      escola: raw.EscolaId,
+      alunos: raw.AlunoIds ?? [],
+      blocos: raw.BlocosComAtividades?.map((b: any) => ({
+        id: b.Id,
+        titulo: b.Titulo,
+        ordemApresentacao: b.OrdemApresentacao,
+        quantidadeAtividades: b.QuantidadeAtividades,
+        icone: b.Icone,
+        status: b.Status,
+      })) || [],
+      concluida: raw.Concluida
+    };
   } catch (error) {
     console.error(`Erro ao buscar detalhes da avaliação ${id}:`, error);
     throw error;
@@ -39,10 +58,21 @@ export const criarAvaliacaoDiagnostica = async (
   dados: CreateAvaliacaoDiagnosticaRequest
 ): Promise<any> => {
   try {
+    
     const response = await api.post('/avaliacaodiagnostica/cadastro', dados);
     return response.data.objeto; // backend retorna ServiceResponse com .objeto (detail)
   } catch (error) {
     console.error('Erro ao criar avaliação diagnóstica:', error);
+    throw error;
+  }
+};
+
+export const atualizarAvaliacaoDiagnostica = async (id: number, dados: any): Promise<any> => {
+  try {
+    const response = await api.put(`/avaliacaodiagnostica/atualizar/${id}`, dados);
+    return response.data.objeto; // ou response.data conforme sua resposta
+  } catch (error) {
+    console.error('Erro ao atualizar avaliação diagnóstica:', error);
     throw error;
   }
 };
@@ -82,5 +112,42 @@ export const finalizarAvaliacao = async (id: number): Promise<{ mensagem: string
   } catch (error) {
     console.error(`Erro ao finalizar avaliação ${id}:`, error);
     throw error;
+  }
+};
+
+/**
+ * Gera o PDF da avaliação diagnóstica e retorna como string base64
+ * @param avaliacaoId ID da avaliação já salva
+ * @returns String base64 pronta para usar em data URI (application/pdf;base64,...)
+ * @throws Erro com mensagem amigável
+ */
+export const gerarPdfBase64 = async (avaliacaoId: number): Promise<string> => {
+  try {
+    const response = await api.get(`/avaliacaodiagnostica/gerar-pdf/${avaliacaoId}`, {
+      responseType: 'blob', // essencial para receber arquivo binário
+    });
+
+    const blob = response.data as Blob;
+
+    // Converte Blob → Base64 (lógica técnica fica aqui no service)
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('Falha ao converter PDF para base64'));
+      reader.readAsDataURL(blob);
+    });
+  } catch (error: any) {
+    console.error('[gerarPdfBase64] Erro ao gerar PDF:', error);
+
+    const mensagem =
+      error.response?.data?.mensagem ||
+      error.response?.data?.mensagens?.[0] ||
+      error.message ||
+      'Não foi possível gerar ou carregar o PDF da avaliação';
+
+    throw new Error(mensagem);
   }
 };

@@ -30,7 +30,7 @@ namespace api.Services
             _logger.LogDebug("Processando webhook - Evento recebido: '{Event}' | Tem Data? {HasData}",
         payload?.Event, payload?.Data != null);
 
-            var validEvents = new[] { "PURCHASE_APPROVED", "PURCHASE_COMPLETE" };
+            var validEvents = new[] { "PURCHASE_APPROVED" };
 
             if (payload == null || string.IsNullOrWhiteSpace(payload.Event))
             {

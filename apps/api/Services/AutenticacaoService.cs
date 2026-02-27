@@ -128,8 +128,8 @@ namespace api.Services
 
             var claims = new List<Claim>
     {
-        new Claim(ClaimTypes.NameIdentifier, usuario.Id),
-        new Claim(ClaimTypes.Email, usuario.Email!)
+            new Claim(ClaimTypes.NameIdentifier, usuario.Id),
+            new Claim(ClaimTypes.Email, usuario.Email!)
     };
 
             var roles = await _usuario.GetRolesAsync(usuario);

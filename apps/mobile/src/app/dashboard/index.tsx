@@ -223,21 +223,21 @@ export default function Dashboard() {
                 style={styles.button}
               />
             </View>
-            <View style={[styles.cell, { borderColor: colors.background }]}>
+            {/*<View style={[styles.cell, { borderColor: colors.background }]}>
               
-            </View>
-           {/*  <View style={[styles.cell]}>
+            </View>*/}
+             <View style={[styles.cell]}>
               <SelectButton
                 onPress={() => router.push('/avaliacaoDiagnostica/MinhasAvaliacoes')}
                 title="Avaliação Diagnóstica"
-                iconLeft={null}
+               iconLeft={<NoteBlank size={16} color={colors.primary} />}
                 buttonColor={colors.greyBlur}
                 textColor={colors.primary}
                 borderColor={colors.primary}
                 style={styles.button}
               />
             </View>
-*/}
+
 
           </View>
         </View>

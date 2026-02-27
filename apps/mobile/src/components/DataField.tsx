@@ -7,28 +7,50 @@ import { colors, fontSizes } from '@packages/ui/theme/theme';
 
 interface DataFieldProps {
   label?: string;
-  value: string;
+  value: string;           // sempre string (nunca undefined)
   onChange: (text: string) => void;
   placeholder?: string;
 }
 
 export default function DataField({
   label = 'Dia da Avaliação',
-  value,
+  value = '',              // fallback default para string vazia
   onChange,
   placeholder = 'DD/MM/AAAA',
 }: DataFieldProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const webDateInputRef = useRef<HTMLInputElement>(null);
+  const webDateInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Máscara para digitação
+  // Valor seguro: nunca undefined
+  const safeValue = value ?? '';
+
+  // Máscara para digitação (só aceita números e formata)
   const handleTextChange = (text: string) => {
-    let cleaned = text.replace(/\D/g, '');
+    let cleaned = (text ?? '').replace(/\D/g, ''); // protege contra undefined
     if (cleaned.length > 8) cleaned = cleaned.slice(0, 8);
     if (cleaned.length > 2) cleaned = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
     if (cleaned.length > 5) cleaned = cleaned.slice(0, 5) + '/' + cleaned.slice(5);
     onChange(cleaned);
+  };
+
+  // Formata Date → DD/MM/YYYY com segurança
+  const formatDate = (date?: Date) => {
+    if (!date || isNaN(date.getTime())) return '';
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
+  };
+
+  // Parse DD/MM/YYYY → Date com segurança
+  const parseDate = (dateStr?: string): Date | null => {
+    const str = dateStr ?? '';
+    if (!str || str.length !== 10) return null;
+    const [d, m, y] = str.split('/').map(Number);
+    if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+    const parsed = new Date(y, m - 1, d);
+    return isNaN(parsed.getTime()) ? null : parsed;
   };
 
   const handleNativePickerChange = (event: any, selectedDate?: Date) => {
@@ -38,37 +60,52 @@ export default function DataField({
     }
   };
 
-  const formatDate = (date: Date) => {
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    return `${d}/${m}/${y}`;
-  };
-
-  // Abre picker no web (compatibilidade máxima)
+  // Web: abre picker nativo ou fallback
   const openWebPicker = () => {
-    if (webDateInputRef.current) {
-      if ('showPicker' in webDateInputRef.current && typeof webDateInputRef.current.showPicker === 'function') {
-        (webDateInputRef.current as any).showPicker();
-      } else {
-        webDateInputRef.current.click();
+    const input = webDateInputRef.current;
+    if (!input) {
+      console.warn('Ref do input date não encontrado');
+      return;
+    }
+
+    // API moderna (Chrome/Edge 107+)
+    if ('showPicker' in input && typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+      } catch (err) {
+        console.warn('showPicker falhou:', err);
+        if ('click' in input && typeof input.click === 'function') {
+          input.click();
+        }
       }
+      return;
+    }
+
+    // Fallback clássico (click)
+    if ('click' in input && typeof input.click === 'function') {
+      input.click();
+    } else {
+      console.warn('Método click não disponível no input date');
     }
   };
 
-  // Converte DD/MM/AAAA → YYYY-MM-DD
-  const toWebValue = (dateStr: string) => {
-    if (!dateStr || dateStr.length < 10) return '';
-    const [d, m, y] = dateStr.split('/');
+  // Converte DD/MM/AAAA → YYYY-MM-DD para <input type="date">
+  const toWebValue = (dateStr?: string) => {
+    const str = dateStr ?? '';
+    if (!str || str.length !== 10) return '';
+    const [d, m, y] = str.split('/');
+    if (!d || !m || !y) return '';
     return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   };
 
   // Converte YYYY-MM-DD → DD/MM/AAAA
   const handleWebChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const webValue = e.target.value;
+    const webValue = e.target.value ?? '';
     if (webValue) {
       const [y, m, d] = webValue.split('-');
-      onChange(`${d}/${m}/${y}`);
+      if (d && m && y) {
+        onChange(`${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`);
+      }
     } else {
       onChange('');
     }
@@ -76,7 +113,7 @@ export default function DataField({
 
   const clearValue = () => onChange('');
 
-  const hasValue = value && value.length === 10;
+  const hasValue = !!safeValue && safeValue.length === 10;
 
   if (Platform.OS === 'web') {
     return (
@@ -87,10 +124,9 @@ export default function DataField({
           styles.inputWrapper,
           isFocused && styles.inputFocused,
         ]}>
-          {/* Campo visual + digitação (totalmente clicável) */}
           <TextInput
             style={styles.inputText}
-            value={value}
+            value={safeValue}
             onChangeText={handleTextChange}
             placeholder={placeholder}
             placeholderTextColor="#adaebc"
@@ -99,7 +135,7 @@ export default function DataField({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />
-          {/* Área do ícone com overlay hidden input (só no ícone) */}
+
           <View style={styles.iconWrapper}>
             <TouchableOpacity
               activeOpacity={0.7}
@@ -108,11 +144,10 @@ export default function DataField({
             />
             <CalendarPlus size={24} color={colors.primary} />
 
-            {/* Hidden input overlay só no ícone */}
             <input
               ref={webDateInputRef}
               type="date"
-              value={toWebValue(value)}
+              value={toWebValue(safeValue)}
               onChange={handleWebChange}
               style={styles.hiddenWebInput}
             />
@@ -122,7 +157,7 @@ export default function DataField({
     );
   }
 
-  // Native
+  // Native (Android/iOS)
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -133,7 +168,7 @@ export default function DataField({
       ]}>
         <TextInput
           style={styles.inputText}
-          value={value}
+          value={safeValue}
           onChangeText={handleTextChange}
           placeholder={placeholder}
           placeholderTextColor="#adaebc"
@@ -160,7 +195,7 @@ export default function DataField({
 
       {showDatePicker && (
         <DateTimePicker
-          value={value ? parseDate(value) : new Date()}
+          value={safeValue ? parseDate(safeValue) || new Date() : new Date()}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           onChange={handleNativePickerChange}
@@ -170,11 +205,6 @@ export default function DataField({
     </View>
   );
 }
-
-const parseDate = (dateStr: string): Date => {
-  const [d, m, y] = dateStr.split('/').map(Number);
-  return new Date(y, m - 1, d);
-};
 
 const styles = StyleSheet.create({
   container: {

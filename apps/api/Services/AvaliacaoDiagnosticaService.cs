@@ -5,6 +5,9 @@ using api.Models;
 using api.Responses;
 using Data;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace api.Services
 {
@@ -189,12 +192,15 @@ namespace api.Services
                         return resposta;
                     }
                 }
+                var dataAplicacaoUtc = dto.DataAplicacao.HasValue
+                                      ? DateTime.SpecifyKind(dto.DataAplicacao.Value, DateTimeKind.Utc)
+                                      : DateTime.UtcNow.Date;
 
                 var avaliacao = new AvaliacaoDiagnostica
                 {
                     Titulo = dto.Titulo.Trim(),
                     Objetivo = dto.Objetivo?.Trim(),
-                    DataAplicacao = dto.DataAplicacao ?? DateTime.UtcNow.Date,
+                    DataAplicacao = dataAplicacaoUtc,
                     EscolaId = dto.EscolaId,
                     Concluida = false
                 };
@@ -245,7 +251,25 @@ namespace api.Services
             catch (Exception ex)
             {
                 await transacao.RollbackAsync();
-                resposta.SetFalha("Erro ao criar avaliação diagnóstica: " + ex.Message);
+
+                var mensagemCompleta = ex.Message;
+
+                if (ex.InnerException != null)
+                {
+                    mensagemCompleta += "\nInner Exception: " + ex.InnerException.Message;
+                    if (ex.InnerException.InnerException != null)
+                        mensagemCompleta += "\nInner Inner: " + ex.InnerException.InnerException.Message;
+                }
+
+                // Log no console ou Serilog/ILogger para ver no servidor
+                Console.WriteLine("ERRO AO CRIAR AVALIAÇÃO:");
+                Console.WriteLine(mensagemCompleta);
+                Console.WriteLine("StackTrace: " + ex.StackTrace);
+
+                // Se tiver ILogger injetado:
+                // _logger.LogError(ex, "Erro ao criar avaliação diagnóstica");
+
+                resposta.SetFalha("Erro ao criar avaliação diagnóstica: " + mensagemCompleta);
                 return resposta;
             }
         }
@@ -437,5 +461,76 @@ namespace api.Services
                 return resposta;
             }
         }
+
+        public async Task<byte[]> GerarPdfBytesAsync(int avaliacaoId)
+        {
+            var resposta = await GetById(avaliacaoId);
+            if (!resposta.Sucesso || resposta.Objeto == null)
+            {
+                throw new InvalidOperationException("Avaliação não encontrada ou erro ao carregar dados.");
+            }
+
+            var dto = resposta.Objeto;
+            return GerarPdfDiagnostico(dto);
+        }
+
+        private byte[] GerarPdfDiagnostico(AvaliacaoDiagnosticaDetailDTO dto)
+        {
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(12).FontFamily("Arial"));
+
+                    // Cabeçalho
+                    page.Header()
+                        .Text($"Avaliação Diagnóstica: {dto.Titulo}")
+                        .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium)
+                        .AlignCenter();
+
+                    // Conteúdo principal
+                    page.Content()
+                        .PaddingVertical(1, Unit.Centimetre)
+                        .Column(col =>
+                        {
+                            col.Spacing(8);
+
+                            col.Item().Text($"**Objetivo:** {dto.Objetivo ?? "—"}");
+                            col.Item().Text($"**Data de aplicação:** {dto.DataAplicacao:dd/MM/yyyy}");
+                            col.Item().Text($"**Quantidade de alunos:** {dto.AlunoIds.Count}");
+
+                            col.Item().PaddingTop(20).Text("**Blocos e Atividades**").SemiBold().FontSize(14);
+
+                            foreach (var bloco in dto.BlocosComAtividades.OrderBy(b => b.Ordem))
+                            {
+                                col.Item().PaddingTop(12).Text($"{bloco.Ordem} — {bloco.Titulo}")
+                                    .SemiBold().FontSize(13);
+
+                                if (!string.IsNullOrWhiteSpace(bloco.Observacao))
+                                    col.Item().Text($"Observação: {bloco.Observacao}").Italic().FontSize(11);
+
+                                foreach (var atv in bloco.Atividades)
+                                {
+                                    col.Item().Text($"  • {atv.Titulo}");
+                                }
+                            }
+                        });
+
+                    // Rodapé
+                    page.Footer()
+                        .AlignCenter()
+                        .Text($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm} | Sistema de Avaliações Diagnósticas")
+                        .FontSize(10)
+                        .FontColor(Colors.Grey.Medium);
+                });
+            });
+
+            return document.GeneratePdf();
+        }
+
+
     }
 }

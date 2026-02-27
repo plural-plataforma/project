@@ -65,4 +65,29 @@ public class AvaliacaoDiagnosticaController : ControllerBase
         }
         return Ok(resposta);
     }
+
+    [HttpGet("gerar-pdf/{id}")]  // ou POST, conforme preferir
+    public async Task<IActionResult> GerarPdf(int id)
+    {
+        try
+        {
+            var pdfBytes = await _service.GerarPdfBytesAsync(id);
+            return File(pdfBytes, "application/pdf", $"avaliacao-{id}.pdf");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            var inner = ex.InnerException?.Message ?? "Sem inner exception";
+            return StatusCode(500, new
+            {
+                mensagem = "Erro ao gerar PDF",
+                detalhes = ex.Message,
+                innerException = inner,
+                stackTrace = ex.ToString()
+            });
+        }
+    }
 }
