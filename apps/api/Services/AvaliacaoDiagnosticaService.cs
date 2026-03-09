@@ -81,10 +81,10 @@ namespace api.Services
         private async Task<AvaliacaoDiagnosticaDetailDTO> MontarDetailDTO(int avaliacaoId)
         {
             var avaliacao = await _contexto.AvaliacoesDiagnosticas
-                .Include(a => a.BlocosSelecionados).ThenInclude(b => b.Bloco)
-                .Include(a => a.AtividadesSelecionadas).ThenInclude(aa => aa.Atividade)
-                .Include(a => a.AlunosParticipantes)
-                .FirstAsync(a => a.Id == avaliacaoId);
+        .Include(a => a.BlocosSelecionados).ThenInclude(b => b.Bloco)
+        .Include(a => a.AtividadesSelecionadas).ThenInclude(aa => aa.Atividade)
+        .Include(a => a.AlunosParticipantes)
+        .FirstAsync(a => a.Id == avaliacaoId);
 
             var blocosOrdenados = avaliacao.BlocosSelecionados
                 .OrderBy(b => b.OrdemApresentacao)
@@ -103,10 +103,11 @@ namespace api.Services
                         {
                             Id = aa.Atividade.Id,
                             Titulo = aa.Atividade.Titulo ?? string.Empty,
-                            // Adicione aqui os outros campos do seu AtividadeBuscarDTO
-                            // Exemplo: Descricao = aa.Atividade.Descricao,
-                            //          Tipo = aa.Atividade.Tipo,
-                            // etc.
+                            Enunciado = aa.Atividade.Enunciado ?? string.Empty,
+                            ImagemUrl = aa.Atividade.ImagemUrl,
+                            Nivel = aa.Atividade.Nivel.ToString(),
+                            EtapaMin = aa.Atividade.EtapaMin,     
+                            EtapaMax = aa.Atividade.EtapaMax,
                         })
                         .ToList()
                 })
@@ -471,66 +472,148 @@ namespace api.Services
             }
 
             var dto = resposta.Objeto;
-            return GerarPdfDiagnostico(dto);
+            return await GerarPdfDiagnostico(dto);
         }
 
-        private byte[] GerarPdfDiagnostico(AvaliacaoDiagnosticaDetailDTO dto)
+        private async Task<byte[]> GerarPdfDiagnostico(AvaliacaoDiagnosticaDetailDTO dto)
         {
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(2, Unit.Centimetre);
+                    page.Margin(2.5f, Unit.Centimetre); 
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(12).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
 
                     // Cabeçalho
                     page.Header()
-                        .Text($"Avaliação Diagnóstica: {dto.Titulo}")
-                        .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium)
-                        .AlignCenter();
+                        .PaddingBottom(1, Unit.Centimetre)
+                        .Row(row =>
+                        {
+                            row.RelativeItem().AlignCenter().Text($"Avaliação Diagnóstica\n{dto.Titulo}")
+                                .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
+                        });
 
                     // Conteúdo principal
                     page.Content()
-                        .PaddingVertical(1, Unit.Centimetre)
+                        .PaddingVertical(0.8f, Unit.Centimetre)
                         .Column(col =>
                         {
-                            col.Spacing(8);
+                            col.Spacing(10);
 
-                            col.Item().Text($"**Objetivo:** {dto.Objetivo ?? "—"}");
-                            col.Item().Text($"**Data de aplicação:** {dto.DataAplicacao:dd/MM/yyyy}");
-                            col.Item().Text($"**Quantidade de alunos:** {dto.AlunoIds.Count}");
+                            // Informações gerais
+                            col.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Objetivo: ").SemiBold();
+                                r.RelativeItem(3).Text(dto.Objetivo ?? "—");
+                            });
 
-                            col.Item().PaddingTop(20).Text("**Blocos e Atividades**").SemiBold().FontSize(14);
+                            col.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Data de aplicação: ").SemiBold();
+                                r.RelativeItem(3).Text(dto.DataAplicacao.ToString("dd/MM/yyyy") ?? "—");
+                            });
+
+
+                            col.Item().PaddingTop(20).Text("Atividades")
+                                .SemiBold().FontSize(15).FontColor(Colors.Grey.Darken2);
 
                             foreach (var bloco in dto.BlocosComAtividades.OrderBy(b => b.Ordem))
                             {
-                                col.Item().PaddingTop(12).Text($"{bloco.Ordem} — {bloco.Titulo}")
-                                    .SemiBold().FontSize(13);
+                                col.Item().PaddingTop(16).Text($"{bloco.Ordem} — {bloco.Titulo}")
+                                    .SemiBold().FontSize(14).FontColor(Colors.Blue.Darken1);
 
                                 if (!string.IsNullOrWhiteSpace(bloco.Observacao))
-                                    col.Item().Text($"Observação: {bloco.Observacao}").Italic().FontSize(11);
+                                {
+                                    col.Item().PaddingTop(4).Text($"Observação: {bloco.Observacao}")
+                                        .Italic().FontSize(11).FontColor(Colors.Grey.Medium);
+                                }
 
                                 foreach (var atv in bloco.Atividades)
                                 {
-                                    col.Item().Text($"  • {atv.Titulo}");
+                                    col.Item().PaddingTop(12).PaddingLeft(10).Column(c =>
+                                    {
+                                        c.Item().Text($"• {atv.Titulo}")
+                      .SemiBold().FontSize(12);
+
+                                        // Imagem da atividade
+                                        if (!string.IsNullOrWhiteSpace(atv.ImagemUrl))
+                                        {
+                                            try
+                                            {
+                                                // Baixa a imagem como byte[]
+                                                using var httpClient = new HttpClient();
+                                                httpClient.Timeout = TimeSpan.FromSeconds(10); 
+                                                var imageBytes = httpClient.GetByteArrayAsync(atv.ImagemUrl).Result;
+                                                c.Item()
+                                                    .PaddingTop(8)
+                                                    .Width(300) // ou 280 para margem melhor
+                                                    .Image(imageBytes)
+                                                    .FitWidth()
+                                                    .WithCompressionQuality(ImageCompressionQuality.Medium);
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Console.WriteLine($"[PDF] Falha ao baixar imagem {atv.ImagemUrl}: {ex.Message}");
+                                                if (ex.InnerException != null)
+                                                    Console.WriteLine($"Inner: {ex.InnerException.Message}");
+
+                                                c.Item()
+                                                    .PaddingTop(4)
+                                                    .Text($"(Imagem não disponível: {atv.ImagemUrl})")
+                                                    .Italic()
+                                                    .FontSize(10)
+                                                    .FontColor(Colors.Red.Medium);
+                                            }
+                                        }
+
+                                        // Enunciado (já está funcionando)
+                                        if (!string.IsNullOrWhiteSpace(atv.Enunciado))
+                                        {
+                                            c.Item().PaddingTop(6).Text(atv.Enunciado)
+                                                .FontSize(11);
+                                        }
+                                    });
                                 }
                             }
                         });
 
-                    // Rodapé
+                    // Rodapé com número de página e data de geração
                     page.Footer()
                         .AlignCenter()
-                        .Text($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm} | Sistema de Avaliações Diagnósticas")
-                        .FontSize(10)
-                        .FontColor(Colors.Grey.Medium);
+                        .PaddingVertical(0.8f, Unit.Centimetre)
+                        .Row(row =>
+                        {
+                            // Lado esquerdo: data de geração
+                            row.RelativeItem()
+                                .AlignLeft()
+                                .Text(text =>
+                                {
+                                    text.Span($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm}")
+                                        .FontSize(9)
+                                        .FontColor(Colors.Grey.Medium);
+                                });
+
+                            // Lado direito: número da página
+                            row.RelativeItem()
+                                .AlignRight()
+                                .Text(text =>
+                                {
+                                    text.Span("Página ")
+                                        .FontSize(9)
+                                        .FontColor(Colors.Grey.Medium);
+
+                                    text.CurrentPageNumber()
+                                        .FontSize(9)
+                                        .FontColor(Colors.Grey.Medium);
+                                });
+                        });
                 });
             });
 
             return document.GeneratePdf();
         }
-
 
     }
 }

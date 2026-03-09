@@ -6,14 +6,11 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  ScrollView
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { WebView } from 'react-native-webview';
-
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 
 import ProgressFill from '@src/components/ProgressFill';
 import CustomButton from '@src/components/CustomButton';
@@ -48,7 +45,7 @@ export default function Step4Preview() {
         const base64 = await gerarPdfBase64(Number(avaliacaoId));
         setPdfBase64(base64);
       } catch (err: any) {
-        setPdfError(err.message || 'Não foi possível carregar a pré-visualização do PDF.');
+        setPdfError(err.message || 'Não foi possível carregar o PDF.');
       } finally {
         setLoadingPdf(false);
       }
@@ -57,37 +54,14 @@ export default function Step4Preview() {
     loadPdfPreview();
   }, [avaliacaoId, dataVersion]);
 
-  const handleBaixarPdf = async () => {
+  const handleBaixarPdf = () => {
     if (!pdfBase64 || !avaliacaoId) return;
 
-    if (Platform.OS === 'web') {
-      const linkSource = `data:application/pdf;base64,${pdfBase64}`;
-      const downloadLink = document.createElement("a");
-      downloadLink.href = linkSource;
-      downloadLink.download = `avaliacao-diagnostica-${avaliacaoId}.pdf`;
-      downloadLink.click();
-      return;
-    }
-
-    try {
-      const fileUri = `${FileSystem.documentDirectory}avaliacao-diagnostica-${avaliacaoId}.pdf`;
-
-      await FileSystem.writeAsStringAsync(fileUri, pdfBase64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Baixar PDF',
-        });
-      } else {
-        Alert.alert('Sucesso', 'PDF salvo no dispositivo.');
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Erro', 'Não foi possível salvar o PDF.');
-    }
+    const linkSource = `data:application/pdf;base64,${pdfBase64}`;
+    const downloadLink = document.createElement('a');
+    downloadLink.href = linkSource;
+    downloadLink.download = `avaliacao-diagnostica-${avaliacaoId}.pdf`;
+    downloadLink.click();
   };
 
   const handleFinalizar = () => {
@@ -100,14 +74,11 @@ export default function Step4Preview() {
       <Header title="Pré-visualização" fixed />
 
       <View style={styles.container}>
-
-        {/* Parte superior rolável */}
+        {/* Parte superior (informações da avaliação) */}
         <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
           <ProgressFill completedSections={currentStep} totalSections={totalSteps} />
 
-          <Text style={styles.sectionTitle}>
-            Pré-visualização da Avaliação
-          </Text>
+          <Text style={styles.sectionTitle}>Pré-visualização da Avaliação</Text>
 
           <View style={styles.previewContainer}>
             <Text style={styles.previewText}>Título: {data.titulo || '—'}</Text>
@@ -116,44 +87,35 @@ export default function Step4Preview() {
             <Text style={styles.previewText}>Alunos selecionados: {data.alunoIds.length}</Text>
             <Text style={styles.previewText}>Blocos/Áreas: {data.blocos.length}</Text>
           </View>
-        </ScrollView>
+        
 
-        {/* PDF ocupa o espaço restante */}
-        <View style={styles.pdfContainer}>
-          {loadingPdf ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>
-                Carregando pré-visualização do PDF...
-              </Text>
-            </View>
-          ) : pdfError ? (
-            <Text style={styles.errorText}>{pdfError}</Text>
-          ) : pdfBase64  ? (
-            Platform.OS === 'web' ? (
+        {/* Área de PDF com scroll */}
+        <View style={styles.pdfWrapper}>
+          <ScrollView 
+            style={styles.pdfScroll}
+            contentContainerStyle={styles.pdfContent}
+            showsVerticalScrollIndicator={true}
+          >
+            {loadingPdf ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Carregando pré-visualização...</Text>
+              </View>
+            ) : pdfBase64 ? (
               <iframe
                 src={`data:application/pdf;base64,${pdfBase64}`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none'
-                }}
-                title="Pré-visualização da Avaliação Diagnóstica"
+                style={styles.iframe}
+                title="Pré-visualização do PDF"
               />
             ) : (
-              <WebView
-                source={{ uri: `data:application/pdf;base64,${pdfBase64}` }}
-                style={styles.webview}
-              />
-            )
-          ) : (
-            <Text style={styles.noPdfText}>
-              Pré-visualização indisponível
-            </Text>
-          )}
+              <Text style={styles.noPdfText}>Pré-visualização indisponível</Text>
+            )}
+          </ScrollView>
         </View>
 
-        {/* Botões fixos */}
+        </ScrollView>
+
+        {/* Botões fixos no rodapé */}
         <View style={styles.buttonContainer}>
           <CustomButton
             title="Baixar PDF"
@@ -161,9 +123,7 @@ export default function Step4Preview() {
             disabled={loadingPdf || !!pdfError || !pdfBase64}
             buttonColor={{ backgroundColor: colors.primary2 }}
           />
-
           <View style={{ height: 12 }} />
-
           <CustomButton
             title="Finalizar"
             onPress={handleFinalizar}
@@ -171,18 +131,14 @@ export default function Step4Preview() {
             textColor={colors.textSecondary}
           />
         </View>
-
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { 
     flex: 1,
   },
   sectionTitle: {
@@ -203,15 +159,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: colors.textPrimary,
   },
-  pdfContainer: {
+  
+  // Novo wrapper para o PDF com scroll
+  pdfWrapper: {
     flex: 1,
     margin: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#ddd',
-    overflow: 'hidden',
     backgroundColor: '#fff',
+    overflow: 'hidden',
+    minHeight: Dimensions.get('window').height * 0.9, // área maior
   },
+  pdfScroll: {
+    flex: 1,
+  },
+  pdfContent: {
+    flexGrow: 1,
+  },
+  iframe: {
+    width: '100%',
+    height: '100%',
+    minHeight: Dimensions.get('window').height * 0.8, // força área maior
+  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -221,23 +192,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: colors.textSecondary,
   },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    padding: 20,
-    fontSize: 16,
-  },
   noPdfText: {
     textAlign: 'center',
     padding: 40,
     color: colors.textSecondary,
     fontSize: 16,
   },
-  webview: {
-    flex: 1,
-  },
   buttonContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingVertical: 16,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
 });

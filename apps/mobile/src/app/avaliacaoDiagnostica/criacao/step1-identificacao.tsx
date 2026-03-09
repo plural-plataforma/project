@@ -80,7 +80,7 @@ export default function Step1Identificacao() {
               if (parts.length === 3) {
                 const [d, m, y] = parts;
                 if (d.length === 2 && m.length === 2 && y.length === 4) {
-                  isoDate = `${y}-${m}-${d}`;
+                  isoDate = `${d}/${m}/${y}`;
                 }
               }
             }
