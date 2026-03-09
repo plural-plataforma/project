@@ -7,8 +7,8 @@ export interface Bloco {
   updatedAt: string;
   status: boolean;
   icone: string | null;
-  // se futuramente a API retornar:
   atividades?: number;
+  quantidadeAtividades?: number; 
 }
 
 export interface BlocoCreateInput {

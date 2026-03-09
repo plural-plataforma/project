@@ -62,7 +62,7 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
     try {
       const ativo =
         statusFilter === 'todos' ? undefined :
-        statusFilter === 'ativos' ? true : false;
+          statusFilter === 'ativos' ? true : false;
 
       const data = await blocosService.getBlocosCompleto({
         busca: search.trim() || undefined,
@@ -258,7 +258,10 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
                       </Box>
                     </TableCell>
 
-                  
+                    <TableCell>
+                      {/* Quantidade de atividades (se vier no DTO) */}
+                      {bloco.quantidadeAtividades || '—'} atividades
+                    </TableCell>
 
                     <TableCell>
                       <Chip
