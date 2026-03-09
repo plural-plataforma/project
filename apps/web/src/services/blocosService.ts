@@ -3,10 +3,10 @@ import api from '../api/http';
 import { Bloco, BlocoCreateInput, BlocosResponse, BlocosQueryParams } from '../types/blocos';
 
 export const blocosService = {
- /**
-   * Lista TODOS os blocos ATIVOS (status = true), sem paginação pesada
-   * Ideal para selects e dropdowns no cadastro
-   */
+  /**
+    * Lista TODOS os blocos ATIVOS (status = true), sem paginação pesada
+    * Ideal para selects e dropdowns no cadastro
+    */
   getAllBlocosAtivos: async (): Promise<Bloco[]> => {
     try {
       // Usa os parâmetros de query para filtrar apenas ativos e pegar muitos itens
@@ -25,20 +25,62 @@ export const blocosService = {
       throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos ativos.');
     }
   },
- 
+
   /**
-   * Busca lista paginada de blocos
+   * Lista TODOS os blocos filtrados (sem paginação no backend)
+   * Retorna a lista completa para paginação no frontend
    */
-  getBlocos: async (params: BlocosQueryParams): Promise<BlocosResponse> => {
+  getBlocos: async (params?: {
+    busca?: string;
+    status?: boolean;
+  }): Promise<Bloco[]> => {
     try {
-      const response = await api.get<BlocosResponse>('/Blocos', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Falha ao buscar blocos:', error);
-      throw error;
+      // Monta query params compatíveis com o backend atual
+      const queryParams: any = {};
+
+      if (params?.busca) {
+        queryParams.busca = params.busca;
+      }
+
+      if (params?.status !== undefined) {
+        queryParams.ativo = params.status;
+      }
+
+      // Remove page/pageSize para não paginar no backend
+      delete queryParams.page;
+      delete queryParams.pageSize;
+
+      const response = await api.get<Bloco[]>('/Blocos', { params: queryParams });
+
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Erro ao listar blocos:', error);
+      throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos.');
     }
   },
 
+  /**
+ * Lista TODOS os blocos filtrados (sem paginação)
+ */
+  getBlocosCompleto: async (params?: {
+    busca?: string;
+    status?: boolean;
+  }): Promise<Bloco[]> => {
+    try {
+      const queryParams: any = {};
+
+      if (params?.busca) queryParams.busca = params.busca;
+      if (params?.status !== undefined) queryParams.ativo = params.status;
+
+      // Força sem paginação
+      const response = await api.get<Bloco[]>('/Blocos', { params: queryParams });
+
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Erro ao listar blocos completos:', error);
+      throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos.');
+    }
+  },
   /**
    * Cria um novo bloco
    * @param data Dados do bloco a ser criado
@@ -50,7 +92,7 @@ export const blocosService = {
       return response.data;
     } catch (error: any) {
       console.error('Falha ao criar bloco:', error);
-      
+
       // Tratamento mais amigável de erros (opcional)
       if (error.response?.status === 400) {
         throw new Error(error.response.data?.message || 'Dados inválidos. Verifique os campos obrigatórios.');
@@ -58,31 +100,31 @@ export const blocosService = {
       if (error.response?.status === 401) {
         throw new Error('Sessão expirada. Faça login novamente.');
       }
-      
+
       throw error; // ou crie um erro customizado
     }
   },
 
-/**
- * Busca um bloco específico pelo ID
- */
-getBlocoById: async (id: number): Promise<Bloco> => {
-  try {
-    const response = await api.get<Bloco>(`/Blocos/${id}`);
-    return response.data;
-  } catch (error: any) {
-    console.error(`Falha ao buscar bloco ${id}:`, error);
-    
-    if (error.response?.status === 404) {
-      throw new Error('Bloco não encontrado.');
+  /**
+   * Busca um bloco específico pelo ID
+   */
+  getBlocoById: async (id: number): Promise<Bloco> => {
+    try {
+      const response = await api.get<Bloco>(`/Blocos/${id}`);
+      return response.data;
+    } catch (error: any) {
+      console.error(`Falha ao buscar bloco ${id}:`, error);
+
+      if (error.response?.status === 404) {
+        throw new Error('Bloco não encontrado.');
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
+      throw new Error(error.response?.data?.message || 'Erro ao carregar os dados do bloco.');
     }
-    if (error.response?.status === 401) {
-      throw new Error('Sessão expirada. Faça login novamente.');
-    }
-    
-    throw new Error(error.response?.data?.message || 'Erro ao carregar os dados do bloco.');
-  }
-},
+  },
   /**
    * Exclui um bloco pelo ID
    * @param id ID do bloco a ser excluído
@@ -113,12 +155,12 @@ getBlocoById: async (id: number): Promise<Bloco> => {
     }
   },
 
-   /**
-   * Atualiza um bloco existente pelo ID
-   * @param id ID do bloco a ser atualizado
-   * @param data Novos dados do bloco (pode ser parcial)
-   * @returns O bloco atualizado
-   */
+  /**
+  * Atualiza um bloco existente pelo ID
+  * @param id ID do bloco a ser atualizado
+  * @param data Novos dados do bloco (pode ser parcial)
+  * @returns O bloco atualizado
+  */
   updateBloco: async (id: number, data: Partial<BlocoCreateInput>): Promise<Bloco> => {
     try {
       const response = await api.put<Bloco>(`/Blocos/${id}`, data);

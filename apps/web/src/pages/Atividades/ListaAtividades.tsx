@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import atividadesService from '../../services/atividadesService';
-import { Atividade, AtividadeResponse } from '../../types/atividades'; // ajuste o import conforme seu tipo
+import { Atividade } from '../../types/atividades'; // ajuste conforme seu tipo
 import blocosService from '../../services/blocosService';
 import { Bloco } from '../../types/blocos';
 
@@ -42,13 +42,13 @@ const ROWS_PER_PAGE = 10;
 export default function ListaAtividades({ search, statusFilter }: ListaAtividadesProps) {
   const navigate = useNavigate();
 
-  const [atividades, setAtividades] = useState<Atividade[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
+  const [atividades, setAtividades] = useState<Atividade[]>([]); // lista completa
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [blocosMap, setBlocosMap] = useState<Map<number, string>>(new Map());
 
+  // Busca todas as atividades (sem paginação no backend)
   const fetchAtividades = async () => {
     setLoading(true);
     setError(null);
@@ -57,13 +57,10 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
       const params = {
         busca: search.trim() || undefined,
         ativo: statusFilter === 'todos' ? undefined : statusFilter === 'ativo',
-        page,
-        pageSize: ROWS_PER_PAGE,
       };
 
       const lista: Atividade[] = await atividadesService.getAtividades(params);
       setAtividades(lista);
-      setTotalPages(Math.ceil(lista.length / ROWS_PER_PAGE) || 1);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar as atividades.');
       console.error(err);
@@ -72,26 +69,36 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
     }
   };
 
+  // Busca títulos dos blocos (cache)
   useEffect(() => {
-  const fetchBlocoTitulo = async (blocoId: number) => {
-    if (!blocoId || blocosMap.has(blocoId)) return; // já buscado
+    const fetchBlocoTitulo = async (blocoId: number) => {
+      if (!blocoId || blocosMap.has(blocoId)) return;
 
-    try {
-      const bloco: Bloco = await blocosService.getBlocoById(blocoId);
-      setBlocosMap(prev => new Map(prev).set(bloco.id, bloco.titulo));
-    } catch (err) {
-      console.error(`Erro ao buscar bloco ${blocoId}:`, err);
-      setBlocosMap(prev => new Map(prev).set(blocoId, 'Sem bloco'));
-    }
-  };
+      try {
+        const bloco: Bloco = await blocosService.getBlocoById(blocoId);
+        setBlocosMap(prev => new Map(prev).set(bloco.id, bloco.titulo));
+      } catch (err) {
+        console.error(`Erro ao buscar bloco ${blocoId}:`, err);
+        setBlocosMap(prev => new Map(prev).set(blocoId, 'Sem bloco'));
+      }
+    };
 
-  atividades.forEach(a => fetchBlocoTitulo(a.blocoId));
-}, [atividades, blocosMap]);
+    atividades.forEach(a => fetchBlocoTitulo(a.blocoId));
+  }, [atividades, blocosMap]);
 
-
+  // Recarrega quando filtros mudam
   useEffect(() => {
     fetchAtividades();
-  }, [page, search, statusFilter]);
+    setPage(1); // reseta para página 1 ao mudar filtro/busca
+  }, [search, statusFilter]);
+
+  // Paginação local
+  const paginatedAtividades = useMemo(() => {
+    const start = (page - 1) * ROWS_PER_PAGE;
+    return atividades.slice(start, start + ROWS_PER_PAGE);
+  }, [atividades, page]);
+
+  const totalPages = Math.ceil(atividades.length / ROWS_PER_PAGE);
 
   const handleNovaAtividade = () => {
     navigate('/atividades/novo');
@@ -118,9 +125,9 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
       setLoading(true);
       await atividadesService.deleteAtividade(id);
       alert('Atividade excluída com sucesso!');
-      fetchAtividades(); // recarrega a lista
+      fetchAtividades();
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir a atividade. Tente novamente.');
+      alert(err.message || 'Erro ao excluir a atividade.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -218,7 +225,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
               </TableHead>
 
               <TableBody>
-                {atividades.map((atividade) => (
+                {paginatedAtividades.map((atividade) => (
                   <TableRow
                     key={atividade.id}
                     hover
@@ -229,10 +236,6 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                         <Typography fontWeight={600} color="#276678">
                           {atividade.titulo || 'Sem título'}
                         </Typography>
-                        {/* Se tiver data de criação no model */}
-                        {/* <Typography variant="caption" color="text.secondary">
-                          Criado em {new Date(atividade.criadoEm).toLocaleDateString('pt-BR')}
-                        </Typography> */}
                       </Box>
                     </TableCell>
 
@@ -250,7 +253,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                         size="small"
                         color={
                           atividade.nivel === 'Facil' ? 'success' :
-                            atividade.nivel === 'Medio' ? 'warning' : 'error'
+                          atividade.nivel === 'Medio' ? 'warning' : 'error'
                         }
                       />
                     </TableCell>
@@ -289,7 +292,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                   </TableRow>
                 ))}
 
-                {atividades.length === 0 && (
+                {paginatedAtividades.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
                       <Typography variant="body1" color="text.secondary">
@@ -302,34 +305,35 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
             </Table>
           </TableContainer>
 
-          {/* Paginação */}
-          <Box
-            sx={{
-              p: 2,
-              borderTop: '1px solid #e5e7eb',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 2,
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              Mostrando <strong>{atividades.length}</strong> de <strong>{atividades.length}</strong> atividades
-              {/* Ajuste com total real quando o backend retornar */}
-            </Typography>
-
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
+          {/* Paginação local */}
+          {atividades.length > 0 && (
+            <Box
               sx={{
-                '& .MuiPaginationItem-root': { borderRadius: '8px' },
-                '& .Mui-selected': { bgcolor: '#276678 !important', color: 'white' },
+                p: 2,
+                borderTop: '1px solid #e5e7eb',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2,
               }}
-            />
-          </Box>
+            >
+              <Typography variant="body2" color="text.secondary">
+                Mostrando <strong>{paginatedAtividades.length}</strong> de <strong>{atividades.length}</strong> atividades
+              </Typography>
+
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+                sx={{
+                  '& .MuiPaginationItem-root': { borderRadius: '8px' },
+                  '& .Mui-selected': { bgcolor: '#276678 !important', color: 'white' },
+                }}
+              />
+            </Box>
+          )}
         </>
       )}
     </Paper>
