@@ -1,4 +1,5 @@
-﻿using api.DTOs.AvaliacaoDiagnostica;
+using api.DTOs.AvaliacaoDiagnostica;
+using api.DTOs.Desempenho;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +58,28 @@ public class AvaliacaoDiagnosticaController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var resposta = await _service.Update(id, dto);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrada"))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+        return Ok(resposta);
+    }
+
+    [HttpPost("desempenhos/batch")]
+    public async Task<IActionResult> RegistrarDesempenhosBatch([FromBody] RegistrarDesempenhoBatchDTO dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var resposta = await _service.RegistrarDesempenhoBatch(dto);
+        return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+    }
+
+    [HttpGet("desempenhos/historico/{avaliacaoId}")]
+    public async Task<IActionResult> BuscarHistoricoDesempenho(int avaliacaoId)
+    {
+        var resposta = await _service.BuscarHistoricoDesempenho(avaliacaoId);
         if (!resposta.Sucesso)
         {
             return resposta.Mensagens.Any(m => m.Contains("não encontrada"))

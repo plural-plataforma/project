@@ -72,10 +72,10 @@ namespace api.Services
                     EmailDTO email = new EmailDTO
                     {
                         Destino = registroDto.Email,
-                        Assunto = "Bem-vindo à Plural Plataforma",
+                        Assunto = "Bem-vinda à Plural Plataforma",
                         NomeDestinatario = registroDto.NomeCompleto
                     };
-                    
+
                     var resultadoEmail = await _emailService.EnviarEmail(email);
 
                     if (!resultadoEmail.Sucesso)
@@ -248,7 +248,7 @@ namespace api.Services
             return resposta;
 
         }
-       
+
         public async Task<IdentityResult> AdiarTrocaSenha(ClaimsPrincipal usuarioController)
         {
             var idUsuario = usuarioController.FindFirstValue(ClaimTypes.NameIdentifier);
