@@ -4,12 +4,24 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["API_URL","VITE_API_URL", "DB_PASSWORD", "HOST_SUPABASE", "JWTSETTINGS__SECRET","ASPNETCORE_ENVIRONMENT"]
+      "env": [
+        "API_URL",
+        "VITE_API_URL",
+        "DB_PASSWORD",
+        "HOST_SUPABASE",
+        "JWTSETTINGS__SECRET",
+        "ASPNETCORE_ENVIRONMENT"
+      ]
     },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "apps/api/bin/**", "apps/api/obj/**"]
     },
-    "lint": {}
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "lint": {},
+    "test": {},
+    "test:run": {}
   }
 }
