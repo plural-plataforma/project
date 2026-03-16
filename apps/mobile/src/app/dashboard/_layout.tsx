@@ -1,11 +1,6 @@
 import { colors } from '@packages/ui/theme/theme'
 import { Tabs, useSegments } from 'expo-router'
-import {
-  Calendar,
-  House,
-  PresentationChart,
-  UserList
-} from 'phosphor-react-native'
+import { House } from 'phosphor-react-native'
 
 export default function TabsLayout() {
   return (
@@ -32,33 +27,9 @@ export default function TabsLayout() {
         }}
       />
       
-      <Tabs.Screen
-        name="planejamento"
-        options={{
-          title: 'Planejamento',
-          tabBarIcon: ({ color, focused }) => (
-            <Calendar size={32} color={color} weight={focused ? 'fill' : 'regular'} />
-          )
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: 'Reports',
-          tabBarIcon: ({ color, focused }) => (
-            <PresentationChart size={32} color={color} weight={focused ? 'fill' : 'regular'} />
-          )
-        }}
-      />
-      <Tabs.Screen
-        name="perfil"
-        options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color, focused }) => (
-            <UserList size={32} color={color} weight={focused ? 'fill' : 'regular'} />
-          )
-        }}
-      />
+      <Tabs.Screen name="planejamento" options={{ href: null, title: 'Planejamento' }} />
+      <Tabs.Screen name="reports" options={{ href: null, title: 'Relatórios' }} />
+      <Tabs.Screen name="perfil" options={{ href: null, title: 'Perfil' }} />
     </Tabs>
   )
 }
