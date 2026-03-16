@@ -1,4 +1,4 @@
-﻿using api.DTOs.Bloco;
+using api.DTOs.Bloco;
 using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.AvaliacaoDiagnostica
@@ -44,6 +44,34 @@ namespace api.DTOs.AvaliacaoDiagnostica
     }
 
     // DTO detalhado — agora retorna blocos com atividades selecionadas
+    public class AvaliacaoDiagnosticaAlunoParticipanteDTO
+    {
+        public int AlunoId { get; set; }
+        public AvaliacaoDiagnosticaAlunoDTO? Aluno { get; set; }
+    }
+
+    public class AvaliacaoDiagnosticaAlunoDTO
+    {
+        public int Id { get; set; }
+        public string NomeCompleto { get; set; } = string.Empty;
+    }
+
+    public class AvaliacaoDiagnosticaRegistroDesempenhoDTO
+    {
+        public int Id { get; set; }
+        public int AlunoId { get; set; }
+        public int AtividadeId { get; set; }
+        public string NivelRealizacao { get; set; } = "NaoAvaliado";
+        public string? Observacao { get; set; }
+        public DateTime DataRegistro { get; set; }
+    }
+
+    public class AvaliacaoDiagnosticaObservacaoAlunoDTO
+    {
+        public int AlunoId { get; set; }
+        public string? Observacao { get; set; }
+    }
+
     public class AvaliacaoDiagnosticaDetailDTO
     {
         public int Id { get; set; }
@@ -53,6 +81,9 @@ namespace api.DTOs.AvaliacaoDiagnostica
         public int? EscolaId { get; set; }
         public bool Concluida { get; set; }
         public List<int> AlunoIds { get; set; } = new();
+        public List<AvaliacaoDiagnosticaAlunoParticipanteDTO> AlunosParticipantes { get; set; } = new();
+        public List<AvaliacaoDiagnosticaRegistroDesempenhoDTO> RegistrosDesempenho { get; set; } = new();
+        public List<AvaliacaoDiagnosticaObservacaoAlunoDTO> ObservacoesAlunos { get; set; } = new();
         public List<BlocoComAtividadesDTO> BlocosComAtividades { get; set; } = new(); // usa o DTO que você já tem
     }
 

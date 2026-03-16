@@ -1,6 +1,7 @@
-﻿using api.DTOs.AvaliacaoDiagnostica;
+using api.DTOs.AvaliacaoDiagnostica;
 using api.DTOs.Bloco; // Para BlocoComAtividadesDTO
 using api.DTOs.Atividade; // Para AtividadeBuscarDTO (ajuste se necessário)
+using api.DTOs.Desempenho;
 using api.Models;
 using api.Responses;
 using Data;
@@ -14,6 +15,13 @@ namespace api.Services
     public class AvaliacaoDiagnosticaService
     {
         private readonly AppDbContext _contexto;
+        private static readonly HashSet<string> NiveisPermitidos = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Autonomia",
+            "ComAjuda",
+            "NaoRealizou",
+            "NaoAvaliado",
+        };
 
         public AvaliacaoDiagnosticaService(AppDbContext contexto)
         {
@@ -77,13 +85,161 @@ namespace api.Services
             }
         }
 
+        public async Task<ServiceResponse<object>> RegistrarDesempenhoBatch(RegistrarDesempenhoBatchDTO dto)
+        {
+            var resposta = new ServiceResponse<object>();
+            using var transacao = await _contexto.Database.BeginTransactionAsync();
+
+            try
+            {
+                var avaliacao = await _contexto.AvaliacoesDiagnosticas
+                    .Include(a => a.AlunosParticipantes)
+                    .Include(a => a.AtividadesSelecionadas)
+                    .FirstOrDefaultAsync(a => a.Id == dto.AvaliacaoDiagnosticaId);
+
+                if (avaliacao == null)
+                {
+                    resposta.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return resposta;
+                }
+
+                var alunoIdsValidos = avaliacao.AlunosParticipantes.Select(a => a.AlunoId).ToHashSet();
+                var atividadeIdsValidos = avaliacao.AtividadesSelecionadas.Select(a => a.AtividadeId).ToHashSet();
+
+                foreach (var item in dto.Itens)
+                {
+                    if (!alunoIdsValidos.Contains(item.AlunoId))
+                    {
+                        resposta.SetFalha($"Aluno {item.AlunoId} não pertence à avaliação.");
+                        return resposta;
+                    }
+
+                    if (!atividadeIdsValidos.Contains(item.AtividadeId))
+                    {
+                        resposta.SetFalha($"Atividade {item.AtividadeId} não pertence à avaliação.");
+                        return resposta;
+                    }
+
+                    if (!NiveisPermitidos.Contains(item.NivelRealizacao))
+                    {
+                        resposta.SetFalha($"Nível de realização inválido: {item.NivelRealizacao}.");
+                        return resposta;
+                    }
+                }
+
+                foreach (var item in dto.Itens)
+                {
+                    _contexto.DesempenhosAtividades.Add(new DesempenhoAtividade
+                    {
+                        AvaliacaoDiagnosticaId = dto.AvaliacaoDiagnosticaId,
+                        AlunoId = item.AlunoId,
+                        AtividadeId = item.AtividadeId,
+                        NivelRealizacao = item.NivelRealizacao,
+                        Observacao = item.Observacao,
+                        DataRegistro = DateTime.UtcNow,
+                    });
+                }
+
+                foreach (var obsAluno in dto.ObservacoesAlunos.Where(o => !string.IsNullOrWhiteSpace(o.Observacao)))
+                {
+                    if (!alunoIdsValidos.Contains(obsAluno.AlunoId))
+                    {
+                        resposta.SetFalha($"Aluno {obsAluno.AlunoId} não pertence à avaliação.");
+                        return resposta;
+                    }
+
+                    var relacaoAluno = avaliacao.AlunosParticipantes.First(a => a.AlunoId == obsAluno.AlunoId);
+                    relacaoAluno.ObservacaoGeral = obsAluno.Observacao?.Trim();
+
+                    _contexto.ObservacoesAlunosAvaliacaoHistorico.Add(new ObservacaoAlunoAvaliacaoHistorico
+                    {
+                        AvaliacaoDiagnosticaId = dto.AvaliacaoDiagnosticaId,
+                        AlunoId = obsAluno.AlunoId,
+                        Observacao = obsAluno.Observacao!.Trim(),
+                        DataRegistro = DateTime.UtcNow,
+                    });
+                }
+
+                await _contexto.SaveChangesAsync();
+                await transacao.CommitAsync();
+
+                resposta.AdicionaObjeto(new { mensagem = "Desempenhos registrados com sucesso." });
+                resposta.AdicionaMensagem("Desempenhos registrados com sucesso.");
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                await transacao.RollbackAsync();
+                resposta.SetFalha($"Erro ao registrar desempenho: {ex.Message}");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<DesempenhoHistoricoResponseDTO>> BuscarHistoricoDesempenho(int avaliacaoId)
+        {
+            var resposta = new ServiceResponse<DesempenhoHistoricoResponseDTO>();
+
+            try
+            {
+                var avaliacaoExiste = await _contexto.AvaliacoesDiagnosticas.AnyAsync(a => a.Id == avaliacaoId);
+                if (!avaliacaoExiste)
+                {
+                    resposta.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return resposta;
+                }
+
+                var historicoItens = await _contexto.DesempenhosAtividades
+                    .Where(d => d.AvaliacaoDiagnosticaId == avaliacaoId)
+                    .OrderByDescending(d => d.DataRegistro)
+                    .Select(d => new DesempenhoHistoricoItemDTO
+                    {
+                        Id = d.Id,
+                        AvaliacaoDiagnosticaId = d.AvaliacaoDiagnosticaId,
+                        AlunoId = d.AlunoId,
+                        AtividadeId = d.AtividadeId,
+                        NivelRealizacao = d.NivelRealizacao,
+                        Observacao = d.Observacao,
+                        DataRegistro = d.DataRegistro,
+                    })
+                    .ToListAsync();
+
+                var historicoObservacoes = await _contexto.ObservacoesAlunosAvaliacaoHistorico
+                    .Where(o => o.AvaliacaoDiagnosticaId == avaliacaoId)
+                    .OrderByDescending(o => o.DataRegistro)
+                    .Select(o => new ObservacaoAlunoHistoricoItemDTO
+                    {
+                        Id = o.Id,
+                        AvaliacaoDiagnosticaId = o.AvaliacaoDiagnosticaId,
+                        AlunoId = o.AlunoId,
+                        Observacao = o.Observacao,
+                        DataRegistro = o.DataRegistro,
+                    })
+                    .ToListAsync();
+
+                resposta.AdicionaObjeto(new DesempenhoHistoricoResponseDTO
+                {
+                    Itens = historicoItens,
+                    ObservacoesAlunos = historicoObservacoes,
+                });
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao buscar histórico de desempenho: {ex.Message}");
+                return resposta;
+            }
+        }
+
         // Método auxiliar para montar o DTO detalhado (usado em Create, Update e GetById)
         private async Task<AvaliacaoDiagnosticaDetailDTO> MontarDetailDTO(int avaliacaoId)
         {
             var avaliacao = await _contexto.AvaliacoesDiagnosticas
         .Include(a => a.BlocosSelecionados).ThenInclude(b => b.Bloco)
         .Include(a => a.AtividadesSelecionadas).ThenInclude(aa => aa.Atividade)
-        .Include(a => a.AlunosParticipantes)
+        .Include(a => a.AlunosParticipantes).ThenInclude(ap => ap.Aluno)
+        .Include(a => a.RegistrosDesempenho)
         .FirstAsync(a => a.Id == avaliacaoId);
 
             var blocosOrdenados = avaliacao.BlocosSelecionados
@@ -122,6 +278,40 @@ namespace api.Services
                 EscolaId = avaliacao.EscolaId,
                 Concluida = avaliacao.Concluida,
                 AlunoIds = avaliacao.AlunosParticipantes.Select(ap => ap.AlunoId).ToList(),
+                AlunosParticipantes = avaliacao.AlunosParticipantes
+                    .Select(ap => new AvaliacaoDiagnosticaAlunoParticipanteDTO
+                    {
+                        AlunoId = ap.AlunoId,
+                        Aluno = ap.Aluno == null
+                            ? null
+                            : new AvaliacaoDiagnosticaAlunoDTO
+                            {
+                                Id = ap.Aluno.Id,
+                                NomeCompleto = ap.Aluno.NomeCompleto ?? string.Empty,
+                            },
+                    })
+                    .ToList(),
+                RegistrosDesempenho = avaliacao.RegistrosDesempenho
+                    .GroupBy(r => new { r.AlunoId, r.AtividadeId })
+                    .Select(g => g.OrderByDescending(x => x.DataRegistro).First())
+                    .OrderBy(r => r.AlunoId)
+                    .Select(r => new AvaliacaoDiagnosticaRegistroDesempenhoDTO
+                    {
+                        Id = r.Id,
+                        AlunoId = r.AlunoId,
+                        AtividadeId = r.AtividadeId,
+                        NivelRealizacao = r.NivelRealizacao,
+                        Observacao = r.Observacao,
+                        DataRegistro = r.DataRegistro,
+                    })
+                    .ToList(),
+                ObservacoesAlunos = avaliacao.AlunosParticipantes
+                    .Select(ap => new AvaliacaoDiagnosticaObservacaoAlunoDTO
+                    {
+                        AlunoId = ap.AlunoId,
+                        Observacao = ap.ObservacaoGeral,
+                    })
+                    .ToList(),
                 BlocosComAtividades = blocosOrdenados
             };
         }
