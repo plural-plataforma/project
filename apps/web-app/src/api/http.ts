@@ -1,10 +1,11 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-// Em dev: usa proxy do Vite (/api → API_TARGET) para evitar CORS
-// Em prod (build): usa VITE_API_URL diretamente (sem proxy)
-const API_BASE_URL = import.meta.env.DEV
-  ? '/api'
-  : (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '') ?? 'http://localhost:5145/api'
+const rawApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
+const API_BASE_URL = rawApiUrl?.replace(/\/+$/, '') ?? ''
+
+if (!API_BASE_URL) {
+  throw new Error('VITE_API_URL não está definida. Configure a variável de ambiente para o web-app.')
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
