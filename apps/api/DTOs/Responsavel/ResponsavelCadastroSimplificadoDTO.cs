@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace api.DTOs.Responsavel
@@ -13,9 +13,9 @@ namespace api.DTOs.Responsavel
         [StringLength(20)]
         public string Telefone { get; set; }
 
-        [Required]
         [StringLength(256)]
-        public string Email { get; set; }
+        [EmailAddress(ErrorMessage = "digite o e-mail do responsável")]
+        public string? Email { get; set; }
 
     }
 }
