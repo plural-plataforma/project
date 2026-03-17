@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { PencilSimple, GraduationCap, MapPin, Phone, Envelope, User, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react'
+import { PencilSimple, GraduationCap, Phone, Envelope, User, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react'
 import { AlignmentType, Document, Packer, Paragraph, TextRun } from 'docx'
 import { buscarAlunoPorId } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
@@ -64,11 +64,6 @@ export default function AlunoProfilePage() {
     aluno.nivelEnsino && { icon: GraduationCap, label: 'Nível de ensino', value: aluno.nivelEnsino },
     aluno.turno && { icon: GraduationCap, label: 'Turno', value: aluno.turno },
     aluno.ano && { icon: GraduationCap, label: 'Ano/Série', value: aluno.ano },
-    (aluno.cidade || aluno.estado) && {
-      icon: MapPin,
-      label: 'Localização',
-      value: [aluno.cidade, aluno.estado].filter(Boolean).join(', '),
-    },
   ].filter(Boolean) as Array<{ icon: React.ElementType; label: string; value: string }>
 
   async function exportarPdiWord(pdi: PlanejamentoAluno) {
@@ -264,47 +259,6 @@ export default function AlunoProfilePage() {
           </Card>
         )}
 
-        {/* Endereço completo */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Endereço</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground font-medium">CEP</span>
-                <span className="text-sm font-semibold text-foreground">{aluno.cep || 'Não informado'}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground font-medium">Estado</span>
-                <span className="text-sm font-semibold text-foreground">{aluno.estado || 'Não informado'}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground font-medium">Cidade</span>
-                <span className="text-sm font-semibold text-foreground">{aluno.cidade || 'Não informado'}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground font-medium">Bairro</span>
-                <span className="text-sm font-semibold text-foreground">{aluno.bairro || 'Não informado'}</span>
-              </div>
-              <div className="flex flex-col gap-1 md:col-span-2">
-                <span className="text-xs text-muted-foreground font-medium">Logradouro</span>
-                <span className="text-sm font-semibold text-foreground">{aluno.logradouro || 'Não informado'}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground font-medium">Número</span>
-                <span className="text-sm font-semibold text-foreground">
-                  {typeof aluno.numero === 'number' ? aluno.numero : 'Não informado'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 md:col-span-2">
-                <span className="text-xs text-muted-foreground font-medium">Complemento</span>
-                <span className="text-sm font-semibold text-foreground">{aluno.complemento || 'Não informado'}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Responsável */}
         {aluno.responsavel && (
           <Card>
@@ -327,26 +281,6 @@ export default function AlunoProfilePage() {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Laudos */}
-        {aluno.laudos && aluno.laudos.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Laudos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {aluno.laudos.map((laudo, i) => (
-                <div key={i} className="border-l-2 border-primary pl-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="default" className="text-xs">{laudo.codigoCid}</Badge>
-                    <span className="text-sm text-muted-foreground">{laudo.nomeMedico}</span>
-                  </div>
-                  {laudo.descricao && <p className="text-sm text-foreground">{laudo.descricao}</p>}
-                </div>
-              ))}
             </CardContent>
           </Card>
         )}
