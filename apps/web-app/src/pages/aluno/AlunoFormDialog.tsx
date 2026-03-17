@@ -39,7 +39,7 @@ const schema = z.object({
   idEscola: z.number().optional(),
   responsavelNome: z.string().min(2, 'Nome do responsável obrigatório'),
   responsavelTelefone: z.string().min(8, 'Telefone obrigatório'),
-  responsavelEmail: z.string().email('E-mail inválido').optional().or(z.literal('')),
+  responsavelEmail: z.string().email('digite o e-mail do responsável').optional().or(z.literal('')),
   laudoCodigoCid: z.string().optional(),
   laudoNomeMedico: z.string().optional(),
   laudoDescricao: z.string().optional(),

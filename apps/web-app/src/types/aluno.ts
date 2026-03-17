@@ -31,7 +31,7 @@ export interface AlunoResponse {
 export interface Responsavel {
   nomeCompleto: string
   telefone: string
-  email: string
+  email?: string | null
 }
 
 export interface Laudo {
