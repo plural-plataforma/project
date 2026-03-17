@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/useToast'
 import type { Aluno } from '@/types/aluno'
 import type { Escola } from '@/types/escolas'
 import { useEffect, useState } from 'react'
-import { fetchCepData, fetchEstados, fetchMunicipios } from '@/services/locationsService'
+import { fetchEstados, fetchMunicipios } from '@/services/locationsService'
 
 const schema = z.object({
   nomeCompleto: z.string().min(3, 'Nome obrigatório'),
@@ -123,15 +123,6 @@ export function AlunoFormDialog({
       .finally(() => setLoadingCidades(false))
   }, [estadoAtual])
 
-  async function handleCepBlur(cep?: string) {
-    const data = await fetchCepData(cep ?? '')
-    if (!data) return
-    if (data.uf) setValue('estado', data.uf.toUpperCase(), { shouldValidate: true })
-    if (data.localidade) setValue('cidade', data.localidade, { shouldValidate: true })
-    if (data.logradouro) setValue('logradouro', data.logradouro, { shouldValidate: true })
-    if (data.bairro) setValue('bairro', data.bairro, { shouldValidate: true })
-  }
-
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
       const payload: Partial<Aluno> = {
@@ -155,15 +146,7 @@ export function AlunoFormDialog({
           email: data.responsavelEmail ?? '',
         },
         laudos:
-          data.laudoCodigoCid || data.laudoNomeMedico || data.laudoDescricao
-            ? [
-                {
-                  codigoCid: data.laudoCodigoCid ?? '',
-                  nomeMedico: data.laudoNomeMedico ?? '',
-                  descricao: data.laudoDescricao ?? '',
-                },
-              ]
-            : [],
+          editingAluno?.laudos ?? [],
       }
       // console.log('[AlunoFormDialog] payload →', JSON.stringify(payload, null, 2))
       return editingAluno?.id ? atualizaAluno(payload) : cadastraAluno(payload)
@@ -224,7 +207,6 @@ export function AlunoFormDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Input label="CEP" placeholder="00000-000" {...register('cep')} onBlur={(e) => handleCepBlur(e.target.value)} />
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Estado (UF)</label>
                 <Select
@@ -247,22 +229,7 @@ export function AlunoFormDialog({
                 </Select>
                 {errors.estado && <p className="text-xs text-danger font-medium">{errors.estado.message}</p>}
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Logradouro" placeholder="Rua, Avenida..." {...register('logradouro')} />
-              <Input
-                label="Número"
-                type="number"
-                placeholder="123"
-                error={errors.numero?.message}
-                {...register('numero', { valueAsNumber: true })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Bairro" placeholder="Nome do bairro" {...register('bairro')} />
-              <Input label="Complemento" placeholder="Apto, bloco, referência..." {...register('complemento')} />
+              <div />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -275,7 +242,7 @@ export function AlunoFormDialog({
                 <SelectTrigger>
                   <SelectValue placeholder={loadingCidades ? 'Carregando cidades...' : 'Selecionar cidade'} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72">
                   {cidades.map((cidade) => (
                     <SelectItem key={cidade} value={cidade}>
                       {cidade}
@@ -330,29 +297,6 @@ export function AlunoFormDialog({
                     {...register('responsavelEmail')}
                   />
                 </div>
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <p className="text-sm font-bold text-foreground mb-3">Laudo (opcional)</p>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Código CID"
-                    placeholder="Ex: F84.0"
-                    {...register('laudoCodigoCid')}
-                  />
-                  <Input
-                    label="Nome do médico"
-                    placeholder="Ex: Dra. Maria Silva"
-                    {...register('laudoNomeMedico')}
-                  />
-                </div>
-                <Input
-                  label="Descrição do laudo"
-                  placeholder="Ex: TEA, nível de suporte 1"
-                  {...register('laudoDescricao')}
-                />
               </div>
             </div>
 

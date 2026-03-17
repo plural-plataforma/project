@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Users, MagnifyingGlass, Eye, GraduationCap } from '@phosphor-icons/react'
+import { Plus, Users, MagnifyingGlass, Eye, GraduationCap, CaretRight } from '@phosphor-icons/react'
 import { buscarAlunos } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -124,41 +124,44 @@ export default function AlunosPage() {
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.25, delay: i * 0.04 }}
                 >
-                  <Card className="p-4 hover:border-primary transition-colors duration-200 group">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar>
-                          <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-foreground truncate">{aluno.nomeCompleto}</p>
-                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                            {escola && (
-                              <span className="text-xs text-muted-foreground truncate">
-                                {escola.nomeInstituicao}
-                              </span>
-                            )}
-                            {aluno.nivelEnsino && (
-                              <Badge variant="muted" className="text-xs">
-                                <GraduationCap size={10} className="mr-1" />
-                                {aluno.nivelEnsino}
-                              </Badge>
-                            )}
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => navigate(`/alunos/${aluno.id}`)}
+                    aria-label={`Ver detalhes de ${aluno.nomeCompleto}`}
+                  >
+                    <Card className="p-4 hover:border-primary transition-colors duration-200">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Avatar>
+                            <AvatarFallback>{initials}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-foreground truncate">{aluno.nomeCompleto}</p>
+                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                              {escola && (
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {escola.nomeInstituicao}
+                                </span>
+                              )}
+                              {aluno.nivelEnsino && (
+                                <Badge variant="muted" className="text-xs">
+                                  <GraduationCap size={10} className="mr-1" />
+                                  {aluno.nivelEnsino}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/alunos/${aluno.id}`)}
-                        aria-label="Ver perfil do aluno"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Eye size={16} />
-                      </Button>
-                    </div>
-                  </Card>
+                        <span className="inline-flex items-center gap-1 text-sm text-primary shrink-0">
+                          <Eye size={16} />
+                          Ver
+                          <CaretRight size={12} />
+                        </span>
+                      </div>
+                    </Card>
+                  </button>
                 </motion.div>
               )
             })}
