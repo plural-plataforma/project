@@ -1,0 +1,809 @@
+using api.DTOs.AvaliacaoDiagnostica;
+using api.DTOs.Bloco; // Para BlocoComAtividadesDTO
+using api.DTOs.Atividade; // Para AtividadeBuscarDTO (ajuste se necessário)
+using api.DTOs.Desempenho;
+using api.Models;
+using api.Responses;
+using Data;
+using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+
+namespace api.Services
+{
+    public class AvaliacaoDiagnosticaService
+    {
+        private readonly AppDbContext _contexto;
+        private static readonly HashSet<string> NiveisPermitidos = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Autonomia",
+            "ComAjuda",
+            "NaoRealizou",
+            "NaoAvaliado",
+        };
+
+        public AvaliacaoDiagnosticaService(AppDbContext contexto)
+        {
+            _contexto = contexto;
+        }
+
+        public async Task<ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>> GetAll()
+        {
+            var resposta = new ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>();
+            try
+            {
+                var avaliacoes = await _contexto.AvaliacoesDiagnosticas
+                    .Select(a => new AvaliacaoDiagnosticaBuscarDTO
+                    {
+                        Id = a.Id,
+                        Titulo = a.Titulo,
+                        Objetivo = a.Objetivo,
+                        DataAplicacao = a.DataAplicacao,
+                        EscolaId = a.EscolaId ?? 0 ,
+                        Concluida = a.Concluida
+                    })
+                    .ToListAsync();
+
+                resposta.AdicionaObjeto(avaliacoes);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar avaliações diagnósticas.");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>> GetNaoConcluidas()
+        {
+            var resposta = new ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>();
+            try
+            {
+                var avaliacoes = await _contexto.AvaliacoesDiagnosticas
+                    .Where(a => !a.Concluida)
+                    .Select(a => new AvaliacaoDiagnosticaBuscarDTO
+                    {
+                        Id = a.Id,
+                        Titulo = a.Titulo,
+                        Objetivo = a.Objetivo,
+                        DataAplicacao = a.DataAplicacao,
+                        EscolaId = a.EscolaId ?? 0,
+                        Concluida = a.Concluida
+                    })
+                    .ToListAsync();
+
+                resposta.AdicionaObjeto(avaliacoes);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar avaliações diagnósticas não concluídas.");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<object>> RegistrarDesempenhoBatch(RegistrarDesempenhoBatchDTO dto)
+        {
+            var resposta = new ServiceResponse<object>();
+            using var transacao = await _contexto.Database.BeginTransactionAsync();
+
+            try
+            {
+                var avaliacao = await _contexto.AvaliacoesDiagnosticas
+                    .Include(a => a.AlunosParticipantes)
+                    .Include(a => a.AtividadesSelecionadas)
+                    .FirstOrDefaultAsync(a => a.Id == dto.AvaliacaoDiagnosticaId);
+
+                if (avaliacao == null)
+                {
+                    resposta.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return resposta;
+                }
+
+                var alunoIdsValidos = avaliacao.AlunosParticipantes.Select(a => a.AlunoId).ToHashSet();
+                var atividadeIdsValidos = avaliacao.AtividadesSelecionadas.Select(a => a.AtividadeId).ToHashSet();
+
+                foreach (var item in dto.Itens)
+                {
+                    if (!alunoIdsValidos.Contains(item.AlunoId))
+                    {
+                        resposta.SetFalha($"Aluno {item.AlunoId} não pertence à avaliação.");
+                        return resposta;
+                    }
+
+                    if (!atividadeIdsValidos.Contains(item.AtividadeId))
+                    {
+                        resposta.SetFalha($"Atividade {item.AtividadeId} não pertence à avaliação.");
+                        return resposta;
+                    }
+
+                    if (!NiveisPermitidos.Contains(item.NivelRealizacao))
+                    {
+                        resposta.SetFalha($"Nível de realização inválido: {item.NivelRealizacao}.");
+                        return resposta;
+                    }
+                }
+
+                foreach (var item in dto.Itens)
+                {
+                    _contexto.DesempenhosAtividades.Add(new DesempenhoAtividade
+                    {
+                        AvaliacaoDiagnosticaId = dto.AvaliacaoDiagnosticaId,
+                        AlunoId = item.AlunoId,
+                        AtividadeId = item.AtividadeId,
+                        NivelRealizacao = item.NivelRealizacao,
+                        Observacao = item.Observacao,
+                        DataRegistro = DateTime.UtcNow,
+                    });
+                }
+
+                foreach (var obsAluno in dto.ObservacoesAlunos.Where(o => !string.IsNullOrWhiteSpace(o.Observacao)))
+                {
+                    if (!alunoIdsValidos.Contains(obsAluno.AlunoId))
+                    {
+                        resposta.SetFalha($"Aluno {obsAluno.AlunoId} não pertence à avaliação.");
+                        return resposta;
+                    }
+
+                    var relacaoAluno = avaliacao.AlunosParticipantes.First(a => a.AlunoId == obsAluno.AlunoId);
+                    relacaoAluno.ObservacaoGeral = obsAluno.Observacao?.Trim();
+
+                    _contexto.ObservacoesAlunosAvaliacaoHistorico.Add(new ObservacaoAlunoAvaliacaoHistorico
+                    {
+                        AvaliacaoDiagnosticaId = dto.AvaliacaoDiagnosticaId,
+                        AlunoId = obsAluno.AlunoId,
+                        Observacao = obsAluno.Observacao!.Trim(),
+                        DataRegistro = DateTime.UtcNow,
+                    });
+                }
+
+                await _contexto.SaveChangesAsync();
+                await transacao.CommitAsync();
+
+                resposta.AdicionaObjeto(new { mensagem = "Desempenhos registrados com sucesso." });
+                resposta.AdicionaMensagem("Desempenhos registrados com sucesso.");
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                await transacao.RollbackAsync();
+                resposta.SetFalha($"Erro ao registrar desempenho: {ex.Message}");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<DesempenhoHistoricoResponseDTO>> BuscarHistoricoDesempenho(int avaliacaoId)
+        {
+            var resposta = new ServiceResponse<DesempenhoHistoricoResponseDTO>();
+
+            try
+            {
+                var avaliacaoExiste = await _contexto.AvaliacoesDiagnosticas.AnyAsync(a => a.Id == avaliacaoId);
+                if (!avaliacaoExiste)
+                {
+                    resposta.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return resposta;
+                }
+
+                var historicoItens = await _contexto.DesempenhosAtividades
+                    .Where(d => d.AvaliacaoDiagnosticaId == avaliacaoId)
+                    .OrderByDescending(d => d.DataRegistro)
+                    .Select(d => new DesempenhoHistoricoItemDTO
+                    {
+                        Id = d.Id,
+                        AvaliacaoDiagnosticaId = d.AvaliacaoDiagnosticaId,
+                        AlunoId = d.AlunoId,
+                        AtividadeId = d.AtividadeId,
+                        NivelRealizacao = d.NivelRealizacao,
+                        Observacao = d.Observacao,
+                        DataRegistro = d.DataRegistro,
+                    })
+                    .ToListAsync();
+
+                var historicoObservacoes = await _contexto.ObservacoesAlunosAvaliacaoHistorico
+                    .Where(o => o.AvaliacaoDiagnosticaId == avaliacaoId)
+                    .OrderByDescending(o => o.DataRegistro)
+                    .Select(o => new ObservacaoAlunoHistoricoItemDTO
+                    {
+                        Id = o.Id,
+                        AvaliacaoDiagnosticaId = o.AvaliacaoDiagnosticaId,
+                        AlunoId = o.AlunoId,
+                        Observacao = o.Observacao,
+                        DataRegistro = o.DataRegistro,
+                    })
+                    .ToListAsync();
+
+                resposta.AdicionaObjeto(new DesempenhoHistoricoResponseDTO
+                {
+                    Itens = historicoItens,
+                    ObservacoesAlunos = historicoObservacoes,
+                });
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao buscar histórico de desempenho: {ex.Message}");
+                return resposta;
+            }
+        }
+
+        // Método auxiliar para montar o DTO detalhado (usado em Create, Update e GetById)
+        private async Task<AvaliacaoDiagnosticaDetailDTO> MontarDetailDTO(int avaliacaoId)
+        {
+            var avaliacao = await _contexto.AvaliacoesDiagnosticas
+        .Include(a => a.BlocosSelecionados).ThenInclude(b => b.Bloco)
+        .Include(a => a.AtividadesSelecionadas).ThenInclude(aa => aa.Atividade)
+        .Include(a => a.AlunosParticipantes).ThenInclude(ap => ap.Aluno)
+        .Include(a => a.RegistrosDesempenho)
+        .FirstAsync(a => a.Id == avaliacaoId);
+
+            var blocosOrdenados = avaliacao.BlocosSelecionados
+                .OrderBy(b => b.OrdemApresentacao)
+                .Select(b => new BlocoComAtividadesDTO
+                {
+                    Id = b.Bloco.Id,
+                    Titulo = b.Bloco.Titulo ?? string.Empty,
+                    Ordem = b.OrdemApresentacao,
+                    Observacao = b.Bloco.Observacao,
+                    Icone = b.Bloco.Icone,
+                    QuantidadeAtividades = avaliacao.AtividadesSelecionadas
+                        .Count(aa => aa.Atividade.BlocoId == b.BlocoId),
+                    Atividades = avaliacao.AtividadesSelecionadas
+                        .Where(aa => aa.Atividade.BlocoId == b.BlocoId)
+                        .Select(aa => new AtividadeBuscarDTO
+                        {
+                            Id = aa.Atividade.Id,
+                            Titulo = aa.Atividade.Titulo ?? string.Empty,
+                            Enunciado = aa.Atividade.Enunciado ?? string.Empty,
+                            ImagemUrl = aa.Atividade.ImagemUrl,
+                            Nivel = aa.Atividade.Nivel.ToString(),
+                            EtapaMin = aa.Atividade.EtapaMin,     
+                            EtapaMax = aa.Atividade.EtapaMax,
+                        })
+                        .ToList()
+                })
+                .ToList();
+
+            return new AvaliacaoDiagnosticaDetailDTO
+            {
+                Id = avaliacao.Id,
+                Titulo = avaliacao.Titulo,
+                Objetivo = avaliacao.Objetivo,
+                DataAplicacao = avaliacao.DataAplicacao,
+                EscolaId = avaliacao.EscolaId,
+                Concluida = avaliacao.Concluida,
+                AlunoIds = avaliacao.AlunosParticipantes.Select(ap => ap.AlunoId).ToList(),
+                AlunosParticipantes = avaliacao.AlunosParticipantes
+                    .Select(ap => new AvaliacaoDiagnosticaAlunoParticipanteDTO
+                    {
+                        AlunoId = ap.AlunoId,
+                        Aluno = ap.Aluno == null
+                            ? null
+                            : new AvaliacaoDiagnosticaAlunoDTO
+                            {
+                                Id = ap.Aluno.Id,
+                                NomeCompleto = ap.Aluno.NomeCompleto ?? string.Empty,
+                            },
+                    })
+                    .ToList(),
+                RegistrosDesempenho = avaliacao.RegistrosDesempenho
+                    .GroupBy(r => new { r.AlunoId, r.AtividadeId })
+                    .Select(g => g.OrderByDescending(x => x.DataRegistro).First())
+                    .OrderBy(r => r.AlunoId)
+                    .Select(r => new AvaliacaoDiagnosticaRegistroDesempenhoDTO
+                    {
+                        Id = r.Id,
+                        AlunoId = r.AlunoId,
+                        AtividadeId = r.AtividadeId,
+                        NivelRealizacao = r.NivelRealizacao,
+                        Observacao = r.Observacao,
+                        DataRegistro = r.DataRegistro,
+                    })
+                    .ToList(),
+                ObservacoesAlunos = avaliacao.AlunosParticipantes
+                    .Select(ap => new AvaliacaoDiagnosticaObservacaoAlunoDTO
+                    {
+                        AlunoId = ap.AlunoId,
+                        Observacao = ap.ObservacaoGeral,
+                    })
+                    .ToList(),
+                BlocosComAtividades = blocosOrdenados
+            };
+        }
+
+        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> Create(AvaliacaoDiagnosticaDTO dto)
+        {
+            var resposta = new ServiceResponse<AvaliacaoDiagnosticaDetailDTO>();
+
+            using var transacao = await _contexto.Database.BeginTransactionAsync();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(dto.Titulo))
+                {
+                    resposta.SetFalha("Título é obrigatório.");
+                    return resposta;
+                }
+
+                if (dto.EscolaId.HasValue)
+                {
+                    var escolaExiste = await _contexto.EscolasXProfessores
+                        .AnyAsync(e => e.EscolaId == dto.EscolaId.Value);
+
+                    if (!escolaExiste)
+                    {
+                        resposta.SetFalha("Escola informada não existe.");
+                        return resposta;
+                    }
+                }
+
+
+                // Validação de blocos e atividades
+                if (dto.Blocos.Any())
+                {
+                    var blocoIds = dto.Blocos.Select(b => b.BlocoId).Distinct().ToList();
+                    var blocosExistentes = await _contexto.Blocos.CountAsync(b => blocoIds.Contains(b.Id));
+                    if (blocosExistentes != blocoIds.Count)
+                    {
+                        resposta.SetFalha("Um ou mais BlocoIds não existem.");
+                        return resposta;
+                    }
+
+                    // Valida se as atividades pertencem ao bloco correspondente e remove duplicidades internas
+                    foreach (var blocoSel in dto.Blocos)
+                    {
+                        var atividadeIdsDistinct = blocoSel.AtividadeIds.Distinct().ToList();
+                        if (atividadeIdsDistinct.Any())
+                        {
+                            var atividadesDoBloco = await _contexto.Atividades
+                                .Where(a => a.BlocoId == blocoSel.BlocoId && atividadeIdsDistinct.Contains(a.Id))
+                                .CountAsync();
+
+                            if (atividadesDoBloco != atividadeIdsDistinct.Count)
+                            {
+                                resposta.SetFalha($"Uma ou mais atividades informadas não pertencem ao bloco {blocoSel.BlocoId}.");
+                                return resposta;
+                            }
+                        }
+                    }
+                }
+
+                // Validação de alunos
+                var alunoIds = dto.AlunoIds.Distinct().ToList();
+                if (alunoIds.Any())
+                {
+                    var countAlunos = await _contexto.Alunos.CountAsync(a => alunoIds.Contains(a.Id));
+                    if (countAlunos != alunoIds.Count)
+                    {
+                        resposta.SetFalha("Um ou mais AlunoIds não existem.");
+                        return resposta;
+                    }
+                }
+                var dataAplicacaoUtc = dto.DataAplicacao.HasValue
+                                      ? DateTime.SpecifyKind(dto.DataAplicacao.Value, DateTimeKind.Utc)
+                                      : DateTime.UtcNow.Date;
+
+                var avaliacao = new AvaliacaoDiagnostica
+                {
+                    Titulo = dto.Titulo.Trim(),
+                    Objetivo = dto.Objetivo?.Trim(),
+                    DataAplicacao = dataAplicacaoUtc,
+                    EscolaId = dto.EscolaId,
+                    Concluida = false
+                };
+
+                _contexto.AvaliacoesDiagnosticas.Add(avaliacao);
+                await _contexto.SaveChangesAsync();
+
+                // Adiciona blocos (ordem baseada na posição na lista) e atividades selecionadas
+                for (int ordem = 0; ordem < dto.Blocos.Count; ordem++)
+                {
+                    var blocoSel = dto.Blocos[ordem];
+                    _contexto.AvaliacoesDiagnosticasBlocos.Add(new AvaliacaoDiagnosticaBloco
+                    {
+                        AvaliacaoDiagnosticaId = avaliacao.Id,
+                        BlocoId = blocoSel.BlocoId,
+                        OrdemApresentacao = ordem + 1
+                    });
+
+                    foreach (var atividadeId in blocoSel.AtividadeIds.Distinct())
+                    {
+                        _contexto.AvaliacoesDiagnosticasAtividades.Add(new AvaliacaoDiagnosticaAtividade
+                        {
+                            AvaliacaoDiagnosticaId = avaliacao.Id,
+                            AtividadeId = atividadeId
+                        });
+                    }
+                }
+
+                // Adiciona alunos
+                foreach (var alunoId in alunoIds)
+                {
+                    _contexto.AvaliacoesAlunos.Add(new AvaliacaoAluno
+                    {
+                        AvaliacaoDiagnosticaId = avaliacao.Id,
+                        AlunoId = alunoId
+                    });
+                }
+
+                await _contexto.SaveChangesAsync();
+                await transacao.CommitAsync();
+
+                var detail = await MontarDetailDTO(avaliacao.Id);
+                resposta.AdicionaObjeto(detail);
+                resposta.Sucesso = true;
+                resposta.AdicionaMensagem("Avaliação diagnóstica criada com sucesso.");
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                await transacao.RollbackAsync();
+
+                var mensagemCompleta = ex.Message;
+
+                if (ex.InnerException != null)
+                {
+                    mensagemCompleta += "\nInner Exception: " + ex.InnerException.Message;
+                    if (ex.InnerException.InnerException != null)
+                        mensagemCompleta += "\nInner Inner: " + ex.InnerException.InnerException.Message;
+                }
+
+                // Log no console ou Serilog/ILogger para ver no servidor
+                Console.WriteLine("ERRO AO CRIAR AVALIAÇÃO:");
+                Console.WriteLine(mensagemCompleta);
+                Console.WriteLine("StackTrace: " + ex.StackTrace);
+
+                // Se tiver ILogger injetado:
+                // _logger.LogError(ex, "Erro ao criar avaliação diagnóstica");
+
+                resposta.SetFalha("Erro ao criar avaliação diagnóstica: " + mensagemCompleta);
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> GetById(int id)
+        {
+            var resposta = new ServiceResponse<AvaliacaoDiagnosticaDetailDTO>();
+            try
+            {
+                var avaliacaoExiste = await _contexto.AvaliacoesDiagnosticas.AnyAsync(a => a.Id == id);
+                if (!avaliacaoExiste)
+                {
+                    resposta.SetFalha($"Avaliação diagnóstica com ID {id} não encontrada.");
+                    return resposta;
+                }
+
+                var detail = await MontarDetailDTO(id);
+                resposta.AdicionaObjeto(detail);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao buscar avaliação diagnóstica.");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> Update(int id, UpdateAvaliacaoDiagnosticaDTO dto)
+        {
+            var resposta = new ServiceResponse<AvaliacaoDiagnosticaDetailDTO>();
+
+            if (dto.Id != id)
+            {
+                resposta.SetFalha("ID do corpo diferente do ID da URL.");
+                return resposta;
+            }
+
+            using var transacao = await _contexto.Database.BeginTransactionAsync();
+            try
+            {
+                var avaliacao = await _contexto.AvaliacoesDiagnosticas
+                    .Include(a => a.BlocosSelecionados)
+                    .Include(a => a.AtividadesSelecionadas)
+                    .Include(a => a.AlunosParticipantes)
+                    .FirstOrDefaultAsync(a => a.Id == id);
+
+                if (avaliacao == null)
+                {
+                    resposta.SetFalha($"Avaliação diagnóstica com ID {id} não encontrada.");
+                    return resposta;
+                }
+
+                // Atualiza campos básicos
+                if (!string.IsNullOrWhiteSpace(dto.Titulo))
+                    avaliacao.Titulo = dto.Titulo.Trim();
+
+                if (dto.Objetivo != null)
+                    avaliacao.Objetivo = dto.Objetivo.Trim();
+
+                if (dto.DataAplicacao.HasValue)
+                    avaliacao.DataAplicacao = dto.DataAplicacao.Value;
+
+                if (dto.EscolaId.HasValue)
+                {
+                    var escolaExiste = await _contexto.EscolasXProfessores
+                        .AnyAsync(e => e.EscolaId == dto.EscolaId.Value);
+
+                    if (!escolaExiste)
+                    {
+                        resposta.SetFalha("Escola informada não existe.");
+                        return resposta;
+                    }
+                }
+
+                if (dto.Concluida.HasValue)
+                    avaliacao.Concluida = dto.Concluida.Value;
+
+                avaliacao.UpdatedAt = DateTime.UtcNow;
+
+                // Atualização de alunos (se enviado)
+                if (dto.AlunoIds != null)
+                {
+                    if (avaliacao.Concluida)
+                    {
+                        resposta.SetFalha("Não é permitido alterar alunos em avaliação já concluída.");
+                        return resposta;
+                    }
+
+                    var alunoIds = dto.AlunoIds.Distinct().ToList();
+                    if (alunoIds.Any())
+                    {
+                        var count = await _contexto.Alunos.CountAsync(a => alunoIds.Contains(a.Id));
+                        if (count != alunoIds.Count)
+                        {
+                            resposta.SetFalha("Um ou mais AlunoIds não existem.");
+                            return resposta;
+                        }
+                    }
+
+                    _contexto.AvaliacoesAlunos.RemoveRange(avaliacao.AlunosParticipantes);
+                    foreach (var aid in alunoIds)
+                    {
+                        _contexto.AvaliacoesAlunos.Add(new AvaliacaoAluno
+                        {
+                            AvaliacaoDiagnosticaId = id,
+                            AlunoId = aid
+                        });
+                    }
+                }
+
+                // Atualização de blocos e atividades (se enviado)
+                if (dto.Blocos != null)
+                {
+                    if (avaliacao.Concluida)
+                    {
+                        resposta.SetFalha("Não é permitido alterar blocos/atividades em avaliação já concluída.");
+                        return resposta;
+                    }
+
+                    // Validação de blocos e atividades (mesma lógica do Create)
+                    if (dto.Blocos.Any())
+                    {
+                        var blocoIds = dto.Blocos.Select(b => b.BlocoId).Distinct().ToList();
+                        var blocosExistentes = await _contexto.Blocos.CountAsync(b => blocoIds.Contains(b.Id));
+                        if (blocosExistentes != blocoIds.Count)
+                        {
+                            resposta.SetFalha("Um ou mais BlocoIds não existem.");
+                            return resposta;
+                        }
+
+                        foreach (var blocoSel in dto.Blocos)
+                        {
+                            var atividadeIdsDistinct = blocoSel.AtividadeIds.Distinct().ToList();
+                            if (atividadeIdsDistinct.Any())
+                            {
+                                var atividadesDoBloco = await _contexto.Atividades
+                                    .Where(a => a.BlocoId == blocoSel.BlocoId && atividadeIdsDistinct.Contains(a.Id))
+                                    .CountAsync();
+
+                                if (atividadesDoBloco != atividadeIdsDistinct.Count)
+                                {
+                                    resposta.SetFalha($"Uma ou mais atividades informadas não pertencem ao bloco {blocoSel.BlocoId}.");
+                                    return resposta;
+                                }
+                            }
+                        }
+                    }
+
+                    // Remove antigos
+                    _contexto.AvaliacoesDiagnosticasBlocos.RemoveRange(avaliacao.BlocosSelecionados);
+                    _contexto.AvaliacoesDiagnosticasAtividades.RemoveRange(avaliacao.AtividadesSelecionadas);
+
+                    // Adiciona novos
+                    for (int ordem = 0; ordem < dto.Blocos.Count; ordem++)
+                    {
+                        var blocoSel = dto.Blocos[ordem];
+                        _contexto.AvaliacoesDiagnosticasBlocos.Add(new AvaliacaoDiagnosticaBloco
+                        {
+                            AvaliacaoDiagnosticaId = id,
+                            BlocoId = blocoSel.BlocoId,
+                            OrdemApresentacao = ordem + 1
+                        });
+
+                        foreach (var atividadeId in blocoSel.AtividadeIds.Distinct())
+                        {
+                            _contexto.AvaliacoesDiagnosticasAtividades.Add(new AvaliacaoDiagnosticaAtividade
+                            {
+                                AvaliacaoDiagnosticaId = id,
+                                AtividadeId = atividadeId
+                            });
+                        }
+                    }
+                }
+
+                await _contexto.SaveChangesAsync();
+                await transacao.CommitAsync();
+
+                var detail = await MontarDetailDTO(id);
+                resposta.AdicionaObjeto(detail);
+                resposta.Sucesso = true;
+                resposta.AdicionaMensagem("Avaliação diagnóstica atualizada com sucesso.");
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                await transacao.RollbackAsync();
+                resposta.SetFalha("Erro ao atualizar avaliação diagnóstica: " + ex.Message);
+                return resposta;
+            }
+        }
+
+        public async Task<byte[]> GerarPdfBytesAsync(int avaliacaoId)
+        {
+            var resposta = await GetById(avaliacaoId);
+            if (!resposta.Sucesso || resposta.Objeto == null)
+            {
+                throw new InvalidOperationException("Avaliação não encontrada ou erro ao carregar dados.");
+            }
+
+            var dto = resposta.Objeto;
+            return await GerarPdfDiagnostico(dto);
+        }
+
+        private async Task<byte[]> GerarPdfDiagnostico(AvaliacaoDiagnosticaDetailDTO dto)
+        {
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2.5f, Unit.Centimetre); 
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+
+                    // Cabeçalho
+                    page.Header()
+                        .PaddingBottom(1, Unit.Centimetre)
+                        .Row(row =>
+                        {
+                            row.RelativeItem().AlignCenter().Text($"Avaliação Diagnóstica\n{dto.Titulo}")
+                                .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
+                        });
+
+                    // Conteúdo principal
+                    page.Content()
+                        .PaddingVertical(0.8f, Unit.Centimetre)
+                        .Column(col =>
+                        {
+                            col.Spacing(10);
+
+                            // Informações gerais
+                            col.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Objetivo: ").SemiBold();
+                                r.RelativeItem(3).Text(dto.Objetivo ?? "—");
+                            });
+
+                            col.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Data de aplicação: ").SemiBold();
+                                r.RelativeItem(3).Text(dto.DataAplicacao.ToString("dd/MM/yyyy") ?? "—");
+                            });
+
+
+                            col.Item().PaddingTop(20).Text("Atividades")
+                                .SemiBold().FontSize(15).FontColor(Colors.Grey.Darken2);
+
+                            foreach (var bloco in dto.BlocosComAtividades.OrderBy(b => b.Ordem))
+                            {
+                                col.Item().PaddingTop(16).Text($"{bloco.Ordem} — {bloco.Titulo}")
+                                    .SemiBold().FontSize(14).FontColor(Colors.Blue.Darken1);
+
+                                if (!string.IsNullOrWhiteSpace(bloco.Observacao))
+                                {
+                                    col.Item().PaddingTop(4).Text($"Observação: {bloco.Observacao}")
+                                        .Italic().FontSize(11).FontColor(Colors.Grey.Medium);
+                                }
+
+                                foreach (var atv in bloco.Atividades)
+                                {
+                                    col.Item().PaddingTop(12).PaddingLeft(10).Column(c =>
+                                    {
+                                        c.Item().Text($"• {atv.Titulo}")
+                      .SemiBold().FontSize(12);
+
+                                        // Imagem da atividade
+                                        if (!string.IsNullOrWhiteSpace(atv.ImagemUrl))
+                                        {
+                                            try
+                                            {
+                                                // Baixa a imagem como byte[]
+                                                using var httpClient = new HttpClient();
+                                                httpClient.Timeout = TimeSpan.FromSeconds(10); 
+                                                var imageBytes = httpClient.GetByteArrayAsync(atv.ImagemUrl).Result;
+                                                c.Item()
+                                                    .PaddingTop(8)
+                                                    .Width(300) // ou 280 para margem melhor
+                                                    .Image(imageBytes)
+                                                    .FitWidth()
+                                                    .WithCompressionQuality(ImageCompressionQuality.Medium);
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Console.WriteLine($"[PDF] Falha ao baixar imagem {atv.ImagemUrl}: {ex.Message}");
+                                                if (ex.InnerException != null)
+                                                    Console.WriteLine($"Inner: {ex.InnerException.Message}");
+
+                                                c.Item()
+                                                    .PaddingTop(4)
+                                                    .Text($"(Imagem não disponível: {atv.ImagemUrl})")
+                                                    .Italic()
+                                                    .FontSize(10)
+                                                    .FontColor(Colors.Red.Medium);
+                                            }
+                                        }
+
+                                        // Enunciado (já está funcionando)
+                                        if (!string.IsNullOrWhiteSpace(atv.Enunciado))
+                                        {
+                                            c.Item().PaddingTop(6).Text(atv.Enunciado)
+                                                .FontSize(11);
+                                        }
+                                    });
+                                }
+                            }
+                        });
+
+                    // Rodapé com número de página e data de geração
+                    page.Footer()
+                        .AlignCenter()
+                        .PaddingVertical(0.8f, Unit.Centimetre)
+                        .Row(row =>
+                        {
+                            // Lado esquerdo: data de geração
+                            row.RelativeItem()
+                                .AlignLeft()
+                                .Text(text =>
+                                {
+                                    text.Span($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm}")
+                                        .FontSize(9)
+                                        .FontColor(Colors.Grey.Medium);
+                                });
+
+                            // Lado direito: número da página
+                            row.RelativeItem()
+                                .AlignRight()
+                                .Text(text =>
+                                {
+                                    text.Span("Página ")
+                                        .FontSize(9)
+                                        .FontColor(Colors.Grey.Medium);
+
+                                    text.CurrentPageNumber()
+                                        .FontSize(9)
+                                        .FontColor(Colors.Grey.Medium);
+                                });
+                        });
+                });
+            });
+
+            return document.GeneratePdf();
+        }
+
+    }
+}

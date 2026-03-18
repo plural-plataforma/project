@@ -17,7 +17,7 @@ export interface AvaliacaoDiagnosticaResumo {
   titulo: string;
   objetivo?: string;
   dataAplicacao: string;          // ISO date "2026-01-27"
-  escolaId: number;
+  escolaId?: number;
   escolaNome?: string;            // Opcional, vindo do backend
   quantidadeAlunos: number;
   quantidadeBlocos: number;
@@ -54,9 +54,17 @@ export interface AvaliacaoDiagnosticaDetalhada {
     status?: 'Pendente' | 'EmAndamento' | 'Concluido';
   }>;
   concluida: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+/**
+ * DTO auxiliar para bloco + atividades selecionadas
+ */
+export type BlocoSelecionadoDTO = {
+  blocoId: number;
+  atividadeIds: number[];
+};
 
 /**
  * Dados necessários para CRIAR uma nova avaliação diagnóstica
@@ -65,9 +73,9 @@ export interface CreateAvaliacaoDiagnosticaRequest {
   titulo: string;
   objetivo?: string;
   dataAplicacao?: string;          // ISO date, opcional (usa hoje se não vier)
-  escolaId: number;
+  escolaId?: number| null;
   alunoIds: number[];              // IDs dos alunos selecionados
-  blocoIds: number[];              // IDs dos blocos selecionados
+  blocos: BlocoSelecionadoDTO[];   // Blocos com atividades específicas selecionadas
 }
 
 /**
@@ -136,4 +144,30 @@ export interface DiagnosticoResumo {
   percentualAutonomia: number;
   resumoCurto: string;
   geradoEm: string;
+}
+
+export interface AvaliacaoDiagnosticaEdicaoResponse {
+  sucesso: boolean;
+  mensagens: string[];
+  objeto: {
+    id: number;
+    titulo: string;
+    objetivo?: string;
+    dataAplicacao: string;
+    escolaId?: number | null;
+    concluida: boolean;
+    alunoIds: number[];
+    blocosComAtividades: Array<{
+      id: number;
+      titulo: string;
+      ordem: number;
+      observacao?: string | null;
+      icone?: string | null;
+      quantidadeAtividades: number;
+      atividades: Array<{
+        id: number;
+        titulo: string;
+      }>;
+    }>;
+  };
 }

@@ -14,59 +14,58 @@ import {
 } from 'phosphor-react-native';
 import { colors } from '@packages/ui/theme/theme';
 import DetailsAtividades from '@src/app/avaliacaoDiagnostica/criacao/detailsAtividades';
-import { UIAtividade } from '@src/types/atividades';
 
-type AreaSelecionada = {
-  areaId: number;
-  atividades: number[];
-};
-
+interface AtividadeItem {
+  id: number;
+  titulo: string;
+  enunciado: string;
+  nivel: string;
+  habilidadeIds: number[];
+  imagemUrl: string | null;
+  etapaMin: string | null;
+  etapaMax: string | null;
+}
 
 interface Props {
-  titulo: string;
   areaId: number;
-  atividades: UIAtividade[];
-  onChange?: (data: AreaSelecionada | null, areaId: number) => void;
+  titulo: string;
+  atividades: AtividadeItem[];
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
 }
 
 export function ExpandableArea({
   titulo,
   areaId,
   atividades,
+  selectedIds,
   onChange,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [areaSelected, setAreaSelected] = useState(false);
-  const [selectedActivities, setSelectedActivities] = useState<number[]>([]);
   const [atividadeModal, setAtividadeModal] = useState<{
     id: number;
-    descricao: string;
-    areaId: number;
+    titulo: string;
+    enunciado: string;
     areaTitulo: string;
+    nivel: string;
+    habilidadeIds: number[];
+    etapaMin?: string | null;
+    etapaMax?: string | null;
+    imagemUrl?: string | null;
   } | null>(null);
 
   const toggleActivity = (id: number) => {
-    const updated = selectedActivities.includes(id)
-      ? selectedActivities.filter(i => i !== id)
-      : [...selectedActivities, id];
+    const updated = selectedIds.includes(id)
+      ? selectedIds.filter((i) => i !== id)
+      : [...selectedIds, id];
 
-    setSelectedActivities(updated);
-
-    onChange?.(
-      updated.length === 0
-        ? null
-        : { areaId, atividades: updated },
-      areaId
-    );
+    onChange?.(updated);
   };
 
   const toggleArea = () => {
-    if (areaSelected) {
-      setAreaSelected(false);
-      setSelectedActivities([]);
-      onChange?.(null, areaId);
+    if (selectedIds.length > 0) {
+      onChange?.([]);
     } else {
-      setAreaSelected(true);
       setExpanded(true);
     }
   };
@@ -74,15 +73,12 @@ export function ExpandableArea({
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <Pressable
-        style={styles.header}
-        onPress={() => setExpanded(!expanded)}
-      >
+      <Pressable style={styles.header} onPress={() => setExpanded(!expanded)}>
         <Pressable onPress={toggleArea}>
           <CheckSquare
             size={22}
             color={colors.primary}
-            weight={areaSelected ? 'fill' : 'regular'}
+            weight={selectedIds.length ? 'fill' : 'regular'}
           />
         </Pressable>
 
@@ -94,8 +90,8 @@ export function ExpandableArea({
       {/* BODY */}
       {expanded && (
         <View style={styles.body}>
-          {atividades.map(atividade => {
-            const selected = selectedActivities.includes(atividade.id);
+          {atividades.map((atividade) => {
+            const selected = selectedIds.includes(atividade.id);
 
             return (
               <View
@@ -111,20 +107,29 @@ export function ExpandableArea({
                   onPress={() =>
                     setAtividadeModal({
                       id: atividade.id,
-                      descricao: atividade.descricao,
-                      areaId,
+                      titulo: atividade.titulo,
+                      enunciado: atividade.enunciado,
                       areaTitulo: titulo,
+                      nivel: atividade.nivel,
+                      habilidadeIds: atividade.habilidadeIds,
+                      etapaMin: atividade.etapaMin,
+                      etapaMax: atividade.etapaMax,
+                      imagemUrl: atividade.imagemUrl,
                     })
                   }
                 >
-                  <Text
-                    style={[
-                      styles.activityText,
-                      selected && styles.activityTextSelected,
-                    ]}
-                  >
-                    {atividade.descricao}
-                  </Text>
+                  <View style={styles.activityInfo}>
+                    <Text
+                      style={[
+                        styles.activityTitle,
+                        selected && styles.activityTitleSelected,
+                      ]}
+                    >
+                      {atividade.titulo}
+                    </Text>
+
+               
+                  </View>
                 </Pressable>
 
                 {/* ÍCONE → SELEÇÃO */}
@@ -188,14 +193,33 @@ const styles = StyleSheet.create({
   activitySelected: {
     backgroundColor: '#276678',
   },
-  activityText: {
-    fontSize: 13,
-    color: '#276678',
-    fontFamily: 'Poppins-Regular',
+  activityInfo: {
     flex: 1,
-    marginRight: 8,
+    marginRight: 12,
   },
-  activityTextSelected: {
+  activityTitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    color: '#276678',
+  },
+  activityTitleSelected: {
     color: '#fff',
+  },
+  activitySubtitle: {
+    fontSize: 12,
+    color: '#555',
+    marginTop: 2,
+  },
+  activitySubtitleSelected: {
+    color: '#eee',
+  },
+  activityPreview: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  activityPreviewSelected: {
+    color: '#ddd',
   },
 });

@@ -427,6 +427,10 @@ namespace api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dataconclusaoregistro");
 
+                    b.Property<string>("ObservacaoGeral")
+                        .HasColumnType("text")
+                        .HasColumnName("observacaogeral");
+
                     b.Property<string>("Status")
                         .HasColumnType("text")
                         .HasColumnName("status");
@@ -460,7 +464,7 @@ namespace api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dataaplicacao");
 
-                    b.Property<int>("EscolaId")
+                    b.Property<int?>("EscolaId")
                         .HasColumnType("integer")
                         .HasColumnName("escolaid");
 
@@ -485,6 +489,24 @@ namespace api.Migrations
                         .HasDatabaseName("ix_avaliacoes_diagnosticas_escolaid");
 
                     b.ToTable("avaliacoes_diagnosticas");
+                });
+
+            modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaAtividade", b =>
+                {
+                    b.Property<int>("AvaliacaoDiagnosticaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("avaliacaodiagnosticaid");
+
+                    b.Property<int>("AtividadeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("atividadeid");
+
+                    b.HasKey("AvaliacaoDiagnosticaId", "AtividadeId");
+
+                    b.HasIndex("AtividadeId")
+                        .HasDatabaseName("ix_avaliacoes_diagnosticas_atividades_atividadeid");
+
+                    b.ToTable("avaliacoes_diagnosticas_atividades");
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaBloco", b =>
@@ -618,8 +640,9 @@ namespace api.Migrations
                     b.HasIndex("AtividadeId")
                         .HasDatabaseName("ix_desempenhos_atividades_atividadeid");
 
-                    b.HasIndex("AvaliacaoDiagnosticaId", "AlunoId", "AtividadeId")
-                        .IsUnique();
+                    b.HasIndex("AvaliacaoDiagnosticaId", "DataRegistro");
+
+                    b.HasIndex("AvaliacaoDiagnosticaId", "AlunoId", "AtividadeId");
 
                     b.ToTable("desempenhos_atividades");
                 });
@@ -878,6 +901,39 @@ namespace api.Migrations
                         .HasDatabaseName("ix_laudos_idaluno");
 
                     b.ToTable("laudos");
+                });
+
+            modelBuilder.Entity("api.Models.ObservacaoAlunoAvaliacaoHistorico", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AlunoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("alunoid");
+
+                    b.Property<int>("AvaliacaoDiagnosticaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("avaliacaodiagnosticaid");
+
+                    b.Property<DateTime>("DataRegistro")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dataregistro");
+
+                    b.Property<string>("Observacao")
+                        .HasColumnType("text")
+                        .HasColumnName("observacao");
+
+                    b.HasKey("Id")
+                        .HasName("pk_observacoes_alunos_avaliacao_historico");
+
+                    b.HasIndex("AvaliacaoDiagnosticaId", "AlunoId", "DataRegistro");
+
+                    b.ToTable("observacoes_alunos_avaliacao_historico");
                 });
 
             modelBuilder.Entity("api.Models.Planejamento", b =>
@@ -1335,11 +1391,31 @@ namespace api.Migrations
                     b.HasOne("api.Models.Escola", "Escola")
                         .WithMany()
                         .HasForeignKey("EscolaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
+                        .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_avaliacoes_diagnosticas_escolas_escolaid");
 
                     b.Navigation("Escola");
+                });
+
+            modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaAtividade", b =>
+                {
+                    b.HasOne("api.Models.Atividade", "Atividade")
+                        .WithMany()
+                        .HasForeignKey("AtividadeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_avaliacoes_diagnosticas_atividades_atividade_atividadeid");
+
+                    b.HasOne("api.Models.AvaliacaoDiagnostica", "AvaliacaoDiagnostica")
+                        .WithMany("AtividadesSelecionadas")
+                        .HasForeignKey("AvaliacaoDiagnosticaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_avaliacoes_diagnosticas_atividades_avaliacoes_diagnosticas_~");
+
+                    b.Navigation("Atividade");
+
+                    b.Navigation("AvaliacaoDiagnostica");
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaBloco", b =>
@@ -1548,6 +1624,8 @@ namespace api.Migrations
             modelBuilder.Entity("api.Models.AvaliacaoDiagnostica", b =>
                 {
                     b.Navigation("AlunosParticipantes");
+
+                    b.Navigation("AtividadesSelecionadas");
 
                     b.Navigation("BlocosSelecionados");
 

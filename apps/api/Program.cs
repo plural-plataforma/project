@@ -8,8 +8,13 @@ using System.Text;
 using api.Models;
 using api.Services;
 using Data;
+using QuestPDF.Infrastructure;
+
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 builder.Services.AddCors(options =>
 {
@@ -128,7 +133,7 @@ builder.Services.AddScoped<PlanejamentoService>();
 builder.Services.AddScoped<EstrategiaService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
-builder.Services.AddScoped<AvaliacaoService>();
+builder.Services.AddScoped<AvaliacaoDiagnosticaService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
 builder.Services.AddScoped<EmailService>();
