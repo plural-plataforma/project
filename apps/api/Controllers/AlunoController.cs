@@ -1,4 +1,4 @@
-﻿using api.DTOs.Aluno;
+using api.DTOs.Aluno;
 using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -99,6 +99,18 @@ namespace api.Controllers
             {
                 return BadRequest(resposta);
             }
+        }
+
+        [HttpDelete("{idAluno}")]
+        public async Task<IActionResult> Excluir(int idAluno)
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var resposta = await _alunoService.Excluir(usuario, idAluno);
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+            return BadRequest(resposta);
         }
 
     }

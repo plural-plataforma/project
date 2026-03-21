@@ -39,7 +39,9 @@ const schema = z.object({
   idEscola: z.number().optional(),
   responsavelNome: z.string().min(2, 'Nome do responsável obrigatório'),
   responsavelTelefone: z.string().min(8, 'Telefone obrigatório'),
-  responsavelEmail: z.string().email('digite o e-mail do responsável').optional().or(z.literal('')),
+  responsavelEmail: z
+    .union([z.literal(''), z.string().email('digite o e-mail do responsável')])
+    .optional(),
   laudoCodigoCid: z.string().optional(),
   laudoNomeMedico: z.string().optional(),
   laudoDescricao: z.string().optional(),
@@ -143,7 +145,7 @@ export function AlunoFormDialog({
         responsavel: {
           nomeCompleto: data.responsavelNome,
           telefone: data.responsavelTelefone,
-          email: data.responsavelEmail ?? '',
+          email: data.responsavelEmail?.trim() ? data.responsavelEmail.trim() : null,
         },
         laudos:
           editingAluno?.laudos ?? [],
@@ -290,7 +292,7 @@ export function AlunoFormDialog({
                     {...register('responsavelTelefone')}
                   />
                   <Input
-                    label="E-mail"
+                    label="E-mail (opcional)"
                     type="email"
                     placeholder="email@exemplo.com"
                     error={errors.responsavelEmail?.message}
