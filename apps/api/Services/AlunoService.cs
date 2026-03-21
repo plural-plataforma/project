@@ -1,4 +1,4 @@
-﻿using api.DTOs.Aluno;
+using api.DTOs.Aluno;
 using api.DTOs.Avaliacao;
 using api.DTOs.Estrategia;
 using api.DTOs.Habilidade;
@@ -361,6 +361,55 @@ namespace api.Services
             catch (Exception)
             {
                 resposta.SetFalha("Erro ao buscar aluno.");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> Excluir(Usuario usuario, int idAluno)
+        {
+            var resposta = new ServiceResponse<bool>();
+
+            try
+            {
+                var aluno = await _contexto.Alunos
+                    .FirstOrDefaultAsync(a => a.Id == idAluno && a.IdProfessor == usuario.ProfessorId);
+
+                if (aluno == null)
+                {
+                    resposta.SetFalha("Aluno não encontrado.");
+                    return resposta;
+                }
+
+                var idResponsavel = aluno.IdResponsavel;
+
+                var historicos = _contexto.ObservacoesAlunosAvaliacaoHistorico.Where(o => o.AlunoId == idAluno);
+                _contexto.ObservacoesAlunosAvaliacaoHistorico.RemoveRange(historicos);
+
+                _contexto.Alunos.Remove(aluno);
+                await _contexto.SaveChangesAsync();
+
+                if (idResponsavel.HasValue)
+                {
+                    var responsavelAindaEmUso = await _contexto.Alunos.AnyAsync(a => a.IdResponsavel == idResponsavel.Value);
+                    if (!responsavelAindaEmUso)
+                    {
+                        var responsavel = await _contexto.Responsaveis.FindAsync(idResponsavel.Value);
+                        if (responsavel != null)
+                        {
+                            _contexto.Responsaveis.Remove(responsavel);
+                            await _contexto.SaveChangesAsync();
+                        }
+                    }
+                }
+
+                resposta.Sucesso = true;
+                resposta.AdicionaObjeto(true);
+                resposta.AdicionaMensagem("Aluno excluído com sucesso.");
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha(ex.Message);
                 return resposta;
             }
         }
