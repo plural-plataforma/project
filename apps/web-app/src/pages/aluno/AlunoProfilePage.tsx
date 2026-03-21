@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { PencilSimple, GraduationCap, Phone, Envelope, User, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react'
+import { PencilSimple, GraduationCap, Phone, Envelope, User, DownloadSimple, ArrowSquareOut, Trash } from '@phosphor-icons/react'
 import { AlignmentType, Document, Packer, Paragraph, TextRun } from 'docx'
-import { buscarAlunoPorId } from '@/services/alunoService'
+import { buscarAlunoPorId, excluirAluno } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
 import { buscarAvaliacaoPorId, buscarAvaliacoesDiagnosticas, gerarPdfBlob } from '@/services/avaliacaoDiagnosticaService'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -15,11 +15,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { PlanejamentoAluno } from '@/types/planejamento'
 import { AlunoFormDialog } from './AlunoFormDialog'
+import { AlunoExcluirDialog } from './AlunoExcluirDialog'
+import { useToast } from '@/hooks/useToast'
+
 export default function AlunoProfilePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { success, error: showError } = useToast()
   const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const { data: aluno, isLoading } = useQuery({
     queryKey: ['aluno', id],
@@ -41,6 +46,17 @@ export default function AlunoProfilePage() {
     queryFn: async () => Promise.all(
       avaliacoesDiagnosticasResumo.map((av) => buscarAvaliacaoPorId(av.id))
     ),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (studentId: number) => excluirAluno(studentId),
+    onSuccess: () => {
+      success('Aluno excluído', 'O cadastro foi removido.')
+      setDeleteOpen(false)
+      qc.invalidateQueries({ queryKey: ['alunos'] })
+      navigate('/alunos', { replace: true })
+    },
+    onError: (err: Error) => showError('Não foi possível excluir', err.message),
   })
 
   if (isLoading) return <SkeletonList count={3} />
@@ -203,10 +219,16 @@ export default function AlunoProfilePage() {
         title={aluno.nomeCompleto}
         backTo="/alunos"
         action={
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <PencilSimple size={16} />
-            Editar
-          </Button>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <PencilSimple size={16} />
+              Editar
+            </Button>
+            <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash size={16} weight="bold" />
+              Excluir
+            </Button>
+          </div>
         }
       />
 
@@ -369,6 +391,14 @@ export default function AlunoProfilePage() {
         }}
         escolas={escolas}
         editingAluno={aluno}
+      />
+
+      <AlunoExcluirDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        nomeCompleto={alunoNome}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate(alunoId)}
       />
     </>
   )

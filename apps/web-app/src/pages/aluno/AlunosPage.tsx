@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Users, MagnifyingGlass, Eye, GraduationCap, CaretRight } from '@phosphor-icons/react'
-import { buscarAlunos } from '@/services/alunoService'
+import { Plus, Users, MagnifyingGlass, Eye, GraduationCap, CaretRight, Trash } from '@phosphor-icons/react'
+import { buscarAlunos, excluirAluno } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -15,13 +15,18 @@ import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlunoFormDialog } from './AlunoFormDialog'
+import { AlunoExcluirDialog } from './AlunoExcluirDialog'
 import { sortByField } from '@/lib/utils'
+import { useToast } from '@/hooks/useToast'
+import type { Aluno } from '@/types/aluno'
 
 export default function AlunosPage() {
   const navigate = useNavigate()
+  const { success, error: showError } = useToast()
   const [search, setSearch] = useState('')
   const [escolaFilter, setEscolaFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Aluno | null>(null)
 
   const { data: alunos = [], isLoading, refetch } = useQuery({
     queryKey: ['alunos'],
@@ -31,6 +36,16 @@ export default function AlunosPage() {
   const { data: escolas = [] } = useQuery({
     queryKey: ['escolas-professor'],
     queryFn: buscarEscolasProfessor,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => excluirAluno(id),
+    onSuccess: () => {
+      success('Aluno excluído', 'O cadastro foi removido.')
+      setDeleteTarget(null)
+      refetch()
+    },
+    onError: (err: Error) => showError('Não foi possível excluir', err.message),
   })
 
   const filtered = sortByField(
@@ -124,44 +139,51 @@ export default function AlunosPage() {
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.25, delay: i * 0.04 }}
                 >
-                  <button
-                    type="button"
-                    className="w-full text-left"
-                    onClick={() => navigate(`/alunos/${aluno.id}`)}
-                    aria-label={`Ver detalhes de ${aluno.nomeCompleto}`}
-                  >
-                    <Card className="p-4 hover:border-primary transition-colors duration-200">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Avatar>
-                            <AvatarFallback>{initials}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-foreground truncate">{aluno.nomeCompleto}</p>
-                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                              {escola && (
-                                <span className="text-xs text-muted-foreground truncate">
-                                  {escola.nomeInstituicao}
-                                </span>
-                              )}
-                              {aluno.nivelEnsino && (
-                                <Badge variant="muted" className="text-xs">
-                                  <GraduationCap size={10} className="mr-1" />
-                                  {aluno.nivelEnsino}
-                                </Badge>
-                              )}
-                            </div>
+                  <Card className="p-4 hover:border-primary transition-colors duration-200">
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        className="flex flex-1 min-w-0 text-left items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        onClick={() => navigate(`/alunos/${aluno.id}`)}
+                        aria-label={`Ver detalhes de ${aluno.nomeCompleto}`}
+                      >
+                        <Avatar>
+                          <AvatarFallback>{initials}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-foreground truncate">{aluno.nomeCompleto}</p>
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            {escola && (
+                              <span className="text-xs text-muted-foreground truncate">
+                                {escola.nomeInstituicao}
+                              </span>
+                            )}
+                            {aluno.nivelEnsino && (
+                              <Badge variant="muted" className="text-xs">
+                                <GraduationCap size={10} className="mr-1" />
+                                {aluno.nivelEnsino}
+                              </Badge>
+                            )}
                           </div>
                         </div>
-
                         <span className="inline-flex items-center gap-1 text-sm text-primary shrink-0">
                           <Eye size={16} />
                           Ver
                           <CaretRight size={12} />
                         </span>
-                      </div>
-                    </Card>
-                  </button>
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground hover:text-danger"
+                        aria-label={`Excluir ${aluno.nomeCompleto}`}
+                        onClick={() => setDeleteTarget(aluno)}
+                      >
+                        <Trash size={20} weight="bold" />
+                      </Button>
+                    </div>
+                  </Card>
                 </motion.div>
               )
             })}
@@ -174,6 +196,16 @@ export default function AlunosPage() {
         onClose={() => setDialogOpen(false)}
         onSuccess={() => { setDialogOpen(false); refetch() }}
         escolas={escolas}
+      />
+
+      <AlunoExcluirDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        nomeCompleto={deleteTarget?.nomeCompleto ?? ''}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget?.id != null) deleteMutation.mutate(deleteTarget.id)
+        }}
       />
     </>
   )

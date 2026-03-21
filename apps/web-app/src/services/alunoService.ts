@@ -87,3 +87,15 @@ export const atualizaAluno = async (data: Partial<Aluno>): Promise<Aluno> => {
     throw new Error(getApiErrorMessage(error, 'Falha ao atualizar aluno'))
   }
 }
+
+type ExcluirAlunoResponse = { sucesso: boolean; mensagens?: string[] }
+
+export const excluirAluno = async (id: number): Promise<void> => {
+  try {
+    const response = await api.delete<ExcluirAlunoResponse>(`/Aluno/${id}`)
+    if (response.data.sucesso) return
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao excluir aluno')
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, 'Falha ao excluir aluno'))
+  }
+}

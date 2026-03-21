@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buscarAlunos, buscarAlunoPorId, cadastraAluno, atualizaAluno } from './alunoService'
+import { buscarAlunos, buscarAlunoPorId, cadastraAluno, atualizaAluno, excluirAluno } from './alunoService'
 import { api } from '@/api/http'
 
 vi.mock('@/api/http', () => ({
@@ -7,6 +7,7 @@ vi.mock('@/api/http', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -119,6 +120,23 @@ describe('alunoService', () => {
       const result = await atualizaAluno({ id: 1, nomeCompleto: 'Atualizado' })
 
       expect(result.nomeCompleto).toBe('Atualizado')
+    })
+  })
+
+  describe('excluirAluno', () => {
+    it('resolve quando exclusão é bem-sucedida', async () => {
+      vi.mocked(api.delete).mockResolvedValue({ data: { sucesso: true } })
+
+      await expect(excluirAluno(1)).resolves.toBeUndefined()
+      expect(api.delete).toHaveBeenCalledWith('/Aluno/1')
+    })
+
+    it('lança erro quando API retorna falha', async () => {
+      vi.mocked(api.delete).mockResolvedValue({
+        data: { sucesso: false, mensagens: ['Não permitido'] },
+      })
+
+      await expect(excluirAluno(1)).rejects.toThrow('Não permitido')
     })
   })
 })
