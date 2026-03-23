@@ -371,6 +371,8 @@ namespace api.Services
 
             try
             {
+                using var transacao = await _contexto.Database.BeginTransactionAsync();
+
                 var aluno = await _contexto.Alunos
                     .FirstOrDefaultAsync(a => a.Id == idAluno && a.IdProfessor == usuario.ProfessorId);
 
@@ -382,8 +384,36 @@ namespace api.Services
 
                 var idResponsavel = aluno.IdResponsavel;
 
-                var historicos = _contexto.ObservacoesAlunosAvaliacaoHistorico.Where(o => o.AlunoId == idAluno);
+                // Remove dependências explícitas do aluno para evitar falha de FK ao excluir.
+                var historicos = await _contexto.ObservacoesAlunosAvaliacaoHistorico
+                    .Where(o => o.AlunoId == idAluno)
+                    .ToListAsync();
                 _contexto.ObservacoesAlunosAvaliacaoHistorico.RemoveRange(historicos);
+
+                var desempenhos = await _contexto.DesempenhosAtividades
+                    .Where(d => d.AlunoId == idAluno)
+                    .ToListAsync();
+                _contexto.DesempenhosAtividades.RemoveRange(desempenhos);
+
+                var avaliacoesAluno = await _contexto.AvaliacoesAlunos
+                    .Where(a => a.AlunoId == idAluno)
+                    .ToListAsync();
+                _contexto.AvaliacoesAlunos.RemoveRange(avaliacoesAluno);
+
+                var diagnosticosFinais = await _contexto.DiagnosticosFinais
+                    .Where(d => d.AlunoId == idAluno)
+                    .ToListAsync();
+                _contexto.DiagnosticosFinais.RemoveRange(diagnosticosFinais);
+
+                var vinculosPlanejamento = await _contexto.AlunosXPlanejamentos
+                    .Where(v => v.AlunoId == idAluno)
+                    .ToListAsync();
+                _contexto.AlunosXPlanejamentos.RemoveRange(vinculosPlanejamento);
+
+                var laudos = await _contexto.Laudos
+                    .Where(l => l.IdAluno == idAluno)
+                    .ToListAsync();
+                _contexto.Laudos.RemoveRange(laudos);
 
                 _contexto.Alunos.Remove(aluno);
                 await _contexto.SaveChangesAsync();
@@ -402,6 +432,7 @@ namespace api.Services
                     }
                 }
 
+                await transacao.CommitAsync();
                 resposta.Sucesso = true;
                 resposta.AdicionaObjeto(true);
                 resposta.AdicionaMensagem("Aluno excluído com sucesso.");
