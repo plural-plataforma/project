@@ -124,7 +124,7 @@ export default function PerfilPage() {
       ? {
           nomeCompleto: professor.nomeCompleto,
           email: professor.email ?? '',
-          telefone: professor.telefone ?? '',
+          telefone: formatTelefone(professor.telefone ?? ''),
           disciplinas: professor.disciplinas ?? '',
           nivelEnsino: professor.nivelEnsino ?? '',
           sobre: professor.sobre ?? '',
@@ -391,6 +391,8 @@ export default function PerfilPage() {
                     placeholder="(11) 99999-9999"
                     error={errors.telefone?.message}
                     value={telefoneAtual ?? ''}
+                    inputMode="numeric"
+                    maxLength={15}
                     {...register('telefone', {
                       onChange: (event) => {
                         event.target.value = formatTelefone(event.target.value)
