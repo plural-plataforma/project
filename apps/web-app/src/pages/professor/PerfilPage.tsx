@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { useForm, type FieldErrors } from 'react-hook-form'
@@ -89,6 +89,8 @@ export default function PerfilPage() {
   const { success, error: showError } = useToast()
   const [editing, setEditing] = useState(false)
   const [escolaParaVincular, setEscolaParaVincular] = useState<string>('')
+  const [isLogradouroLocked, setIsLogradouroLocked] = useState(true)
+  const [isBairroLocked, setIsBairroLocked] = useState(true)
 
   const { data, isLoading } = useQuery({
     queryKey: ['professor'],
@@ -142,6 +144,11 @@ export default function PerfilPage() {
   const cidadeAtual = watch('cidade')
   const telefoneAtual = watch('telefone')
 
+  useEffect(() => {
+    setIsLogradouroLocked(Boolean((professor?.logradouro ?? '').trim()))
+    setIsBairroLocked(Boolean((professor?.bairro ?? '').trim()))
+  }, [professor?.logradouro, professor?.bairro])
+
   async function applyCepData(cep?: string): Promise<boolean> {
     const cepDigits = (cep ?? '').replace(/\D/g, '')
     if (cepDigits.length !== 8) return true
@@ -157,6 +164,8 @@ export default function PerfilPage() {
       setValue('cidade', data.localidade ?? '', { shouldValidate: true })
       setValue('logradouro', data.logradouro ?? '', { shouldValidate: true })
       setValue('bairro', data.bairro ?? '', { shouldValidate: true })
+      setIsLogradouroLocked(Boolean((data.logradouro ?? '').trim()))
+      setIsBairroLocked(Boolean((data.bairro ?? '').trim()))
       return true
     } catch (error) {
       console.error('[PerfilPage] Erro ao buscar CEP', error)
@@ -420,7 +429,13 @@ export default function PerfilPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
-                    <Input label="Logradouro" placeholder="Rua, Avenida..." {...register('logradouro')} readOnly disabled />
+                    <Input
+                      label="Logradouro"
+                      placeholder="Rua, Avenida..."
+                      {...register('logradouro')}
+                      readOnly={isLogradouroLocked}
+                      disabled={isLogradouroLocked}
+                    />
                   </div>
                   <Input
                     label="Número"
@@ -431,7 +446,12 @@ export default function PerfilPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Input label="Complemento (opcional)" placeholder="Apto, bloco, referência..." {...register('complemento')} />
-                  <Input label="Bairro" {...register('bairro')} readOnly disabled />
+                  <Input
+                    label="Bairro"
+                    {...register('bairro')}
+                    readOnly={isBairroLocked}
+                    disabled={isBairroLocked}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Input label="Estado (UF)" value={estadoAtual ?? ''} readOnly disabled />
