@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PencilSimple, Check, X as XIcon, UserCircle, MapPin, GraduationCap, WarningCircle } from '@phosphor-icons/react'
+import { type AxiosError } from 'axios'
 import {
   buscarProfessor,
   atualizarProfessor,
@@ -24,7 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/useToast'
 import type { Professor } from '@/types/professor'
-import { fetchCepData, fetchEstados, fetchMunicipios } from '@/services/locationsService'
+import { fetchCepData } from '@/services/locationsService'
 
 const schema = z.object({
   nomeCompleto: z.string().min(3, 'Nome obrigatório'),
@@ -35,22 +36,58 @@ const schema = z.object({
   sobre: z.string().optional(),
   cep: z.string().optional(),
   logradouro: z.string().optional(),
-  numero: z.number().optional(),
+  numero: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined || Number.isNaN(v) ? undefined : Number(v)),
+    z.number().positive('Número inválido').optional()
+  ),
+  complemento: z.string().optional(),
   bairro: z.string().optional(),
   cidade: z.string().optional(),
   estado: z.string().optional(),
   sexo: z.string().optional(),
 })
 
-type FormData = z.infer<typeof schema>
+type FormInput = z.input<typeof schema>
+type FormData = z.output<typeof schema>
+
+type ApiErrorData = {
+  mensagens?: string[]
+  message?: string
+  title?: string
+  errors?: string[] | Record<string, string[]>
+}
+
+const formatTelefone = (value?: string): string => {
+  const digits = (value ?? '').replace(/\D/g, '').slice(0, 11)
+
+  if (digits.length <= 2) return digits ? `(${digits}` : ''
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  const axiosError = error as AxiosError<ApiErrorData>
+  const data = axiosError.response?.data
+
+  if (data) {
+    if (Array.isArray(data.mensagens) && data.mensagens.length > 0) return data.mensagens.join(', ')
+    if (typeof data.message === 'string' && data.message.trim()) return data.message
+    if (typeof data.title === 'string' && data.title.trim()) return data.title
+    if (Array.isArray(data.errors) && data.errors.length > 0) return data.errors[0] ?? fallback
+    if (data.errors && typeof data.errors === 'object') {
+      const firstError = Object.values(data.errors).flat()[0]
+      if (firstError) return firstError
+    }
+  }
+
+  return axiosError.message || fallback
+}
 
 export default function PerfilPage() {
   const qc = useQueryClient()
   const { success, error: showError } = useToast()
   const [editing, setEditing] = useState(false)
-  const [estados, setEstados] = useState<Array<{ sigla: string; nome: string }>>([])
-  const [cidades, setCidades] = useState<string[]>([])
-  const [loadingCidades, setLoadingCidades] = useState(false)
   const [escolaParaVincular, setEscolaParaVincular] = useState<string>('')
 
   const { data, isLoading } = useQuery({
@@ -79,9 +116,8 @@ export default function PerfilPage() {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+  } = useForm<FormInput, unknown, FormData>({
+    resolver: zodResolver(schema),
     values: professor
       ? {
           nomeCompleto: professor.nomeCompleto,
@@ -93,6 +129,7 @@ export default function PerfilPage() {
           cep: professor.cep ?? '',
           logradouro: professor.logradouro ?? '',
           numero: professor.numero,
+          complemento: professor.complemento ?? '',
           bairro: professor.bairro ?? '',
           cidade: professor.cidade ?? '',
           estado: professor.estado ?? '',
@@ -103,33 +140,33 @@ export default function PerfilPage() {
 
   const estadoAtual = watch('estado')
   const cidadeAtual = watch('cidade')
+  const telefoneAtual = watch('telefone')
 
-  useEffect(() => {
-    fetchEstados()
-      .then((ufs) => setEstados(ufs.map((uf) => ({ sigla: uf.sigla, nome: uf.nome }))))
-      .catch(() => setEstados([]))
-  }, [])
+  async function applyCepData(cep?: string): Promise<boolean> {
+    const cepDigits = (cep ?? '').replace(/\D/g, '')
+    if (cepDigits.length !== 8) return true
 
-  useEffect(() => {
-    if (!estadoAtual || estadoAtual.length !== 2) {
-      setCidades([])
-      return
+    try {
+      const data = await fetchCepData(cepDigits)
+      if (!data) {
+        showError('CEP não encontrado', 'Verifique o CEP informado para preencher o endereço.')
+        return false
+      }
+
+      setValue('estado', data.uf?.toUpperCase() ?? '', { shouldValidate: true })
+      setValue('cidade', data.localidade ?? '', { shouldValidate: true })
+      setValue('logradouro', data.logradouro ?? '', { shouldValidate: true })
+      setValue('bairro', data.bairro ?? '', { shouldValidate: true })
+      return true
+    } catch (error) {
+      console.error('[PerfilPage] Erro ao buscar CEP', error)
+      showError('Erro ao buscar CEP', 'Não foi possível preencher o endereço automaticamente.')
+      return false
     }
-
-    setLoadingCidades(true)
-    fetchMunicipios(estadoAtual)
-      .then((municipios) => setCidades(municipios.map((m) => m.nome)))
-      .catch(() => setCidades([]))
-      .finally(() => setLoadingCidades(false))
-  }, [estadoAtual])
+  }
 
   async function handleCepBlur(cep?: string) {
-    const data = await fetchCepData(cep ?? '')
-    if (!data) return
-    if (data.uf) setValue('estado', data.uf.toUpperCase(), { shouldValidate: true })
-    if (data.localidade) setValue('cidade', data.localidade, { shouldValidate: true })
-    if (data.logradouro) setValue('logradouro', data.logradouro, { shouldValidate: true })
-    if (data.bairro) setValue('bairro', data.bairro, { shouldValidate: true })
+    await applyCepData(cep)
   }
 
   const updateMutation = useMutation({
@@ -137,7 +174,7 @@ export default function PerfilPage() {
       atualizarProfessor({
         ...(professor as Professor),
         ...formData,
-        numero: formData.numero ?? 0,
+        telefone: formatTelefone(formData.telefone),
         aceitouTermos: professor?.aceitouTermos ?? false,
         escolas: escolasVinculadas.map((e) => String(e.id)),
       }),
@@ -146,7 +183,11 @@ export default function PerfilPage() {
       success('Perfil atualizado!', 'Suas informações foram salvas.')
       setEditing(false)
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const message = getApiErrorMessage(err, 'Não foi possível atualizar o perfil.')
+      console.error('[PerfilPage] Erro ao atualizar perfil', err)
+      showError('Erro ao salvar perfil', message)
+    },
   })
 
   const vincularMutation = useMutation({
@@ -171,6 +212,18 @@ export default function PerfilPage() {
   function handleCancel() {
     reset()
     setEditing(false)
+  }
+
+  async function handleValidSubmit(data: FormData) {
+    const cepOk = await applyCepData(data.cep)
+    if (!cepOk) return
+
+    await updateMutation.mutateAsync(data)
+  }
+
+  function handleInvalidSubmit(formErrors: FieldErrors<FormInput>) {
+    console.error('[PerfilPage] Erros de validação no formulário', formErrors)
+    showError('Formulário inválido', 'Corrija os campos destacados e tente novamente.')
   }
 
   if (isLoading) return <SkeletonList count={3} />
@@ -201,7 +254,7 @@ export default function PerfilPage() {
                 Cancelar
               </Button>
               <Button
-                onClick={handleSubmit((d: any) => updateMutation.mutate(d))} // eslint-disable-line @typescript-eslint/no-explicit-any
+                onClick={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
                 loading={isSubmitting || updateMutation.isPending}
               >
                 <Check size={16} weight="bold" />
@@ -307,10 +360,8 @@ export default function PerfilPage() {
           </CardContent>
         </Card>
 
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {editing ? (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <form onSubmit={handleSubmit((d: any) => updateMutation.mutate(d))} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)} className="space-y-4" noValidate>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -325,8 +376,18 @@ export default function PerfilPage() {
                   {...register('nomeCompleto')}
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="E-mail" type="email" {...register('email')} />
-                  <Input label="Telefone" placeholder="(11) 99999-9999" {...register('telefone')} />
+                  <Input label="E-mail" type="email" error={errors.email?.message} {...register('email')} />
+                  <Input
+                    label="Telefone"
+                    placeholder="(11) 99999-9999"
+                    error={errors.telefone?.message}
+                    value={telefoneAtual ?? ''}
+                    {...register('telefone', {
+                      onChange: (event) => {
+                        event.target.value = formatTelefone(event.target.value)
+                      },
+                    })}
+                  />
                 </div>
                 <Input label="Sobre você" placeholder="Apresentação breve..." {...register('sobre')} />
               </CardContent>
@@ -355,55 +416,26 @@ export default function PerfilPage() {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Input label="CEP" placeholder="00000-000" {...register('cep')} onBlur={(e) => handleCepBlur(e.target.value)} />
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold">Estado (UF)</label>
-                    <Select
-                      value={estadoAtual ?? ''}
-                      onValueChange={(v) => {
-                        setValue('estado', v, { shouldValidate: true })
-                        setValue('cidade', '', { shouldValidate: true })
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar UF" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {estados.map((uf) => (
-                          <SelectItem key={uf.sigla} value={uf.sigla}>
-                            {uf.sigla} — {uf.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Input label="Cidade" value={cidadeAtual ?? ''} readOnly disabled />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
-                    <Input label="Logradouro" placeholder="Rua, Avenida..." {...register('logradouro')} />
+                    <Input label="Logradouro" placeholder="Rua, Avenida..." {...register('logradouro')} readOnly disabled />
                   </div>
-                  <Input label="Número" type="number" {...register('numero')} />
+                  <Input
+                    label="Número"
+                    type="number"
+                    error={errors.numero?.message}
+                    {...register('numero', { valueAsNumber: true })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="Bairro" {...register('bairro')} />
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold">Cidade</label>
-                    <Select
-                      value={cidadeAtual ?? ''}
-                      onValueChange={(v) => setValue('cidade', v, { shouldValidate: true })}
-                      disabled={!estadoAtual || loadingCidades}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={loadingCidades ? 'Carregando cidades...' : 'Selecionar cidade'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cidades.map((cidade) => (
-                          <SelectItem key={cidade} value={cidade}>
-                            {cidade}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Input label="Complemento (opcional)" placeholder="Apto, bloco, referência..." {...register('complemento')} />
+                  <Input label="Bairro" {...register('bairro')} readOnly disabled />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input label="Estado (UF)" value={estadoAtual ?? ''} readOnly disabled />
+                  <div />
                 </div>
               </CardContent>
             </Card>
@@ -434,6 +466,9 @@ export default function PerfilPage() {
                 items: [
                   { label: 'CEP', value: professor?.cep },
                   { label: 'Logradouro', value: professor?.logradouro },
+                  { label: 'Número', value: professor?.numero?.toString() },
+                  { label: 'Complemento', value: professor?.complemento },
+                  { label: 'Bairro', value: professor?.bairro },
                   { label: 'Cidade', value: professor?.cidade },
                   { label: 'Estado', value: professor?.estado },
                 ],
