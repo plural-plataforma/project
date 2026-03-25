@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { Resolver } from 'react-hook-form'
+import type { FieldErrors, Resolver } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { cadastraAluno, atualizaAluno } from '@/services/alunoService'
 import {
@@ -120,6 +120,16 @@ export function AlunoFormDialog({
   const anoOptions = nivelEnsinoAtual ? (ANO_OPTIONS[nivelEnsinoAtual] ?? []) : []
 
   useEffect(() => {
+    register('sexo')
+    register('turno')
+    register('nivelEnsino')
+    register('ano')
+    register('estado')
+    register('cidade')
+    register('idEscola')
+  }, [register])
+
+  useEffect(() => {
     fetchEstados()
       .then((ufs) => setEstados(ufs.map((uf) => ({ sigla: uf.sigla, nome: uf.nome }))))
       .catch(() => setEstados([]))
@@ -223,6 +233,17 @@ export function AlunoFormDialog({
     onError: (err: Error) => showError('Erro', err.message),
   })
 
+  const handleInvalidSubmit = (formErrors: FieldErrors<FormData>) => {
+    const messages = Object.values(formErrors)
+      .map((error) => error?.message)
+      .filter((message): message is string => typeof message === 'string' && message.length > 0)
+
+    showError(
+      'Validação',
+      messages.length > 0 ? messages.join(' | ') : 'Preencha os campos obrigatórios antes de salvar.'
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -234,7 +255,7 @@ export function AlunoFormDialog({
           <form
             onSubmit={handleSubmit(
               (d) => mutation.mutate(d),
-              () => showError('Validação', 'Preencha os campos obrigatórios antes de salvar.')
+              handleInvalidSubmit
             )}
             className="space-y-4"
             noValidate
