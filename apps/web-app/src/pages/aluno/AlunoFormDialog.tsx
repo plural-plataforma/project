@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { Resolver } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { cadastraAluno, atualizaAluno } from '@/services/alunoService'
 import {
@@ -76,9 +77,8 @@ export function AlunoFormDialog({
     watch,
     reset,
     formState: { errors, isSubmitting },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema) as unknown as Resolver<FormData>,
     defaultValues: editingAluno
       ? {
           nomeCompleto: editingAluno.nomeCompleto,
@@ -96,7 +96,7 @@ export function AlunoFormDialog({
           idEscola: editingAluno.idEscola,
           responsavelNome: editingAluno.responsavel?.nomeCompleto,
           responsavelTelefone: editingAluno.responsavel?.telefone,
-          responsavelEmail: editingAluno.responsavel?.email,
+          responsavelEmail: editingAluno.responsavel?.email ?? undefined,
           laudoCodigoCid: editingAluno.laudos?.[0]?.codigoCid ?? '',
           laudoNomeMedico: editingAluno.laudos?.[0]?.nomeMedico ?? '',
           laudoDescricao: editingAluno.laudos?.[0]?.descricao ?? '',
@@ -106,6 +106,14 @@ export function AlunoFormDialog({
 
   const estadoAtual = watch('estado')
   const cidadeAtual = watch('cidade')
+  const nivelEnsinoAtual = watch('nivelEnsino')
+
+  const ANO_OPTIONS: Record<string, string[]> = {
+    'Educação Infantil': ['Berçário', 'Maternal I', 'Maternal II', 'Jardim I', 'Jardim II', 'Pré-escola'],
+    'Ensino Fundamental': ['1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'],
+    'Ensino Médio': ['1º Ano', '2º Ano', '3º Ano'],
+  }
+  const anoOptions = nivelEnsinoAtual ? (ANO_OPTIONS[nivelEnsinoAtual] ?? []) : []
 
   useEffect(() => {
     fetchEstados()
@@ -203,6 +211,48 @@ export function AlunoFormDialog({
                     <SelectItem value="Tarde">Tarde</SelectItem>
                     <SelectItem value="Noite">Noite</SelectItem>
                     <SelectItem value="Integral">Integral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold">Nível de ensino</label>
+                <Select
+                  onValueChange={(v) => {
+                    setValue('nivelEnsino', v)
+                    setValue('ano', '')
+                  }}
+                  defaultValue={editingAluno?.nivelEnsino}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Educação Infantil">Educação Infantil</SelectItem>
+                    <SelectItem value="Ensino Fundamental">Ensino Fundamental</SelectItem>
+                    <SelectItem value="Ensino Médio">Ensino Médio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold">Ano / Série</label>
+                <Select
+                  onValueChange={(v) => setValue('ano', v)}
+                  value={watch('ano') ?? ''}
+                  disabled={anoOptions.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={anoOptions.length === 0 ? 'Selecione o nível' : 'Selecione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {anoOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
