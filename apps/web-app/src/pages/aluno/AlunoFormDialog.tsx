@@ -107,6 +107,10 @@ export function AlunoFormDialog({
   const estadoAtual = watch('estado')
   const cidadeAtual = watch('cidade')
   const nivelEnsinoAtual = watch('nivelEnsino')
+  const anoAtual = watch('ano')
+  const sexoAtual = watch('sexo')
+  const turnoAtual = watch('turno')
+  const escolaAtual = watch('idEscola')
 
   const ANO_OPTIONS: Record<string, string[]> = {
     'Educação Infantil': ['Berçário', 'Maternal I', 'Maternal II', 'Jardim I', 'Jardim II', 'Pré-escola'],
@@ -132,6 +136,56 @@ export function AlunoFormDialog({
       .catch(() => setCidades([]))
       .finally(() => setLoadingCidades(false))
   }, [estadoAtual])
+
+  useEffect(() => {
+    if (!open) return
+
+    reset(
+      editingAluno
+        ? {
+            nomeCompleto: editingAluno.nomeCompleto,
+            cep: editingAluno.cep ?? '',
+            logradouro: editingAluno.logradouro ?? '',
+            numero: editingAluno.numero,
+            complemento: editingAluno.complemento ?? '',
+            bairro: editingAluno.bairro ?? '',
+            estado: editingAluno.estado ?? '',
+            cidade: editingAluno.cidade ?? '',
+            sexo: editingAluno.sexo ?? '',
+            nivelEnsino: editingAluno.nivelEnsino ?? '',
+            turno: editingAluno.turno ?? '',
+            ano: editingAluno.ano ?? '',
+            idEscola: editingAluno.idEscola,
+            responsavelNome: editingAluno.responsavel?.nomeCompleto ?? '',
+            responsavelTelefone: editingAluno.responsavel?.telefone ?? '',
+            responsavelEmail: editingAluno.responsavel?.email ?? '',
+            laudoCodigoCid: editingAluno.laudos?.[0]?.codigoCid ?? '',
+            laudoNomeMedico: editingAluno.laudos?.[0]?.nomeMedico ?? '',
+            laudoDescricao: editingAluno.laudos?.[0]?.descricao ?? '',
+          }
+        : {
+            nomeCompleto: '',
+            sexo: '',
+            nivelEnsino: '',
+            turno: '',
+            ano: '',
+            cep: '',
+            logradouro: '',
+            numero: undefined,
+            complemento: '',
+            bairro: '',
+            estado: '',
+            cidade: '',
+            idEscola: undefined,
+            responsavelNome: '',
+            responsavelTelefone: '',
+            responsavelEmail: '',
+            laudoCodigoCid: '',
+            laudoNomeMedico: '',
+            laudoDescricao: '',
+          }
+    )
+  }, [open, editingAluno, reset])
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
@@ -177,7 +231,14 @@ export function AlunoFormDialog({
             <DialogDescription>Preencha os dados do aluno e do responsável.</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4" noValidate>
+          <form
+            onSubmit={handleSubmit(
+              (d) => mutation.mutate(d),
+              () => showError('Validação', 'Preencha os campos obrigatórios antes de salvar.')
+            )}
+            className="space-y-4"
+            noValidate
+          >
             <Input
               label="Nome completo"
               placeholder="Nome do aluno"
@@ -188,7 +249,7 @@ export function AlunoFormDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Sexo</label>
-                <Select onValueChange={(v) => setValue('sexo', v)} defaultValue={editingAluno?.sexo}>
+                <Select value={sexoAtual ?? ''} onValueChange={(v) => setValue('sexo', v, { shouldDirty: true })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -202,7 +263,7 @@ export function AlunoFormDialog({
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Turno</label>
-                <Select onValueChange={(v) => setValue('turno', v)} defaultValue={editingAluno?.turno}>
+                <Select value={turnoAtual ?? ''} onValueChange={(v) => setValue('turno', v, { shouldDirty: true })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -221,10 +282,10 @@ export function AlunoFormDialog({
                 <label className="text-sm font-semibold">Nível de ensino</label>
                 <Select
                   onValueChange={(v) => {
-                    setValue('nivelEnsino', v)
-                    setValue('ano', '')
+                    setValue('nivelEnsino', v, { shouldDirty: true })
+                    setValue('ano', '', { shouldDirty: true })
                   }}
-                  defaultValue={editingAluno?.nivelEnsino}
+                  value={nivelEnsinoAtual ?? ''}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -240,8 +301,8 @@ export function AlunoFormDialog({
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Ano / Série</label>
                 <Select
-                  onValueChange={(v) => setValue('ano', v)}
-                  value={watch('ano') ?? ''}
+                  onValueChange={(v) => setValue('ano', v, { shouldDirty: true })}
+                  value={anoAtual ?? ''}
                   disabled={anoOptions.length === 0}
                 >
                   <SelectTrigger>
@@ -308,8 +369,8 @@ export function AlunoFormDialog({
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Escola</label>
                 <Select
-                  onValueChange={(v) => setValue('idEscola', Number(v))}
-                  defaultValue={editingAluno?.idEscola ? String(editingAluno.idEscola) : undefined}
+                  onValueChange={(v) => setValue('idEscola', Number(v), { shouldDirty: true })}
+                  value={escolaAtual ? String(escolaAtual) : ''}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecionar escola" />
