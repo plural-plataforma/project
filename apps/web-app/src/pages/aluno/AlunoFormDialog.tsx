@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { FieldErrors, Resolver } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { cadastraAluno, atualizaAluno } from '@/services/alunoService'
 import {
@@ -76,15 +77,14 @@ export function AlunoFormDialog({
     watch,
     reset,
     formState: { errors, isSubmitting },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema) as unknown as Resolver<FormData>,
     defaultValues: editingAluno
       ? {
           nomeCompleto: editingAluno.nomeCompleto,
           cep: editingAluno.cep,
           logradouro: editingAluno.logradouro,
-          numero: editingAluno.numero,
+          numero: editingAluno.numero && editingAluno.numero > 0 ? editingAluno.numero : undefined,
           complemento: editingAluno.complemento,
           bairro: editingAluno.bairro,
           estado: editingAluno.estado,
@@ -96,7 +96,7 @@ export function AlunoFormDialog({
           idEscola: editingAluno.idEscola,
           responsavelNome: editingAluno.responsavel?.nomeCompleto,
           responsavelTelefone: editingAluno.responsavel?.telefone,
-          responsavelEmail: editingAluno.responsavel?.email,
+          responsavelEmail: editingAluno.responsavel?.email ?? undefined,
           laudoCodigoCid: editingAluno.laudos?.[0]?.codigoCid ?? '',
           laudoNomeMedico: editingAluno.laudos?.[0]?.nomeMedico ?? '',
           laudoDescricao: editingAluno.laudos?.[0]?.descricao ?? '',
@@ -106,6 +106,28 @@ export function AlunoFormDialog({
 
   const estadoAtual = watch('estado')
   const cidadeAtual = watch('cidade')
+  const nivelEnsinoAtual = watch('nivelEnsino')
+  const anoAtual = watch('ano')
+  const sexoAtual = watch('sexo')
+  const turnoAtual = watch('turno')
+  const escolaAtual = watch('idEscola')
+
+  const ANO_OPTIONS: Record<string, string[]> = {
+    'Educação Infantil': ['Berçário', 'Maternal I', 'Maternal II', 'Jardim I', 'Jardim II', 'Pré-escola'],
+    'Ensino Fundamental': ['1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'],
+    'Ensino Médio': ['1º Ano', '2º Ano', '3º Ano'],
+  }
+  const anoOptions = nivelEnsinoAtual ? (ANO_OPTIONS[nivelEnsinoAtual] ?? []) : []
+
+  useEffect(() => {
+    register('sexo')
+    register('turno')
+    register('nivelEnsino')
+    register('ano')
+    register('estado')
+    register('cidade')
+    register('idEscola')
+  }, [register])
 
   useEffect(() => {
     fetchEstados()
@@ -124,6 +146,56 @@ export function AlunoFormDialog({
       .catch(() => setCidades([]))
       .finally(() => setLoadingCidades(false))
   }, [estadoAtual])
+
+  useEffect(() => {
+    if (!open) return
+
+    reset(
+      editingAluno
+        ? {
+            nomeCompleto: editingAluno.nomeCompleto,
+            cep: editingAluno.cep ?? '',
+            logradouro: editingAluno.logradouro ?? '',
+            numero: editingAluno.numero && editingAluno.numero > 0 ? editingAluno.numero : undefined,
+            complemento: editingAluno.complemento ?? '',
+            bairro: editingAluno.bairro ?? '',
+            estado: editingAluno.estado ?? '',
+            cidade: editingAluno.cidade ?? '',
+            sexo: editingAluno.sexo ?? '',
+            nivelEnsino: editingAluno.nivelEnsino ?? '',
+            turno: editingAluno.turno ?? '',
+            ano: editingAluno.ano ?? '',
+            idEscola: editingAluno.idEscola,
+            responsavelNome: editingAluno.responsavel?.nomeCompleto ?? '',
+            responsavelTelefone: editingAluno.responsavel?.telefone ?? '',
+            responsavelEmail: editingAluno.responsavel?.email ?? '',
+            laudoCodigoCid: editingAluno.laudos?.[0]?.codigoCid ?? '',
+            laudoNomeMedico: editingAluno.laudos?.[0]?.nomeMedico ?? '',
+            laudoDescricao: editingAluno.laudos?.[0]?.descricao ?? '',
+          }
+        : {
+            nomeCompleto: '',
+            sexo: '',
+            nivelEnsino: '',
+            turno: '',
+            ano: '',
+            cep: '',
+            logradouro: '',
+            numero: undefined,
+            complemento: '',
+            bairro: '',
+            estado: '',
+            cidade: '',
+            idEscola: undefined,
+            responsavelNome: '',
+            responsavelTelefone: '',
+            responsavelEmail: '',
+            laudoCodigoCid: '',
+            laudoNomeMedico: '',
+            laudoDescricao: '',
+          }
+    )
+  }, [open, editingAluno, reset])
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
@@ -161,6 +233,17 @@ export function AlunoFormDialog({
     onError: (err: Error) => showError('Erro', err.message),
   })
 
+  const handleInvalidSubmit = (formErrors: FieldErrors<FormData>) => {
+    const messages = Object.values(formErrors)
+      .map((error) => error?.message)
+      .filter((message): message is string => typeof message === 'string' && message.length > 0)
+
+    showError(
+      'Validação',
+      messages.length > 0 ? messages.join(' | ') : 'Preencha os campos obrigatórios antes de salvar.'
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -169,7 +252,14 @@ export function AlunoFormDialog({
             <DialogDescription>Preencha os dados do aluno e do responsável.</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4" noValidate>
+          <form
+            onSubmit={handleSubmit(
+              (d) => mutation.mutate(d),
+              handleInvalidSubmit
+            )}
+            className="space-y-4"
+            noValidate
+          >
             <Input
               label="Nome completo"
               placeholder="Nome do aluno"
@@ -180,7 +270,7 @@ export function AlunoFormDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Sexo</label>
-                <Select onValueChange={(v) => setValue('sexo', v)} defaultValue={editingAluno?.sexo}>
+                <Select value={sexoAtual ?? ''} onValueChange={(v) => setValue('sexo', v, { shouldDirty: true })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -194,7 +284,7 @@ export function AlunoFormDialog({
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Turno</label>
-                <Select onValueChange={(v) => setValue('turno', v)} defaultValue={editingAluno?.turno}>
+                <Select value={turnoAtual ?? ''} onValueChange={(v) => setValue('turno', v, { shouldDirty: true })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -203,6 +293,48 @@ export function AlunoFormDialog({
                     <SelectItem value="Tarde">Tarde</SelectItem>
                     <SelectItem value="Noite">Noite</SelectItem>
                     <SelectItem value="Integral">Integral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold">Nível de ensino</label>
+                <Select
+                  onValueChange={(v) => {
+                    setValue('nivelEnsino', v, { shouldDirty: true })
+                    setValue('ano', '', { shouldDirty: true })
+                  }}
+                  value={nivelEnsinoAtual ?? ''}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Educação Infantil">Educação Infantil</SelectItem>
+                    <SelectItem value="Ensino Fundamental">Ensino Fundamental</SelectItem>
+                    <SelectItem value="Ensino Médio">Ensino Médio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold">Ano / Série</label>
+                <Select
+                  onValueChange={(v) => setValue('ano', v, { shouldDirty: true })}
+                  value={anoAtual ?? ''}
+                  disabled={anoOptions.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={anoOptions.length === 0 ? 'Selecione o nível' : 'Selecione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {anoOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -258,8 +390,8 @@ export function AlunoFormDialog({
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold">Escola</label>
                 <Select
-                  onValueChange={(v) => setValue('idEscola', Number(v))}
-                  defaultValue={editingAluno?.idEscola ? String(editingAluno.idEscola) : undefined}
+                  onValueChange={(v) => setValue('idEscola', Number(v), { shouldDirty: true })}
+                  value={escolaAtual ? String(escolaAtual) : ''}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecionar escola" />
