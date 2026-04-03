@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { BookOpen, Users, Brain, Lightning, CheckSquare, Plus, X, CalendarBlank, MagnifyingGlass } from '@phosphor-icons/react'
 import {
   buscarPlanejamentoPorId,
   atualizarPlanejamento,
+  excluirPlanejamento,
   vincularAlunoPlano,
   vincularHabilidadePlano,
   vincularEstrategiaPlano,
@@ -28,6 +29,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/useToast'
+import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { sortByField } from '@/lib/utils'
 import dayjs from 'dayjs'
 import type { Aluno } from '@/types/aluno'
@@ -44,11 +46,13 @@ const NIVEL_ENSINO_MAP: Record<number, string> = {
 
 export default function PlanejamentoDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const { success, error: showError } = useToast()
 
   // Estado de edição dos dados básicos
   const [editingInfo, setEditingInfo] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [formApelido, setFormApelido] = useState('')
   const [formDataInicio, setFormDataInicio] = useState('')
   const [formDataFim, setFormDataFim] = useState('')
@@ -108,6 +112,18 @@ export default function PlanejamentoDetailPage() {
     onError: (err: Error) => showError('Erro', err.message),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: () => excluirPlanejamento(Number(id)),
+    onSuccess: () => {
+      success('PDI excluído', 'O planejamento foi removido.')
+      setDeleteDialogOpen(false)
+      void qc.invalidateQueries({ queryKey: ['planejamentos'] })
+      void qc.invalidateQueries({ queryKey: ['planejamento', id] })
+      navigate('/planejamentos')
+    },
+    onError: (err: Error) => showError('Não foi possível excluir', err.message),
+  })
+
   if (isLoading) return <SkeletonList count={4} />
   if (!plan) return <p className="text-muted-foreground">Planejamento não encontrado.</p>
 
@@ -158,9 +174,20 @@ export default function PlanejamentoDetailPage() {
         description="Plano de Desenvolvimento Individual"
         backTo="/planejamentos"
         action={
-          <Button variant="outline" size="sm" onClick={openEdit}>
-            Editar dados
-          </Button>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={openEdit}>
+              Editar dados
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              Excluir PDI
+            </Button>
+          </div>
         }
       />
 
@@ -435,6 +462,14 @@ export default function PlanejamentoDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PlanejamentoExcluirDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        apelido={plan.apelido}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+      />
     </motion.div>
   )
 }

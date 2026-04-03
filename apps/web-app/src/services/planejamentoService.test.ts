@@ -4,6 +4,7 @@ import {
   buscarPlanejamentoPorId,
   cadastrarPlanejamento,
   atualizarPlanejamento,
+  excluirPlanejamento,
   vincularAlunoPlano,
   vincularHabilidadePlano,
   vincularEstrategiaPlano,
@@ -16,6 +17,7 @@ vi.mock('@/api/http', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -160,6 +162,25 @@ describe('planejamentoService', () => {
           dataFim: '2025-01-31',
         })
       ).rejects.toThrow('Data inválida')
+    })
+  })
+
+  describe('excluirPlanejamento', () => {
+    it('resolve quando API retorna sucesso', async () => {
+      vi.mocked(api.delete).mockResolvedValue({
+        data: { sucesso: true, mensagens: ['Planejamento excluído com sucesso.'] },
+      })
+
+      await expect(excluirPlanejamento(1)).resolves.toBeUndefined()
+      expect(api.delete).toHaveBeenCalledWith('/Planejamento/1')
+    })
+
+    it('lança erro quando API retorna falha no corpo', async () => {
+      vi.mocked(api.delete).mockResolvedValue({
+        data: { sucesso: false, mensagens: ['Planejamento não encontrado.'] },
+      })
+
+      await expect(excluirPlanejamento(99)).rejects.toThrow('Planejamento não encontrado.')
     })
   })
 
