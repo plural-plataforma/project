@@ -1,5 +1,8 @@
+import { type AxiosError } from 'axios'
 import { api } from '@/api/http'
 import type { Planejamento, PlanejamentoResponse } from '@/types/planejamento'
+
+type ExcluirPlanejamentoResponse = { sucesso: boolean; mensagens?: string[] }
 
 export const buscarPlanejamento = async (): Promise<Planejamento[]> => {
   const response = await api.get<PlanejamentoResponse>('/Planejamento/buscar')
@@ -46,6 +49,20 @@ export const atualizarPlanejamento = async (payload: {
   const response = await api.patch<PlanejamentoResponse>('/Planejamento/atualizar', payload)
   if (!response.data.sucesso) {
     throw new Error(response.data.mensagens?.join(', ') || 'Falha ao atualizar planejamento')
+  }
+}
+
+export const excluirPlanejamento = async (id: number): Promise<void> => {
+  try {
+    const response = await api.delete<ExcluirPlanejamentoResponse>(`/Planejamento/${id}`)
+    if (response.data.sucesso) return
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao excluir planejamento')
+  } catch (error) {
+    const axiosError = error as AxiosError<ExcluirPlanejamentoResponse>
+    const msg = axiosError.response?.data?.mensagens?.join(', ')
+    if (msg) throw new Error(msg)
+    if (error instanceof Error) throw error
+    throw new Error('Falha ao excluir planejamento')
   }
 }
 

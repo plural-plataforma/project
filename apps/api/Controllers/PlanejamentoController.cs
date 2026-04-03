@@ -181,5 +181,17 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Excluir(int id)
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var resposta = await _planejamentoService.Excluir(id, usuario);
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+            return BadRequest(resposta);
+        }
     }
 }
