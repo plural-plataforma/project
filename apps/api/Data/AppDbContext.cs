@@ -121,8 +121,8 @@ namespace Data
                 .HasKey(ph => new { ph.PlanejamentoId, ph.AvaliacaoId });
 
             modelBuilder.Entity<AvaliacaoXPlanejamento>()
-                .HasOne(ph => ph.Avaliacao)
-                .WithMany(p => p.AvaliacaoXPlanejamento)
+                .HasOne(ph => ph.Planejamento)
+                .WithMany(p => p.AvaliacaoXPlanejamentos)
                 .HasForeignKey(ph => ph.PlanejamentoId);
 
             modelBuilder.Entity<AvaliacaoXPlanejamento>()

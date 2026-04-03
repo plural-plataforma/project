@@ -235,8 +235,33 @@ namespace api.Services
                     return resposta;
                 }
 
+                using var transacao = await _contexto.Database.BeginTransactionAsync();
+
+                // Remove vínculos explicitamente: em produção as FKs podem ser NO ACTION / RESTRICT
+                // (schema legado), impedindo delete em cascata só com Remove do pai.
+                var vinculosAlunos = await _contexto.AlunosXPlanejamentos
+                    .Where(x => x.PlanejamentoId == id)
+                    .ToListAsync();
+                _contexto.AlunosXPlanejamentos.RemoveRange(vinculosAlunos);
+
+                var vinculosHabilidades = await _contexto.HabilidadesXPlanejamentos
+                    .Where(x => x.PlanejamentoId == id)
+                    .ToListAsync();
+                _contexto.HabilidadesXPlanejamentos.RemoveRange(vinculosHabilidades);
+
+                var vinculosEstrategias = await _contexto.EstrategiasXPlanejamentos
+                    .Where(x => x.PlanejamentoId == id)
+                    .ToListAsync();
+                _contexto.EstrategiasXPlanejamentos.RemoveRange(vinculosEstrategias);
+
+                var vinculosAvaliacoes = await _contexto.AvaliacaoXPlanejamento
+                    .Where(x => x.PlanejamentoId == id)
+                    .ToListAsync();
+                _contexto.AvaliacaoXPlanejamento.RemoveRange(vinculosAvaliacoes);
+
                 _contexto.Planejamentos.Remove(planejamento);
                 await _contexto.SaveChangesAsync();
+                await transacao.CommitAsync();
 
                 resposta.Sucesso = true;
                 resposta.AdicionaObjeto(true);
