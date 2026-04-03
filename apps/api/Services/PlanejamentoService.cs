@@ -221,6 +221,34 @@ namespace api.Services
             }
         }
 
+        public async Task<ServiceResponse<bool>> Excluir(int id, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+            try
+            {
+                var planejamento = await _contexto.Planejamentos
+                    .FirstOrDefaultAsync(p => p.ID == id && p.IdProfessor == usuario.ProfessorId);
+
+                if (planejamento == null)
+                {
+                    resposta.SetFalha("Planejamento não encontrado.");
+                    return resposta;
+                }
+
+                _contexto.Planejamentos.Remove(planejamento);
+                await _contexto.SaveChangesAsync();
+
+                resposta.Sucesso = true;
+                resposta.AdicionaObjeto(true);
+                resposta.AdicionaMensagem("Planejamento excluído com sucesso.");
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha(ex.Message);
+                return resposta;
+            }
+        }
 
         public async Task<ServiceResponse<bool>> VincularAluno(PlanejamentoVincularAlunoDTO planejamentoVincularAlunoDto, Usuario usuario)
         {

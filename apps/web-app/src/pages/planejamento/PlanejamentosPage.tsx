@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, BookOpen, MagnifyingGlass, Eye, CalendarBlank } from '@phosphor-icons/react'
+import { Plus, BookOpen, MagnifyingGlass, Eye, CalendarBlank, Trash } from '@phosphor-icons/react'
 import {
   buscarPlanejamento,
   cadastrarPlanejamento,
+  excluirPlanejamento,
   vincularAlunoPlano,
   vincularHabilidadePlano,
   vincularEstrategiaPlano,
@@ -37,7 +38,9 @@ import dayjs from 'dayjs'
 import { useToast } from '@/hooks/useToast'
 import { sortByField } from '@/lib/utils'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
+import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import type { Aluno } from '@/types/aluno'
+import type { Planejamento } from '@/types/planejamento'
 import type { Habilidade } from '@/types/habilidade'
 import type { Estrategia } from '@/types/estrategia'
 import type { Avaliacao } from '@/types/avaliacao'
@@ -77,6 +80,7 @@ export default function PlanejamentosPage() {
   const { success, error: showError } = useToast()
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [pdiParaExcluir, setPdiParaExcluir] = useState<Planejamento | null>(null)
   const [step, setStep] = useState<Step>('info')
 
   // Seleções
@@ -130,6 +134,16 @@ export default function PlanejamentosPage() {
       navigate(`/planejamentos/${pdi.id}`)
     },
     onError: (err: Error) => showError('Erro', err.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (planId: number) => excluirPlanejamento(planId),
+    onSuccess: () => {
+      success('PDI excluído', 'O planejamento foi removido.')
+      setPdiParaExcluir(null)
+      void qc.invalidateQueries({ queryKey: ['planejamentos'] })
+    },
+    onError: (err: Error) => showError('Não foi possível excluir', err.message),
   })
 
   const {
@@ -267,12 +281,14 @@ export default function PlanejamentosPage() {
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.25, delay: i * 0.04 }}
                 >
-                  <Card
-                    className="p-5 hover:border-primary transition-colors duration-200 cursor-pointer group"
-                    onClick={() => navigate(`/planejamentos/${p.id}`)}
-                  >
+                  <Card className="p-5 hover:border-primary transition-colors duration-200 group">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <button
+                        type="button"
+                        className="flex items-start gap-3 flex-1 min-w-0 text-left rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        onClick={() => navigate(`/planejamentos/${p.id}`)}
+                        aria-label={`Abrir PDI ${p.apelido}`}
+                      >
                         <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
                           <BookOpen size={20} className="text-primary" weight="duotone" />
                         </div>
@@ -297,8 +313,18 @@ export default function PlanejamentosPage() {
                             )}
                           </div>
                         </div>
-                      </div>
-                      <Eye size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
+                        <Eye size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label={`Excluir PDI ${p.apelido}`}
+                        onClick={() => setPdiParaExcluir(p)}
+                      >
+                        <Trash size={20} weight="bold" />
+                      </Button>
                     </div>
                   </Card>
                 </motion.div>
@@ -567,6 +593,16 @@ export default function PlanejamentosPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <PlanejamentoExcluirDialog
+        open={!!pdiParaExcluir}
+        onClose={() => setPdiParaExcluir(null)}
+        apelido={pdiParaExcluir?.apelido ?? ''}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => {
+          if (pdiParaExcluir?.id != null) deleteMutation.mutate(pdiParaExcluir.id)
+        }}
+      />
     </>
   )
 }
