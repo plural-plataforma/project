@@ -35,7 +35,7 @@ namespace api.DTOs.Professor
         [MaxLength(500)]
         public string? Disciplinas { get; set; }
 
-        [MaxLength(20)]
+        [MaxLength(100)]
         public string? NivelEnsino { get; set; }
 
         [MaxLength(500)]
