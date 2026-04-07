@@ -131,6 +131,7 @@ builder.Services.AddScoped<AlunoService>();
 builder.Services.AddScoped<HabilidadeService>();
 builder.Services.AddScoped<PlanejamentoService>();
 builder.Services.AddScoped<EstrategiaService>();
+builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
 builder.Services.AddScoped<AvaliacaoDiagnosticaService>();

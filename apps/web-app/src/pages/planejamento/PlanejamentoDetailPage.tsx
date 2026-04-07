@@ -149,11 +149,19 @@ export default function PlanejamentoDetailPage() {
     'descricao'
   )
   const estsDisponiveis = sortByField(
-    todasEsts.filter((e) => !estsVinculadasIds.has(e.id) && e.descricao.toLowerCase().includes(searchVinc.toLowerCase())),
+    todasEsts.filter(
+      (e) =>
+        !estsVinculadasIds.has(e.id) &&
+        (e.descricao ?? '').toLowerCase().includes(searchVinc.toLowerCase())
+    ),
     'descricao'
   )
   const avalsDisponiveis = sortByField(
-    todasAvals.filter((a) => !avalsVinculadasIds.has(a.id) && a.descricao.toLowerCase().includes(searchVinc.toLowerCase())),
+    todasAvals.filter(
+      (a) =>
+        !avalsVinculadasIds.has(a.id) &&
+        (a.descricao ?? '').toLowerCase().includes(searchVinc.toLowerCase())
+    ),
     'descricao'
   )
 
