@@ -376,7 +376,11 @@ export default function PlanejamentosPage() {
           </div>
 
           <form
-            onSubmit={handleSubmit((d) => createMutation.mutate(d))}
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (step !== 'avaliacoes') return
+              void handleSubmit((d) => createMutation.mutate(d))()
+            }}
             className="flex flex-col flex-1 min-h-0"
             noValidate
           >
