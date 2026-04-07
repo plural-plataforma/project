@@ -217,7 +217,9 @@ export default function PlanejamentosPage() {
     'descricao'
   )
   const avalsFiltradas = sortByField(
-    avaliacoes.filter((a) => a.descricao.toLowerCase().includes(searchAvals.toLowerCase())),
+    avaliacoes.filter((a) =>
+      (a.descricao ?? '').toLowerCase().includes(searchAvals.toLowerCase())
+    ),
     'descricao'
   )
 

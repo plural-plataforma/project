@@ -56,4 +56,33 @@ describe('avaliacaoService', () => {
 
     expect(result).toEqual([])
   })
+
+  it('buscarAtivos aceita lista em objeto sem sucesso (alinhado ao mobile / Planejamento.buscar)', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        mensagens: [],
+        objeto: [{ id: 1, descricao: 'Critério A', resumo: 'R', ativo: true }],
+      },
+    })
+
+    const result = await buscarAvaliacoesCriterios()
+
+    expect(result).toHaveLength(1)
+    expect(result[0].descricao).toBe('Critério A')
+  })
+
+  it('buscarAtivos usa listaObjetos quando objeto não é array', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        sucesso: true,
+        mensagens: [],
+        listaObjetos: [{ id: 2, descricao: 'Critério B', resumo: '', ativo: true }],
+      },
+    })
+
+    const result = await buscarAvaliacoesCriterios()
+
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe(2)
+  })
 })
