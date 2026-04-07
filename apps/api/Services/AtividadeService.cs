@@ -19,11 +19,9 @@ namespace api.Services
 
         // Listagem com paginação e filtros
         public async Task<ServiceResponse<List<AtividadeBuscarDTO>>> GetAtividades(
-            string? busca = null, int? blocoId = null, string? nivel = null, string? etapa = null, bool? ativo = null,
-            int page = 1, int pageSize = 10)
+    string? busca = null, int? blocoId = null, string? nivel = null, string? etapa = null, bool? ativo = null)
         {
             var resposta = new ServiceResponse<List<AtividadeBuscarDTO>>();
-
             try
             {
                 var query = _contexto.Atividades
@@ -47,8 +45,6 @@ namespace api.Services
 
                 var atividades = await query
                     .OrderBy(a => a.Titulo)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
                     .Select(a => new AtividadeBuscarDTO
                     {
                         Id = a.Id,
@@ -74,7 +70,6 @@ namespace api.Services
                 return resposta;
             }
         }
-
         // Buscar por ID (detalhes + preview)
         public async Task<ServiceResponse<AtividadeBuscarDTO>> GetAtividadePorId(int id)
         {

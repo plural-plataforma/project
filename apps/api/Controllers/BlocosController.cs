@@ -2,6 +2,7 @@
 using api.DTOs.Atividade;
 using api.DTOs.Bloco;
 using api.Models;
+using api.Responses;
 using api.Services;
 using Data;
 using Microsoft.AspNetCore.Mvc;
@@ -20,48 +21,37 @@ using System.Threading.Tasks;
             _context = context;
         }
 
-        // Listagem com paginação, busca por título e filtro por status
-        [HttpGet]
-        public async Task<IActionResult> GetBlocos(string? busca = null, bool? ativo = null, int page = 1, int pageSize = 10)
-        {
-            var query = _context.Blocos.AsQueryable();
+    // Listagem com paginação, busca por título e filtro por status
+    [HttpGet]
+    public async Task<IActionResult> GetBlocos(string? busca = null, bool? ativo = null, int page = 1, int pageSize = 10)
+    {
+        var query = _context.Blocos.AsQueryable();
 
-            // Filtro por título (busca)
-            if (!string.IsNullOrEmpty(busca))
+        if (!string.IsNullOrEmpty(busca))
+            query = query.Where(b => b.Titulo.Contains(busca));
+
+        if (ativo.HasValue)
+            query = query.Where(b => b.Status == ativo.Value);
+
+        var blocos = await query
+            .OrderBy(b => b.Ordem)
+            .ThenBy(b => b.Titulo)
+            .Select(b => new
             {
-                query = query.Where(b => b.Titulo.Contains(busca));
-            }
+                b.Id,
+                b.Titulo,
+                b.Ordem,
+                b.Observacao,
+                b.CreatedAt,
+                b.UpdatedAt,
+                b.Status,
+                b.Icone,
+                QuantidadeAtividades = b.Atividades.Count()
+            })
+            .ToListAsync();  // ← sem Skip/Take = retorna tudo
 
-            // Filtro por status (ativo/inativo)
-            if (ativo.HasValue)
-            {
-                query = query.Where(b => b.Status == ativo.Value);
-            }
-
-            // Contar quantidade de atividades via query (alternativa ao virtual)
-            // Se usar isso, remova a prop virtual do model e use Select para projetar
-            var blocos = await query
-                .Select(b => new
-                {
-                    b.Id,
-                    b.Titulo,
-                    b.Ordem,
-                    b.Observacao,
-                    b.CreatedAt,
-                    b.UpdatedAt,
-                    b.Status,
-                    b.Icone,
-                    QuantidadeAtividades = b.Atividades.Count() // Conta via query EF
-                })
-                .OrderBy(b => b.Ordem) // Ordena por ordem
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var total = await query.CountAsync();
-
-            return Ok(new { Total = total, Blocos = blocos });
-        }
+        return Ok(blocos);
+    }
 
     // Criar
     [HttpPost]
