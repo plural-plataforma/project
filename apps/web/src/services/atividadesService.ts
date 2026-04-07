@@ -2,7 +2,15 @@ import api from '../api/http';
 import { AxiosResponse } from 'axios';
 import { Atividade, AtividadeCreateInput, AtividadeResponse } from '../types/atividades';
 
-
+function apiErrorMessage(error: { response?: { data?: Record<string, unknown> } }, fallback: string): string {
+  const d = error.response?.data;
+  if (!d || typeof d !== 'object') return fallback;
+  const m = d.mensagens ?? d.Mensagens;
+  if (Array.isArray(m) && m.length) return (m as string[]).filter(Boolean).join(', ');
+  const msg = d.message ?? d.Message;
+  if (typeof msg === 'string' && msg) return msg;
+  return fallback;
+}
 
 export const atividadesService = {
   /**
@@ -74,7 +82,7 @@ export const atividadesService = {
       const response = await api.get('/atividades', {
         params: {
           busca: params.busca,
-          blocold: params.blocoId,  // ajuste para blocoId se o backend corrigir o typo
+          blocoId: params.blocoId,
           nivel: params.nivel,
           etapa: params.etapa,
           ativo: params.ativo,
@@ -175,18 +183,16 @@ export const atividadesService = {
   deleteAtividade: async (id: number): Promise<void> => {
     try {
       await api.delete(`/atividades/${id}`);
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao excluir atividade:', error);
-
-      if (error.response?.status === 404) {
+      const err = error as { response?: { status?: number; data?: Record<string, unknown> } };
+      if (err.response?.status === 404) {
         throw new Error('Atividade não encontrada.');
       }
-      if (error.response?.status === 403 || error.response?.status === 401) {
+      if (err.response?.status === 403 || err.response?.status === 401) {
         throw new Error('Sem permissão para excluir esta atividade.');
       }
-
-      throw new Error(error.response?.data?.mensagens?.join(', ') || 'Erro ao excluir a atividade.');
+      throw new Error(apiErrorMessage(err, 'Erro ao excluir a atividade.'));
     }
   },
 };

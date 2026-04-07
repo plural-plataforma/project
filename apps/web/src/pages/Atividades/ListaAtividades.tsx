@@ -117,7 +117,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
     try {
       setLoading(true);
       await atividadesService.deleteAtividade(id);
-      alert('Atividade excluída com sucesso!');
+      alert('Atividade desativada com sucesso. Ela some da lista quando o filtro é "Ativo".');
       fetchAtividades(); // recarrega a lista
     } catch (err: any) {
       alert(err.message || 'Erro ao excluir a atividade. Tente novamente.');

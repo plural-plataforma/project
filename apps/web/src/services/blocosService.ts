@@ -2,6 +2,35 @@
 import api from '../api/http';
 import { Bloco, BlocoCreateInput, BlocosResponse, BlocosQueryParams } from '../types/blocos';
 
+/** API pode serializar como camelCase ou PascalCase; normaliza para o tipo do front. */
+function normalizeBlocoPayload(item: Record<string, unknown>): Bloco {
+  return {
+    id: Number(item.id ?? item.Id ?? 0),
+    titulo: String(item.titulo ?? item.Titulo ?? ''),
+    ordem: Number(item.ordem ?? item.Ordem ?? 0),
+    observacao: (item.observacao ?? item.Observacao ?? null) as string | null,
+    createdAt: String(item.createdAt ?? item.CreatedAt ?? ''),
+    updatedAt: String(item.updatedAt ?? item.UpdatedAt ?? ''),
+    status: Boolean(item.status ?? item.Status),
+    icone: (item.icone ?? item.Icone ?? null) as string | null,
+  };
+}
+
+function extractBlocosArray(data: unknown): Bloco[] {
+  if (!data || typeof data !== 'object') return [];
+  const d = data as Record<string, unknown>;
+  const raw = d.blocos ?? d.Blocos;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((row) => normalizeBlocoPayload(row as Record<string, unknown>));
+}
+
+function extractTotal(data: unknown): number {
+  if (!data || typeof data !== 'object') return 0;
+  const d = data as Record<string, unknown>;
+  const t = d.total ?? d.Total;
+  return typeof t === 'number' ? t : Number(t) || 0;
+}
+
 export const blocosService = {
  /**
    * Lista TODOS os blocos ATIVOS (status = true), sem paginação pesada
@@ -17,9 +46,9 @@ export const blocosService = {
         // busca: undefined,   // sem busca para listar todos ativos
       };
 
-      const response = await api.get<BlocosResponse>('/Blocos', { params });
+      const response = await api.get('/Blocos', { params });
 
-      return response.data.blocos || [];
+      return extractBlocosArray(response.data);
     } catch (error: any) {
       console.error('Erro ao listar blocos ativos:', error);
       throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos ativos.');
@@ -31,8 +60,10 @@ export const blocosService = {
    */
   getBlocos: async (params: BlocosQueryParams): Promise<BlocosResponse> => {
     try {
-      const response = await api.get<BlocosResponse>('/Blocos', { params });
-      return response.data;
+      const response = await api.get('/Blocos', { params });
+      const list = extractBlocosArray(response.data);
+      const total = extractTotal(response.data) || list.length;
+      return { total, blocos: list };
     } catch (error) {
       console.error('Falha ao buscar blocos:', error);
       throw error;
@@ -68,8 +99,8 @@ export const blocosService = {
  */
 getBlocoById: async (id: number): Promise<Bloco> => {
   try {
-    const response = await api.get<Bloco>(`/Blocos/${id}`);
-    return response.data;
+    const response = await api.get(`/Blocos/${id}`);
+    return normalizeBlocoPayload(response.data as Record<string, unknown>);
   } catch (error: any) {
     console.error(`Falha ao buscar bloco ${id}:`, error);
     
