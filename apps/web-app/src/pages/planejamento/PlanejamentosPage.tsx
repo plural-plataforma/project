@@ -375,15 +375,8 @@ export default function PlanejamentosPage() {
             ))}
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (step !== 'avaliacoes') return
-              void handleSubmit((d) => createMutation.mutate(d))()
-            }}
-            className="flex flex-col flex-1 min-h-0"
-            noValidate
-          >
+          {/* Sem <form>: evita submit implícito (Enter / botão padrão) antes da última etapa */}
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-y-auto py-2 space-y-4">
 
               {/* ─ Etapa: Dados ─ */}
@@ -589,14 +582,18 @@ export default function PlanejamentosPage() {
                       Próximo
                     </Button>
                   ) : (
-                    <Button type="submit" loading={createMutation.isPending}>
+                    <Button
+                      type="button"
+                      loading={createMutation.isPending}
+                      onClick={() => void handleSubmit((d) => createMutation.mutate(d))()}
+                    >
                       Criar PDI
                     </Button>
                   )}
                 </div>
               </div>
             </DialogFooter>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
 

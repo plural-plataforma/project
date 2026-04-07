@@ -2,11 +2,40 @@
 import api from '../api/http';
 import { Bloco, BlocoCreateInput, BlocosResponse, BlocosQueryParams } from '../types/blocos';
 
+/** API pode serializar como camelCase ou PascalCase; normaliza para o tipo do front. */
+function normalizeBlocoPayload(item: Record<string, unknown>): Bloco {
+  return {
+    id: Number(item.id ?? item.Id ?? 0),
+    titulo: String(item.titulo ?? item.Titulo ?? ''),
+    ordem: Number(item.ordem ?? item.Ordem ?? 0),
+    observacao: (item.observacao ?? item.Observacao ?? null) as string | null,
+    createdAt: String(item.createdAt ?? item.CreatedAt ?? ''),
+    updatedAt: String(item.updatedAt ?? item.UpdatedAt ?? ''),
+    status: Boolean(item.status ?? item.Status),
+    icone: (item.icone ?? item.Icone ?? null) as string | null,
+  };
+}
+
+function extractBlocosArray(data: unknown): Bloco[] {
+  if (!data || typeof data !== 'object') return [];
+  const d = data as Record<string, unknown>;
+  const raw = d.blocos ?? d.Blocos;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((row) => normalizeBlocoPayload(row as Record<string, unknown>));
+}
+
+function extractTotal(data: unknown): number {
+  if (!data || typeof data !== 'object') return 0;
+  const d = data as Record<string, unknown>;
+  const t = d.total ?? d.Total;
+  return typeof t === 'number' ? t : Number(t) || 0;
+}
+
 export const blocosService = {
-  /**
-    * Lista TODOS os blocos ATIVOS (status = true), sem paginação pesada
-    * Ideal para selects e dropdowns no cadastro
-    */
+ /**
+   * Lista TODOS os blocos ATIVOS (status = true), sem paginação pesada
+   * Ideal para selects e dropdowns no cadastro
+   */
   getAllBlocosAtivos: async (): Promise<Bloco[]> => {
     try {
       // Usa os parâmetros de query para filtrar apenas ativos e pegar muitos itens
@@ -17,70 +46,30 @@ export const blocosService = {
         // busca: undefined,   // sem busca para listar todos ativos
       };
 
-      const response = await api.get<BlocosResponse>('/Blocos', { params });
+      const response = await api.get('/Blocos', { params });
 
-      return response.data.blocos || [];
+      return extractBlocosArray(response.data);
     } catch (error: any) {
       console.error('Erro ao listar blocos ativos:', error);
       throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos ativos.');
     }
   },
-
+ 
   /**
-   * Lista TODOS os blocos filtrados (sem paginação no backend)
-   * Retorna a lista completa para paginação no frontend
+   * Busca lista paginada de blocos
    */
-  getBlocos: async (params?: {
-    busca?: string;
-    status?: boolean;
-  }): Promise<Bloco[]> => {
+  getBlocos: async (params: BlocosQueryParams): Promise<BlocosResponse> => {
     try {
-      // Monta query params compatíveis com o backend atual
-      const queryParams: any = {};
-
-      if (params?.busca) {
-        queryParams.busca = params.busca;
-      }
-
-      if (params?.status !== undefined) {
-        queryParams.ativo = params.status;
-      }
-
-      // Remove page/pageSize para não paginar no backend
-      delete queryParams.page;
-      delete queryParams.pageSize;
-
-      const response = await api.get<Bloco[]>('/Blocos', { params: queryParams });
-
-      return response.data || [];
-    } catch (error: any) {
-      console.error('Erro ao listar blocos:', error);
-      throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos.');
+      const response = await api.get('/Blocos', { params });
+      const list = extractBlocosArray(response.data);
+      const total = extractTotal(response.data) || list.length;
+      return { total, blocos: list };
+    } catch (error) {
+      console.error('Falha ao buscar blocos:', error);
+      throw error;
     }
   },
 
-  /**
- * Lista TODOS os blocos filtrados (sem paginação)
- */
-  getBlocosCompleto: async (params?: {
-    busca?: string;
-    status?: boolean;
-  }): Promise<Bloco[]> => {
-    try {
-      const queryParams: any = {};
-
-      if (params?.busca) queryParams.busca = params.busca;
-      if (params?.status !== undefined) queryParams.ativo = params.status;
-
-      // Força sem paginação
-      const response = await api.get<Bloco[]>('/Blocos', { params: queryParams });
-
-      return response.data || [];
-    } catch (error: any) {
-      console.error('Erro ao listar blocos completos:', error);
-      throw new Error(error.response?.data?.message || 'Não foi possível carregar os blocos.');
-    }
-  },
   /**
    * Cria um novo bloco
    * @param data Dados do bloco a ser criado
@@ -92,7 +81,7 @@ export const blocosService = {
       return response.data;
     } catch (error: any) {
       console.error('Falha ao criar bloco:', error);
-
+      
       // Tratamento mais amigável de erros (opcional)
       if (error.response?.status === 400) {
         throw new Error(error.response.data?.message || 'Dados inválidos. Verifique os campos obrigatórios.');
@@ -100,31 +89,31 @@ export const blocosService = {
       if (error.response?.status === 401) {
         throw new Error('Sessão expirada. Faça login novamente.');
       }
-
+      
       throw error; // ou crie um erro customizado
     }
   },
 
-  /**
-   * Busca um bloco específico pelo ID
-   */
-  getBlocoById: async (id: number): Promise<Bloco> => {
-    try {
-      const response = await api.get<Bloco>(`/Blocos/${id}`);
-      return response.data;
-    } catch (error: any) {
-      console.error(`Falha ao buscar bloco ${id}:`, error);
-
-      if (error.response?.status === 404) {
-        throw new Error('Bloco não encontrado.');
-      }
-      if (error.response?.status === 401) {
-        throw new Error('Sessão expirada. Faça login novamente.');
-      }
-
-      throw new Error(error.response?.data?.message || 'Erro ao carregar os dados do bloco.');
+/**
+ * Busca um bloco específico pelo ID
+ */
+getBlocoById: async (id: number): Promise<Bloco> => {
+  try {
+    const response = await api.get(`/Blocos/${id}`);
+    return normalizeBlocoPayload(response.data as Record<string, unknown>);
+  } catch (error: any) {
+    console.error(`Falha ao buscar bloco ${id}:`, error);
+    
+    if (error.response?.status === 404) {
+      throw new Error('Bloco não encontrado.');
     }
-  },
+    if (error.response?.status === 401) {
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+    
+    throw new Error(error.response?.data?.message || 'Erro ao carregar os dados do bloco.');
+  }
+},
   /**
    * Exclui um bloco pelo ID
    * @param id ID do bloco a ser excluído
@@ -155,12 +144,12 @@ export const blocosService = {
     }
   },
 
-  /**
-  * Atualiza um bloco existente pelo ID
-  * @param id ID do bloco a ser atualizado
-  * @param data Novos dados do bloco (pode ser parcial)
-  * @returns O bloco atualizado
-  */
+   /**
+   * Atualiza um bloco existente pelo ID
+   * @param id ID do bloco a ser atualizado
+   * @param data Novos dados do bloco (pode ser parcial)
+   * @returns O bloco atualizado
+   */
   updateBloco: async (id: number, data: Partial<BlocoCreateInput>): Promise<Bloco> => {
     try {
       const response = await api.put<Bloco>(`/Blocos/${id}`, data);
