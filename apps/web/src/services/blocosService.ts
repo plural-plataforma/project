@@ -4,6 +4,11 @@ import { Bloco, BlocoCreateInput, BlocosResponse, BlocosQueryParams } from '../t
 
 /** API pode serializar como camelCase ou PascalCase; normaliza para o tipo do front. */
 function normalizeBlocoPayload(item: Record<string, unknown>): Bloco {
+  const q =
+    item.quantidadeAtividades ?? item.QuantidadeAtividades ?? item.atividades ?? item.Atividades;
+  const quantidadeAtividades =
+    q === undefined || q === null ? undefined : Number(q);
+
   return {
     id: Number(item.id ?? item.Id ?? 0),
     titulo: String(item.titulo ?? item.Titulo ?? ''),
@@ -13,25 +18,57 @@ function normalizeBlocoPayload(item: Record<string, unknown>): Bloco {
     updatedAt: String(item.updatedAt ?? item.UpdatedAt ?? ''),
     status: Boolean(item.status ?? item.Status),
     icone: (item.icone ?? item.Icone ?? null) as string | null,
+    ...(quantidadeAtividades !== undefined && !Number.isNaN(quantidadeAtividades)
+      ? { quantidadeAtividades }
+      : {}),
   };
 }
 
 function extractBlocosArray(data: unknown): Bloco[] {
+  // GET /api/blocos pode retornar array direto ou { total, blocos }
+  if (Array.isArray(data)) {
+    return data.map((row) => normalizeBlocoPayload(row as Record<string, unknown>));
+  }
   if (!data || typeof data !== 'object') return [];
   const d = data as Record<string, unknown>;
-  const raw = d.blocos ?? d.Blocos;
+  const raw = d.blocos ?? d.Blocos ?? d.objeto ?? d.Objeto;
   if (!Array.isArray(raw)) return [];
   return raw.map((row) => normalizeBlocoPayload(row as Record<string, unknown>));
 }
 
 function extractTotal(data: unknown): number {
+  if (Array.isArray(data)) return data.length;
   if (!data || typeof data !== 'object') return 0;
   const d = data as Record<string, unknown>;
   const t = d.total ?? d.Total;
   return typeof t === 'number' ? t : Number(t) || 0;
 }
 
+const BLOCOS_PATH = '/blocos';
+
 export const blocosService = {
+  /**
+   * Lista todos os blocos que atendem ao filtro, percorrendo páginas da API.
+   * Usado pela tabela do admin (filtro + paginação local).
+   */
+  getBlocosCompleto: async (params: {
+    busca?: string;
+    status?: boolean;
+  }): Promise<Bloco[]> => {
+    try {
+      const response = await api.get(BLOCOS_PATH, {
+        params: {
+          busca: params.busca,
+          ativo: params.status,
+        },
+      });
+      return extractBlocosArray(response.data);
+    } catch (error: unknown) {
+      console.error('Falha ao buscar blocos (lista completa):', error);
+      throw error;
+    }
+  },
+
  /**
    * Lista TODOS os blocos ATIVOS (status = true), sem paginação pesada
    * Ideal para selects e dropdowns no cadastro
@@ -46,7 +83,7 @@ export const blocosService = {
         // busca: undefined,   // sem busca para listar todos ativos
       };
 
-      const response = await api.get('/Blocos', { params });
+      const response = await api.get(BLOCOS_PATH, { params });
 
       return extractBlocosArray(response.data);
     } catch (error: any) {
@@ -60,7 +97,7 @@ export const blocosService = {
    */
   getBlocos: async (params: BlocosQueryParams): Promise<BlocosResponse> => {
     try {
-      const response = await api.get('/Blocos', { params });
+      const response = await api.get(BLOCOS_PATH, { params });
       const list = extractBlocosArray(response.data);
       const total = extractTotal(response.data) || list.length;
       return { total, blocos: list };
@@ -77,7 +114,7 @@ export const blocosService = {
    */
   createBloco: async (data: BlocoCreateInput): Promise<Bloco> => {
     try {
-      const response = await api.post<Bloco>('/Blocos', data);
+      const response = await api.post<Bloco>(BLOCOS_PATH, data);
       return response.data;
     } catch (error: any) {
       console.error('Falha ao criar bloco:', error);
@@ -99,7 +136,7 @@ export const blocosService = {
  */
 getBlocoById: async (id: number): Promise<Bloco> => {
   try {
-    const response = await api.get(`/Blocos/${id}`);
+    const response = await api.get(`${BLOCOS_PATH}/${id}`);
     return normalizeBlocoPayload(response.data as Record<string, unknown>);
   } catch (error: any) {
     console.error(`Falha ao buscar bloco ${id}:`, error);
@@ -121,7 +158,7 @@ getBlocoById: async (id: number): Promise<Bloco> => {
    */
   deleteBloco: async (id: number): Promise<void> => {
     try {
-      await api.delete(`/Blocos/${id}`);
+      await api.delete(`${BLOCOS_PATH}/${id}`);
       // Não retorna corpo no 200 OK, então só resolvemos a promise
     } catch (error: any) {
       console.error(`Falha ao excluir bloco ${id}:`, error);
@@ -152,7 +189,7 @@ getBlocoById: async (id: number): Promise<Bloco> => {
    */
   updateBloco: async (id: number, data: Partial<BlocoCreateInput>): Promise<Bloco> => {
     try {
-      const response = await api.put<Bloco>(`/Blocos/${id}`, data);
+      const response = await api.put<Bloco>(`${BLOCOS_PATH}/${id}`, data);
       return response.data;
     } catch (error: any) {
       console.error(`Falha ao atualizar bloco ${id}:`, error);
