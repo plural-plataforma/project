@@ -2,15 +2,13 @@
 using api.DTOs.Atividade;
 using api.DTOs.Bloco;
 using api.Models;
-using api.Responses;
-using api.Services;
 using Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
 
-[Route("api/[controller]")]
+[Route("api/blocos")]
     [ApiController]
     public class BlocosController : ControllerBase
     {
@@ -49,6 +47,43 @@ using System.Threading.Tasks;
                 QuantidadeAtividades = b.Atividades.Count()
             })
             .ToListAsync();  // ← sem Skip/Take = retorna tudo
+
+        return Ok(blocos);
+    }
+
+    [HttpGet("com-atividades")]
+    public async Task<IActionResult> GetBlocosComAtividades()
+    {
+        var blocos = await _context.Blocos
+            .Where(b => b.Status)
+            .OrderBy(b => b.Ordem)
+            .Select(b => new BlocoComAtividadesDTO
+            {
+                Id = b.Id,
+                Titulo = b.Titulo,
+                Ordem = b.Ordem,
+                Observacao = b.Observacao,
+                Icone = b.Icone,
+                QuantidadeAtividades = b.Atividades.Count(a => a.Ativo),
+                Atividades = b.Atividades
+                    .Where(a => a.Ativo)
+                    .Select(a => new AtividadeBuscarDTO
+                    {
+                        Id = a.Id,
+                        Titulo = a.Titulo,
+                        Enunciado = a.Enunciado,
+                        BlocoId = a.BlocoId,
+                        Nivel = a.Nivel.ToString(),
+                        EtapaMin = a.EtapaMin,
+                        EtapaMax = a.EtapaMax,
+                        ImagemUrl = a.ImagemUrl,
+                        Ativo = a.Ativo,
+                        HabilidadeIds = a.Habilidades.Select(h => h.Id).ToList()
+                    })
+                    .OrderBy(a => a.Titulo)
+                    .ToList()
+            })
+            .ToListAsync();
 
         return Ok(blocos);
     }
@@ -142,47 +177,5 @@ using System.Threading.Tasks;
 
             return Ok(bloco);
         }
-
-    // Retorna todos os blocos ativos com todas as suas atividades ativas
-    [HttpGet("com-atividades")]
-    public async Task<IActionResult> GetBlocosComAtividades()
-    {
-        var blocos = await _context.Blocos
-            .Where(b => b.Status)
-            .OrderBy(b => b.Ordem)
-            .Select(b => new BlocoComAtividadesDTO
-            {
-                Id = b.Id,
-                Titulo = b.Titulo,
-                Ordem = b.Ordem,
-                Observacao = b.Observacao,
-                Icone = b.Icone,
-                QuantidadeAtividades = b.Atividades.Count(a => a.Ativo),
-                Atividades = b.Atividades
-                    .Where(a => a.Ativo)
-                    .Select(a => new AtividadeBuscarDTO
-                    {
-                        Id = a.Id,
-                        Titulo = a.Titulo,
-                        Enunciado = a.Enunciado,
-                        BlocoId = a.BlocoId,
-                        Nivel = a.Nivel.ToString(),
-                        EtapaMin = a.EtapaMin,
-                        EtapaMax = a.EtapaMax,
-                        ImagemUrl = a.ImagemUrl,
-                        Ativo = a.Ativo,
-                        HabilidadeIds = a.Habilidades.Select(h => h.Id).ToList()
-                    })
-                    .OrderBy(a => a.Titulo) // ou .OrderBy(a => a.Id) se preferir por ordem de inserção
-                    .ToList()
-            })
-            .ToListAsync();
-
-        // Opcional: filtrar apenas blocos que têm pelo menos uma atividade ativa
-        // var blocosComAtividades = blocos.Where(b => b.QuantidadeAtividades > 0).ToList();
-        // if (!blocosComAtividades.Any()) return NotFound("Nenhum bloco com atividades encontrado.");
-
-        return Ok(blocos);
-    }
 }
 
