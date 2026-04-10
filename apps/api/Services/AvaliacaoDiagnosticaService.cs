@@ -5,6 +5,7 @@ using api.DTOs.Desempenho;
 using api.Models;
 using api.Responses;
 using Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -15,6 +16,7 @@ namespace api.Services
     public class AvaliacaoDiagnosticaService
     {
         private readonly AppDbContext _contexto;
+        private readonly UserManager<Usuario> _userManager;
         private static readonly HashSet<string> NiveisPermitidos = new(StringComparer.OrdinalIgnoreCase)
         {
             "Autonomia",
@@ -23,25 +25,28 @@ namespace api.Services
             "NaoAvaliado",
         };
 
-        public AvaliacaoDiagnosticaService(AppDbContext contexto)
+        public AvaliacaoDiagnosticaService(AppDbContext contexto, UserManager<Usuario> userManager)
         {
             _contexto = contexto;
+            _userManager = userManager;
         }
 
-        public async Task<ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>> GetAll()
+        public async Task<ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>> GetAll(Usuario usuario)
         {
             var resposta = new ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>();
             try
             {
                 var avaliacoes = await _contexto.AvaliacoesDiagnosticas
+                    .Where(a => a.ProfessorId == usuario.ProfessorId || a.ProfessorId == null)
                     .Select(a => new AvaliacaoDiagnosticaBuscarDTO
                     {
                         Id = a.Id,
                         Titulo = a.Titulo,
                         Objetivo = a.Objetivo,
                         DataAplicacao = a.DataAplicacao,
-                        EscolaId = a.EscolaId ?? 0 ,
-                        Concluida = a.Concluida
+                        EscolaId = a.EscolaId ?? 0,
+                        Concluida = a.Concluida,
+                        ProfessorId = a.ProfessorId,
                     })
                     .ToListAsync();
 
@@ -56,13 +61,13 @@ namespace api.Services
             }
         }
 
-        public async Task<ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>> GetNaoConcluidas()
+        public async Task<ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>> GetNaoConcluidas(Usuario usuario)
         {
             var resposta = new ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>();
             try
             {
                 var avaliacoes = await _contexto.AvaliacoesDiagnosticas
-                    .Where(a => !a.Concluida)
+                    .Where(a => (a.ProfessorId == usuario.ProfessorId || a.ProfessorId == null) && !a.Concluida)
                     .Select(a => new AvaliacaoDiagnosticaBuscarDTO
                     {
                         Id = a.Id,
@@ -70,7 +75,8 @@ namespace api.Services
                         Objetivo = a.Objetivo,
                         DataAplicacao = a.DataAplicacao,
                         EscolaId = a.EscolaId ?? 0,
-                        Concluida = a.Concluida
+                        Concluida = a.Concluida,
+                        ProfessorId = a.ProfessorId,
                     })
                     .ToListAsync();
 
@@ -316,7 +322,36 @@ namespace api.Services
             };
         }
 
-        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> Create(AvaliacaoDiagnosticaDTO dto)
+        public async Task<ServiceResponse<object>> Reivindicar(int id, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<object>();
+            try
+            {
+                var avaliacao = await _contexto.AvaliacoesDiagnosticas
+                    .FirstOrDefaultAsync(a => a.Id == id && a.ProfessorId == null);
+
+                if (avaliacao == null)
+                {
+                    resposta.SetFalha("Avaliação não encontrada ou já vinculada a outro professor.");
+                    return resposta;
+                }
+
+                avaliacao.ProfessorId = usuario.ProfessorId;
+                avaliacao.UpdatedAt = DateTime.UtcNow;
+                await _contexto.SaveChangesAsync();
+
+                resposta.AdicionaObjeto(new { mensagem = "Avaliação vinculada com sucesso." });
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao reivindicar avaliação diagnóstica.");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> Create(AvaliacaoDiagnosticaDTO dto, Usuario usuario)
         {
             var resposta = new ServiceResponse<AvaliacaoDiagnosticaDetailDTO>();
 
@@ -393,6 +428,7 @@ namespace api.Services
                     Objetivo = dto.Objetivo?.Trim(),
                     DataAplicacao = dataAplicacaoUtc,
                     EscolaId = dto.EscolaId,
+                    ProfessorId = usuario.ProfessorId,
                     Concluida = false
                 };
 
@@ -489,7 +525,7 @@ namespace api.Services
             }
         }
 
-        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> Update(int id, UpdateAvaliacaoDiagnosticaDTO dto)
+        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> Update(int id, UpdateAvaliacaoDiagnosticaDTO dto, Usuario usuario)
         {
             var resposta = new ServiceResponse<AvaliacaoDiagnosticaDetailDTO>();
 
@@ -506,7 +542,7 @@ namespace api.Services
                     .Include(a => a.BlocosSelecionados)
                     .Include(a => a.AtividadesSelecionadas)
                     .Include(a => a.AlunosParticipantes)
-                    .FirstOrDefaultAsync(a => a.Id == id);
+                    .FirstOrDefaultAsync(a => a.Id == id && a.ProfessorId == usuario.ProfessorId);
 
                 if (avaliacao == null)
                 {

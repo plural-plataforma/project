@@ -25,6 +25,10 @@ namespace api.Models
         public int? EscolaId { get; set; }
         public virtual Escola? Escola { get; set; } = null!;
 
+        [ForeignKey("Professor")]
+        public int? ProfessorId { get; set; }
+        public virtual Professor? Professor { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool Concluida { get; set; } = false;

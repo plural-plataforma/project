@@ -1,7 +1,9 @@
 using api.DTOs.AvaliacaoDiagnostica;
 using api.DTOs.Desempenho;
+using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 [Authorize(Roles = "Professor, Admin")]
@@ -10,23 +12,27 @@ using Microsoft.AspNetCore.Mvc;
 public class AvaliacaoDiagnosticaController : ControllerBase
 {
     private readonly AvaliacaoDiagnosticaService _service;
+    private readonly UserManager<Usuario> _userManager;
 
-    public AvaliacaoDiagnosticaController(AvaliacaoDiagnosticaService service)
+    public AvaliacaoDiagnosticaController(AvaliacaoDiagnosticaService service, UserManager<Usuario> userManager)
     {
         _service = service;
+        _userManager = userManager;
     }
 
     [HttpGet("buscarTodos")]
     public async Task<IActionResult> BuscarTodos()
     {
-        var resposta = await _service.GetAll();
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.GetAll(usuario);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
     [HttpGet("buscarNaoConcluidas")]
     public async Task<IActionResult> BuscarNaoConcluidas()
     {
-        var resposta = await _service.GetNaoConcluidas();
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.GetNaoConcluidas(usuario);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
@@ -35,7 +41,8 @@ public class AvaliacaoDiagnosticaController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var resposta = await _service.Create(dto);
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.Create(dto, usuario);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
@@ -57,7 +64,22 @@ public class AvaliacaoDiagnosticaController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var resposta = await _service.Update(id, dto);
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.Update(id, dto, usuario);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrada"))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+        return Ok(resposta);
+    }
+
+    [HttpPatch("reivindicar/{id}")]
+    public async Task<IActionResult> Reivindicar(int id)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.Reivindicar(id, usuario);
         if (!resposta.Sucesso)
         {
             return resposta.Mensagens.Any(m => m.Contains("não encontrada"))
