@@ -15,6 +15,7 @@ export interface AvaliacaoDiagnosticaResumo {
   quantidadeBlocos: number
   concluida: boolean
   status: 'Pendente' | 'EmAndamento' | 'Concluida' | 'Cancelada'
+  professorId?: number | null
   createdAt: string
   updatedAt: string
 }

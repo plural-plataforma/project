@@ -65,6 +65,7 @@ export const buscarAvaliacoesDiagnosticas = async (): Promise<AvaliacaoDiagnosti
     quantidadeAlunos: (a.quantidadeAlunos ?? a.totalAlunos ?? 0) as number,
     quantidadeBlocos: (a.quantidadeBlocos ?? a.totalBlocos ?? 0) as number,
     status: (a.status ?? (a.concluida ? 'Concluida' : 'EmAndamento')) as string,
+    professorId: (a.professorId ?? null) as number | null,
   })) as AvaliacaoDiagnosticaResumo[]
 }
 
@@ -233,6 +234,16 @@ export const finalizarAvaliacao = async (id: number): Promise<{ mensagem: string
   return {
     mensagem: response.data.mensagens?.[0] ?? 'Avaliação finalizada com sucesso.',
   }
+}
+
+export const reivindicarAvaliacaoDiagnostica = async (id: number): Promise<{ mensagem: string }> => {
+  const response = await api.patch<ServiceResponse<{ mensagem: string }>>(
+    `${AVALIACAO_DIAGNOSTICA_BASE_PATH}/reivindicar/${id}`
+  )
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Erro ao reivindicar avaliação')
+  }
+  return response.data.objeto ?? { mensagem: 'Avaliação vinculada com sucesso.' }
 }
 
 export const gerarPdfBlob = async (avaliacaoId: number): Promise<Blob> => {
