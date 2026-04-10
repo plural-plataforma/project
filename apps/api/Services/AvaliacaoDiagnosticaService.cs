@@ -501,13 +501,16 @@ namespace api.Services
             }
         }
 
-        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> GetById(int id)
+        public async Task<ServiceResponse<AvaliacaoDiagnosticaDetailDTO>> GetById(int id, Usuario usuario)
         {
             var resposta = new ServiceResponse<AvaliacaoDiagnosticaDetailDTO>();
             try
             {
-                var avaliacaoExiste = await _contexto.AvaliacoesDiagnosticas.AnyAsync(a => a.Id == id);
-                if (!avaliacaoExiste)
+                var avaliacao = await _contexto.AvaliacoesDiagnosticas
+                    .FirstOrDefaultAsync(a => a.Id == id &&
+                        (a.ProfessorId == usuario.ProfessorId || a.ProfessorId == null));
+
+                if (avaliacao == null)
                 {
                     resposta.SetFalha($"Avaliação diagnóstica com ID {id} não encontrada.");
                     return resposta;
@@ -689,9 +692,9 @@ namespace api.Services
             }
         }
 
-        public async Task<byte[]> GerarPdfBytesAsync(int avaliacaoId)
+        public async Task<byte[]> GerarPdfBytesAsync(int avaliacaoId, Usuario usuario)
         {
-            var resposta = await GetById(avaliacaoId);
+            var resposta = await GetById(avaliacaoId, usuario);
             if (!resposta.Sucesso || resposta.Objeto == null)
             {
                 throw new InvalidOperationException("Avaliação não encontrada ou erro ao carregar dados.");
