@@ -38,7 +38,7 @@ export const atividadesService = {
 
       // Imagem (se houver)
       if (data.imagemUrl) {
-        formData.append('imagem', data.imagemUrl);
+        formData.append('imagemUrl', data.imagemUrl);
       }
 
       const response: AxiosResponse<Atividade> = await api.post('/atividades', formData, {
