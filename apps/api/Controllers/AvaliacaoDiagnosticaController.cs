@@ -49,7 +49,8 @@ public class AvaliacaoDiagnosticaController : ControllerBase
     [HttpGet("buscar/{id}")]
     public async Task<IActionResult> BuscarPorId(int id)
     {
-        var resposta = await _service.GetById(id);
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.GetById(id, usuario);
         if (!resposta.Sucesso)
         {
             return resposta.Mensagens.Any(m => m.Contains("não encontrada"))
@@ -116,7 +117,8 @@ public class AvaliacaoDiagnosticaController : ControllerBase
     {
         try
         {
-            var pdfBytes = await _service.GerarPdfBytesAsync(id);
+            var usuario = await _userManager.GetUserAsync(User);
+            var pdfBytes = await _service.GerarPdfBytesAsync(id, usuario);
             return File(pdfBytes, "application/pdf", $"avaliacao-{id}.pdf");
         }
         catch (InvalidOperationException ex)
