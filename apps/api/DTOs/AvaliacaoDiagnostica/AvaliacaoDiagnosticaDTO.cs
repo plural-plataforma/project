@@ -41,6 +41,7 @@ namespace api.DTOs.AvaliacaoDiagnostica
         public DateTime DataAplicacao { get; set; }
         public int? EscolaId { get; set; }
         public bool Concluida { get; set; }
+        public int? ProfessorId { get; set; }
     }
 
     // DTO detalhado — agora retorna blocos com atividades selecionadas
