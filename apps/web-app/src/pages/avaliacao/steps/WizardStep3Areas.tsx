@@ -15,7 +15,12 @@ const NIVEIS: { value: 'Facil' | 'Medio' | 'Dificil'; label: string }[] = [
   { value: 'Dificil', label: 'Difícil' },
 ]
 
-const ETAPAS_ORDEM = ['EI', 'EF1', 'EF2']
+const ETAPAS: { value: string; label: string }[] = [
+  { value: '1', label: 'Educação Infantil' },
+  { value: '2', label: 'Ens. Fund. I — Anos Iniciais' },
+  { value: '3', label: 'Ens. Fund. II — Anos Finais' },
+  { value: '4', label: 'Ensino Médio' },
+]
 
 export function WizardStep3Areas() {
   const navigate = useNavigate()
@@ -74,7 +79,7 @@ export function WizardStep3Areas() {
       if (a.etapaMin) set.add(a.etapaMin)
       if (a.etapaMax) set.add(a.etapaMax)
     }
-    return ETAPAS_ORDEM.filter((e) => set.has(e))
+    return ETAPAS.filter((e) => set.has(e.value))
   }, [blocoAtual, nivel])
 
   const atividadesFiltradas = useMemo(() => {
@@ -211,17 +216,17 @@ export function WizardStep3Areas() {
                   <div className="flex flex-wrap gap-2">
                     {etapasDisponiveis.map((e) => (
                       <button
-                        key={e}
+                        key={e.value}
                         type="button"
-                        onClick={() => setEtapa(e)}
+                        onClick={() => setEtapa(e.value)}
                         className={cn(
                           'px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors',
-                          etapa === e
+                          etapa === e.value
                             ? 'border-primary bg-primary text-primary-foreground'
                             : 'border-border bg-card text-foreground hover:border-primary/40'
                         )}
                       >
-                        {e}
+                        {e.label}
                       </button>
                     ))}
                   </div>
