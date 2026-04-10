@@ -25,6 +25,8 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   FileDownload as ExportIcon,
+  Image as ImageIcon,
+  HideImage as HideImageIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import atividadesService from '../../services/atividadesService';
@@ -211,6 +213,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                   <TableCell sx={{ fontWeight: 600, color: '#276678' }}>Bloco</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#276678' }}>Nível</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#276678' }}>Status</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600, color: '#276678' }}>Imagem</TableCell>
                   <TableCell align="right" sx={{ pr: 4, fontWeight: 600, color: '#276678' }}>
                     Ações
                   </TableCell>
@@ -267,6 +270,16 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                       />
                     </TableCell>
 
+                    <TableCell align="center">
+                      <Tooltip title={atividade.imagemUrl ? 'Com imagem' : 'Sem imagem'}>
+                        {atividade.imagemUrl ? (
+                          <ImageIcon fontSize="small" sx={{ color: '#276678' }} />
+                        ) : (
+                          <HideImageIcon fontSize="small" sx={{ color: '#d1d5db' }} />
+                        )}
+                      </Tooltip>
+                    </TableCell>
+
                     <TableCell align="right" sx={{ pr: 4 }}>
                       <Tooltip title="Visualizar">
                         <IconButton size="small" onClick={() => handleVisualizar(atividade.id)}>
@@ -291,7 +304,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
 
                 {atividades.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
                       <Typography variant="body1" color="text.secondary">
                         Nenhuma atividade encontrada
                       </Typography>
