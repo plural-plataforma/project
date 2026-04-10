@@ -63,10 +63,13 @@ export default function RelatoriosPage() {
   const avaliacaoIdInicial = avaliacaoIdQuery ? Number(avaliacaoIdQuery) : null
   const [avaliacaoId, setAvaliacaoId] = useState<number | null>(null)
 
-  const { data: avaliacoes = [], isLoading: loadingAv } = useQuery({
+  const { data: todasAvaliacoes = [], isLoading: loadingAv } = useQuery({
     queryKey: ['avaliacoes-diagnosticas'],
     queryFn: buscarAvaliacoesDiagnosticas,
   })
+
+  // Exclui avaliações órfãs (sem dono) do relatório — podem conter alunos de outras professoras
+  const avaliacoes = todasAvaliacoes.filter((av) => av.professorId != null)
 
   const { data: avaliacaoDetalhada, isLoading: loadingDetalhe } = useQuery({
     queryKey: ['avaliacao-detalhada', avaliacaoId],
