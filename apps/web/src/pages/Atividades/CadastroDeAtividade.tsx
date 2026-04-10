@@ -82,6 +82,7 @@ export default function CadastroDeAtividade() {
   const [buscaHabilidade, setBuscaHabilidade] = useState('');
 
   const [imagemUrl, setImagemUrl] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Carregar dados da atividade em modo edição
   useEffect(() => {
@@ -280,18 +281,19 @@ const uploadToImage = async (file: File): Promise<string | null> => {
   }
 };
 
-// Atualize o handleImageChange para usar essa função
 const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   if (e.target.files?.[0]) {
     const file = e.target.files[0];
     setImagem(file);
-    setImagemPreview(URL.createObjectURL(file)); // preview local
+    setImagemPreview(URL.createObjectURL(file));
+    setImagemUrl(null);
+    setImageUploading(true);
 
-    // Upload para freeimage.host
     const uploadedUrl = await uploadToImage(file);
     if (uploadedUrl) {
-      setImagemUrl(uploadedUrl); // salva a URL final
+      setImagemUrl(uploadedUrl);
     }
+    setImageUploading(false);
   }
 };
   const adicionarHabilidade = (habilidade: Habilidade) => {
@@ -739,12 +741,12 @@ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
                   <Button
                     variant="contained"
-                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                    startIcon={(loading || imageUploading) ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                     onClick={handleSalvar}
-                    disabled={loading || habilidadesSelecionadas.length === 0}
+                    disabled={loading || imageUploading || habilidadesSelecionadas.length === 0}
                     sx={{ bgcolor: '#ffbe33', '&:hover': { bgcolor: '#f5a623' } }}
                   >
-                    {loading ? 'Salvando...' : isEditMode ? 'Atualizar Atividade' : 'Salvar Atividade'}
+                    {imageUploading ? 'Enviando imagem...' : loading ? 'Salvando...' : isEditMode ? 'Atualizar Atividade' : 'Salvar Atividade'}
                   </Button>
                 </Box>
               </Box>
