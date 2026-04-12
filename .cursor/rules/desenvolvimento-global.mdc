@@ -1,0 +1,42 @@
+---
+description: Padrões gerais de desenvolvimento, comunicação e Git para todo o projeto.
+alwaysApply: true
+---
+
+# Desenvolvimento — padrões globais
+
+## Comunicação
+
+- Respostas do agente **sempre em português (Brasil)**, salvo pedido explícito em outro idioma.
+
+## Alterações no código
+
+- Preferir **diffs pequenos** e revisáveis; uma preocupação principal por PR/commit quando possível.
+- Não remover código comentado ou não relacionado “por limpeza” sem alinhamento.
+- Não introduzir credenciais, tokens ou dados sensíveis em arquivos versionados.
+
+## Git
+
+- **Branches:** nomes curtos e descritivos (`feat/…`, `fix/…`, `chore/…` ou padrão que o time já use).
+- **Commits:** mensagem clara em português; primeira linha até ~72 caracteres; corpo opcional com contexto ou referência a issue.
+- **Conflitos:** resolver mantendo intenção do código existente; evitar misturar refatoração com correção.
+
+## Pull requests
+
+- Título objetivo; descrição com **o quê** mudou e **por quê** (e como testar, se não for óbvio).
+- Evitar PRs gigantes; dividir entregas quando fizer sentido.
+
+## Qualidade antes de encerrar
+
+- Rodar **lint** e **testes** dos pacotes afetados quando a mudança tocar lógica ou contratos públicos.
+- Corrigir erros de compilação ou lint introduzidos pela alteração.
+
+## Documentação
+
+- Não criar arquivos `.md` novos na raiz ou em `docs/` sem pedido explícito do time (exceto quando a tarefa for justamente documentação).
+
+## Regras do Cursor (`.cursor/rules`)
+
+- **Dono sugerido:** tech lead ou dev definido pelo time (responsável por PRs que alterem regras).
+- **Revisão:** pelo menos **trimestral**, ou após refactors grandes que mudem stack/pastas — remover trechos obsoletos ou duplicados do linter.
+- **Boas práticas:** uma preocupação por arquivo `.mdc`; preferir `@caminho/arquivo` a colar código longo nas regras.

@@ -1,0 +1,28 @@
+---
+description: API ASP.NET Core — camadas, EF Core, migrations e endpoints REST.
+globs:
+  - apps/api/**/*.cs
+alwaysApply: false
+---
+
+# `apps/api` — backend .NET
+
+## Arquitetura
+
+- Fluxo típico: **Controllers** → **Services** → **EF Core** (`AppDbContext`) + **Models** / **DTOs**.
+- Manter responsabilidades separadas como no código existente; não introduzir camadas novas (ex.: Clean Architecture completa) sem decisão de arquitetura.
+
+## Dados
+
+- **PostgreSQL** em produção típica (`Npgsql`); migrations com **EF Core Tools** (`dotnet ef`).
+- Alterações de schema: sempre com **migration** versionada e revisão de impacto em dados legados.
+
+## API
+
+- REST consistente; respostas e erros alinhados aos padrões já usados nos controllers existentes.
+- Autenticação/autorização: seguir **JWT / Identity** já configurado no projeto.
+
+## Evitar
+
+- Lógica de negócio pesada diretamente em controllers.
+- Mudanças que quebrem contratos consumidos por `web-app` e `mobile` sem atualizar os clients.

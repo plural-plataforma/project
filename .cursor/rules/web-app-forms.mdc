@@ -1,0 +1,24 @@
+---
+description: Formulários com react-hook-form, zod e resolvers no web-app.
+globs:
+  - apps/web-app/src/pages/**/*.tsx
+alwaysApply: false
+---
+
+# `web-app` — Formulários
+
+## Padrão
+
+- Schema **zod** + `zodResolver` + `useForm` do `react-hook-form`; mensagens de validação e labels em **português**.
+- Campos controlados com `register` / `Controller` conforme o padrão já usado nas páginas existentes.
+
+## Referência canônica
+
+- Formulário de domínio com dialog, schema local e submissão via service — usar como modelo ao criar fluxos similares:
+
+@apps/web-app/src/pages/aluno/AlunoFormDialog.tsx
+
+## Evitar
+
+- Validar o mesmo campo só no submit sem feedback no `formState.errors`.
+- Tipar o formulário com `as any` no resolver sem necessidade — preferir alinhamento de tipos entre `z.infer<typeof schema>` e o genérico do `useForm`.

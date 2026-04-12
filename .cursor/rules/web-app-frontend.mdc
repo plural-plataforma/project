@@ -1,0 +1,34 @@
+---
+description: Padrões do app web principal (Vite, Tailwind 4, Radix, dados e formulários).
+globs:
+  - apps/web-app/**/*.tsx
+  - apps/web-app/**/*.ts
+alwaysApply: false
+---
+
+# `apps/web-app` — cliente web
+
+## Stack
+
+- React 19, Vite, React Router.
+- Estilo: **Tailwind CSS 4** + Radix UI + `class-variance-authority` / `clsx` conforme arquivos existentes.
+- Dados: **TanStack Query**; estado global: **Zustand** (e Context onde já estiver).
+- Formulários: **react-hook-form** + **zod** (`@hookform/resolvers`).
+
+## Organização
+
+- Preferir padrão por feature: `pages/`, `components/`, `services/`, `hooks/`, `stores/`, `types/`.
+- Chamadas HTTP em `services/`; não acoplar lógica de API direto em componentes de UI grossos.
+
+## Testes
+
+- **Vitest** + Testing Library; rodar `npm run test:run -w @plural/web-app` ao alterar lógica crítica.
+
+## Documentos
+
+- Exportação Word existente usa **`docx`** no cliente; novas exportações devem seguir o padrão já usado no projeto (ex.: perfil do aluno / planejamentos).
+
+## Evitar
+
+- Introduzir **MUI** ou outra lib de UI pesada aqui (é padrão do `apps/web` admin, não deste app).
+- Sugerir novas dependências sem necessidade clara; alinhar com o time se for inevitável.

@@ -1,0 +1,29 @@
+---
+description: Testes Vitest e Testing Library no web-app (@plural/web-app).
+globs:
+  - apps/web-app/**/*.test.{ts,tsx}
+  - apps/web-app/**/*.spec.{ts,tsx}
+  - apps/web-app/src/test/**/*
+alwaysApply: false
+---
+
+# `web-app` — Vitest
+
+## Configuração
+
+- Vitest é configurado em [`vite.config.ts`](apps/web-app/vite.config.ts): `environment: 'jsdom'`, `globals: true`, `include: ['src/**/*.{test,spec}.{ts,tsx}']`.
+- Setup global:
+
+@apps/web-app/src/test/setup.ts
+
+- `@testing-library/jest-dom` e `cleanup` após cada teste já estão no setup — não duplicar em cada arquivo sem necessidade.
+
+## Execução
+
+- Rodar suíte: `npm run test:run -w @plural/web-app` (ou `npm run test` no watch durante desenvolvimento).
+
+## Boas práticas
+
+- Preferir testes de **lógica pura** ou componentes isolados quando o projeto já documenta limitações (ex.: múltiplas instâncias de React no monorepo — ver comentários em testes existentes como `RelatoriosPage.test.tsx`).
+- Ao testar código que chama a API: mockar o módulo `@/api/http` ou o service, em vez de bater na rede.
+- Novos arquivos: sufixo `.test.ts` / `.test.tsx` ou `.spec.ts(x)` sob `src/`, alinhado ao `include` do Vite.
