@@ -1,0 +1,21 @@
+---
+description: App administrativo com MUI — não misturar com o web-app Tailwind.
+globs:
+  - apps/web/**/*.tsx
+  - apps/web/**/*.ts
+alwaysApply: false
+---
+
+# `apps/web` — administrativo
+
+## Stack
+
+- Vite + **Material UI (MUI)** + Emotion; Tailwind pode aparecer em dev — seguir o que o código local já usa.
+
+## Regra de ouro
+
+- **Não** copiar padrões visuais ou de componentes do `apps/web-app` (Radix/Tailwind 4) para cá sem decisão explícita; manter consistência **dentro** do admin.
+
+## Escopo
+
+- Evoluir este app quando a tarefa for explicitamente **admin**; funcionalidades da professora ficam em `web-app` e `mobile`.

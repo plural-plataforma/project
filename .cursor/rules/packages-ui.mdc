@@ -1,0 +1,24 @@
+---
+description: Pacote compartilhado @repo/ui — componentes e reexports no monorepo.
+globs:
+  - packages/ui/**/*.tsx
+  - packages/ui/**/*.ts
+alwaysApply: false
+---
+
+# `packages/ui`
+
+## Público e exports
+
+- O barrel principal de componentes é [`components/index.ts`](packages/ui/components/index.ts) — novos componentes compartilhados: exportar daqui quando forem parte da API pública do pacote.
+
+@packages/ui/components/index.ts
+
+## Dependências e acoplamento
+
+- Parte dos exports **reaponta** para `apps/mobile/src/components/...` (ex.: `InputField`, `Logo`). Alterar esses arquivos afeta **mobile e consumidores do pacote** — revisar impacto antes de mudanças estruturais.
+- Não introduzir **Tailwind do `web-app`** nem dependências pesadas de um app específico sem decisão do time; preferir React + tema já usado em [`theme/theme.tsx`](packages/ui/theme/theme.tsx) quando for estilo compartilhado.
+
+## Consumo
+
+- Apps importam `@repo/ui` conforme o `package.json` de cada workspace — manter API dos componentes estável ou documentar breaking change.
