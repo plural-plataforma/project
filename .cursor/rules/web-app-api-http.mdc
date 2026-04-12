@@ -1,0 +1,32 @@
+---
+description: Cliente HTTP Axios da API Plural, token Bearer e tratamento de 401 no web-app.
+globs:
+  - apps/web-app/src/api/**/*.ts
+  - apps/web-app/src/context/AuthContext.tsx
+alwaysApply: false
+---
+
+# `web-app` — HTTP e sessão
+
+## Cliente da API
+
+- Use **sempre** a instância exportada `api` (e o default export, que é o mesmo cliente) definida em:
+
+@apps/web-app/src/api/http.ts
+
+- **Não** criar outro `axios.create` para chamadas à API principal da Plural — mantém baseURL, timeout, headers e interceptors alinhados.
+- A base URL vem de `import.meta.env.VITE_API_URL` (obrigatória em runtime/build conforme `http.ts`).
+
+## Autenticação
+
+- O interceptor injeta `Authorization: Bearer` a partir de `localStorage.getItem('authToken')`.
+- Em **401**, exceto na rota de login, dispara-se `window.dispatchEvent(new CustomEvent('auth:logout'))` — o [`AuthContext`](apps/web-app/src/context/AuthContext.tsx) escuta e encerra a sessão. Novos fluxos de auth devem respeitar esse contrato.
+
+## Serviços
+
+- Endpoints da API Plural: preferir `import { api } from '@/api/http'` (ou caminho equivalente) dentro de `src/services/*`, como em `alunoService.ts`.
+- Erros: padronizar leitura de `AxiosError` + `response?.data` (mensagens da API) nos services, sem duplicar lógica de logout no catch de cada chamada.
+
+## APIs externas (IBGE, ViaCEP, etc.)
+
+- Podem usar `axios` direto com URL pública; não misturar com o cliente `api` autenticado.

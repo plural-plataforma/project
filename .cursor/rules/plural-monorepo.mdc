@@ -1,0 +1,35 @@
+---
+description: >-
+  Aplica quando o trabalho envolve o monorepo Plural: pastas apps/* (web-app, mobile, api, web),
+  Turbo/npm workspaces, escopo PDI/PAEE, cadastro, avaliação diagnóstica ou documentação em docs/.
+  Não usar como regra genérica para outros repositórios.
+alwaysApply: false
+---
+
+# Plural Plataforma (monorepo)
+
+## Apps
+
+| Pasta | Função |
+|-------|--------|
+| `apps/web-app` | App web **principal** (professoras) — React + Vite + Tailwind 4 |
+| `apps/mobile` | App mobile — Expo |
+| `apps/api` | Backend — ASP.NET Core + EF Core + PostgreSQL |
+| `apps/web` | **Administrativo** — MUI; mudanças só quando o escopo for admin |
+
+## Comandos
+
+- Raiz: `npm run dev` / `build` / `lint` (Turbo nos workspaces).
+- Pacote específico: prefira `npm run <script> -w @plural/web-app` (ou pasta equivalente).
+
+## Escopo de produto (PDI → PAEE)
+
+Para evolução pedagógica (PAEE, estudo de caso, cadastro, relatos), alinhar com:
+
+@docs/ESCOPO_E_SPRINTS_PLURAL_PAEE.md
+
+## Princípios
+
+- Mudanças mínimas e focadas no pedido; não refatorar arquivos não relacionados.
+- Não inventar variáveis de ambiente; seguir o que já existe em `appsettings` / docs do time.
+- Preservar compatibilidade com dados legados quando o escopo mencionar migração (ex.: PDI → PAEE).

@@ -1,0 +1,34 @@
+---
+description: Migrations EF Core e alterações no AppDbContext da API Plural.
+globs:
+  - apps/api/Migrations/**/*.cs
+  - apps/api/Data/**/*DbContext*.cs
+alwaysApply: false
+---
+
+# `apps/api` — EF Core e migrations
+
+## Modelo e contexto
+
+- O contexto principal está em `Data/` — referência:
+
+@apps/api/Data/AppDbContext.cs
+
+- Novas entidades: `DbSet`, configuração e relacionamentos aqui (ou arquivos parciais já usados pelo projeto).
+
+## Mudança de schema
+
+- Toda alteração persistente exige **nova migration** versionada em `apps/api/Migrations/` — não “só mudar o banco” à mão em ambientes compartilhados.
+- **Não editar** migrations já aplicadas em staging/produção; em caso de erro, criar migration corretiva nova.
+- Após `dotnet ef migrations add`, revisar o diff gerado e o snapshot:
+
+@apps/api/Migrations/AppDbContextModelSnapshot.cs
+
+## Comandos (a partir de `apps/api`)
+
+- Adicionar migration: `dotnet ef migrations add <NomeDescritivo> --project .` (o script `npm run migrate` no `package.json` pode estar com nome fixo — preferir comando explícito com nome único).
+- Aplicar ao banco local: `npm run database-update` ou `dotnet ef database update --project .`.
+
+## Dados legados
+
+- Scripts de dados ou renomeações que afetem produção devem ser planejados com rollback e homologação (alinhar ao escopo em `docs/` quando for caso PDI/PAEE).
