@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { buscarAvaliacaoPorId, buscarHistoricoDesempenho, registrarDesempenhoBatch } from '@/services/avaliacaoDiagnosticaService'
+import { buscarHabilidades } from '@/services/habilidadeService'
 import { useToast } from '@/hooks/useToast'
 import type { NivelRealizacao, RegistrarDesempenhoBatchRequest } from '@/types/avaliacao-diagnostica'
 
@@ -14,7 +15,6 @@ const NIVEL_OPTIONS: Array<{ value: NivelRealizacao; label: string }> = [
   { value: 'Autonomia', label: 'Autonomia' },
   { value: 'ComAjuda', label: 'Com ajuda' },
   { value: 'NaoRealizou', label: 'Não realizou' },
-  { value: 'NaoAvaliado', label: 'Não avaliado' },
 ]
 
 const keyFor = (alunoId: number, atividadeId: number): string => `${alunoId}:${atividadeId}`
@@ -24,10 +24,9 @@ export default function AvaliacaoDesempenhoPage() {
   const navigate = useNavigate()
   const avaliacaoId = Number(avaliacaoIdParam)
   const queryClient = useQueryClient()
-  const { success, error, warning } = useToast()
+  const { success, error } = useToast()
 
   const [nivelMap, setNivelMap] = useState<Record<string, NivelRealizacao>>({})
-  const [obsAtividadeMap, setObsAtividadeMap] = useState<Record<string, string>>({})
   const [obsAlunoMap, setObsAlunoMap] = useState<Record<number, string>>({})
 
   const { data: avaliacao, isLoading } = useQuery({
@@ -42,18 +41,31 @@ export default function AvaliacaoDesempenhoPage() {
     enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
   })
 
+  const { data: habilidades = [] } = useQuery({
+    queryKey: ['habilidades'],
+    queryFn: buscarHabilidades,
+    enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
+  })
+
+  const labelPorHabilidadeId = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const h of habilidades) {
+      const partes = [h.tipo, h.resumo || h.descricao].filter(Boolean) as string[]
+      m.set(h.id, partes.length > 0 ? partes.join(' — ') : `Habilidade #${h.id}`)
+    }
+    return m
+  }, [habilidades])
+
   useEffect(() => {
     if (!avaliacao) return
 
     const initialNivelMap: Record<string, NivelRealizacao> = {}
-    const initialObsAtividadeMap: Record<string, string> = {}
     const initialObsAlunoMap: Record<number, string> = {}
 
     for (const registro of avaliacao.registrosDesempenho ?? []) {
       if (!registro.atividadeId) continue
       const key = keyFor(registro.alunoId, registro.atividadeId)
       initialNivelMap[key] = registro.nivelRealizacao as NivelRealizacao
-      initialObsAtividadeMap[key] = registro.observacao ?? ''
     }
 
     for (const obsAluno of avaliacao.observacoesAlunos ?? []) {
@@ -61,7 +73,6 @@ export default function AvaliacaoDesempenhoPage() {
     }
 
     setNivelMap(initialNivelMap)
-    setObsAtividadeMap(initialObsAtividadeMap)
     setObsAlunoMap(initialObsAlunoMap)
   }, [avaliacao])
 
@@ -80,9 +91,9 @@ export default function AvaliacaoDesempenhoPage() {
       .sort((a, b) => a.ordem - b.ordem)
       .flatMap((bloco) =>
         bloco.atividades.map((atividade) => ({
-          blocoTitulo: bloco.titulo,
           atividadeId: atividade.id,
           atividadeTitulo: atividade.titulo,
+          habilidadeIds: atividade.habilidadeIds ?? [],
         }))
       )
   }, [avaliacao])
@@ -102,7 +113,6 @@ export default function AvaliacaoDesempenhoPage() {
             alunoId: aluno.id,
             atividadeId: atividade.atividadeId,
             nivelRealizacao: nivel,
-            observacao: obsAtividadeMap[key]?.trim() || undefined,
           })
         }
 
@@ -130,7 +140,7 @@ export default function AvaliacaoDesempenhoPage() {
       queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada', avaliacaoId] })
       queryClient.invalidateQueries({ queryKey: ['avaliacao-desempenho-historico', avaliacaoId] })
       queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada'] })
-      navigate(`/relatorios?avaliacaoId=${avaliacaoId}`)
+      navigate('/avaliacoes')
     },
     onError: (err: Error) => {
       error('Falha ao salvar desempenho', err.message)
@@ -199,11 +209,22 @@ export default function AvaliacaoDesempenhoPage() {
               <div className="space-y-3">
                 {atividades.map((atividade) => {
                   const key = keyFor(aluno.id, atividade.atividadeId)
+                  const habilidadesTexto =
+                    atividade.habilidadeIds.length > 0
+                      ? atividade.habilidadeIds
+                          .map((id) => labelPorHabilidadeId.get(id) ?? `#${id}`)
+                          .join(' · ')
+                      : null
                   return (
                     <div key={key} className="rounded-lg border border-border p-3 space-y-2">
                       <div>
-                        <p className="text-xs text-muted-foreground">{atividade.blocoTitulo}</p>
                         <p className="text-sm font-medium text-foreground">{atividade.atividadeTitulo}</p>
+                        {habilidadesTexto && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <span className="font-semibold text-foreground/80">Habilidade: </span>
+                            {habilidadesTexto}
+                          </p>
+                        )}
                       </div>
                       <Select
                         value={nivelMap[key] ?? ''}
@@ -222,13 +243,6 @@ export default function AvaliacaoDesempenhoPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <textarea
-                        rows={2}
-                        value={obsAtividadeMap[key] ?? ''}
-                        onChange={(e) => setObsAtividadeMap((prev) => ({ ...prev, [key]: e.target.value }))}
-                        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                        placeholder="Observação da atividade (opcional)"
-                      />
                     </div>
                   )
                 })}
@@ -266,17 +280,6 @@ export default function AvaliacaoDesempenhoPage() {
           )}
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          onClick={() => {
-            warning('Dica', 'NaoAvaliado aparece na tela, mas não entra no denominador do percentual.')
-          }}
-        >
-          Regra do percentual
-        </Button>
-      </div>
     </div>
   )
 }

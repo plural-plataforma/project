@@ -82,7 +82,7 @@ export default function DashboardPage() {
       if (previousCountsRef.current.escolas === 0 && currentCounts.escolas > 0) {
         setJourneyFeedback('Etapa concluída: escola cadastrada. Próximo passo: cadastrar alunos.')
       } else if (previousCountsRef.current.alunos === 0 && currentCounts.alunos > 0) {
-        setJourneyFeedback('Etapa concluída: aluno cadastrado. Próximo passo: criar PDI.')
+        setJourneyFeedback('Etapa concluída: aluno cadastrado. Próximo passo: criar PAEE.')
       } else if (previousCountsRef.current.planejamentos === 0 && currentCounts.planejamentos > 0) {
         setJourneyFeedback('Parabéns! Você concluiu a configuração inicial da plataforma.')
       }
@@ -120,10 +120,10 @@ export default function DashboardPage() {
       },
       {
         id: 'pdi',
-        title: 'Criar PDI',
-        description: 'Monte o Plano de Desenvolvimento Individual e acompanhe a evolução.',
-        ctaLabel: 'Criar PDI',
-        ctaDoneLabel: 'Ver PDIs',
+        title: 'Criar PAEE',
+        description: 'Monte o Plano de Atendimento Educacional Especializado e acompanhe a evolução.',
+        ctaLabel: 'Criar PAEE',
+        ctaDoneLabel: 'Ver PAEE',
         route: '/planejamentos',
         status: pdiStatus,
         icon: BookOpen,
@@ -257,7 +257,7 @@ export default function DashboardPage() {
             {[
               { label: 'Escolas', value: escolas.length, route: '/escolas', icon: Buildings },
               { label: 'Alunos', value: alunos.length, route: '/alunos', icon: Users },
-              { label: 'Planejamentos', value: planejamentos.length, route: '/planejamentos', icon: BookOpen },
+              { label: 'PAEE', value: planejamentos.length, route: '/planejamentos', icon: BookOpen },
             ].map(({ label, value, route, icon: Icon }) => (
               <button
                 key={label}

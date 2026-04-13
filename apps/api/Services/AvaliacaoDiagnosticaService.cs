@@ -242,8 +242,9 @@ namespace api.Services
         private async Task<AvaliacaoDiagnosticaDetailDTO> MontarDetailDTO(int avaliacaoId)
         {
             var avaliacao = await _contexto.AvaliacoesDiagnosticas
+        .Include(a => a.Escola)
         .Include(a => a.BlocosSelecionados).ThenInclude(b => b.Bloco)
-        .Include(a => a.AtividadesSelecionadas).ThenInclude(aa => aa.Atividade)
+        .Include(a => a.AtividadesSelecionadas).ThenInclude(aa => aa.Atividade).ThenInclude(at => at.Habilidades)
         .Include(a => a.AlunosParticipantes).ThenInclude(ap => ap.Aluno)
         .Include(a => a.RegistrosDesempenho)
         .FirstAsync(a => a.Id == avaliacaoId);
@@ -266,10 +267,13 @@ namespace api.Services
                             Id = aa.Atividade.Id,
                             Titulo = aa.Atividade.Titulo ?? string.Empty,
                             Enunciado = aa.Atividade.Enunciado ?? string.Empty,
+                            BlocoId = aa.Atividade.BlocoId,
                             ImagemUrl = aa.Atividade.ImagemUrl,
                             Nivel = aa.Atividade.Nivel.ToString(),
-                            EtapaMin = aa.Atividade.EtapaMin,     
+                            EtapaMin = aa.Atividade.EtapaMin,
                             EtapaMax = aa.Atividade.EtapaMax,
+                            Ativo = aa.Atividade.Ativo,
+                            HabilidadeIds = aa.Atividade.Habilidades.Select(h => h.Id).ToList(),
                         })
                         .ToList()
                 })
@@ -282,6 +286,7 @@ namespace api.Services
                 Objetivo = avaliacao.Objetivo,
                 DataAplicacao = avaliacao.DataAplicacao,
                 EscolaId = avaliacao.EscolaId,
+                EscolaNome = avaliacao.Escola?.NomeInstituicao,
                 Concluida = avaliacao.Concluida,
                 AlunoIds = avaliacao.AlunosParticipantes.Select(ap => ap.AlunoId).ToList(),
                 AlunosParticipantes = avaliacao.AlunosParticipantes
@@ -364,14 +369,20 @@ namespace api.Services
                     return resposta;
                 }
 
+                if (string.IsNullOrWhiteSpace(dto.Objetivo))
+                {
+                    resposta.SetFalha("Objetivo é obrigatório.");
+                    return resposta;
+                }
+
                 if (dto.EscolaId.HasValue)
                 {
-                    var escolaExiste = await _contexto.EscolasXProfessores
-                        .AnyAsync(e => e.EscolaId == dto.EscolaId.Value);
+                    var escolaDoProfessor = await _contexto.EscolasXProfessores
+                        .AnyAsync(e => e.EscolaId == dto.EscolaId.Value && e.ProfessorId == usuario.ProfessorId);
 
-                    if (!escolaExiste)
+                    if (!escolaDoProfessor)
                     {
-                        resposta.SetFalha("Escola informada não existe.");
+                        resposta.SetFalha("Escola informada não está vinculada ao seu cadastro.");
                         return resposta;
                     }
                 }
@@ -425,7 +436,7 @@ namespace api.Services
                 var avaliacao = new AvaliacaoDiagnostica
                 {
                     Titulo = dto.Titulo.Trim(),
-                    Objetivo = dto.Objetivo?.Trim(),
+                    Objetivo = dto.Objetivo.Trim(),
                     DataAplicacao = dataAplicacaoUtc,
                     EscolaId = dto.EscolaId,
                     ProfessorId = usuario.ProfessorId,
@@ -553,6 +564,12 @@ namespace api.Services
                     return resposta;
                 }
 
+                if (dto.Objetivo != null && string.IsNullOrWhiteSpace(dto.Objetivo.Trim()))
+                {
+                    resposta.SetFalha("Objetivo é obrigatório.");
+                    return resposta;
+                }
+
                 // Atualiza campos básicos
                 if (!string.IsNullOrWhiteSpace(dto.Titulo))
                     avaliacao.Titulo = dto.Titulo.Trim();
@@ -565,12 +582,12 @@ namespace api.Services
 
                 if (dto.EscolaId.HasValue)
                 {
-                    var escolaExiste = await _contexto.EscolasXProfessores
-                        .AnyAsync(e => e.EscolaId == dto.EscolaId.Value);
+                    var escolaDoProfessor = await _contexto.EscolasXProfessores
+                        .AnyAsync(e => e.EscolaId == dto.EscolaId.Value && e.ProfessorId == usuario.ProfessorId);
 
-                    if (!escolaExiste)
+                    if (!escolaDoProfessor)
                     {
-                        resposta.SetFalha("Escola informada não existe.");
+                        resposta.SetFalha("Escola informada não está vinculada ao seu cadastro.");
                         return resposta;
                     }
                 }
@@ -706,142 +723,172 @@ namespace api.Services
 
         private async Task<byte[]> GerarPdfDiagnostico(AvaliacaoDiagnosticaDetailDTO dto)
         {
+            var orderedBlocos = dto.BlocosComAtividades.OrderBy(b => b.Ordem).ToList();
+            var atividadesFlat = new List<(string Titulo, byte[]? ImageBytes, string? ErroUrl)>();
+
+            using var http = new HttpClient();
+            http.Timeout = TimeSpan.FromSeconds(45);
+
+            foreach (var bloco in orderedBlocos)
+            {
+                foreach (var atv in bloco.Atividades)
+                {
+                    byte[]? bytes = null;
+                    string? err = null;
+                    if (!string.IsNullOrWhiteSpace(atv.ImagemUrl))
+                    {
+                        try
+                        {
+                            bytes = await http.GetByteArrayAsync(atv.ImagemUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            err = atv.ImagemUrl;
+                            Console.WriteLine($"[PDF] Falha ao baixar imagem {atv.ImagemUrl}: {ex.Message}");
+                        }
+                    }
+
+                    atividadesFlat.Add((atv.Titulo ?? string.Empty, bytes, err));
+                }
+            }
+
+            var nomesAlunos = dto.AlunosParticipantes?
+                .Select(p => p.Aluno?.NomeCompleto?.Trim())
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Cast<string>()
+                .ToList() ?? new List<string>();
+            var alunosTexto = nomesAlunos.Count > 0 ? string.Join(", ", nomesAlunos) : "—";
+            var escolaNome = !string.IsNullOrWhiteSpace(dto.EscolaNome) ? dto.EscolaNome! : "—";
+
             var document = Document.Create(container =>
             {
-                container.Page(page =>
+                container.Page(page => MontarPdfPaginaCapa(page, dto, escolaNome, alunosTexto));
+
+                foreach (var item in atividadesFlat)
                 {
-                    page.Size(PageSizes.A4);
-                    page.Margin(2.5f, Unit.Centimetre); 
-                    page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
-
-                    // Cabeçalho
-                    page.Header()
-                        .PaddingBottom(1, Unit.Centimetre)
-                        .Row(row =>
-                        {
-                            row.RelativeItem().AlignCenter().Text($"Avaliação Diagnóstica\n{dto.Titulo}")
-                                .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
-                        });
-
-                    // Conteúdo principal
-                    page.Content()
-                        .PaddingVertical(0.8f, Unit.Centimetre)
-                        .Column(col =>
-                        {
-                            col.Spacing(10);
-
-                            // Informações gerais
-                            col.Item().Row(r =>
-                            {
-                                r.RelativeItem().Text("Objetivo: ").SemiBold();
-                                r.RelativeItem(3).Text(dto.Objetivo ?? "—");
-                            });
-
-                            col.Item().Row(r =>
-                            {
-                                r.RelativeItem().Text("Data de aplicação: ").SemiBold();
-                                r.RelativeItem(3).Text(dto.DataAplicacao.ToString("dd/MM/yyyy") ?? "—");
-                            });
-
-
-                            col.Item().PaddingTop(20).Text("Atividades")
-                                .SemiBold().FontSize(15).FontColor(Colors.Grey.Darken2);
-
-                            foreach (var bloco in dto.BlocosComAtividades.OrderBy(b => b.Ordem))
-                            {
-                                col.Item().PaddingTop(16).Text($"{bloco.Ordem} — {bloco.Titulo}")
-                                    .SemiBold().FontSize(14).FontColor(Colors.Blue.Darken1);
-
-                                if (!string.IsNullOrWhiteSpace(bloco.Observacao))
-                                {
-                                    col.Item().PaddingTop(4).Text($"Observação: {bloco.Observacao}")
-                                        .Italic().FontSize(11).FontColor(Colors.Grey.Medium);
-                                }
-
-                                foreach (var atv in bloco.Atividades)
-                                {
-                                    col.Item().PaddingTop(12).PaddingLeft(10).Column(c =>
-                                    {
-                                        c.Item().Text($"• {atv.Titulo}")
-                      .SemiBold().FontSize(12);
-
-                                        // Imagem da atividade
-                                        if (!string.IsNullOrWhiteSpace(atv.ImagemUrl))
-                                        {
-                                            try
-                                            {
-                                                // Baixa a imagem como byte[]
-                                                using var httpClient = new HttpClient();
-                                                httpClient.Timeout = TimeSpan.FromSeconds(10); 
-                                                var imageBytes = httpClient.GetByteArrayAsync(atv.ImagemUrl).Result;
-                                                c.Item()
-                                                    .PaddingTop(8)
-                                                    .Width(300) // ou 280 para margem melhor
-                                                    .Image(imageBytes)
-                                                    .FitWidth()
-                                                    .WithCompressionQuality(ImageCompressionQuality.Medium);
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                Console.WriteLine($"[PDF] Falha ao baixar imagem {atv.ImagemUrl}: {ex.Message}");
-                                                if (ex.InnerException != null)
-                                                    Console.WriteLine($"Inner: {ex.InnerException.Message}");
-
-                                                c.Item()
-                                                    .PaddingTop(4)
-                                                    .Text($"(Imagem não disponível: {atv.ImagemUrl})")
-                                                    .Italic()
-                                                    .FontSize(10)
-                                                    .FontColor(Colors.Red.Medium);
-                                            }
-                                        }
-
-                                        // Enunciado (já está funcionando)
-                                        if (!string.IsNullOrWhiteSpace(atv.Enunciado))
-                                        {
-                                            c.Item().PaddingTop(6).Text(atv.Enunciado)
-                                                .FontSize(11);
-                                        }
-                                    });
-                                }
-                            }
-                        });
-
-                    // Rodapé com número de página e data de geração
-                    page.Footer()
-                        .AlignCenter()
-                        .PaddingVertical(0.8f, Unit.Centimetre)
-                        .Row(row =>
-                        {
-                            // Lado esquerdo: data de geração
-                            row.RelativeItem()
-                                .AlignLeft()
-                                .Text(text =>
-                                {
-                                    text.Span($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm}")
-                                        .FontSize(9)
-                                        .FontColor(Colors.Grey.Medium);
-                                });
-
-                            // Lado direito: número da página
-                            row.RelativeItem()
-                                .AlignRight()
-                                .Text(text =>
-                                {
-                                    text.Span("Página ")
-                                        .FontSize(9)
-                                        .FontColor(Colors.Grey.Medium);
-
-                                    text.CurrentPageNumber()
-                                        .FontSize(9)
-                                        .FontColor(Colors.Grey.Medium);
-                                });
-                        });
-                });
+                    container.Page(page => MontarPdfPaginaAtividade(page, dto, item.Titulo, item.ImageBytes, item.ErroUrl));
+                }
             });
 
             return document.GeneratePdf();
+        }
+
+        private static void MontarPdfRodape(PageDescriptor page)
+        {
+            page.Footer()
+                .AlignCenter()
+                .PaddingVertical(0.8f, Unit.Centimetre)
+                .Row(row =>
+                {
+                    row.RelativeItem()
+                        .AlignLeft()
+                        .Text(text =>
+                        {
+                            text.Span($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm}")
+                                .FontSize(9)
+                                .FontColor(Colors.Grey.Medium);
+                        });
+
+                    row.RelativeItem()
+                        .AlignRight()
+                        .Text(text =>
+                        {
+                            text.Span("Página ")
+                                .FontSize(9)
+                                .FontColor(Colors.Grey.Medium);
+
+                            text.CurrentPageNumber()
+                                .FontSize(9)
+                                .FontColor(Colors.Grey.Medium);
+                        });
+                });
+        }
+
+        private static void MontarPdfPaginaCapa(PageDescriptor page, AvaliacaoDiagnosticaDetailDTO dto, string escolaNome, string alunosTexto)
+        {
+            page.Size(PageSizes.A4);
+            page.Margin(2.5f, Unit.Centimetre);
+            page.PageColor(Colors.White);
+            page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+
+            page.Header()
+                .PaddingBottom(0.8f, Unit.Centimetre)
+                .AlignCenter()
+                .Text("Avaliação Diagnóstica")
+                .SemiBold()
+                .FontSize(18)
+                .FontColor(Colors.Blue.Medium);
+
+            page.Content()
+                .Column(col =>
+                {
+                    col.Spacing(12);
+                    col.Item().AlignCenter().Text(dto.Titulo).SemiBold().FontSize(16);
+                    col.Item().Row(r =>
+                    {
+                        r.ConstantItem(4, Unit.Centimetre).Text("Escola:").SemiBold();
+                        r.RelativeItem().Text(escolaNome);
+                    });
+                    col.Item().Row(r =>
+                    {
+                        r.ConstantItem(4, Unit.Centimetre).Text("Aluno(s):").SemiBold();
+                        r.RelativeItem().Text(alunosTexto);
+                    });
+                    col.Item().Row(r =>
+                    {
+                        r.ConstantItem(4, Unit.Centimetre).Text("Objetivo:").SemiBold();
+                        r.RelativeItem().Text(dto.Objetivo ?? "—");
+                    });
+                    col.Item().Row(r =>
+                    {
+                        r.ConstantItem(4, Unit.Centimetre).Text("Data de aplicação:").SemiBold();
+                        r.RelativeItem().Text(dto.DataAplicacao.ToString("dd/MM/yyyy"));
+                    });
+                });
+
+            MontarPdfRodape(page);
+        }
+
+        private static void MontarPdfPaginaAtividade(PageDescriptor page, AvaliacaoDiagnosticaDetailDTO dto, string tituloAtividade, byte[]? imageBytes, string? urlErro)
+        {
+            page.Size(PageSizes.A4);
+            page.Margin(2.5f, Unit.Centimetre);
+            page.PageColor(Colors.White);
+            page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+
+            page.Header()
+                .PaddingBottom(0.5f, Unit.Centimetre)
+                .Column(c =>
+                {
+                    c.Spacing(4);
+                    c.Item().AlignCenter().Text(dto.Titulo).FontSize(10).FontColor(Colors.Grey.Darken2);
+                });
+
+            page.Content()
+                .Column(col =>
+                {
+                    col.Spacing(10);
+                    col.Item().Column(block =>
+                    {
+                        block.Spacing(8);
+                        block.Item().AlignCenter().Text(tituloAtividade).SemiBold().FontSize(14);
+                        if (imageBytes != null && imageBytes.Length > 0)
+                        {
+                            block.Item()
+                                .AlignCenter()
+                                .Width(17, Unit.Centimetre)
+                                .Image(imageBytes)
+                                .FitWidth()
+                                .WithCompressionQuality(ImageCompressionQuality.Medium);
+                        }
+                        else if (!string.IsNullOrEmpty(urlErro))
+                        {
+                            block.Item().Text("(Imagem não disponível)").Italic().FontSize(10).FontColor(Colors.Red.Medium);
+                        }
+                    });
+                });
+
+            MontarPdfRodape(page);
         }
 
     }

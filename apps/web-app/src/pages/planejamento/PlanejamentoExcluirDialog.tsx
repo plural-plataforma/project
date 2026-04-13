@@ -27,7 +27,7 @@ export function PlanejamentoExcluirDialog({
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Excluir PDI?</DialogTitle>
+          <DialogTitle>Excluir PAEE?</DialogTitle>
           <DialogDescription>
             O plano <span className="font-semibold text-foreground">{apelido}</span> será removido
             permanentemente, incluindo vínculos com alunos, habilidades, estratégias e critérios de

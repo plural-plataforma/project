@@ -86,7 +86,7 @@ export default function PlanejamentoDetailPage() {
       dataFim: formDataFim,
       descicaoPlanejamento: formDescricao,
     }),
-    onSuccess: () => { success('PDI atualizado!'); invalidate(); setEditingInfo(false) },
+    onSuccess: () => { success('PAEE atualizado!'); invalidate(); setEditingInfo(false) },
     onError: (err: Error) => showError('Erro', err.message),
   })
 
@@ -115,7 +115,7 @@ export default function PlanejamentoDetailPage() {
   const deleteMutation = useMutation({
     mutationFn: () => excluirPlanejamento(Number(id)),
     onSuccess: () => {
-      success('PDI excluído', 'O planejamento foi removido.')
+      success('PAEE excluído', 'O planejamento foi removido.')
       setDeleteDialogOpen(false)
       void qc.invalidateQueries({ queryKey: ['planejamentos'] })
       void qc.invalidateQueries({ queryKey: ['planejamento', id] })
@@ -193,7 +193,7 @@ export default function PlanejamentoDetailPage() {
               className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setDeleteDialogOpen(true)}
             >
-              Excluir PDI
+              Excluir PAEE
             </Button>
           </div>
         }
@@ -205,7 +205,7 @@ export default function PlanejamentoDetailPage() {
         {editingInfo ? (
           <Card>
             <CardContent className="pt-5 space-y-3">
-              <Input label="Nome do PDI" value={formApelido} onChange={(e) => setFormApelido(e.target.value)} />
+              <Input label="Nome do PAEE" value={formApelido} onChange={(e) => setFormApelido(e.target.value)} />
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Data de início" type="date" value={formDataInicio} onChange={(e) => setFormDataInicio(e.target.value)} />
                 <Input label="Data de fim" type="date" value={formDataFim} onChange={(e) => setFormDataFim(e.target.value)} />

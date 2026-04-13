@@ -71,7 +71,6 @@ export default function EscolasPage() {
     onSuccess: async (escola) => {
       await vincularEscola(escola.id)
       qc.invalidateQueries({ queryKey: ['escolas-professor'] })
-      qc.invalidateQueries({ queryKey: ['todas-escolas'] })
       success('Escola salva!', 'A escola foi cadastrada e vinculada ao seu perfil.')
       setDialogOpen(false)
       setEditingEscola(null)

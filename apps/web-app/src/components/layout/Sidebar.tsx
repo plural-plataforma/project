@@ -5,7 +5,6 @@ import {
   Users,
   BookOpen,
   ClipboardText,
-  ChartBar,
   SignOut,
   List,
   X,
@@ -23,9 +22,8 @@ const navItems = [
   { to: '/dashboard', icon: House, label: 'Início' },
   { to: '/escolas', icon: Buildings, label: 'Escolas' },
   { to: '/alunos', icon: Users, label: 'Alunos' },
-  { to: '/planejamentos', icon: BookOpen, label: 'Planejamentos' },
+  { to: '/planejamentos', icon: BookOpen, label: 'PAEE' },
   { to: '/avaliacoes', icon: ClipboardText, label: 'Avaliações' },
-  { to: '/relatorios', icon: ChartBar, label: 'Relatórios' },
 ]
 
 interface SidebarProps {

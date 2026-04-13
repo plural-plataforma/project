@@ -40,6 +40,7 @@ export interface BlocoComAtividadesDetalhe {
     nivel: string
     etapaMin?: string
     etapaMax?: string
+    habilidadeIds?: number[]
   }>
 }
 
@@ -49,6 +50,8 @@ export interface AvaliacaoDiagnosticaDetalhada {
   objetivo?: string
   dataAplicacao: string
   escolaId?: number | null
+  /** Preenchido pela API ao buscar detalhe (PDF / telas). */
+  escolaNome?: string
   escola: { id: number; nome: string }
   alunoIds?: number[]
   alunos?: Array<{

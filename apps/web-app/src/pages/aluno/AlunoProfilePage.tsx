@@ -82,7 +82,7 @@ export default function AlunoProfilePage() {
     aluno.ano && { icon: GraduationCap, label: 'Ano/Série', value: aluno.ano },
   ].filter(Boolean) as Array<{ icon: React.ElementType; label: string; value: string }>
 
-  async function exportarPdiWord(pdi: PlanejamentoAluno) {
+  async function exportarPaeeWord(pdi: PlanejamentoAluno) {
     const laudos = alunoLaudos?.map((l) => l.codigoCid).filter(Boolean).join(', ') || 'Não informado'
     const periodoInicio = pdi.dataInicio ? new Date(pdi.dataInicio).toLocaleDateString('pt-BR') : 'Não informado'
     const periodoFim = pdi.dataFim ? new Date(pdi.dataFim).toLocaleDateString('pt-BR') : 'Não informado'
@@ -95,7 +95,7 @@ export default function AlunoProfilePage() {
 
     const doc = new Document({
       creator: 'Plural Plataforma',
-      title: `PDI - ${alunoNome}`,
+      title: `PAEE - ${alunoNome}`,
       sections: [
         {
           properties: {
@@ -103,7 +103,13 @@ export default function AlunoProfilePage() {
           },
           children: [
             new Paragraph({
-              children: [new TextRun({ text: 'PLANO DE DESENVOLVIMENTO INDIVIDUAL - PDI', bold: true, size: 36 })],
+              children: [
+                new TextRun({
+                  text: 'PLANO DE ATENDIMENTO EDUCACIONAL ESPECIALIZADO (PAEE)',
+                  bold: true,
+                  size: 36,
+                }),
+              ],
               alignment: AlignmentType.CENTER,
               spacing: { after: 800 },
             }),
@@ -121,7 +127,15 @@ export default function AlunoProfilePage() {
             new Paragraph({ children: [new TextRun('Composição do atendimento: ( ) Individual   ( ) Coletivo')] }),
             new Paragraph({ spacing: { after: 600 } }),
 
-            new Paragraph({ children: [new TextRun({ text: '3. OBJETIVOS DO PLANO: (o que é preciso atingir, meta)', bold: true, size: 26 })] }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: '3. OBJETIVOS DO PAEE: (o que é preciso atingir, meta)',
+                  bold: true,
+                  size: 26,
+                }),
+              ],
+            }),
             new Paragraph({ spacing: { after: 300 } }),
             ...(pdi.habilidades?.length
               ? pdi.habilidades.map((h) =>
@@ -177,7 +191,7 @@ export default function AlunoProfilePage() {
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `PDI_${alunoNome.replace(/[^a-zA-Z0-9]/g, '_')}_${pdi.apelido}.docx`
+    link.download = `PAEE_${alunoNome.replace(/[^a-zA-Z0-9]/g, '_')}_${pdi.apelido}.docx`
     link.click()
     window.URL.revokeObjectURL(url)
   }
@@ -311,7 +325,7 @@ export default function AlunoProfilePage() {
         {aluno.planejamentos && aluno.planejamentos.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Planejamentos (PDI)</CardTitle>
+              <CardTitle>PAEE</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {aluno.planejamentos.map((p) => (
@@ -325,7 +339,7 @@ export default function AlunoProfilePage() {
                       <ArrowSquareOut size={14} />
                       Abrir
                     </Button>
-                    <Button size="sm" onClick={() => exportarPdiWord(p)}>
+                    <Button size="sm" onClick={() => exportarPaeeWord(p)}>
                       <DownloadSimple size={14} />
                       Exportar
                     </Button>

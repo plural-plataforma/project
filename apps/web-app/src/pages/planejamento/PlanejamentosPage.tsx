@@ -46,7 +46,7 @@ import type { Estrategia } from '@/types/estrategia'
 import type { Avaliacao } from '@/types/avaliacao'
 
 const schema = z.object({
-  apelido: z.string().min(3, 'Nome do PDI obrigatório'),
+  apelido: z.string().min(3, 'Nome do PAEE obrigatório'),
   dataInicio: z.string().min(1, 'Data de início obrigatória'),
   dataFim: z.string().min(1, 'Data de fim obrigatória'),
   descicaoPlanejamento: z.string().optional(),
@@ -129,7 +129,7 @@ export default function PlanejamentosPage() {
     },
     onSuccess: (pdi) => {
       qc.invalidateQueries({ queryKey: ['planejamentos'] })
-      success('PDI criado!', 'Planejamento cadastrado e vinculações realizadas.')
+      success('PAEE criado!', 'Planejamento cadastrado e vinculações realizadas.')
       handleClose()
       navigate(`/planejamentos/${pdi.id}`)
     },
@@ -139,7 +139,7 @@ export default function PlanejamentosPage() {
   const deleteMutation = useMutation({
     mutationFn: (planId: number) => excluirPlanejamento(planId),
     onSuccess: () => {
-      success('PDI excluído', 'O planejamento foi removido.')
+      success('PAEE excluído', 'O planejamento foi removido.')
       setPdiParaExcluir(null)
       void qc.invalidateQueries({ queryKey: ['planejamentos'] })
     },
@@ -228,15 +228,15 @@ export default function PlanejamentosPage() {
 
   return (
     <>
-      <LoadingScreen visible={createMutation.isPending} message="Criando PDI e vinculando..." />
+      <LoadingScreen visible={createMutation.isPending} message="Criando PAEE e vinculando..." />
 
       <PageHeader
-        title="Planejamentos (PDI)"
+        title="PAEE"
         description="Gerencie os planos de desenvolvimento individual"
         action={
           <Button onClick={() => setDialogOpen(true)}>
             <Plus size={16} weight="bold" />
-            Novo PDI
+            Novo PAEE
           </Button>
         }
       />
@@ -255,17 +255,17 @@ export default function PlanejamentosPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<BookOpen size={32} />}
-          title={search ? 'Nenhum PDI encontrado' : 'Nenhum PDI criado'}
+          title={search ? 'Nenhum PAEE encontrado' : 'Nenhum PAEE criado'}
           description={
             search
               ? 'Tente outro termo de busca.'
-              : 'Crie o primeiro plano de desenvolvimento individual para seus alunos.'
+              : 'Crie o primeiro PAEE para seus alunos.'
           }
           action={
             !search && (
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus size={16} weight="bold" />
-                Criar PDI
+                Criar PAEE
               </Button>
             )
           }
@@ -289,7 +289,7 @@ export default function PlanejamentosPage() {
                         type="button"
                         className="flex items-start gap-3 flex-1 min-w-0 text-left rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         onClick={() => navigate(`/planejamentos/${p.id}`)}
-                        aria-label={`Abrir PDI ${p.apelido}`}
+                        aria-label={`Abrir PAEE ${p.apelido}`}
                       >
                         <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
                           <BookOpen size={20} className="text-primary" weight="duotone" />
@@ -322,7 +322,7 @@ export default function PlanejamentosPage() {
                         variant="ghost"
                         size="icon"
                         className="shrink-0 text-muted-foreground hover:text-destructive"
-                        aria-label={`Excluir PDI ${p.apelido}`}
+                        aria-label={`Excluir PAEE ${p.apelido}`}
                         onClick={() => setPdiParaExcluir(p)}
                       >
                         <Trash size={20} weight="bold" />
@@ -340,7 +340,7 @@ export default function PlanejamentosPage() {
       <Dialog open={dialogOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Novo PDI</DialogTitle>
+            <DialogTitle>Novo PAEE</DialogTitle>
           </DialogHeader>
 
           {/* Stepper */}
@@ -383,8 +383,8 @@ export default function PlanejamentosPage() {
               {step === 'info' && (
                 <motion.div key="info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                   <Input
-                    label="Nome do PDI"
-                    placeholder="Ex: PDI 2026 — João Silva"
+                    label="Nome do PAEE"
+                    placeholder="Ex: PAEE 2026 — João Silva"
                     error={errors.apelido?.message}
                     {...register('apelido')}
                   />
@@ -406,7 +406,7 @@ export default function PlanejamentosPage() {
                     <label className="text-sm font-semibold text-foreground">Resumo / Descrição</label>
                     <textarea
                       rows={3}
-                      placeholder="Descreva os objetivos gerais deste PDI..."
+                      placeholder="Descreva os objetivos gerais deste PAEE..."
                       className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                       {...register('descicaoPlanejamento')}
                     />
@@ -587,7 +587,7 @@ export default function PlanejamentosPage() {
                       loading={createMutation.isPending}
                       onClick={() => void handleSubmit((d) => createMutation.mutate(d))()}
                     >
-                      Criar PDI
+                      Criar PAEE
                     </Button>
                   )}
                 </div>
