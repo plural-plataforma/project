@@ -1,10 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useToast } from '@/hooks/useToast'
-import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, ClipboardText, CalendarBlank, Users, ChartBar, Warning, UserPlus, DownloadSimple } from '@phosphor-icons/react'
-import { buscarAvaliacoesDiagnosticas, gerarPdfBlob, reivindicarAvaliacaoDiagnostica } from '@/services/avaliacaoDiagnosticaService'
+import { Plus, ClipboardText, CalendarBlank, Users, ChartBar, Warning, UserPlus } from '@phosphor-icons/react'
+import { buscarAvaliacoesDiagnosticas, reivindicarAvaliacaoDiagnostica } from '@/services/avaliacaoDiagnosticaService'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { SkeletonList } from '@/components/common/SkeletonCard'
@@ -25,8 +23,6 @@ export const statusConfig: Record<string, { label: string; variant: 'default' | 
 export default function AvaliacoesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { error: showError } = useToast()
-  const [loadingPdfFor, setLoadingPdfFor] = useState<number | null>(null)
 
   const { data: avaliacoes = [], isLoading } = useQuery({
     queryKey: ['avaliacoes-diagnosticas'],
@@ -36,21 +32,6 @@ export default function AvaliacoesPage() {
   const { mutate: reivindicar, isPending: isReivindicando } = useMutation({
     mutationFn: reivindicarAvaliacaoDiagnostica,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['avaliacoes-diagnosticas'] }),
-  })
-
-  const pdfMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const blob = await gerarPdfBlob(id)
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `avaliacao-diagnostica-${id}.pdf`
-      link.click()
-      window.URL.revokeObjectURL(url)
-    },
-    onMutate: (id) => setLoadingPdfFor(id),
-    onSettled: () => setLoadingPdfFor(null),
-    onError: (err: Error) => showError('Erro ao gerar PDF', err.message),
   })
 
   const semDono = avaliacoes.filter((av) => av.professorId == null)
@@ -110,10 +91,6 @@ export default function AvaliacoesPage() {
                 onOpen={(id) => navigate(`/avaliacoes/editar/${id}/identificacao`)}
                 onReivindicar={av.professorId == null ? () => reivindicar(av.id) : undefined}
                 isReivindicando={isReivindicando}
-                onDownloadPdf={
-                  av.professorId != null ? () => pdfMutation.mutate(av.id) : undefined
-                }
-                isDownloadingPdf={loadingPdfFor === av.id}
               />
             ))}
           </AnimatePresence>
@@ -129,16 +106,12 @@ function AvaliacaoCard({
   onOpen,
   onReivindicar,
   isReivindicando,
-  onDownloadPdf,
-  isDownloadingPdf,
 }: {
   avaliacao: AvaliacaoDiagnosticaResumo
   index: number
   onOpen: (id: number) => void
   onReivindicar?: () => void
   isReivindicando?: boolean
-  onDownloadPdf?: () => void
-  isDownloadingPdf?: boolean
 }) {
   const status = statusConfig[av.status] ?? { label: av.status, variant: 'muted' as const }
   const navigate = useNavigate()
@@ -189,17 +162,6 @@ function AvaliacaoCard({
               </Button>
             ) : (
               <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onDownloadPdf?.()}
-                  disabled={!onDownloadPdf || isDownloadingPdf}
-                  loading={isDownloadingPdf}
-                  aria-label="Baixar PDF da avaliação"
-                >
-                  <DownloadSimple size={14} />
-                  PDF
-                </Button>
                 <Button size="sm" variant="outline" onClick={() => onOpen(av.id)}>
                   Abrir
                 </Button>
