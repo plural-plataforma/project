@@ -80,6 +80,10 @@ namespace api.DTOs.AvaliacaoDiagnostica
         public string? Objetivo { get; set; }
         public DateTime DataAplicacao { get; set; }
         public int? EscolaId { get; set; }
+
+        /// <summary>Nome da escola (preenchido ao montar o detalhe; usado em PDF e telas).</summary>
+        public string? EscolaNome { get; set; }
+
         public bool Concluida { get; set; }
         public List<int> AlunoIds { get; set; } = new();
         public List<AvaliacaoDiagnosticaAlunoParticipanteDTO> AlunosParticipantes { get; set; } = new();
