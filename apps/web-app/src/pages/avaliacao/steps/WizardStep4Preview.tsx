@@ -1,4 +1,10 @@
 import { useMemo } from 'react'
+import type { Atividade } from '@/types/atividades'
+import type { BlocoComAtividade } from '@/types/bloco'
+import {
+  labelNivelDificuldade,
+  resumoEtapaEnsino,
+} from '@/pages/avaliacao/avaliacaoAreaConstants'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle, ArrowLeft, CalendarBlank, Buildings, Users, Rows, DownloadSimple } from '@phosphor-icons/react'
@@ -26,15 +32,30 @@ export function WizardStep4Preview() {
 
   const escola = escolas.find((e) => e.id === wizardData.escolaId)
   const selectedAlunos = alunos.filter((a) => wizardData.alunoIds?.includes(a.id!))
-  const selectedBlocos = useMemo(
-    () => blocos.filter((b) => wizardData.blocos?.some((selected) => selected.blocoId === b.id) || wizardData.blocoIds?.includes(b.id)),
-    [blocos, wizardData.blocoIds, wizardData.blocos]
-  )
 
   const selectedAtividadesCount = useMemo(
     () => wizardData.blocos?.reduce((acc, bloco) => acc + bloco.atividadeIds.length, 0) ?? 0,
     [wizardData.blocos]
   )
+
+  /** Eixo (bloco) + atividades selecionadas com nível e etapa para revisão. */
+  const revisaoPorEixo = useMemo(() => {
+    const selecao = wizardData.blocos
+    if (!selecao?.length) return [] as { bloco: BlocoComAtividade; atividades: Atividade[] }[]
+
+    const resultado: { bloco: BlocoComAtividade; atividades: Atividade[] }[] = []
+    for (const sel of selecao) {
+      const bloco = blocos.find((b) => b.id === sel.blocoId)
+      if (!bloco) continue
+      const atividades: Atividade[] = []
+      for (const id of sel.atividadeIds) {
+        const atv = bloco.atividades.find((a) => a.id === id)
+        if (atv) atividades.push(atv)
+      }
+      if (atividades.length > 0) resultado.push({ bloco, atividades })
+    }
+    return resultado
+  }, [wizardData.blocos, blocos])
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -95,7 +116,7 @@ export function WizardStep4Preview() {
       visible={createMutation.isPending}
       message={isEditing ? 'Atualizando avaliação diagnóstica...' : 'Criando avaliação diagnóstica...'}
     />
-    <div className="max-w-xl">
+    <div className="max-w-2xl">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-foreground">Revisar e Confirmar</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -151,20 +172,52 @@ export function WizardStep4Preview() {
             </CardContent>
           </Card>
 
-          {/* Blocos */}
+          {/* Eixos, níveis, etapas e atividades */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Rows size={16} className="text-primary" />
-                Blocos ({selectedBlocos.length}) • Atividades ({selectedAtividadesCount})
+                Áreas e atividades ({selectedAtividadesCount})
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {selectedBlocos.map((b) => (
-                  <Badge key={b.id} variant="muted">{b.titulo}</Badge>
-                ))}
-              </div>
+            <CardContent className="space-y-6">
+              {revisaoPorEixo.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma atividade selecionada. Volte à etapa anterior para escolher eixo, nível, etapa e
+                  atividades.
+                </p>
+              ) : (
+                revisaoPorEixo.map(({ bloco, atividades }) => (
+                  <div key={bloco.id} className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Eixo
+                      </p>
+                      <p className="text-sm font-bold text-foreground">{bloco.titulo}</p>
+                    </div>
+                    <ul className="space-y-3 list-none m-0 p-0">
+                      {atividades.map((atv) => (
+                        <li
+                          key={atv.id}
+                          className="rounded-md border border-border bg-card px-3 py-2.5 space-y-2"
+                        >
+                          <p className="text-sm font-semibold text-foreground leading-snug">{atv.titulo}</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-muted-foreground font-medium">Nível de dificuldade: </span>
+                              <span className="text-foreground">{labelNivelDificuldade(atv.nivel)}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground font-medium">Etapa de ensino: </span>
+                              <span className="text-foreground">{resumoEtapaEnsino(atv)}</span>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 

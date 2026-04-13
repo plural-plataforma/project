@@ -15,7 +15,7 @@ const schema = z.object({
   titulo: z.string().min(3, 'Título obrigatório (mínimo 3 caracteres)'),
   dataAplicacao: z.string().min(1, 'Data obrigatória'),
   escolaId: z.number().min(1, 'Selecione uma escola'),
-  objetivo: z.string().optional(),
+  objetivo: z.string().min(3, 'Objetivo é obrigatório (mínimo 3 caracteres)'),
 })
 
 type FormData = z.infer<typeof schema>
@@ -112,8 +112,9 @@ export function WizardStep1Identificacao() {
         </div>
 
         <Input
-          label="Objetivo (opcional)"
+          label="Objetivo"
           placeholder="Descreva o objetivo desta avaliação"
+          error={errors.objetivo?.message}
           {...register('objetivo')}
         />
 

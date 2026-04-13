@@ -8,19 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, ArrowRight, CheckSquare, Square } from '@phosphor-icons/react'
 import { cn, sortByField } from '@/lib/utils'
-
-const NIVEIS: { value: 'Facil' | 'Medio' | 'Dificil'; label: string }[] = [
-  { value: 'Facil', label: 'Fácil' },
-  { value: 'Medio', label: 'Médio' },
-  { value: 'Dificil', label: 'Difícil' },
-]
-
-const ETAPAS: { value: string; label: string }[] = [
-  { value: '1', label: 'Educação Infantil' },
-  { value: '2', label: 'Ens. Fund. I — Anos Iniciais' },
-  { value: '3', label: 'Ens. Fund. II — Anos Finais' },
-  { value: '4', label: 'Ensino Médio' },
-]
+import { ETAPAS_ENSINO, NIVEIS_AVALIACAO } from '@/pages/avaliacao/avaliacaoAreaConstants'
 
 export function WizardStep3Areas() {
   const navigate = useNavigate()
@@ -68,7 +56,7 @@ export function WizardStep3Areas() {
   const niveisDisponiveis = useMemo(() => {
     if (!blocoAtual) return []
     const set = new Set(blocoAtual.atividades.map((a) => a.nivel).filter(Boolean))
-    return NIVEIS.filter((n) => set.has(n.value))
+    return NIVEIS_AVALIACAO.filter((n) => set.has(n.value))
   }, [blocoAtual])
 
   const etapasDisponiveis = useMemo(() => {
@@ -79,7 +67,7 @@ export function WizardStep3Areas() {
       if (a.etapaMin) set.add(a.etapaMin)
       if (a.etapaMax) set.add(a.etapaMax)
     }
-    return ETAPAS.filter((e) => set.has(e.value))
+    return ETAPAS_ENSINO.filter((e) => set.has(e.value))
   }, [blocoAtual, nivel])
 
   const atividadesFiltradas = useMemo(() => {

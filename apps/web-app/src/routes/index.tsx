@@ -22,7 +22,6 @@ const AvaliacoesPage = lazy(() => import('@/pages/avaliacao/AvaliacoesPage'))
 const AvaliacaoWizardPage = lazy(() => import('@/pages/avaliacao/AvaliacaoWizardPage'))
 const AvaliacaoDesempenhoPage = lazy(() => import('@/pages/avaliacao/AvaliacaoDesempenhoPage'))
 const PerfilPage = lazy(() => import('@/pages/professor/PerfilPage'))
-const RelatoriosPage = lazy(() => import('@/pages/relatorios/RelatoriosPage'))
 
 function PageLoader() {
   return (
@@ -128,14 +127,7 @@ export function AppRouter() {
                 </Suspense>
               }
             />
-            <Route
-              path="/relatorios"
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <RelatoriosPage />
-                </Suspense>
-              }
-            />
+            <Route path="/relatorios" element={<Navigate to="/avaliacoes" replace />} />
             <Route
               path="/perfil"
               element={

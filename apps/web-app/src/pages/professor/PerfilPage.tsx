@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { useForm, type FieldErrors } from 'react-hook-form'
@@ -11,10 +11,9 @@ import {
   atualizarProfessor,
   buscarEscolasProfessor,
   desvincularEscola,
-  vincularEscola,
   getCadastroPendencias,
 } from '@/services/professorService'
-import { buscarEscolas } from '@/services/escolasService'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
 import { Button } from '@/components/ui/button'
@@ -22,7 +21,6 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/useToast'
 import type { Professor } from '@/types/professor'
 import { fetchCepData } from '@/services/locationsService'
@@ -88,7 +86,6 @@ export default function PerfilPage() {
   const qc = useQueryClient()
   const { success, error: showError } = useToast()
   const [editing, setEditing] = useState(false)
-  const [escolaParaVincular, setEscolaParaVincular] = useState<string>('')
   const [isLogradouroLocked, setIsLogradouroLocked] = useState(true)
   const [isBairroLocked, setIsBairroLocked] = useState(true)
 
@@ -100,16 +97,8 @@ export default function PerfilPage() {
     queryKey: ['escolas-professor'],
     queryFn: buscarEscolasProfessor,
   })
-  const { data: todasEscolas = [] } = useQuery({
-    queryKey: ['todas-escolas'],
-    queryFn: buscarEscolas,
-  })
 
   const professor = data?.objeto
-  const escolasDisponiveis = useMemo(
-    () => todasEscolas.filter((e) => !escolasVinculadas.some((v) => v.id === e.id)),
-    [escolasVinculadas, todasEscolas]
-  )
 
   const {
     register,
@@ -197,16 +186,6 @@ export default function PerfilPage() {
       console.error('[PerfilPage] Erro ao atualizar perfil', err)
       showError('Erro ao salvar perfil', message)
     },
-  })
-
-  const vincularMutation = useMutation({
-    mutationFn: (idEscola: number) => vincularEscola(idEscola),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['escolas-professor'] })
-      success('Escola vinculada!', 'A escola foi vinculada ao seu perfil.')
-      setEscolaParaVincular('')
-    },
-    onError: (err: Error) => showError('Erro', err.message),
   })
 
   const desvincularMutation = useMutation({
@@ -344,28 +323,13 @@ export default function PerfilPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-[1fr_auto] gap-2">
-              <Select value={escolaParaVincular} onValueChange={setEscolaParaVincular}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar escola para vincular" />
-                </SelectTrigger>
-                <SelectContent>
-                  {escolasDisponiveis.map((escola) => (
-                    <SelectItem key={escola.id} value={String(escola.id)}>
-                      {escola.nomeInstituicao}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                disabled={!escolaParaVincular}
-                loading={vincularMutation.isPending}
-                onClick={() => vincularMutation.mutate(Number(escolaParaVincular))}
-              >
-                Vincular
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Para cadastrar ou vincular uma escola ao seu perfil, acesse a página{' '}
+              <Link to="/escolas" className="font-semibold text-primary underline underline-offset-2">
+                Escolas
+              </Link>
+              .
+            </p>
           </CardContent>
         </Card>
 
