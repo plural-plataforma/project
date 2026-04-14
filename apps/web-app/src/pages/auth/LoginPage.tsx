@@ -211,12 +211,12 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground mt-6">
+            {/* <p className="text-center text-sm text-muted-foreground mt-6">
               Não tem conta?{' '}
               <Link to="/cadastro" className="text-primary font-semibold hover:underline">
                 Criar conta
               </Link>
-            </p>
+            </p> */}
             {hasSeenOnboarding && (
               <p className="text-center text-xs text-muted-foreground mt-2">
                 <Link to="/onboarding" className="hover:text-primary transition-colors">
