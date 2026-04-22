@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useForm, type FieldErrors } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PencilSimple, Check, X as XIcon, UserCircle, MapPin, GraduationCap, WarningCircle } from '@phosphor-icons/react'
+import { PencilSimple, Check, X as XIcon, UserCircle, MapPin, GraduationCap, WarningCircle, ShieldCheck } from '@phosphor-icons/react'
 import { type AxiosError } from 'axios'
 import {
   buscarProfessor,
@@ -13,7 +13,7 @@ import {
   desvincularEscola,
   getCadastroPendencias,
 } from '@/services/professorService'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
 import { Button } from '@/components/ui/button'
@@ -83,6 +83,7 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 }
 
 export default function PerfilPage() {
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const { success, error: showError } = useToast()
   const [editing, setEditing] = useState(false)
@@ -330,6 +331,26 @@ export default function PerfilPage() {
               </Link>
               .
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck size={16} className="text-primary" />
+              Segurança
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Mantenha sua conta segura trocando a senha periodicamente.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/alterar-senha', { state: { from: '/perfil' } })}
+            >
+              Alterar senha
+            </Button>
           </CardContent>
         </Card>
 

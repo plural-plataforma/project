@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -29,6 +29,8 @@ type FormData = z.infer<typeof changePasswordSchema>
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string })?.from ?? '/dashboard'
   const { trocarSenhaConcluida, precisaTrocarSenha } = useAuth()
   const { success, error: showError, warning } = useToast()
   const [showCurrent, setShowCurrent] = useState(false)
@@ -46,7 +48,7 @@ export default function ChangePasswordPage() {
       await authTrocarSenha({ senhaAtual: data.senhaAtual, novaSenha: data.novaSenha })
       trocarSenhaConcluida()
       success('Senha alterada!', 'Sua senha foi atualizada com sucesso.')
-      setTimeout(() => navigate('/dashboard', { replace: true }), 1000)
+      setTimeout(() => navigate(from, { replace: true }), 1000)
     } catch (err: unknown) {
       const msg = getErrorMessage(err)
       showError('Erro', msg)
