@@ -7,10 +7,10 @@ import {
   buscarPlanejamento,
   cadastrarPlanejamento,
   excluirPlanejamento,
-  vincularAlunoPlano,
-  vincularHabilidadePlano,
-  vincularEstrategiaPlano,
-  vincularAvaliacaoPlano,
+  vincularAlunosPlanoLote,
+  vincularHabilidadesPlanoLote,
+  vincularEstrategiasPlanoLote,
+  vincularAvaliacoesPlanoLote,
 } from '@/services/planejamentoService'
 import { buscarAlunos } from '@/services/alunoService'
 import { buscarHabilidades } from '@/services/habilidadeService'
@@ -118,12 +118,15 @@ export default function PlanejamentosPage() {
         descicaoPlanejamento: data.descicaoPlanejamento,
       })
 
-      await Promise.all([
-        ...selectedAlunos.map((a) => vincularAlunoPlano(pdi.id, a.id!)),
-        ...selectedHabilidades.map((h) => vincularHabilidadePlano(pdi.id, h.id)),
-        ...selectedEstrategias.map((e) => vincularEstrategiaPlano(pdi.id, e.id)),
-        ...selectedAvaliacoes.map((v) => vincularAvaliacaoPlano(pdi.id, v.id)),
-      ])
+      const idAlunos = selectedAlunos.map((a) => a.id!).filter((id): id is number => id != null)
+      const idHabilidades = selectedHabilidades.map((h) => h.id)
+      const idEstrategias = selectedEstrategias.map((e) => e.id)
+      const idAvaliacoes = selectedAvaliacoes.map((v) => v.id)
+
+      await vincularAlunosPlanoLote(pdi.id, idAlunos)
+      await vincularHabilidadesPlanoLote(pdi.id, idHabilidades)
+      await vincularEstrategiasPlanoLote(pdi.id, idEstrategias)
+      await vincularAvaliacoesPlanoLote(pdi.id, idAvaliacoes)
 
       return pdi
     },

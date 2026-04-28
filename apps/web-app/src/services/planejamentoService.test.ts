@@ -9,6 +9,7 @@ import {
   vincularHabilidadePlano,
   vincularEstrategiaPlano,
   vincularAvaliacaoPlano,
+  vincularAlunosPlanoLote,
 } from './planejamentoService'
 import { api } from '@/api/http'
 
@@ -221,6 +222,26 @@ describe('planejamentoService', () => {
       })
 
       await expect(vincularAvaliacaoPlano(1, 1)).rejects.toThrow('Avaliação inválida')
+    })
+  })
+
+  describe('vincularAlunosPlanoLote', () => {
+    it('resolve quando API retorna sucesso', async () => {
+      vi.mocked(api.post).mockResolvedValue({ data: { sucesso: true } })
+
+      await expect(vincularAlunosPlanoLote(5, [1, 2])).resolves.toBeUndefined()
+      expect(api.post).toHaveBeenCalledWith('/Planejamento/vincularalunoslote', {
+        idPlanejamento: 5,
+        idAlunos: [1, 2],
+      })
+    })
+
+    it('lança erro quando API retorna falha', async () => {
+      vi.mocked(api.post).mockResolvedValue({
+        data: { sucesso: false, mensagens: ['Planejamento não encontrado.'] },
+      })
+
+      await expect(vincularAlunosPlanoLote(1, [9])).rejects.toThrow('Planejamento não encontrado.')
     })
   })
 })

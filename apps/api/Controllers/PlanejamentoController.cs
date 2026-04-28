@@ -182,6 +182,78 @@ namespace api.Controllers
             }
         }
 
+        [HttpPost("vincularalunoslote")]
+        public async Task<IActionResult> VincularAlunosEmLote([FromBody] PlanejamentoVincularAlunosLoteDTO dto)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await _usuario.GetUserAsync(User);
+                var resposta = await _planejamentoService.VincularAlunosEmLote(dto, usuario);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+
+                return BadRequest(resposta);
+            }
+
+            return BadRequest(ModelState);
+        }
+
+        [HttpPost("vincularhabilidadeslote")]
+        public async Task<IActionResult> VincularHabilidadesEmLote([FromBody] PlanejamentoVincularHabilidadesLoteDTO dto)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await _usuario.GetUserAsync(User);
+                var resposta = await _planejamentoService.VincularHabilidadesEmLote(dto, usuario);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+
+                return BadRequest(resposta);
+            }
+
+            return BadRequest(ModelState);
+        }
+
+        [HttpPost("vincularestrategiaslote")]
+        public async Task<IActionResult> VincularEstrategiasEmLote([FromBody] PlanejamentoVincularEstrategiasLoteDTO dto)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await _usuario.GetUserAsync(User);
+                var resposta = await _planejamentoService.VincularEstrategiasEmLote(dto, usuario);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+
+                return BadRequest(resposta);
+            }
+
+            return BadRequest(ModelState);
+        }
+
+        [HttpPost("vincularavaliacoeslote")]
+        public async Task<IActionResult> VincularAvaliacoesEmLote([FromBody] PlanejamentoVincularAvaliacoesLoteDTO dto)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await _usuario.GetUserAsync(User);
+                var resposta = await _planejamentoService.VincularAvaliacoesEmLote(dto, usuario);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+
+                return BadRequest(resposta);
+            }
+
+            return BadRequest(ModelState);
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Excluir(int id)
         {

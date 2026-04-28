@@ -94,3 +94,40 @@ export const vincularAvaliacaoPlano = async (idPlanejamento: number, idAvaliacao
     throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular avaliação')
   }
 }
+
+export const vincularAlunosPlanoLote = async (idPlanejamento: number, idAlunos: number[]) => {
+  const response = await api.post('/Planejamento/vincularalunoslote', { idPlanejamento, idAlunos })
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular alunos')
+  }
+}
+
+export const vincularHabilidadesPlanoLote = async (idPlanejamento: number, idHabilidades: number[]) => {
+  const response = await api.post('/Planejamento/vincularhabilidadeslote', {
+    idPlanejamento,
+    idHabilidades,
+  })
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular habilidades')
+  }
+}
+
+export const vincularEstrategiasPlanoLote = async (idPlanejamento: number, idEstrategias: number[]) => {
+  const response = await api.post('/Planejamento/vincularestrategiaslote', {
+    idPlanejamento,
+    idEstrategias,
+  })
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular estratégias')
+  }
+}
+
+export const vincularAvaliacoesPlanoLote = async (idPlanejamento: number, idAvaliacoes: number[]) => {
+  const response = await api.post('/Planejamento/vincularavaliacoeslote', {
+    idPlanejamento,
+    idAvaliacoes,
+  })
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular avaliações')
+  }
+}
