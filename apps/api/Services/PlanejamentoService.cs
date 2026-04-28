@@ -447,5 +447,193 @@ namespace api.Services
             resposta.Sucesso = true;
             return resposta;
         }
+
+        public async Task<ServiceResponse<bool>> VincularAlunosEmLote(PlanejamentoVincularAlunosLoteDTO dto, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+            var distinctIds = dto.IdAlunos.Distinct().ToList();
+            if (distinctIds.Count == 0)
+            {
+                resposta.SetFalha("Informe pelo menos um aluno.");
+                return resposta;
+            }
+
+            var planejamento = await _contexto.Planejamentos
+                .FirstOrDefaultAsync(p => p.ID == dto.IdPlanejamento && p.IdProfessor == usuario.ProfessorId);
+            if (planejamento == null)
+            {
+                resposta.SetFalha("Planejamento não encontrado.");
+                return resposta;
+            }
+
+            var alunosEncontrados = await _contexto.Alunos
+                .Where(a => distinctIds.Contains(a.Id) && a.IdProfessor == usuario.ProfessorId)
+                .Select(a => a.Id)
+                .ToListAsync();
+            if (alunosEncontrados.Count != distinctIds.Count)
+            {
+                resposta.SetFalha("Um ou mais alunos não foram encontrados.");
+                return resposta;
+            }
+
+            var jaVinculados = await _contexto.AlunosXPlanejamentos
+                .Where(x => x.PlanejamentoId == dto.IdPlanejamento && distinctIds.Contains(x.AlunoId))
+                .Select(x => x.AlunoId)
+                .ToListAsync();
+            var setJa = jaVinculados.ToHashSet();
+            foreach (var alunoId in distinctIds.Where(id => !setJa.Contains(id)))
+            {
+                _contexto.AlunosXPlanejamentos.Add(new AlunosXPlanejamento
+                {
+                    AlunoId = alunoId,
+                    PlanejamentoId = dto.IdPlanejamento
+                });
+            }
+
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
+            return resposta;
+        }
+
+        public async Task<ServiceResponse<bool>> VincularHabilidadesEmLote(PlanejamentoVincularHabilidadesLoteDTO dto, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+            var distinctIds = dto.IdHabilidades.Distinct().ToList();
+            if (distinctIds.Count == 0)
+            {
+                resposta.Sucesso = true;
+                return resposta;
+            }
+
+            var planejamento = await _contexto.Planejamentos
+                .FirstOrDefaultAsync(p => p.ID == dto.IdPlanejamento && p.IdProfessor == usuario.ProfessorId);
+            if (planejamento == null)
+            {
+                resposta.SetFalha("Planejamento não encontrado.");
+                return resposta;
+            }
+
+            var encontradas = await _contexto.Habilidades
+                .Where(h => distinctIds.Contains(h.Id))
+                .Select(h => h.Id)
+                .ToListAsync();
+            if (encontradas.Count != distinctIds.Count)
+            {
+                resposta.SetFalha("Uma ou mais habilidades não foram encontradas.");
+                return resposta;
+            }
+
+            var jaVinculados = await _contexto.HabilidadesXPlanejamentos
+                .Where(x => x.PlanejamentoId == dto.IdPlanejamento && distinctIds.Contains(x.HabilidadeId))
+                .Select(x => x.HabilidadeId)
+                .ToListAsync();
+            var setJa = jaVinculados.ToHashSet();
+            foreach (var hid in distinctIds.Where(id => !setJa.Contains(id)))
+            {
+                _contexto.HabilidadesXPlanejamentos.Add(new HabilidadesXPlanejamento
+                {
+                    HabilidadeId = hid,
+                    PlanejamentoId = dto.IdPlanejamento
+                });
+            }
+
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
+            return resposta;
+        }
+
+        public async Task<ServiceResponse<bool>> VincularEstrategiasEmLote(PlanejamentoVincularEstrategiasLoteDTO dto, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+            var distinctIds = dto.IdEstrategias.Distinct().ToList();
+            if (distinctIds.Count == 0)
+            {
+                resposta.Sucesso = true;
+                return resposta;
+            }
+
+            var planejamento = await _contexto.Planejamentos
+                .FirstOrDefaultAsync(p => p.ID == dto.IdPlanejamento && p.IdProfessor == usuario.ProfessorId);
+            if (planejamento == null)
+            {
+                resposta.SetFalha("Planejamento não encontrado.");
+                return resposta;
+            }
+
+            var encontradas = await _contexto.Estrategias
+                .Where(e => distinctIds.Contains(e.Id))
+                .Select(e => e.Id)
+                .ToListAsync();
+            if (encontradas.Count != distinctIds.Count)
+            {
+                resposta.SetFalha("Uma ou mais estratégias não foram encontradas.");
+                return resposta;
+            }
+
+            var jaVinculados = await _contexto.EstrategiasXPlanejamentos
+                .Where(x => x.PlanejamentoId == dto.IdPlanejamento && distinctIds.Contains(x.EstrategiaId))
+                .Select(x => x.EstrategiaId)
+                .ToListAsync();
+            var setJa = jaVinculados.ToHashSet();
+            foreach (var eid in distinctIds.Where(id => !setJa.Contains(id)))
+            {
+                _contexto.EstrategiasXPlanejamentos.Add(new EstrategiasXPlanejamento
+                {
+                    EstrategiaId = eid,
+                    PlanejamentoId = dto.IdPlanejamento
+                });
+            }
+
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
+            return resposta;
+        }
+
+        public async Task<ServiceResponse<bool>> VincularAvaliacoesEmLote(PlanejamentoVincularAvaliacoesLoteDTO dto, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+            var distinctIds = dto.IdAvaliacoes.Distinct().ToList();
+            if (distinctIds.Count == 0)
+            {
+                resposta.Sucesso = true;
+                return resposta;
+            }
+
+            var planejamento = await _contexto.Planejamentos
+                .FirstOrDefaultAsync(p => p.ID == dto.IdPlanejamento && p.IdProfessor == usuario.ProfessorId);
+            if (planejamento == null)
+            {
+                resposta.SetFalha("Planejamento não encontrado.");
+                return resposta;
+            }
+
+            var encontradas = await _contexto.Avaliacao
+                .Where(a => distinctIds.Contains(a.Id))
+                .Select(a => a.Id)
+                .ToListAsync();
+            if (encontradas.Count != distinctIds.Count)
+            {
+                resposta.SetFalha("Uma ou mais avaliações não foram encontradas.");
+                return resposta;
+            }
+
+            var jaVinculados = await _contexto.AvaliacaoXPlanejamento
+                .Where(x => x.PlanejamentoId == dto.IdPlanejamento && distinctIds.Contains(x.AvaliacaoId))
+                .Select(x => x.AvaliacaoId)
+                .ToListAsync();
+            var setJa = jaVinculados.ToHashSet();
+            foreach (var aid in distinctIds.Where(id => !setJa.Contains(id)))
+            {
+                _contexto.AvaliacaoXPlanejamento.Add(new AvaliacaoXPlanejamento
+                {
+                    AvaliacaoId = aid,
+                    PlanejamentoId = dto.IdPlanejamento
+                });
+            }
+
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
+            return resposta;
+        }
     }
 }

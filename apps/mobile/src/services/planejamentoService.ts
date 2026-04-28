@@ -119,12 +119,60 @@ export const vincularAvaliacao = async (payload: {
   idAvaliacao: number
 }): Promise<void> => {
   try {
-    const response = await api.post('Planejamento/vincularavaliacao', payload)
+    const response = await api.post('/Planejamento/vincularavaliacao', payload)
     if (!response.data.sucesso) {
       throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular avaliação')
     }
   } catch (error) {
     console.error('Erro ao vincular avaliação:', error)
+    throw error
+  }
+}
+
+export const vincularAlunosLote = async (idPlanejamento: number, idAlunos: number[]): Promise<void> => {
+  try {
+    const response = await api.post('/Planejamento/vincularalunoslote', { idPlanejamento, idAlunos })
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular alunos')
+    }
+  } catch (error) {
+    console.error('Erro ao vincular alunos (lote):', error)
+    throw error
+  }
+}
+
+export const vincularHabilidadesLote = async (idPlanejamento: number, idHabilidades: number[]): Promise<void> => {
+  try {
+    const response = await api.post('/Planejamento/vincularhabilidadeslote', { idPlanejamento, idHabilidades })
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular habilidades')
+    }
+  } catch (error) {
+    console.error('Erro ao vincular habilidades (lote):', error)
+    throw error
+  }
+}
+
+export const vincularEstrategiasLote = async (idPlanejamento: number, idEstrategias: number[]): Promise<void> => {
+  try {
+    const response = await api.post('/Planejamento/vincularestrategiaslote', { idPlanejamento, idEstrategias })
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular estratégias')
+    }
+  } catch (error) {
+    console.error('Erro ao vincular estratégias (lote):', error)
+    throw error
+  }
+}
+
+export const vincularAvaliacoesLote = async (idPlanejamento: number, idAvaliacoes: number[]): Promise<void> => {
+  try {
+    const response = await api.post('/Planejamento/vincularavaliacoeslote', { idPlanejamento, idAvaliacoes })
+    if (!response.data.sucesso) {
+      throw new Error(response.data.mensagens?.join(', ') || 'Falha ao vincular avaliações')
+    }
+  } catch (error) {
+    console.error('Erro ao vincular avaliações (lote):', error)
     throw error
   }
 }
