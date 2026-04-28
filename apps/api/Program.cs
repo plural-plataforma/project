@@ -96,6 +96,13 @@ var connectionString = baseConnectionString
     .Replace("{SERVER_URL}", builder.Configuration["SERVER_URL"])
     .Replace("{PORT_API}", builder.Configuration["PORT_API"]);
 
+// Limita conexões por instância (evita "Max client connections reached" no Postgres).
+// Produção: ajuste Database:MaxPoolSize ou variável de ambiente Database__MaxPoolSize conforme max_connections ÷ instâncias da API.
+var maxPoolSize = builder.Configuration.GetValue("Database:MaxPoolSize", 20);
+if (maxPoolSize < 1)
+    maxPoolSize = 20;
+connectionString = $"{connectionString.TrimEnd(';')};Maximum Pool Size={maxPoolSize}";
+
 // Registra DbContext
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 

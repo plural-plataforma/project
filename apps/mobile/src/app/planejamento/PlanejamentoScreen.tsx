@@ -8,10 +8,10 @@ import {
   atualizarPlanejamento,
   cadastrarPlanejamento,
   buscarPlanejamento,
-  vincularAluno,
-  vincularHabilidade,
-  vincularEstrategia,
-  vincularAvaliacao
+  vincularAlunosLote,
+  vincularHabilidadesLote,
+  vincularEstrategiasLote,
+  vincularAvaliacoesLote
 } from '@src/services/planejamentoService'
 import { buscarEstrategias } from '@src/services/estrategiasService'
 
@@ -346,17 +346,18 @@ export default function PlanejamentoScreen() {
   const toggleAvaliacao = (v: Avaliacao) => toggle(v, selectedAvaliacoes, setSelectedAvaliacoes, v.descricao || 'Avaliação')
   const toggleAluno = (a: Aluno) => toggle(a, selectedAlunos, setSelectedAlunos, a.nomeCompleto || 'Aluno')
 
-  // Vincular apenas os novos
+  // Vincular apenas os novos (uma requisição por tipo — evita saturação de conexões no Postgres)
   const vincularNovos = async <T extends { id?: number }>(
     novos: T[],
     originais: T[],
-    vincularFn: (p: any) => Promise<void>,
-    payloadFn: (item: T & { id: number }) => any
+    planejamentoId: number,
+    loteFn: (idPlanejamento: number, ids: number[]) => Promise<void>
   ) => {
-    const diff = novos
+    const diffIds = novos
       .filter((n): n is T & { id: number } => !!n.id && !originais.some(o => o.id === n.id))
-    if (diff.length > 0) {
-      await Promise.all(diff.map(item => vincularFn(payloadFn(item))))
+      .map(n => n.id)
+    if (diffIds.length > 0) {
+      await loteFn(planejamentoId, diffIds)
     }
   }
 
@@ -396,44 +397,32 @@ export default function PlanejamentoScreen() {
       await vincularNovos(
         selectedEstrategias,
         originalSelectedEstrategias,
-        vincularEstrategia,
-        e => ({
-          idPlanejamento: planejamentoIdFinal,
-          idEstrategia: e.id
-        })
+        planejamentoIdFinal,
+        vincularEstrategiasLote
       )
 
       // Vincular apenas os novos — ALUNOS
       await vincularNovos(
         selectedAlunos,
         originalSelectedAlunos,
-        vincularAluno,
-        a => ({
-          idPlanejamento: planejamentoIdFinal,
-          idAluno: a.id
-        })
+        planejamentoIdFinal,
+        vincularAlunosLote
       )
 
       // Vincular apenas os novos — HABILIDADES
       await vincularNovos(
         selectedHabilidades,
         originalSelectedHabilidades,
-        vincularHabilidade,
-        h => ({
-          idPlanejamento: planejamentoIdFinal,
-          idHabilidade: h.id
-        })
+        planejamentoIdFinal,
+        vincularHabilidadesLote
       )
 
       // Vincular apenas os novos — AVALIAÇÕES
       await vincularNovos(
         selectedAvaliacoes,
         originalSelectedAvaliacoes,
-        vincularAvaliacao,
-        v => ({
-          idPlanejamento: planejamentoIdFinal,
-          idAvaliacao: v.id
-        })
+        planejamentoIdFinal,
+        vincularAvaliacoesLote
       )
 
       showAlert('Sucesso!', `PDI ${isEdit ? 'atualizado' : 'criado'} com sucesso!`, [
