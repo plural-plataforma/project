@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { buildFriendlyApiFeedback, type FriendlyApiErrorPayload } from '@/lib/apiFriendlyError'
 
 const rawApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
 const API_BASE_URL = rawApiUrl?.replace(/\/+$/, '') ?? ''
@@ -75,6 +76,9 @@ api.interceptors.response.use(
   },
   (error: AxiosError) => {
     logError(error)
+    const payload: FriendlyApiErrorPayload = buildFriendlyApiFeedback(error)
+    ;(error as AxiosError & { friendlyApiError?: FriendlyApiErrorPayload }).friendlyApiError = payload
+
     const req = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
     const isLoginRequest = req?.url?.toLowerCase().includes('autenticacao/login')
     if (error.response?.status === 401 && !req._retry && !isLoginRequest) {

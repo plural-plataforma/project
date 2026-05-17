@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { sortByField } from '@/lib/utils'
 import dayjs from 'dayjs'
@@ -87,7 +88,10 @@ export default function PlanejamentoDetailPage() {
       descicaoPlanejamento: formDescricao,
     }),
     onSuccess: () => { success('PAEE atualizado!'); invalidate(); setEditingInfo(false) },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   function openEdit() {
@@ -109,7 +113,10 @@ export default function PlanejamentoDetailPage() {
       else if (type === 'avaliacoes') await vincularAvaliacaoPlano(planId, itemId)
     },
     onSuccess: () => { success('Vinculado!'); invalidate() },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -121,7 +128,10 @@ export default function PlanejamentoDetailPage() {
       void qc.invalidateQueries({ queryKey: ['planejamento', id] })
       navigate('/planejamentos')
     },
-    onError: (err: Error) => showError('Não foi possível excluir', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError('Não foi possível excluir', formatFriendlyErrorBody(fb))
+    },
   })
 
   if (isLoading) return <SkeletonList count={4} />

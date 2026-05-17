@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+using api.DTOs.Laudo;
+using api.DTOs.Responsavel;
+using api.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.Aluno
 {
@@ -46,5 +49,25 @@ namespace api.DTOs.Aluno
 
         [MaxLength(1)]
         public string? Sexo { get; set; }
+
+        public DateOnly? DataNascimento { get; set; }
+
+        [Range(1, 7)]
+        public int? FrequenciaSemanalAtendimento { get; set; }
+
+        public List<string>? DiasSemanaAtendimento { get; set; }
+
+        [Range(15, 600)]
+        public int? DuracaoAtendimentoMinutos { get; set; }
+
+        public TipoAtendimentoAee? TipoAtendimentoAee { get; set; }
+
+        public string? PerfilPedagogicoPotencialidades { get; set; }
+
+        public string? PerfilPedagogicoNecessidades { get; set; }
+
+        public ResponsavelCadastroSimplificadoDTO? Responsavel { get; set; }
+
+        public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
     }
 }

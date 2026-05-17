@@ -5,7 +5,6 @@ import { useForm, type FieldErrors } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PencilSimple, Check, X as XIcon, UserCircle, MapPin, GraduationCap, WarningCircle, ShieldCheck } from '@phosphor-icons/react'
-import { type AxiosError } from 'axios'
 import {
   buscarProfessor,
   atualizarProfessor,
@@ -22,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback, getApiErrorMessageForUser } from '@/lib/apiFriendlyError'
 import type { Professor } from '@/types/professor'
 import { fetchCepData } from '@/services/locationsService'
 
@@ -48,13 +48,6 @@ const schema = z.object({
 type FormInput = z.input<typeof schema>
 type FormData = z.output<typeof schema>
 
-type ApiErrorData = {
-  mensagens?: string[]
-  message?: string
-  title?: string
-  errors?: string[] | Record<string, string[]>
-}
-
 const formatTelefone = (value?: string): string => {
   const digits = (value ?? '').replace(/\D/g, '').slice(0, 11)
 
@@ -62,24 +55,6 @@ const formatTelefone = (value?: string): string => {
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
   if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-}
-
-const getApiErrorMessage = (error: unknown, fallback: string): string => {
-  const axiosError = error as AxiosError<ApiErrorData>
-  const data = axiosError.response?.data
-
-  if (data) {
-    if (Array.isArray(data.mensagens) && data.mensagens.length > 0) return data.mensagens.join(', ')
-    if (typeof data.message === 'string' && data.message.trim()) return data.message
-    if (typeof data.title === 'string' && data.title.trim()) return data.title
-    if (Array.isArray(data.errors) && data.errors.length > 0) return data.errors[0] ?? fallback
-    if (data.errors && typeof data.errors === 'object') {
-      const firstError = Object.values(data.errors).flat()[0]
-      if (firstError) return firstError
-    }
-  }
-
-  return axiosError.message || fallback
 }
 
 export default function PerfilPage() {
@@ -183,7 +158,7 @@ export default function PerfilPage() {
       setEditing(false)
     },
     onError: (err: unknown) => {
-      const message = getApiErrorMessage(err, 'Não foi possível atualizar o perfil.')
+      const message = getApiErrorMessageForUser(err).trim() || 'Não foi possível atualizar o perfil.'
       console.error('[PerfilPage] Erro ao atualizar perfil', err)
       showError('Erro ao salvar perfil', message)
     },
@@ -195,7 +170,10 @@ export default function PerfilPage() {
       qc.invalidateQueries({ queryKey: ['escolas-professor'] })
       success('Escola desvinculada!', 'A escola foi removida do seu perfil.')
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   function handleCancel() {

@@ -31,6 +31,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Escola } from '@/types/escolas'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { sortByField } from '@/lib/utils'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { fetchCepData, fetchEstados, fetchMunicipios } from '@/services/locationsService'
@@ -75,7 +76,10 @@ export default function EscolasPage() {
       setDialogOpen(false)
       setEditingEscola(null)
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   const {

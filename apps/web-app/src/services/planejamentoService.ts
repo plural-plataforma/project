@@ -1,6 +1,6 @@
-import { type AxiosError } from 'axios'
 import { api } from '@/api/http'
 import type { Planejamento, PlanejamentoResponse } from '@/types/planejamento'
+import { getApiErrorMessageForUser } from '@/lib/apiFriendlyError'
 
 type ExcluirPlanejamentoResponse = { sucesso: boolean; mensagens?: string[] }
 
@@ -58,10 +58,8 @@ export const excluirPlanejamento = async (id: number): Promise<void> => {
     if (response.data.sucesso) return
     throw new Error(response.data.mensagens?.join(', ') || 'Falha ao excluir planejamento')
   } catch (error) {
-    const axiosError = error as AxiosError<ExcluirPlanejamentoResponse>
-    const msg = axiosError.response?.data?.mensagens?.join(', ')
+    const msg = getApiErrorMessageForUser(error).trim()
     if (msg) throw new Error(msg)
-    if (error instanceof Error) throw error
     throw new Error('Falha ao excluir planejamento')
   }
 }
