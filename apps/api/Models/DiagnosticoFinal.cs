@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using api.Constants;
 
 namespace api.Models
 {
@@ -19,7 +20,12 @@ namespace api.Models
         [Column(TypeName = "text")]
         public string Resumo { get; set; } = string.Empty;
 
-        public double PercentualAutonomia { get; set; }   // ex: 75.0
+        /// <summary>
+        /// Perfil agregado de autonomia (substitui o percentual numérico legado).
+        /// Valores: NaoAvaliado, PredominioDependencia, AutonomiaMediada, PredominioAutonomia.
+        /// </summary>
+        [StringLength(40)]
+        public string NivelPerfilAutonomia { get; set; } = NivelPerfilAutonomiaValores.NaoAvaliado;
 
         [Column(TypeName = "text")]
         public string Recomendacoes { get; set; } = string.Empty;

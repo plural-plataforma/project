@@ -2,6 +2,7 @@ using api.DTOs.AvaliacaoDiagnostica;
 using api.DTOs.Bloco; // Para BlocoComAtividadesDTO
 using api.DTOs.Atividade; // Para AtividadeBuscarDTO (ajuste se necessário)
 using api.DTOs.Desempenho;
+using api.Helpers;
 using api.Models;
 using api.Responses;
 using Data;
@@ -279,6 +280,34 @@ namespace api.Services
                 })
                 .ToList();
 
+            var registrosMaisRecentesPorPar = avaliacao.RegistrosDesempenho
+                .GroupBy(r => new { r.AlunoId, r.AtividadeId })
+                .Select(g => g.OrderByDescending(x => x.DataRegistro).First())
+                .ToList();
+
+            var niveisPorAluno = registrosMaisRecentesPorPar
+                .GroupBy(r => r.AlunoId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.NivelRealizacao).ToList());
+
+            var perfisAutonomiaPorAluno = avaliacao.AlunosParticipantes
+                .Select(ap =>
+                {
+                    var niveis = niveisPorAluno.TryGetValue(ap.AlunoId, out var list)
+                        ? list
+                        : [];
+                    var (nivel, pct) = PerfilAutonomiaHelper.DeNiveisRealizacaoComPercentual(niveis);
+                    return new AlunoPerfilAutonomiaResumoDTO
+                    {
+                        AlunoId = ap.AlunoId,
+                        NomeCompleto = ap.Aluno?.NomeCompleto ?? string.Empty,
+                        NivelPerfilAutonomia = nivel,
+                        RotuloExibicao = PerfilAutonomiaHelper.RotuloPortugues(nivel),
+                        SugestaoPaee = PerfilAutonomiaHelper.SugestaoPaee(nivel),
+                        PercentualAutonomiaCalculado = pct,
+                    };
+                })
+                .ToList();
+
             return new AvaliacaoDiagnosticaDetailDTO
             {
                 Id = avaliacao.Id,
@@ -323,7 +352,8 @@ namespace api.Services
                         Observacao = ap.ObservacaoGeral,
                     })
                     .ToList(),
-                BlocosComAtividades = blocosOrdenados
+                BlocosComAtividades = blocosOrdenados,
+                PerfisAutonomiaPorAluno = perfisAutonomiaPorAluno,
             };
         }
 
@@ -790,6 +820,35 @@ namespace api.Services
                                 r.RelativeItem().Text("Data de aplicação: ").SemiBold();
                                 r.RelativeItem(3).Text(dto.DataAplicacao.ToString("dd/MM/yyyy") ?? "—");
                             });
+
+                            if (dto.PerfisAutonomiaPorAluno.Count > 0)
+                            {
+                                col.Item().PaddingTop(18).Text("Perfil de autonomia por aluno")
+                                    .SemiBold().FontSize(14).FontColor(Colors.Grey.Darken2);
+
+                                col.Item().PaddingTop(6).Text(
+                                        "Visão agregada a partir dos níveis registrados por atividade (Autonomia / Com ajuda / Não realizou). Sugestões apoiam o planejamento PAEE.")
+                                    .FontSize(9).Italic().FontColor(Colors.Grey.Medium);
+
+                                foreach (var perfil in dto.PerfisAutonomiaPorAluno.OrderBy(p => p.NomeCompleto))
+                                {
+                                    var pctTxt = perfil.PercentualAutonomiaCalculado.HasValue
+                                        ? $" — Índice de autonomia nas atividades registradas: {PerfilAutonomiaHelper.PercentualResumoFormatado(perfil.PercentualAutonomiaCalculado.Value)}"
+                                        : string.Empty;
+
+                                    col.Item().PaddingTop(10).Column(bloco =>
+                                    {
+                                        bloco.Item().Text($"{perfil.NomeCompleto}{pctTxt}")
+                                            .SemiBold().FontSize(11).FontColor(Colors.Blue.Darken2);
+
+                                        bloco.Item().PaddingTop(2).Text(perfil.RotuloExibicao)
+                                            .FontSize(10);
+
+                                        bloco.Item().PaddingTop(4).Text($"Sugestão PAEE: {perfil.SugestaoPaee}")
+                                            .FontSize(9).Italic().FontColor(Colors.Grey.Darken1);
+                                    });
+                                }
+                            }
 
                             col.Item().PaddingTop(20).Text("Atividades")
                                 .SemiBold().FontSize(15).FontColor(Colors.Grey.Darken2);
