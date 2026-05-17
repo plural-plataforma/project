@@ -2,7 +2,18 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { PencilSimple, GraduationCap, Phone, Envelope, User, DownloadSimple, ArrowSquareOut, Trash } from '@phosphor-icons/react'
+import {
+  PencilSimple,
+  GraduationCap,
+  Phone,
+  Envelope,
+  User,
+  DownloadSimple,
+  ArrowSquareOut,
+  Trash,
+  CalendarBlank,
+  Clock,
+} from '@phosphor-icons/react'
 import { AlignmentType, Document, Packer, Paragraph, TextRun } from 'docx'
 import { buscarAlunoPorId, excluirAluno } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
@@ -17,6 +28,8 @@ import type { PlanejamentoAluno } from '@/types/planejamento'
 import { AlunoFormDialog } from './AlunoFormDialog'
 import { AlunoExcluirDialog } from './AlunoExcluirDialog'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
+import { TIPO_ATENDIMENTO_AEE_LABELS } from '@/types/aluno'
 
 export default function AlunoProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -56,7 +69,10 @@ export default function AlunoProfilePage() {
       qc.invalidateQueries({ queryKey: ['alunos'] })
       navigate('/alunos', { replace: true })
     },
-    onError: (err: Error) => showError('Não foi possível excluir', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError('Não foi possível excluir', formatFriendlyErrorBody(fb))
+    },
   })
 
   if (isLoading) return <SkeletonList count={3} />
@@ -76,11 +92,25 @@ export default function AlunoProfilePage() {
   const escola = escolas.find((e) => e.id === aluno.idEscola)
 
   const infoItems = [
+    aluno.dataNascimento && {
+      icon: CalendarBlank,
+      label: 'Data de nascimento',
+      value: new Date(`${aluno.dataNascimento}T12:00:00`).toLocaleDateString('pt-BR'),
+    },
     aluno.sexo && { icon: User, label: 'Sexo', value: ({ M: 'Masculino', F: 'Feminino', O: 'Outro' } as Record<string, string>)[aluno.sexo] ?? aluno.sexo },
     aluno.nivelEnsino && { icon: GraduationCap, label: 'Nível de ensino', value: aluno.nivelEnsino },
     aluno.turno && { icon: GraduationCap, label: 'Turno', value: aluno.turno },
     aluno.ano && { icon: GraduationCap, label: 'Ano/Série', value: aluno.ano },
   ].filter(Boolean) as Array<{ icon: React.ElementType; label: string; value: string }>
+
+  const temAtendimentoAee =
+    aluno.frequenciaSemanalAtendimento != null ||
+    (aluno.diasSemanaAtendimento?.length ?? 0) > 0 ||
+    aluno.duracaoAtendimentoMinutos != null ||
+    aluno.tipoAtendimentoAee != null
+
+  const tipoAtendimentoLabel =
+    aluno.tipoAtendimentoAee != null ? TIPO_ATENDIMENTO_AEE_LABELS[aluno.tipoAtendimentoAee] : null
 
   async function exportarPaeeWord(pdi: PlanejamentoAluno) {
     const laudos = alunoLaudos?.map((l) => l.codigoCid).filter(Boolean).join(', ') || 'Não informado'
@@ -122,9 +152,20 @@ export default function AlunoProfilePage() {
 
             new Paragraph({ children: [new TextRun({ text: '2. ORGANIZAÇÃO DO ATENDIMENTO:', bold: true, size: 26 })] }),
             new Paragraph({ children: [new TextRun('Período de execução: '), new TextRun(`${periodoInicio} até ${periodoFim}`)] }),
-            new Paragraph({ children: [new TextRun('Frequência do atendimento na semana: ( ) 1 Vez   ( ) 2 vezes   ( ) 3ª feira   ( ) 4ª feira   ( ) 5ª feira')] }),
-            new Paragraph({ children: [new TextRun('Dia da semana: ( ) 2ª feira   ( ) 3ª feira   ( ) 4ª feira   ( ) 5ª feira')] }),
-            new Paragraph({ children: [new TextRun('Composição do atendimento: ( ) Individual   ( ) Coletivo')] }),
+            new Paragraph({
+              children: [
+                new TextRun(
+                  `Frequência no AEE (cadastro): ${aluno.frequenciaSemanalAtendimento != null ? `${aluno.frequenciaSemanalAtendimento} vez(es) por semana` : '___'}`
+                ),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun(
+                  `Dias: ${aluno.diasSemanaAtendimento?.length ? aluno.diasSemanaAtendimento.join(', ') : '___'} · Duração: ${aluno.duracaoAtendimentoMinutos != null ? `${aluno.duracaoAtendimentoMinutos} min` : '___'} · Tipo: ${tipoAtendimentoLabel ?? '___'}`
+                ),
+              ],
+            }),
             new Paragraph({ spacing: { after: 600 } }),
 
             new Paragraph({
@@ -291,6 +332,67 @@ export default function AlunoProfilePage() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {temAtendimentoAee && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock size={20} />
+                Atendimento no AEE
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {aluno.frequenciaSemanalAtendimento != null && (
+                <p>
+                  <span className="text-muted-foreground">Frequência: </span>
+                  <span className="font-semibold">{aluno.frequenciaSemanalAtendimento}x por semana</span>
+                </p>
+              )}
+              {(aluno.diasSemanaAtendimento?.length ?? 0) > 0 && (
+                <p>
+                  <span className="text-muted-foreground">Dias: </span>
+                  <span className="font-semibold">{aluno.diasSemanaAtendimento!.join(', ')}</span>
+                </p>
+              )}
+              {aluno.duracaoAtendimentoMinutos != null && (
+                <p>
+                  <span className="text-muted-foreground">Duração: </span>
+                  <span className="font-semibold">{aluno.duracaoAtendimentoMinutos} minutos</span>
+                </p>
+              )}
+              {tipoAtendimentoLabel && (
+                <p>
+                  <span className="text-muted-foreground">Tipo: </span>
+                  <span className="font-semibold">{tipoAtendimentoLabel}</span>
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {(aluno.perfilPedagogicoPotencialidades?.trim() || aluno.perfilPedagogicoNecessidades?.trim()) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Perfil pedagógico</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {aluno.perfilPedagogicoPotencialidades?.trim() && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Potencialidades</p>
+                  <p className="text-foreground whitespace-pre-wrap mt-1">{aluno.perfilPedagogicoPotencialidades}</p>
+                </div>
+              )}
+              {aluno.perfilPedagogicoNecessidades?.trim() && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Necessidades educacionais
+                  </p>
+                  <p className="text-foreground whitespace-pre-wrap mt-1">{aluno.perfilPedagogicoNecessidades}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

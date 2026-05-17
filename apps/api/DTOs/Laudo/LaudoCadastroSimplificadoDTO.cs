@@ -1,18 +1,15 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.Laudo
 {
     public class LaudoCadastroSimplificadoDTO
     {
-        [Required]
-        public string CodigoCid { get; set; }
+        public string? CodigoCid { get; set; }
 
-        [Required]
         [MaxLength(256)]
-        public string NomeMedico { get; set; }
+        public string? NomeMedico { get; set; }
 
-        [Required]
         [MaxLength(2000)]
-        public string Descricao { get; set; }
+        public string? Descricao { get; set; }
     }
 }

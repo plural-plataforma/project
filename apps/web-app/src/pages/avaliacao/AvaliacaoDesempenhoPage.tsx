@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { buscarAvaliacaoPorId, buscarHistoricoDesempenho, registrarDesempenhoBatch } from '@/services/avaliacaoDiagnosticaService'
 import { buscarHabilidades } from '@/services/habilidadeService'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import type { NivelRealizacao, RegistrarDesempenhoBatchRequest } from '@/types/avaliacao-diagnostica'
 
 const NIVEL_OPTIONS: Array<{ value: NivelRealizacao; label: string }> = [
@@ -142,8 +143,9 @@ export default function AvaliacaoDesempenhoPage() {
       queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada'] })
       navigate('/avaliacoes')
     },
-    onError: (err: Error) => {
-      error('Falha ao salvar desempenho', err.message)
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      error('Falha ao salvar desempenho', formatFriendlyErrorBody(fb))
     },
   })
 

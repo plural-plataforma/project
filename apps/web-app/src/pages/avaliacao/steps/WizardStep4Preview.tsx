@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import dayjs from 'dayjs'
 
 export function WizardStep4Preview() {
@@ -92,7 +93,10 @@ export function WizardStep4Preview() {
       reset()
       setTimeout(() => navigate('/avaliacoes'), 1000)
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   const pdfMutation = useMutation({
@@ -107,7 +111,10 @@ export function WizardStep4Preview() {
       link.click()
       window.URL.revokeObjectURL(url)
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   return (

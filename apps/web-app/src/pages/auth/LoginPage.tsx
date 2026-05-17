@@ -9,7 +9,8 @@ import { Eye, EyeSlash, Lock, Envelope, WarningCircle } from '@phosphor-icons/re
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
-import { authLogin, getErrorMessage, useAuth } from '@/context/AuthContext'
+import { authLogin, useAuth } from '@/context/AuthContext'
+import { getApiErrorFeedback, formatFriendlyErrorBody } from '@/lib/apiFriendlyError'
 import { useToast } from '@/hooks/useToast'
 
 export const loginSchema = z.object({
@@ -49,9 +50,10 @@ export default function LoginPage() {
         }, LOADING_IMMERSION_MS)
       }
     } catch (err: unknown) {
-      const msg = getErrorMessage(err)
-      setSubmitError(msg)
-      showError('Erro ao entrar', msg)
+      const fb = getApiErrorFeedback(err)
+      const body = formatFriendlyErrorBody(fb)
+      setSubmitError(body)
+      showError(fb.title, body)
     }
   }
 
@@ -166,7 +168,7 @@ export default function LoginPage() {
                 className="mb-4 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
               >
                 <WarningCircle size={18} weight="fill" className="shrink-0 mt-0.5" />
-                <span>{submitError}</span>
+                <span className="whitespace-pre-line leading-snug">{submitError}</span>
               </div>
             )}
 

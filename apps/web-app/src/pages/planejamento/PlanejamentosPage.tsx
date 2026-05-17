@@ -36,6 +36,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import dayjs from 'dayjs'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { sortByField } from '@/lib/utils'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
@@ -136,7 +137,10 @@ export default function PlanejamentosPage() {
       handleClose()
       navigate(`/planejamentos/${pdi.id}`)
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -146,7 +150,10 @@ export default function PlanejamentosPage() {
       setPdiParaExcluir(null)
       void qc.invalidateQueries({ queryKey: ['planejamentos'] })
     },
-    onError: (err: Error) => showError('Não foi possível excluir', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError('Não foi possível excluir', formatFriendlyErrorBody(fb))
+    },
   })
 
   const {

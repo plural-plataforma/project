@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AuthProvider, useAuth, authLogin, getErrorMessage } from './AuthContext'
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { authLogin, getErrorMessage } from './AuthContext'
 import { api } from '@/api/http'
 
 vi.mock('@/api/http', () => ({
@@ -50,21 +51,31 @@ describe('AuthContext', () => {
   })
 
   describe('getErrorMessage', () => {
-    it('retorna message do response quando disponível', () => {
-      const err = {
-        response: { data: { message: 'Email já cadastrado' } },
-        message: 'Request failed',
-      }
-      expect(getErrorMessage(err)).toBe('Email já cadastrado')
+    it('retorna mensagem amigável a partir de AxiosError com message no JSON', () => {
+      const config = { method: 'post', url: '/register' } as InternalAxiosRequestConfig
+      const err = new AxiosError('Request failed', 'ERR_BAD_REQUEST', config, undefined, {
+        status: 400,
+        statusText: 'Bad Request',
+        headers: {},
+        data: { message: 'Email já cadastrado' },
+        config,
+      })
+
+      expect(getErrorMessage(err)).toContain('Email já cadastrado')
     })
 
-    it('retorna error.message quando sem response.data.message', () => {
-      const err = { message: 'Network Error' }
-      expect(getErrorMessage(err)).toBe('Network Error')
+    it('retorna texto amigável quando não há resposta (rede)', () => {
+      const config = { method: 'post', url: '/login' } as InternalAxiosRequestConfig
+      const err = new AxiosError('Network Error', 'ERR_NETWORK', config)
+      err.response = undefined
+
+      const msg = getErrorMessage(err)
+      expect(msg).toMatch(/conexão|servidor|internet/i)
+      expect(msg).toContain('Informe ao suporte:')
     })
 
-    it('retorna fallback quando erro desconhecido', () => {
-      expect(getErrorMessage({})).toBe('Erro desconhecido')
+    it('retorna fallback genérico quando erro não é AxiosError nem Error', () => {
+      expect(getErrorMessage({})).toMatch(/inesperado|suporte/i)
     })
   })
 })

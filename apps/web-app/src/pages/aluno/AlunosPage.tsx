@@ -18,6 +18,7 @@ import { AlunoFormDialog } from './AlunoFormDialog'
 import { AlunoExcluirDialog } from './AlunoExcluirDialog'
 import { sortByField } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import type { Aluno } from '@/types/aluno'
 
 export default function AlunosPage() {
@@ -45,7 +46,10 @@ export default function AlunosPage() {
       setDeleteTarget(null)
       refetch()
     },
-    onError: (err: Error) => showError('Não foi possível excluir', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError('Não foi possível excluir', formatFriendlyErrorBody(fb))
+    },
   })
 
   const filtered = sortByField(
