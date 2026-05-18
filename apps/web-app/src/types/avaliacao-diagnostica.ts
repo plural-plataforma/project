@@ -4,6 +4,23 @@ export type NivelRealizacao =
   | 'NaoRealizou'
   | 'NaoAvaliado'
 
+/** Perfil agregado (substitui percentual numérico legado em diagnósticos persistidos). */
+export type NivelPerfilAutonomia =
+  | 'NaoAvaliado'
+  | 'PredominioDependencia'
+  | 'AutonomiaMediada'
+  | 'PredominioAutonomia'
+
+export interface AlunoPerfilAutonomiaResumo {
+  alunoId: number
+  nomeCompleto: string
+  nivelPerfilAutonomia: NivelPerfilAutonomia | string
+  rotuloExibicao: string
+  sugestaoPaee: string
+  /** Proporção de atividades em "Autonomia" entre as já avaliadas; ausente se não houver base. */
+  percentualAutonomiaCalculado?: number | null
+}
+
 export interface AvaliacaoDiagnosticaResumo {
   id: number
   titulo: string
@@ -74,7 +91,8 @@ export interface AvaliacaoDiagnosticaDetalhada {
     status?: 'Pendente' | 'EmAndamento' | 'Concluido'
   }>
   blocosComAtividades?: BlocoComAtividadesDetalhe[]
-  /** API retorna registrosDesempenho para cálculo de percentual */
+  /** Visão agregada por aluno (níveis discretos + sugestão PAEE); calculado na API a partir dos lançamentos. */
+  perfisAutonomiaPorAluno?: AlunoPerfilAutonomiaResumo[]
   registrosDesempenho?: Array<{
     id?: number
     alunoId: number
@@ -168,7 +186,7 @@ export interface DiagnosticoFinal {
   alunoId: number
   aluno: { id: number; nomeCompleto: string }
   resumo: string
-  percentualAutonomia: number
+  nivelPerfilAutonomia: NivelPerfilAutonomia | string
   recomendacoes: string
   habilidadesFortes?: string
   habilidadesAReenforcar?: string
@@ -180,7 +198,8 @@ export interface DiagnosticoFinal {
 export interface DiagnosticoResumo {
   id: number
   alunoNome: string
-  percentualAutonomia: number
+  nivelPerfilAutonomia: NivelPerfilAutonomia | string
+  rotuloExibicao?: string
   resumoCurto: string
   geradoEm: string
 }

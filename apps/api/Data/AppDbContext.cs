@@ -34,6 +34,9 @@ namespace Data
         public DbSet<DesempenhoAtividade> DesempenhosAtividades { get; set; }
         public DbSet<ObservacaoAlunoAvaliacaoHistorico> ObservacoesAlunosAvaliacaoHistorico { get; set; }
         public DbSet<DiagnosticoFinal> DiagnosticosFinais { get; set; }
+        public DbSet<EstudoDeCasoEixoCatalogo> EstudoCasoEixosCatalogo { get; set; }
+        public DbSet<EstudoDeCaso> EstudosCaso { get; set; }
+        public DbSet<EstudoDeCasoItemEixo> EstudoCasoItensEixo { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -198,6 +201,38 @@ namespace Data
 
             modelBuilder.Entity<ObservacaoAlunoAvaliacaoHistorico>()
                 .HasIndex(o => new { o.AvaliacaoDiagnosticaId, o.AlunoId, o.DataRegistro });
+
+            modelBuilder.Entity<EstudoDeCasoEixoCatalogo>()
+                .HasIndex(e => e.Codigo)
+                .IsUnique();
+
+            modelBuilder.Entity<EstudoDeCasoItemEixo>()
+                .HasIndex(i => new { i.EstudoDeCasoId, i.EixoCatalogoId })
+                .IsUnique();
+
+            modelBuilder.Entity<EstudoDeCaso>()
+                .HasOne(e => e.Aluno)
+                .WithMany()
+                .HasForeignKey(e => e.AlunoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EstudoDeCaso>()
+                .HasOne(e => e.Professor)
+                .WithMany()
+                .HasForeignKey(e => e.ProfessorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EstudoDeCasoItemEixo>()
+                .HasOne(i => i.EstudoDeCaso)
+                .WithMany(e => e.ItensEixo)
+                .HasForeignKey(i => i.EstudoDeCasoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EstudoDeCasoItemEixo>()
+                .HasOne(i => i.CatalogoEixo)
+                .WithMany(c => c.Itens)
+                .HasForeignKey(i => i.EixoCatalogoId)
+                .OnDelete(DeleteBehavior.Restrict);
 
         }
 

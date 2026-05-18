@@ -5,6 +5,7 @@ import {
   Users,
   BookOpen,
   ClipboardText,
+  Article,
   SignOut,
   List,
   X,
@@ -24,6 +25,7 @@ const navItems = [
   { to: '/alunos', icon: Users, label: 'Alunos' },
   { to: '/planejamentos', icon: BookOpen, label: 'PAEE' },
   { to: '/avaliacoes', icon: ClipboardText, label: 'Avaliações' },
+  { to: '/estudo-caso/nova/aluno', icon: Article, label: 'Estudo de caso' },
 ]
 
 interface SidebarProps {
