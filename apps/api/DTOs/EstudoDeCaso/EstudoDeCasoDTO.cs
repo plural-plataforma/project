@@ -23,6 +23,14 @@ public class EstudoDeCasoCadastroDTO
     public List<EstudoDeCasoItemEixoDTO> ItensEixo { get; set; } = new();
 }
 
+/// <summary>Atualização de estudo existente (aluno não pode ser alterado).</summary>
+public class EstudoDeCasoAtualizacaoDTO
+{
+    public string Titulo { get; set; } = string.Empty;
+    public string ContextoSituacao { get; set; } = string.Empty;
+    public List<EstudoDeCasoItemEixoDTO> ItensEixo { get; set; } = new();
+}
+
 public class EstudoDeCasoItemDetalheDTO : EstudoDeCasoItemEixoDTO
 {
     public string CodigoEixo { get; set; } = string.Empty;

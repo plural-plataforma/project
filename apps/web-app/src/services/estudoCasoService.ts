@@ -1,5 +1,6 @@
 import { api } from '@/api/http'
 import type {
+  EstudoCasoAtualizacaoRequest,
   EstudoCasoCadastroRequest,
   EstudoCasoDetalhe,
   EstudoCasoEixoCatalogo,
@@ -44,6 +45,19 @@ export const buscarEstudoCasoPorId = async (id: number): Promise<EstudoCasoDetal
 export const cadastrarEstudoCaso = async (payload: EstudoCasoCadastroRequest): Promise<EstudoCasoDetalhe> => {
   const { data } = await api.post<ServiceResponse<EstudoCasoDetalhe>>('/EstudoDeCaso/cadastro', payload)
   return unwrapObjeto(data)
+}
+
+export const atualizarEstudoCaso = async (
+  id: number,
+  payload: EstudoCasoAtualizacaoRequest
+): Promise<EstudoCasoDetalhe> => {
+  const { data } = await api.put<ServiceResponse<EstudoCasoDetalhe>>(`/EstudoDeCaso/${id}`, payload)
+  return unwrapObjeto(data)
+}
+
+export const excluirEstudoCaso = async (id: number): Promise<void> => {
+  const { data } = await api.delete<ServiceResponse<boolean>>(`/EstudoDeCaso/${id}`)
+  if (!data.sucesso) throw new Error(data.mensagens?.join(', ') || 'Falha na API')
 }
 
 export const gerarTextoSimuladoEstudoCaso = async (id: number): Promise<EstudoCasoDetalhe> => {

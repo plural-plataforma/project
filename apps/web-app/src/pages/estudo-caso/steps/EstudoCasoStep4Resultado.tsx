@@ -1,10 +1,12 @@
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle } from '@phosphor-icons/react'
+import { CheckCircle, DownloadSimple, FilePdf } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
+import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
+import { downloadEstudoCasoPdf } from '@/lib/exportEstudoCasoPdf'
 import { cadastrarEstudoCaso, gerarTextoSimuladoEstudoCaso } from '@/services/estudoCasoService'
 import {
   useEstudoCasoWizardStore,
@@ -22,6 +24,7 @@ export function EstudoCasoStep4Resultado() {
   const anotacoesPorEixo = useEstudoCasoWizardStore((s) => s.anotacoesPorEixo)
   const casoIdSalvo = useEstudoCasoWizardStore((s) => s.casoIdSalvo)
   const textoSimulado = useEstudoCasoWizardStore((s) => s.textoSimulado)
+  const alunoNome = useEstudoCasoWizardStore((s) => s.alunoNome)
   const setStep = useEstudoCasoWizardStore((s) => s.setStep)
   const setCasoSalvo = useEstudoCasoWizardStore((s) => s.setCasoSalvo)
   const reset = useEstudoCasoWizardStore((s) => s.reset)
@@ -44,6 +47,8 @@ export function EstudoCasoStep4Resultado() {
     },
     onSuccess: (detalhe) => {
       setCasoSalvo(detalhe.id, detalhe.textoSimulado ?? null)
+      const nomeApi = detalhe.alunoNomeCompleto?.trim()
+      if (nomeApi) useEstudoCasoWizardStore.setState({ alunoNome: nomeApi })
       success('Estudo de caso salvo', 'Rascunho simulado gerado. Revise antes de usar oficialmente.')
     },
     onError: (err: unknown) => {
@@ -60,6 +65,34 @@ export function EstudoCasoStep4Resultado() {
   function novo() {
     reset()
     navigate('/estudo-caso/nova/aluno', { replace: true })
+  }
+
+  async function exportarWord() {
+    if (!textoSimulado?.trim()) return
+    try {
+      await downloadEstudoCasoDocx({
+        tituloEstudo: titulo.trim() || 'Estudo de caso',
+        alunoNome: alunoNome?.trim() || 'Aluno(a)',
+        textoCompleto: textoSimulado,
+      })
+      success('Documento gerado', 'Arquivo .docx baixado — revise antes de uso oficial.')
+    } catch {
+      showError('Exportação', 'Não foi possível gerar o arquivo Word.')
+    }
+  }
+
+  async function exportarPdf() {
+    if (!textoSimulado?.trim()) return
+    try {
+      downloadEstudoCasoPdf({
+        tituloEstudo: titulo.trim() || 'Estudo de caso',
+        alunoNome: alunoNome?.trim() || 'Aluno(a)',
+        textoCompleto: textoSimulado,
+      })
+      success('PDF gerado', 'Arquivo baixado — revise antes de uso oficial.')
+    } catch {
+      showError('Exportação PDF', 'Não foi possível gerar o arquivo.')
+    }
   }
 
   const jaSalvo = casoIdSalvo != null && textoSimulado != null
@@ -103,6 +136,14 @@ export function EstudoCasoStep4Resultado() {
               {textoSimulado}
             </pre>
             <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={exportarPdf}>
+                <FilePdf size={16} />
+                Exportar PDF
+              </Button>
+              <Button type="button" variant="outline" onClick={exportarWord}>
+                <DownloadSimple size={16} />
+                Exportar Word
+              </Button>
               <Button type="button" variant="outline" onClick={novo}>
                 Novo estudo de caso
               </Button>

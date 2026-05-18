@@ -1,5 +1,6 @@
 using api.DTOs.EstudoDeCaso;
 using api.Models;
+using api.Responses;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -41,6 +42,34 @@ public class EstudoDeCasoController : ControllerBase
         return Ok(resposta);
     }
 
+    /// <summary>Baixa o rascunho simulado como arquivo texto UTF-8 (útil para integrações; Word segue no cliente).</summary>
+    [HttpGet("{id:int}/export-texto")]
+    public async Task<IActionResult> ExportarTexto(int id)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.BuscarPorIdAsync(id, usuario);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrado", StringComparison.OrdinalIgnoreCase))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        var dto = resposta.Objeto;
+        if (dto == null || string.IsNullOrWhiteSpace(dto.TextoSimulado))
+        {
+            var falha = new ServiceResponse<EstudoDeCasoDetalheDTO>();
+            falha.SetFalha("Gere o texto simulado antes de exportar.");
+            return BadRequest(falha);
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(dto.TextoSimulado);
+        return File(bytes, "text/plain; charset=utf-8", $"estudo-caso-{id}.txt");
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> BuscarPorId(int id)
     {
@@ -71,6 +100,45 @@ public class EstudoDeCasoController : ControllerBase
 
         var resposta = await _service.CadastrarAsync(dto, usuario);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Atualizar(int id, [FromBody] EstudoDeCasoAtualizacaoDTO dto)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var resposta = await _service.AtualizarAsync(id, dto, usuario);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrado", StringComparison.OrdinalIgnoreCase))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Excluir(int id)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.ExcluirAsync(id, usuario);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrado", StringComparison.OrdinalIgnoreCase))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta);
     }
 
     [HttpPost("{id:int}/gerar-texto-simulado")]

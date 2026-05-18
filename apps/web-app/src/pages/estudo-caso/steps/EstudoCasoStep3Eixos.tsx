@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { buscarEixosEstudoCasoCatalogo } from '@/services/estudoCasoService'
 import {
   useEstudoCasoWizardStore,
+  estudoCasoCatalogoEixosCompleto,
   estudoCasoStepIndex,
   ESTUDO_CASO_WIZARD_STEPS,
 } from '@/stores/estudoCasoWizardStore'
@@ -22,7 +23,13 @@ export function EstudoCasoStep3Eixos() {
     queryFn: buscarEixosEstudoCasoCatalogo,
   })
 
-  const okResultado = eixosSelecionadosIds.length > 0
+  const okResultado =
+    eixos.length > 0 && estudoCasoCatalogoEixosCompleto(
+      eixos.map((e) => e.id),
+      eixosSelecionadosIds
+    )
+
+  const qtdSel = eixosSelecionadosIds.filter((id) => eixos.some((e) => e.id === id)).length
 
   function voltar() {
     setStep('contexto')
@@ -41,9 +48,14 @@ export function EstudoCasoStep3Eixos() {
         <h2 className="text-lg font-bold text-foreground">Eixos pedagógicos</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Marque um ou mais eixos para orientar o texto simulado. Opcionalmente acrescente observações por eixo.
+        É obrigatório marcar <strong>todos os {eixos.length || '…'} eixos</strong> do catálogo (PAEE). Observações por eixo continuam opcionais.
       </p>
 
+      {!isLoading && eixos.length > 0 && (
+        <p className="text-xs font-medium text-foreground">
+          Selecionados: {qtdSel} de {eixos.length}
+        </p>
+      )}
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando eixos…</p>
       ) : (
