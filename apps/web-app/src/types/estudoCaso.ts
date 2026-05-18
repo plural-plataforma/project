@@ -18,6 +18,12 @@ export interface EstudoCasoCadastroRequest {
   itensEixo: EstudoCasoItemEixoPayload[]
 }
 
+export interface EstudoCasoAtualizacaoRequest {
+  titulo: string
+  contextoSituacao: string
+  itensEixo: EstudoCasoItemEixoPayload[]
+}
+
 export interface EstudoCasoItemDetalhe extends EstudoCasoItemEixoPayload {
   codigoEixo: string
   rotuloEixo: string

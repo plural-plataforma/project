@@ -12,6 +12,8 @@ export const ESTUDO_CASO_WIZARD_STEPS: EstudoCasoWizardStep[] = [
 interface EstudoCasoWizardState {
   currentStep: EstudoCasoWizardStep
   alunoId: number | null
+  /** Preenchido ao escolher aluno na lista (opcional se só vier ?alunoId= na URL). */
+  alunoNome: string | null
   titulo: string
   contextoSituacao: string
   /** ids dos eixos selecionados */
@@ -20,31 +22,42 @@ interface EstudoCasoWizardState {
   anotacoesPorEixo: Record<number, string>
   casoIdSalvo: number | null
   textoSimulado: string | null
+  /** Ids do catálogo carregados na etapa Eixos (para validar “todos obrigatórios”). */
+  catalogoEixoIds: number[]
   setStep: (s: EstudoCasoWizardStep) => void
-  setAlunoId: (id: number | null) => void
+  /** Define aluno; se `nomeCompleto` for omitido, limpa o nome armazenado (ex.: deep link só com id). */
+  selecionarAluno: (id: number | null, nomeCompleto?: string | null) => void
   setTitulo: (t: string) => void
   setContexto: (c: string) => void
   toggleEixo: (eixoId: number) => void
   setAnotacaoEixo: (eixoId: number, texto: string) => void
   setCasoSalvo: (id: number, texto: string | null) => void
+  setCatalogoEixoIds: (ids: number[]) => void
   reset: () => void
 }
 
 const initial = {
   currentStep: 'aluno' as EstudoCasoWizardStep,
   alunoId: null as number | null,
+  alunoNome: null as string | null,
   titulo: '',
   contextoSituacao: '',
   eixosSelecionadosIds: [] as number[],
   anotacoesPorEixo: {} as Record<number, string>,
   casoIdSalvo: null as number | null,
   textoSimulado: null as string | null,
+  catalogoEixoIds: [] as number[],
 }
 
 export const useEstudoCasoWizardStore = create<EstudoCasoWizardState>((set, get) => ({
   ...initial,
   setStep: (s) => set({ currentStep: s }),
-  setAlunoId: (id) => set({ alunoId: id }),
+  selecionarAluno: (id, nomeCompleto) =>
+    set({
+      alunoId: id,
+      alunoNome:
+        id == null ? null : nomeCompleto !== undefined ? (nomeCompleto?.trim() || null) : null,
+    }),
   setTitulo: (t) => set({ titulo: t }),
   setContexto: (c) => set({ contextoSituacao: c }),
   toggleEixo: (eixoId) => {
@@ -62,8 +75,17 @@ export const useEstudoCasoWizardStore = create<EstudoCasoWizardState>((set, get)
       anotacoesPorEixo: { ...state.anotacoesPorEixo, [eixoId]: texto },
     })),
   setCasoSalvo: (id, texto) => set({ casoIdSalvo: id, textoSimulado: texto }),
+  setCatalogoEixoIds: (ids) => set({ catalogoEixoIds: [...ids] }),
   reset: () => set({ ...initial }),
 }))
+
+/** Todos os eixos do catálogo devem estar marcados (Fase 3 — aceite pedagógico). */
+export function estudoCasoCatalogoEixosCompleto(catalogoIds: number[], selecionadosIds: number[]): boolean {
+  if (catalogoIds.length === 0) return false
+  if (selecionadosIds.length !== catalogoIds.length) return false
+  const set = new Set(selecionadosIds)
+  return catalogoIds.every((id) => set.has(id))
+}
 
 export function estudoCasoStepIndex(step: EstudoCasoWizardStep): number {
   return ESTUDO_CASO_WIZARD_STEPS.indexOf(step)
@@ -73,7 +95,8 @@ export function canNavigateEstudoCasoTo(step: EstudoCasoWizardStep, state: Estud
   const idx = estudoCasoStepIndex(step)
   if (idx < 0) return false
   if (step === 'aluno') return true
-  if (step === 'contexto') return state.alunoId != null && state.alunoId > 0
+  if (step === 'contexto')
+    return state.alunoId != null && state.alunoId > 0
   if (step === 'eixos') {
     return (
       state.alunoId != null &&
@@ -84,7 +107,7 @@ export function canNavigateEstudoCasoTo(step: EstudoCasoWizardStep, state: Estud
   if (step === 'resultado') {
     return (
       canNavigateEstudoCasoTo('eixos', state) &&
-      state.eixosSelecionadosIds.length > 0
+      estudoCasoCatalogoEixosCompleto(state.catalogoEixoIds, state.eixosSelecionadosIds)
     )
   }
   return false

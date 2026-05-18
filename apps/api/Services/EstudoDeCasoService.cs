@@ -1,3 +1,4 @@
+using api.Constants;
 using api.DTOs.EstudoDeCaso;
 using api.Models;
 using api.Responses;
@@ -148,16 +149,18 @@ public class EstudoDeCasoService
         }
 
         var idsEixo = dto.ItensEixo.Select(i => i.EixoCatalogoId).Distinct().ToList();
-        if (idsEixo.Count == 0)
-        {
-            r.SetFalha("Selecione pelo menos um eixo pedagógico.");
-            return r;
-        }
 
         var existentes = await _db.EstudoCasoEixosCatalogo.Where(e => idsEixo.Contains(e.Id)).Select(e => e.Id).ToListAsync();
         if (existentes.Count != idsEixo.Count)
         {
             r.SetFalha("Um ou mais eixos informados são inválidos.");
+            return r;
+        }
+
+        var (okTodos, errTodos) = await ValidarTodosEixosDoCatalogoAsync(idsEixo);
+        if (!okTodos)
+        {
+            r.SetFalha(errTodos);
             return r;
         }
 
@@ -206,6 +209,123 @@ public class EstudoDeCasoService
         }
     }
 
+    public async Task<ServiceResponse<EstudoDeCasoDetalheDTO>> AtualizarAsync(int id, EstudoDeCasoAtualizacaoDTO dto, Usuario usuario)
+    {
+        var r = new ServiceResponse<EstudoDeCasoDetalheDTO>();
+        var pid = usuario.ProfessorId ?? 0;
+        if (pid == 0)
+        {
+            r.SetFalha("Professor não vinculado ao usuário.");
+            return r;
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.Titulo) || string.IsNullOrWhiteSpace(dto.ContextoSituacao))
+        {
+            r.SetFalha("Título e contexto da situação são obrigatórios.");
+            return r;
+        }
+
+        var idsEixo = dto.ItensEixo.Select(i => i.EixoCatalogoId).Distinct().ToList();
+
+        var existentes = await _db.EstudoCasoEixosCatalogo.Where(e => idsEixo.Contains(e.Id)).Select(e => e.Id).ToListAsync();
+        if (existentes.Count != idsEixo.Count)
+        {
+            r.SetFalha("Um ou mais eixos informados são inválidos.");
+            return r;
+        }
+
+        var (okTodosAtual, errTodosAtual) = await ValidarTodosEixosDoCatalogoAsync(idsEixo);
+        if (!okTodosAtual)
+        {
+            r.SetFalha(errTodosAtual);
+            return r;
+        }
+
+        try
+        {
+            var caso = await _db.EstudosCaso
+                .Include(c => c.ItensEixo)
+                .FirstOrDefaultAsync(c => c.Id == id && c.ProfessorId == pid);
+
+            if (caso == null)
+            {
+                r.SetFalha("Estudo de caso não encontrado.");
+                return r;
+            }
+
+            var now = DateTime.UtcNow;
+            caso.Titulo = dto.Titulo.Trim();
+            caso.ContextoSituacao = dto.ContextoSituacao.Trim();
+            caso.TextoSimulado = null;
+            caso.UpdatedAt = now;
+
+            _db.EstudoCasoItensEixo.RemoveRange(caso.ItensEixo);
+            caso.ItensEixo.Clear();
+
+            foreach (var item in dto.ItensEixo.GroupBy(i => i.EixoCatalogoId).Select(g => g.First()))
+            {
+                caso.ItensEixo.Add(new EstudoDeCasoItemEixo
+                {
+                    EixoCatalogoId = item.EixoCatalogoId,
+                    Anotacao = string.IsNullOrWhiteSpace(item.Anotacao) ? null : item.Anotacao.Trim(),
+                });
+            }
+
+            await _db.SaveChangesAsync();
+
+            var carregado = await _db.EstudosCaso
+                .AsNoTracking()
+                .Include(c => c.Aluno)
+                .Include(c => c.ItensEixo)
+                .ThenInclude(i => i.CatalogoEixo)
+                .FirstAsync(c => c.Id == caso.Id);
+
+            r.AdicionaObjeto(MapearDetalhe(carregado));
+            r.AdicionaMensagem("Estudo de caso atualizado. Gere novamente o rascunho simulado se precisar.");
+            r.Sucesso = true;
+            return r;
+        }
+        catch (Exception ex)
+        {
+            r.SetFalha($"Erro ao atualizar estudo de caso: {ex.Message}");
+            return r;
+        }
+    }
+
+    public async Task<ServiceResponse<bool>> ExcluirAsync(int id, Usuario usuario)
+    {
+        var r = new ServiceResponse<bool>();
+        var pid = usuario.ProfessorId ?? 0;
+        if (pid == 0)
+        {
+            r.SetFalha("Professor não vinculado ao usuário.");
+            return r;
+        }
+
+        try
+        {
+            var caso = await _db.EstudosCaso.FirstOrDefaultAsync(c => c.Id == id && c.ProfessorId == pid);
+            if (caso == null)
+            {
+                r.SetFalha("Estudo de caso não encontrado.");
+                return r;
+            }
+
+            _db.EstudosCaso.Remove(caso);
+            await _db.SaveChangesAsync();
+
+            r.Sucesso = true;
+            r.AdicionaObjeto(true);
+            r.AdicionaMensagem("Estudo de caso excluído com sucesso.");
+            return r;
+        }
+        catch (Exception ex)
+        {
+            r.SetFalha($"Erro ao excluir estudo de caso: {ex.Message}");
+            return r;
+        }
+    }
+
     public async Task<ServiceResponse<EstudoDeCasoDetalheDTO>> GerarTextoSimuladoAsync(int id, Usuario usuario)
     {
         var r = new ServiceResponse<EstudoDeCasoDetalheDTO>();
@@ -219,7 +339,9 @@ public class EstudoDeCasoService
         try
         {
             var entity = await _db.EstudosCaso
+                .Include(c => c.Professor)
                 .Include(c => c.Aluno)
+                .ThenInclude(a => a.Escola)
                 .Include(c => c.ItensEixo)
                 .ThenInclude(i => i.CatalogoEixo)
                 .FirstOrDefaultAsync(c => c.Id == id && c.ProfessorId == pid);
@@ -230,7 +352,14 @@ public class EstudoDeCasoService
                 return r;
             }
 
-            entity.TextoSimulado = MontarTextoSimulado(entity);
+            var diagnosticoRecente = await _db.DiagnosticosFinais
+                .AsNoTracking()
+                .Include(d => d.AvaliacaoDiagnostica)
+                .Where(d => d.AlunoId == entity.AlunoId)
+                .OrderByDescending(d => d.GeradoEm)
+                .FirstOrDefaultAsync();
+
+            entity.TextoSimulado = MontarTextoSimulado(entity, diagnosticoRecente);
             entity.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
 
@@ -245,6 +374,20 @@ public class EstudoDeCasoService
             r.SetFalha($"Erro ao gerar texto simulado: {ex.Message}");
             return r;
         }
+    }
+
+    private async Task<(bool Ok, string Erro)> ValidarTodosEixosDoCatalogoAsync(List<int> idsEixoDistintos)
+    {
+        var todosIds = await _db.EstudoCasoEixosCatalogo.AsNoTracking().Select(e => e.Id).ToListAsync();
+        if (todosIds.Count == 0)
+            return (false, "Catálogo de eixos não configurado.");
+
+        if (idsEixoDistintos.Count != todosIds.Count || todosIds.Any(id => !idsEixoDistintos.Contains(id)))
+        {
+            return (false, $"É obrigatório registrar todos os {todosIds.Count} eixos pedagógicos do catálogo neste estudo de caso.");
+        }
+
+        return (true, "");
     }
 
     private static EstudoDeCasoDetalheDTO MapearDetalhe(EstudoDeCaso entity)
@@ -272,24 +415,59 @@ public class EstudoDeCasoService
         };
     }
 
-    private static string MontarTextoSimulado(EstudoDeCaso entity)
+    private static string MontarTextoSimulado(EstudoDeCaso entity, DiagnosticoFinal? diagnosticoRecente)
     {
         var nome = entity.Aluno?.NomeCompleto?.Trim() ?? "Aluno";
+        var dnTxt = entity.Aluno?.DataNascimento is { } dnData
+            ? $"Data de nascimento: {dnData:dd/MM/yyyy}."
+            : "Data de nascimento: não informada no cadastro.";
         var idadeTxt = "";
-        if (entity.Aluno?.DataNascimento is { } dn)
+        if (entity.Aluno?.DataNascimento is { } dnIdade)
         {
             var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
-            var anos = hoje.Year - dn.Year - (hoje.DayOfYear < dn.DayOfYear ? 1 : 0);
+            var anos = hoje.Year - dnIdade.Year - (hoje.DayOfYear < dnIdade.DayOfYear ? 1 : 0);
             if (anos >= 0 && anos < 130)
                 idadeTxt = $" Idade cronológica aproximada: {anos} anos.";
         }
 
+        var escolaNome = entity.Aluno?.Escola?.NomeInstituicao?.Trim();
+        var professorNome = entity.Professor?.NomeCompleto?.Trim();
+        var anoSerie = entity.Aluno?.Ano?.Trim();
+
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("*** TEXTO SIMULADO (RASCUNHO AUTOMÁTICO — REVISÃO PEDAGÓGICA OBRIGATÓRIA) ***");
         sb.AppendLine();
+        sb.AppendLine("--- Identificação institucional e cadastro ---");
+        sb.AppendLine($"Instituição de ensino: {(string.IsNullOrEmpty(escolaNome) ? "—" : escolaNome)}");
+        sb.AppendLine(
+            "Logotipo da instituição: não há campo de URL no cadastro da escola nesta versão — utilize o modelo oficial da rede, se existir.");
+        sb.AppendLine($"Professor(a) responsável (cadastro): {(string.IsNullOrEmpty(professorNome) ? "—" : professorNome)}");
         sb.AppendLine($"Estudo de caso — {entity.Titulo.Trim()}");
-        sb.AppendLine($"Aluno(a): {nome}.{idadeTxt}");
+        sb.AppendLine($"Aluno(a): {nome}");
+        sb.AppendLine(dnTxt + idadeTxt);
+        if (!string.IsNullOrEmpty(anoSerie))
+            sb.AppendLine($"Ano/série (cadastro): {anoSerie}");
         sb.AppendLine($"Gerado em (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm}");
+        sb.AppendLine();
+
+        sb.AppendLine("--- Recorte do diagnóstico mais recente (avaliação diagnóstica na plataforma) ---");
+        if (diagnosticoRecente == null)
+        {
+            sb.AppendLine(
+                "Não há diagnóstico final registrado para este(a) aluno(a). O texto seguinte baseia-se apenas no estudo de caso e nos eixos selecionados.");
+        }
+        else
+        {
+            var avTitulo = diagnosticoRecente.AvaliacaoDiagnostica?.Titulo?.Trim() ?? $"Avaliação #{diagnosticoRecente.AvaliacaoDiagnosticaId}";
+            sb.AppendLine($"Avaliação: {avTitulo}");
+            sb.AppendLine($"Diagnóstico gerado em (UTC): {diagnosticoRecente.GeradoEm:yyyy-MM-dd HH:mm}");
+            sb.AppendLine($"Perfil de autonomia (agregado): {RotuloNivelAutonomia(diagnosticoRecente.NivelPerfilAutonomia)}");
+            if (!string.IsNullOrWhiteSpace(diagnosticoRecente.Resumo))
+                sb.AppendLine($"Resumo: {diagnosticoRecente.Resumo.Trim()}");
+            if (!string.IsNullOrWhiteSpace(diagnosticoRecente.Recomendacoes))
+                sb.AppendLine($"Recomendações registradas: {diagnosticoRecente.Recomendacoes.Trim()}");
+        }
+
         sb.AppendLine();
         sb.AppendLine("--- Contexto relatado pela equipe ---");
         sb.AppendLine(entity.ContextoSituacao.Trim());
@@ -313,5 +491,18 @@ public class EstudoDeCasoService
         sb.AppendLine("Este texto não substitui avaliação clínica nem parecer especializado: utilize como ponto de partida para discussão em equipe e adequação ao currículo.");
 
         return sb.ToString();
+    }
+
+    private static string RotuloNivelAutonomia(string? codigo)
+    {
+        return codigo switch
+        {
+            NivelPerfilAutonomiaValores.NaoAvaliado => "Não avaliado",
+            NivelPerfilAutonomiaValores.PredominioDependencia => "Predomínio de dependência",
+            NivelPerfilAutonomiaValores.AutonomiaMediada => "Autonomia mediada",
+            NivelPerfilAutonomiaValores.PredominioAutonomia => "Predomínio de autonomia",
+            null or "" => "—",
+            _ => codigo,
+        };
     }
 }

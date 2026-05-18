@@ -95,6 +95,18 @@ namespace api.Services
                 throw new ArgumentException("Não repita o mesmo dia da semana na lista.");
         }
 
+        private static string? ValidarDataNascimentoObrigatoria(DateOnly data)
+        {
+            if (data == default)
+                return "Data de nascimento é obrigatória.";
+            var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (data > hoje)
+                return "Data de nascimento não pode ser futura.";
+            if (data.Year < 1900)
+                return "Data de nascimento inválida.";
+            return null;
+        }
+
         private static void HydrateDiasSemanaDto(AlunoBuscarDTO dto)
         {
             dto.DiasSemanaAtendimento = DeserializeDiasSemana(dto.DiasSemanaAtendimentoJson);
@@ -117,6 +129,13 @@ namespace api.Services
                     catch (ArgumentException ex)
                     {
                         resposta.SetFalha(ex.Message);
+                        return resposta;
+                    }
+
+                    var errDnCadastro = ValidarDataNascimentoObrigatoria(alunoDTO.DataNascimento);
+                    if (errDnCadastro != null)
+                    {
+                        resposta.SetFalha(errDnCadastro);
                         return resposta;
                     }
 
@@ -198,6 +217,21 @@ namespace api.Services
                 if (aluno == null)
                 {
                     resposta.SetFalha("Aluno não encontrado.");
+                    return resposta;
+                }
+
+                if (alunoDTO.DataNascimento.HasValue)
+                {
+                    var errDnAtual = ValidarDataNascimentoObrigatoria(alunoDTO.DataNascimento.Value);
+                    if (errDnAtual != null)
+                    {
+                        resposta.SetFalha(errDnAtual);
+                        return resposta;
+                    }
+                }
+                else if (!aluno.DataNascimento.HasValue)
+                {
+                    resposta.SetFalha("Data de nascimento é obrigatória. Informe no cadastro do aluno.");
                     return resposta;
                 }
 

@@ -13,7 +13,7 @@ import {
 export function EstudoCasoStep1Aluno() {
   const navigate = useNavigate()
   const alunoId = useEstudoCasoWizardStore((s) => s.alunoId)
-  const setAlunoId = useEstudoCasoWizardStore((s) => s.setAlunoId)
+  const selecionarAluno = useEstudoCasoWizardStore((s) => s.selecionarAluno)
   const setStep = useEstudoCasoWizardStore((s) => s.setStep)
 
   const { data: alunos = [], isLoading } = useQuery({
@@ -53,7 +53,7 @@ export function EstudoCasoStep1Aluno() {
               <button
                 key={a.id}
                 type="button"
-                onClick={() => setAlunoId(a.id ?? null)}
+                onClick={() => selecionarAluno(a.id ?? null, a.nomeCompleto)}
                 className={`w-full text-left rounded-md px-3 py-2 text-sm transition-colors border ${
                   alunoId === a.id
                     ? 'border-primary bg-primary/10 font-semibold text-foreground'

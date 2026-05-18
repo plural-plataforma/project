@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ESTUDO_CASO_WIZARD_STEPS,
@@ -8,6 +9,7 @@ import {
   canNavigateEstudoCasoTo,
   estudoCasoStepIndex,
 } from '@/stores/estudoCasoWizardStore'
+import { buscarEixosEstudoCasoCatalogo } from '@/services/estudoCasoService'
 import { StepProgressBar } from '@/components/common/StepProgressBar'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EstudoCasoStep1Aluno } from './steps/EstudoCasoStep1Aluno'
@@ -54,8 +56,19 @@ export default function EstudoCasoWizardPage() {
   const navigate = useNavigate()
   const currentStep = useEstudoCasoWizardStore((s) => s.currentStep)
   const setStep = useEstudoCasoWizardStore((s) => s.setStep)
-  const setAlunoId = useEstudoCasoWizardStore((s) => s.setAlunoId)
+  const selecionarAluno = useEstudoCasoWizardStore((s) => s.selecionarAluno)
   const reset = useEstudoCasoWizardStore((s) => s.reset)
+  const setCatalogoEixoIds = useEstudoCasoWizardStore((s) => s.setCatalogoEixoIds)
+
+  const { data: eixosCatalogoLista = [] } = useQuery({
+    queryKey: ['estudo-caso-eixos-catalogo'],
+    queryFn: buscarEixosEstudoCasoCatalogo,
+  })
+
+  useEffect(() => {
+    if (eixosCatalogoLista.length > 0)
+      setCatalogoEixoIds(eixosCatalogoLista.map((e) => e.id))
+  }, [eixosCatalogoLista, setCatalogoEixoIds])
 
   useEffect(() => () => {
     reset()
@@ -65,8 +78,8 @@ export default function EstudoCasoWizardPage() {
     const raw = searchParams.get('alunoId')
     if (!raw) return
     const n = Number(raw)
-    if (Number.isFinite(n) && n > 0) setAlunoId(n)
-  }, [searchParams, setAlunoId])
+    if (Number.isFinite(n) && n > 0) selecionarAluno(n)
+  }, [searchParams, selecionarAluno])
 
   useEffect(() => {
     const urlStep = (stepParam as EstudoCasoWizardStep) || 'aluno'

@@ -196,25 +196,17 @@ export default function AvaliacaoDesempenhoPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Visão geral calculada a partir dos níveis já lançados por atividade (Autonomia, Com ajuda, Não realizou).
+              Visão em níveis discretos (Autonomia, Com ajuda, Não realizou) calculada a partir dos lançamentos por atividade.
               Atualiza quando você salva e ao recarregar esta tela.
             </p>
             <div className="space-y-3">
-              {perfisOrdenados.map((p) => {
-                const pct =
-                  typeof p.percentualAutonomiaCalculado === 'number'
-                    ? `${p.percentualAutonomiaCalculado.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% nas atividades já avaliadas`
-                    : null
-                return (
+              {perfisOrdenados.map((p) => (
                   <div
                     key={p.alunoId}
                     className="rounded-lg border border-border bg-muted/35 px-3 py-3 space-y-2"
                   >
                     <div>
                       <p className="text-sm font-semibold text-foreground">{p.nomeCompleto}</p>
-                      {pct && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{pct}</p>
-                      )}
                     </div>
                     <p className="text-sm text-foreground leading-snug">{p.rotuloExibicao}</p>
                     <p className="text-xs text-muted-foreground flex gap-2 leading-snug">
@@ -222,8 +214,7 @@ export default function AvaliacaoDesempenhoPage() {
                       <span>{p.sugestaoPaee}</span>
                     </p>
                   </div>
-                )
-              })}
+              ))}
             </div>
           </CardContent>
         </Card>
