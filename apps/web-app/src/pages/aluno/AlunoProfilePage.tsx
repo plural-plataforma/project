@@ -13,11 +13,13 @@ import {
   Trash,
   CalendarBlank,
   Clock,
+  Article,
 } from '@phosphor-icons/react'
 import { AlignmentType, Document, Packer, Paragraph, TextRun } from 'docx'
 import { buscarAlunoPorId, excluirAluno } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
 import { buscarAvaliacaoPorId, buscarAvaliacoesDiagnosticas, gerarPdfBlob } from '@/services/avaliacaoDiagnosticaService'
+import { listarEstudosCasoPorAluno } from '@/services/estudoCasoService'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
 import { Button } from '@/components/ui/button'
@@ -25,6 +27,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { PlanejamentoAluno } from '@/types/planejamento'
+import { EstudoCasoDetalheDialog } from '@/pages/estudo-caso/EstudoCasoDetalheDialog'
 import { AlunoFormDialog } from './AlunoFormDialog'
 import { AlunoExcluirDialog } from './AlunoExcluirDialog'
 import { useToast } from '@/hooks/useToast'
@@ -38,6 +41,7 @@ export default function AlunoProfilePage() {
   const { success, error: showError } = useToast()
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [estudoCasoDetalheId, setEstudoCasoDetalheId] = useState<number | null>(null)
 
   const { data: aluno, isLoading } = useQuery({
     queryKey: ['aluno', id],
@@ -59,6 +63,12 @@ export default function AlunoProfilePage() {
     queryFn: async () => Promise.all(
       avaliacoesDiagnosticasResumo.map((av) => buscarAvaliacaoPorId(av.id))
     ),
+  })
+
+  const { data: estudosCaso = [], isLoading: loadingEstudosCaso } = useQuery({
+    queryKey: ['estudos-caso-aluno', aluno?.id],
+    queryFn: () => listarEstudosCasoPorAluno(aluno!.id!),
+    enabled: !!aluno?.id,
   })
 
   const deleteMutation = useMutation({
@@ -452,6 +462,52 @@ export default function AlunoProfilePage() {
           </Card>
         )}
 
+        {/* Estudos de caso (PAEE) */}
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+            <CardTitle className="flex items-center gap-2">
+              <Article size={20} />
+              Estudos de caso
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/estudo-caso/nova/aluno?alunoId=${alunoId}`)}>
+              <ArrowSquareOut size={14} />
+              Novo estudo
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loadingEstudosCaso ? (
+              <p className="text-sm text-muted-foreground">Carregando estudos de caso…</p>
+            ) : estudosCaso.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum estudo de caso registrado para este aluno. Use &quot;Novo estudo&quot; para iniciar o assistente.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {estudosCaso.map((ec) => (
+                  <div key={ec.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-muted">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm text-foreground truncate">{ec.titulo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Atualizado em {new Date(ec.updatedAt).toLocaleString('pt-BR')}
+                      </p>
+                      <div className="flex gap-2 mt-1 flex-wrap">
+                        {ec.possuiTextoSimulado ? (
+                          <Badge variant="secondary">Rascunho disponível</Badge>
+                        ) : (
+                          <Badge variant="outline">Sem rascunho automático</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setEstudoCasoDetalheId(ec.id)}>
+                      Ver detalhes
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Avaliação Diagnóstica */}
         {loadingAvaliacoesDiagnosticas ? (
           <Card>
@@ -497,6 +553,14 @@ export default function AlunoProfilePage() {
 
 
       </motion.div>
+
+      <EstudoCasoDetalheDialog
+        open={estudoCasoDetalheId != null}
+        onOpenChange={(open) => {
+          if (!open) setEstudoCasoDetalheId(null)
+        }}
+        estudoId={estudoCasoDetalheId}
+      />
 
       <AlunoFormDialog
         open={editOpen}

@@ -21,6 +21,7 @@ const PlanejamentoDetailPage = lazy(() => import('@/pages/planejamento/Planejame
 const AvaliacoesPage = lazy(() => import('@/pages/avaliacao/AvaliacoesPage'))
 const AvaliacaoWizardPage = lazy(() => import('@/pages/avaliacao/AvaliacaoWizardPage'))
 const AvaliacaoDesempenhoPage = lazy(() => import('@/pages/avaliacao/AvaliacaoDesempenhoPage'))
+const EstudoCasoWizardPage = lazy(() => import('@/pages/estudo-caso/EstudoCasoWizardPage'))
 const PerfilPage = lazy(() => import('@/pages/professor/PerfilPage'))
 
 function PageLoader() {
@@ -124,6 +125,14 @@ export function AppRouter() {
               element={
                 <Suspense fallback={<PageLoader />}>
                   <AvaliacaoDesempenhoPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/estudo-caso/nova/:step?"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <EstudoCasoWizardPage />
                 </Suspense>
               }
             />

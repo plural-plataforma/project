@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ClockCounterClockwise, FloppyDisk } from '@phosphor-icons/react'
+import { ClockCounterClockwise, FloppyDisk, LightbulbFilament } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,13 @@ export default function AvaliacaoDesempenhoPage() {
     }
     return m
   }, [habilidades])
+
+  const perfisOrdenados = useMemo(() => {
+    const lista = avaliacao?.perfisAutonomiaPorAluno ?? []
+    return [...lista].sort((a, b) =>
+      (a.nomeCompleto || '').localeCompare(b.nomeCompleto || '', 'pt-BR', { sensitivity: 'base' })
+    )
+  }, [avaliacao?.perfisAutonomiaPorAluno])
 
   useEffect(() => {
     if (!avaliacao) return
@@ -181,6 +188,46 @@ export default function AvaliacaoDesempenhoPage() {
       <p className="text-sm text-muted-foreground">
         Você pode continuar lançando e editando desempenho mesmo após concluir a avaliação.
       </p>
+
+      {perfisOrdenados.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Perfil de autonomia e PAEE</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Visão geral calculada a partir dos níveis já lançados por atividade (Autonomia, Com ajuda, Não realizou).
+              Atualiza quando você salva e ao recarregar esta tela.
+            </p>
+            <div className="space-y-3">
+              {perfisOrdenados.map((p) => {
+                const pct =
+                  typeof p.percentualAutonomiaCalculado === 'number'
+                    ? `${p.percentualAutonomiaCalculado.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% nas atividades já avaliadas`
+                    : null
+                return (
+                  <div
+                    key={p.alunoId}
+                    className="rounded-lg border border-border bg-muted/35 px-3 py-3 space-y-2"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{p.nomeCompleto}</p>
+                      {pct && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{pct}</p>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground leading-snug">{p.rotuloExibicao}</p>
+                    <p className="text-xs text-muted-foreground flex gap-2 leading-snug">
+                      <LightbulbFilament size={16} className="shrink-0 text-amber-600 mt-0.5" aria-hidden />
+                      <span>{p.sugestaoPaee}</span>
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {alunos.length === 0 || atividades.length === 0 ? (
         <Card>
