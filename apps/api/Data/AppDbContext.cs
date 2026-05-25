@@ -16,6 +16,7 @@ namespace Data
         public DbSet<EscolaXProfessor> EscolasXProfessores { get; set; }
         public DbSet<Habilidade> Habilidades { get; set; }
         public DbSet<Planejamento> Planejamentos { get; set; }
+        public DbSet<PlanejamentoEncontro> PlanejamentoEncontros { get; set; }
         public DbSet<AlunosXPlanejamento> AlunosXPlanejamentos { get; set; }
         public DbSet<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
 
@@ -146,6 +147,30 @@ namespace Data
                 .HasOne(pa => pa.Aluno)
                 .WithMany(a => a.AlunosXPlanejamentos)
                 .HasForeignKey(pa => pa.AlunoId);
+
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasOne(e => e.Planejamento)
+                .WithMany(p => p.Encontros)
+                .HasForeignKey(e => e.PlanejamentoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasOne(e => e.Habilidade)
+                .WithMany()
+                .HasForeignKey(e => e.HabilidadeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasOne(e => e.Estrategia)
+                .WithMany()
+                .HasForeignKey(e => e.EstrategiaId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasIndex(e => new { e.PlanejamentoId, e.DataEnc })
+                .HasDatabaseName("ix_planejamento_encontros_planejamentoid_dataenc");
 
             // Bloco ↔ Atividade (1:N)
             modelBuilder.Entity<Bloco>()

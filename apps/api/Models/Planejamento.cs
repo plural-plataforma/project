@@ -21,6 +21,17 @@ public class Planejamento
 
     public string DescicaoPlanejamento { get; set; }
 
+    public string? ObjetivoCurtoPrazo { get; set; }
+
+    public string? ObjetivoMedioPrazo { get; set; }
+
+    public string? ObjetivoLongoPrazo { get; set; }
+
+    public bool DocumentoDeclaradoAssinado { get; set; }
+
+    public string? AssinaturaNomeResponsavel { get; set; }
+
+    public string? AssinaturaCargo { get; set; }
 
     public ICollection<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
 
@@ -28,5 +39,7 @@ public class Planejamento
 
     public ICollection<AvaliacaoXPlanejamento> AvaliacaoXPlanejamentos { get; set; }
     public ICollection<AlunosXPlanejamento> AlunosXPlanejamentos { get; set; }
+
+    public ICollection<PlanejamentoEncontro> Encontros { get; set; } = [];
 
 }

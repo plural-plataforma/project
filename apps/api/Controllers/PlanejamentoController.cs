@@ -254,6 +254,32 @@ namespace api.Controllers
             return BadRequest(ModelState);
         }
 
+        [HttpPut("{id}/encontros")]
+        public async Task<IActionResult> SubstituirEncontros(int id,
+            [FromBody] PlanejamentoEncontrosSubstituicaoDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var usuario = await _usuario.GetUserAsync(User);
+            var resposta = await _planejamentoService.SubstituirEncontros(id, dto, usuario);
+            if (resposta.Sucesso)
+                return Ok(resposta);
+
+            return BadRequest(resposta);
+        }
+
+        [HttpGet("{id}/sugestao-datas")]
+        public async Task<IActionResult> SugestaoDatasEncontros(int id)
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var resposta = await _planejamentoService.SugerirDatasEncontro(id, usuario);
+            if (resposta.Sucesso)
+                return Ok(resposta);
+
+            return BadRequest(resposta);
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Excluir(int id)
         {
