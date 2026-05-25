@@ -1,8 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { BookOpen, Users, Brain, Lightning, CheckSquare, Plus, X, CalendarBlank, MagnifyingGlass } from '@phosphor-icons/react'
+import {
+  Users,
+  Brain,
+  Lightning,
+  CheckSquare,
+  Plus,
+  X,
+  CalendarBlank,
+  MagnifyingGlass,
+  DownloadSimple,
+  MagicWand,
+} from '@phosphor-icons/react'
 import {
   buscarPlanejamentoPorId,
   atualizarPlanejamento,
@@ -11,6 +22,8 @@ import {
   vincularHabilidadePlano,
   vincularEstrategiaPlano,
   vincularAvaliacaoPlano,
+  substituirEncontrosPlanejamento,
+  obterSugestaoDatasEncontros,
 } from '@/services/planejamentoService'
 import { buscarAlunos } from '@/services/alunoService'
 import { buscarHabilidades } from '@/services/habilidadeService'
@@ -31,12 +44,12 @@ import {
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
-import { sortByField } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
 import dayjs from 'dayjs'
-import type { Aluno } from '@/types/aluno'
-import type { Habilidade } from '@/types/habilidade'
-import type { Estrategia } from '@/types/estrategia'
-import type { Avaliacao } from '@/types/avaliacao'
+import { sortByField } from '@/lib/utils'
+import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
 
 const NIVEL_ENSINO_MAP: Record<number, string> = {
   1: 'Ed. Infantil',
@@ -44,6 +57,13 @@ const NIVEL_ENSINO_MAP: Record<number, string> = {
   3: 'Fundamental II',
   4: 'Ensino Médio',
 }
+
+type LinhaPaeeEnc = PaeeEncontroEntrada & { key: string }
+
+const novaLinhaEncKey = (): string =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? `n-${crypto.randomUUID()}`
+    : `n-${Date.now()}-${Math.random()}`
 
 export default function PlanejamentoDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -64,6 +84,14 @@ export default function PlanejamentoDetailPage() {
   const [vincModal, setVincModal] = useState<VincModal>(null)
   const [searchVinc, setSearchVinc] = useState('')
   const [filterNivel, setFilterNivel] = useState('')
+
+  const [objCurto, setObjCurto] = useState('')
+  const [objMedio, setObjMedio] = useState('')
+  const [objLongo, setObjLongo] = useState('')
+  const [docDeclaradoAssinado, setDocDeclaradoAssinado] = useState(false)
+  const [assinaturaNome, setAssinaturaNome] = useState('')
+  const [assinaturaCargo, setAssinaturaCargo] = useState('')
+  const [encLinhas, setEncLinhas] = useState<LinhaPaeeEnc[]>([])
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ['planejamento', id],
@@ -134,6 +162,145 @@ export default function PlanejamentoDetailPage() {
     },
   })
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Sincroniza rascunhos com dados da API quando o servidor devolve objeto planejamento atualizado. */
+  useEffect(() => {
+    if (!plan) return
+    setObjCurto(plan.objetivoCurtoPrazo ?? '')
+    setObjMedio(plan.objetivoMedioPrazo ?? '')
+    setObjLongo(plan.objetivoLongoPrazo ?? '')
+    setDocDeclaradoAssinado(plan.documentoDeclaradoAssinado ?? false)
+    setAssinaturaNome(plan.assinaturaNomeResponsavel ?? '')
+    setAssinaturaCargo(plan.assinaturaCargo ?? '')
+    setEncLinhas(
+      (plan.encontros ?? []).map((e) => ({
+        key: `e-${e.id}`,
+        dataEnc: e.dataEnc,
+        textoPlanejado: e.textoPlanejado ?? '',
+        textoRealizado: e.textoRealizado ?? '',
+        habilidadeId: e.habilidadeId ?? null,
+        estrategiaId: e.estrategiaId ?? null,
+      })),
+    )
+  }, [plan])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const salvarObjetivosMutation = useMutation({
+    mutationFn: async () => {
+      if (!plan) throw new Error('Plano indisponível')
+      await atualizarPlanejamento({
+        id: Number(id),
+        apelido: plan.apelido,
+        dataInicio: plan.dataInicio,
+        dataFim: plan.dataFim,
+        descicaoPlanejamento: plan.descicaoPlanejamento,
+        objetivoCurtoPrazo: objCurto,
+        objetivoMedioPrazo: objMedio,
+        objetivoLongoPrazo: objLongo,
+        documentoDeclaradoAssinado: docDeclaradoAssinado,
+        assinaturaNomeResponsavel: assinaturaNome,
+        assinaturaCargo: assinaturaCargo,
+      })
+    },
+    onSuccess: () => {
+      success('Objetivos e assinatura salvos!')
+      invalidate()
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const salvarEncontrosMutation = useMutation({
+    mutationFn: async () => {
+      const payload: PaeeEncontroEntrada[] = encLinhas.map((row) => ({
+        dataEnc: row.dataEnc,
+        textoPlanejado: row.textoPlanejado,
+        textoRealizado: row.textoRealizado,
+        habilidadeId: row.habilidadeId,
+        estrategiaId: row.estrategiaId,
+      }))
+      await substituirEncontrosPlanejamento(Number(id), payload)
+    },
+    onSuccess: () => {
+      success('Encontros salvos!')
+      invalidate()
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const sugestaoDatasMutation = useMutation({
+    mutationFn: () => obterSugestaoDatasEncontros(Number(id)),
+    onSuccess: (datas) => {
+      if (datas.length === 0) {
+        showError('Sem sugestões', 'Vincule um aluno com dias de atendimento no cadastro ou preencha as datas manualmente.')
+        return
+      }
+      setEncLinhas((prev) => {
+        const existentes = new Set(prev.map((p) => p.dataEnc))
+        const novas: LinhaPaeeEnc[] = []
+        for (const d of datas) {
+          if (!existentes.has(d)) {
+            existentes.add(d)
+            novas.push({
+              key: novaLinhaEncKey(),
+              dataEnc: d,
+              textoPlanejado: '',
+              textoRealizado: '',
+              habilidadeId: null,
+              estrategiaId: null,
+            })
+          }
+        }
+        if (novas.length === 0) {
+          success('Datas sugeridas já estavam na grade.')
+        } else {
+          success(`${novas.length} data(s) sugerida(s) adicionada(s).`)
+        }
+        return [...prev, ...novas].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc))
+      })
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const planoParaExportacao: Planejamento | null = useMemo(() => {
+    if (!plan) return null
+    const encOrd = [...encLinhas].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc))
+    return {
+      ...plan,
+      objetivoCurtoPrazo: objCurto,
+      objetivoMedioPrazo: objMedio,
+      objetivoLongoPrazo: objLongo,
+      documentoDeclaradoAssinado: docDeclaradoAssinado,
+      assinaturaNomeResponsavel: assinaturaNome,
+      assinaturaCargo: assinaturaCargo,
+      encontros: encOrd.map((r, ix) => ({
+        id: ix + 1,
+        dataEnc: r.dataEnc,
+        textoPlanejado: r.textoPlanejado || null,
+        textoRealizado: r.textoRealizado || null,
+        habilidadeId: r.habilidadeId ?? null,
+        estrategiaId: r.estrategiaId ?? null,
+      })),
+    }
+  }, [
+    plan,
+    objCurto,
+    objMedio,
+    objLongo,
+    docDeclaradoAssinado,
+    assinaturaNome,
+    assinaturaCargo,
+    encLinhas,
+  ])
+
   if (isLoading) return <SkeletonList count={4} />
   if (!plan) return <p className="text-muted-foreground">Planejamento não encontrado.</p>
 
@@ -193,6 +360,24 @@ export default function PlanejamentoDetailPage() {
         backTo="/planejamentos"
         action={
           <div className="flex flex-wrap gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    if (!planoParaExportacao) return
+                    await downloadPaeePlanejamentoDocx({ planejamento: planoParaExportacao })
+                    success('Arquivo Word gerado.')
+                  } catch (e: unknown) {
+                    showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
+                  }
+                })()
+              }}
+            >
+              <DownloadSimple size={14} /> Export Word
+            </Button>
             <Button variant="outline" size="sm" onClick={openEdit}>
               Editar dados
             </Button>
@@ -209,8 +394,14 @@ export default function PlanejamentoDetailPage() {
         }
       />
 
-      <div className="space-y-4">
+      <Tabs defaultValue="visao-geral" className="mt-6 w-full">
+        <TabsList className="flex h-auto flex-wrap gap-1 p-2">
+          <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
+          <TabsTrigger value="objetivos">Objetivos e documentação</TabsTrigger>
+          <TabsTrigger value="encontros">Encontros</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="visao-geral" className="mt-6 space-y-4">
         {/* ─ Overview editável ─ */}
         {editingInfo ? (
           <Card>
@@ -368,7 +559,240 @@ export default function PlanejamentoDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="objetivos" className="mt-6 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Objetivos (curto, médio e longo prazo)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="obj-curto" className="text-sm font-semibold text-foreground">Curto prazo</label>
+                <textarea
+                  id="obj-curto"
+                  rows={3}
+                  value={objCurto}
+                  onChange={(e) => setObjCurto(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="obj-medio" className="text-sm font-semibold text-foreground">Médio prazo</label>
+                <textarea
+                  id="obj-medio"
+                  rows={3}
+                  value={objMedio}
+                  onChange={(e) => setObjMedio(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="obj-longo" className="text-sm font-semibold text-foreground">Longo prazo</label>
+                <textarea
+                  id="obj-longo"
+                  rows={3}
+                  value={objLongo}
+                  onChange={(e) => setObjLongo(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-start gap-4 border-t border-border pt-4">
+                <div className="flex items-start gap-2 shrink-0 max-w-[20rem]">
+                  <Checkbox
+                    id="doc-assinado"
+                    checked={docDeclaradoAssinado}
+                    onCheckedChange={(c) => setDocDeclaradoAssinado(c === true)}
+                  />
+                  <label htmlFor="doc-assinado" className="text-sm cursor-pointer leading-snug">
+                    Documentação conferida pela responsável (metadado, sem integração ICP-Brasil)
+                  </label>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3 flex-1 min-w-0">
+                  <Input label="Nome para assinatura" value={assinaturaNome} onChange={(e) => setAssinaturaNome(e.target.value)} />
+                  <Input label="Cargo ou vínculo" value={assinaturaCargo} onChange={(e) => setAssinaturaCargo(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  loading={salvarObjetivosMutation.isPending}
+                  onClick={() => salvarObjetivosMutation.mutate()}
+                  type="button"
+                >
+                  Salvar objetivos e assinatura
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="encontros" className="mt-6 space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-base">Grade de encontros (planejado / realizado)</CardTitle>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => sugestaoDatasMutation.mutate()}
+                    loading={sugestaoDatasMutation.isPending}
+                  >
+                    <MagicWand size={14} /> Sugestão de datas
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() =>
+                      setEncLinhas((rows) =>
+                        [...rows, {
+                          key: novaLinhaEncKey(),
+                          dataEnc: plan.dataInicio,
+                          textoPlanejado: '',
+                          textoRealizado: '',
+                          habilidadeId: null,
+                          estrategiaId: null,
+                        }].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc)),
+                      )
+                    }
+                  >
+                    <Plus size={14} /> Nova linha
+                  </Button>
+                  <Button
+                    size="sm"
+                    loading={salvarEncontrosMutation.isPending}
+                    type="button"
+                    onClick={() => salvarEncontrosMutation.mutate()}
+                  >
+                    Salvar encontros
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {!encLinhas.length ? (
+                <p className="text-sm text-muted-foreground">Nenhuma linha — use Sugestão de datas ou Nova linha.</p>
+              ) : (
+                <table className="w-full text-sm border-collapse border border-border min-w-[760px]">
+                  <thead>
+                    <tr className="border-b bg-muted/40">
+                      <th className="text-left border-r border-border px-2 py-2 font-medium">Data</th>
+                      <th className="text-left border-r border-border px-2 py-2 font-medium">Planejado</th>
+                      <th className="text-left border-r border-border px-2 py-2 font-medium">Realizado</th>
+                      <th className="text-left border-r border-border px-2 py-2 font-medium">Habilidade</th>
+                      <th className="text-left border-r border-border px-2 py-2 font-medium">Estratégia</th>
+                      <th className="w-[44px]" aria-label="Remover" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {encLinhas.map((linha, idx, arr) => (
+                      <tr key={linha.key} className="border-b border-border odd:bg-muted/10">
+                        <td className="border-r align-top p-2">
+                          <input
+                            type="date"
+                            value={linha.dataEnc}
+                            max={plan.dataFim}
+                            min={plan.dataInicio}
+                            aria-label={`Data do encontro ${idx + 1}`}
+                            onChange={(ev) =>
+                              setEncLinhas(arr.map((r) =>
+                                r.key === linha.key ? { ...r, dataEnc: ev.target.value } : r,
+                              ))}
+                            className="rounded border border-input bg-background px-1 py-1 w-full max-w-[11rem]"
+                          />
+                        </td>
+                        <td className="border-r align-top p-2 w-[22%]">
+                          <textarea
+                            rows={2}
+                            aria-label={`Conteúdo planejado encontro ${idx + 1}`}
+                            value={linha.textoPlanejado ?? ''}
+                            onChange={(ev) =>
+                              setEncLinhas(arr.map((r) =>
+                                r.key === linha.key ? { ...r, textoPlanejado: ev.target.value } : r,
+                              ))}
+                            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
+                          />
+                        </td>
+                        <td className="border-r align-top p-2 w-[22%]">
+                          <textarea
+                            rows={2}
+                            aria-label={`Conteúdo realizado encontro ${idx + 1}`}
+                            value={linha.textoRealizado ?? ''}
+                            onChange={(ev) =>
+                              setEncLinhas(arr.map((r) =>
+                                r.key === linha.key ? { ...r, textoRealizado: ev.target.value } : r,
+                              ))}
+                            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
+                          />
+                        </td>
+                        <td className="border-r align-top p-2 w-[17%]">
+                          <select
+                            aria-label={`Habilidade encontro ${idx + 1}`}
+                            className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
+                            value={linha.habilidadeId ?? ''}
+                            onChange={(ev) => {
+                              const raw = ev.target.value
+                              setEncLinhas(arr.map((r) =>
+                                r.key === linha.key
+                                  ? { ...r, habilidadeId: raw === '' ? null : Number(raw) }
+                                  : r,
+                              ))
+                            }}
+                          >
+                            <option value="">—</option>
+                            {(plan.habilidades ?? []).map((h) => (
+                              <option key={h.id} value={h.id}>{h.resumo || h.descricao || h.id}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="border-r align-top p-2 w-[17%]">
+                          <select
+                            aria-label={`Estratégia encontro ${idx + 1}`}
+                            className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
+                            value={linha.estrategiaId ?? ''}
+                            onChange={(ev) => {
+                              const raw = ev.target.value
+                              setEncLinhas(arr.map((r) =>
+                                r.key === linha.key
+                                  ? { ...r, estrategiaId: raw === '' ? null : Number(raw) }
+                                  : r,
+                              ))
+                            }}
+                          >
+                            <option value="">—</option>
+                            {(plan.estrategias ?? []).map((est) => (
+                              <option key={est.id} value={est.id}>{est.descricao}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="align-top p-1 text-center">
+                          <button
+                            type="button"
+                            aria-label={`Remover linha ${idx + 1}`}
+                            className="inline-flex rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setEncLinhas(arr.filter((r) => r.key !== linha.key))}
+                          >
+                            <X size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
+          <p className="text-xs text-muted-foreground px-1">
+            Sugestão de datas usa o primeiro aluno vinculado (ordenado por nome), dias da semana e frequência cadastrados.
+            Todas as datas devem ficar dentro do período do PAEE.
+          </p>
+        </TabsContent>
+      </Tabs>
 
       {/* ─ Modal de Vinculação ─ */}
       <Dialog open={!!vincModal} onOpenChange={() => setVincModal(null)}>
