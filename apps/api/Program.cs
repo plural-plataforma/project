@@ -158,6 +158,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
 builder.Services.AddScoped<AvaliacaoDiagnosticaService>();
 builder.Services.AddScoped<EstudoDeCasoService>();
+builder.Services.AddScoped<RelatoAtendimentoService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
 builder.Services.AddScoped<EmailService>();
