@@ -22,6 +22,7 @@ const AvaliacoesPage = lazy(() => import('@/pages/avaliacao/AvaliacoesPage'))
 const AvaliacaoWizardPage = lazy(() => import('@/pages/avaliacao/AvaliacaoWizardPage'))
 const AvaliacaoDesempenhoPage = lazy(() => import('@/pages/avaliacao/AvaliacaoDesempenhoPage'))
 const EstudoCasoWizardPage = lazy(() => import('@/pages/estudo-caso/EstudoCasoWizardPage'))
+const RelatosPage = lazy(() => import('@/pages/relatos/RelatosPage'))
 const PerfilPage = lazy(() => import('@/pages/professor/PerfilPage'))
 
 function PageLoader() {
@@ -136,7 +137,15 @@ export function AppRouter() {
                 </Suspense>
               }
             />
-            <Route path="/relatorios" element={<Navigate to="/avaliacoes" replace />} />
+            <Route
+              path="/relatos"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <RelatosPage />
+                </Suspense>
+              }
+            />
+            <Route path="/relatorios" element={<Navigate to="/relatos" replace />} />
             <Route
               path="/perfil"
               element={
