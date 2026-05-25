@@ -22,9 +22,65 @@ namespace api.Services
             _usuario = usuario;
         }
 
+        private static bool PeriodosSobrepostos(DateOnly i1, DateOnly f1, DateOnly i2, DateOnly f2) =>
+            i1 <= f2 && i2 <= f1;
+
+        /// <returns>Mensagem de erro ou null quando não há conflito.</returns>
+        private async Task<string?> ObterMensagemOverlapAoDefinirPeriodoParaPlano(
+            int professorId,
+            int planejamentoId,
+            DateOnly iniProspectivo,
+            DateOnly fimProspectivo)
+        {
+            var apelidoConflituoso = await (
+                from minha in _contexto.AlunosXPlanejamentos.Where(x => x.PlanejamentoId == planejamentoId)
+                join outra in _contexto.AlunosXPlanejamentos on minha.AlunoId equals outra.AlunoId
+                where outra.PlanejamentoId != planejamentoId
+                join p in _contexto.Planejamentos on outra.PlanejamentoId equals p.ID
+                where p.IdProfessor == professorId
+                      && PeriodosSobrepostos(iniProspectivo, fimProspectivo, p.DataInicio, p.DataFim)
+                select p.Apelido
+            ).FirstOrDefaultAsync();
+
+            return apelidoConflituoso != null
+                ? $"Há aluno(ns) já vinculado(s) a outro PAEE com período intersectando (PAEE «{apelidoConflituoso}»)."
+                : null;
+        }
+
+        private async Task<string?> ObterMensagemOverlapAoVincularAlunoAsync(int professorId, int planejamentoId,
+            int alunoId)
+        {
+            var atual = await _contexto.Planejamentos.AsNoTracking()
+                .Where(p => p.ID == planejamentoId && p.IdProfessor == professorId)
+                .Select(p => new { p.DataInicio, p.DataFim })
+                .FirstOrDefaultAsync();
+            if (atual == null)
+                return null;
+
+            var apelidoConflituoso = await _contexto.AlunosXPlanejamentos
+                .Where(ax => ax.AlunoId == alunoId && ax.PlanejamentoId != planejamentoId)
+                .Join(_contexto.Planejamentos.Where(p => p.IdProfessor == professorId),
+                    ax => ax.PlanejamentoId,
+                    p => p.ID,
+                    (_, p) => p)
+                .Where(p => PeriodosSobrepostos(atual.DataInicio, atual.DataFim, p.DataInicio, p.DataFim))
+                .Select(p => p.Apelido)
+                .FirstOrDefaultAsync();
+
+            return apelidoConflituoso != null
+                ? $"Este aluno já participa do PAEE «{apelidoConflituoso}» em período que intersecta este PAEE."
+                : null;
+        }
+
         public async Task<ServiceResponse<PlanejamentoCadastroDTO>> Cadastro(PlanejamentoCadastroDTO planejamentoDTO, Usuario usuario)
         {
             var resposta = new ServiceResponse<PlanejamentoCadastroDTO>();
+            if (planejamentoDTO.DataInicio > planejamentoDTO.DataFim)
+            {
+                resposta.SetFalha("Data de início não pode ser posterior à data de fim.");
+                return resposta;
+            }
+
             using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
                 try
@@ -69,6 +125,22 @@ namespace api.Services
                     return resposta;
                 }
 
+                var novoInicio = planejamentoDTO.DataInicio ?? planejamento.DataInicio;
+                var novoFim = planejamentoDTO.DataFim ?? planejamento.DataFim;
+                if (novoInicio > novoFim)
+                {
+                    resposta.SetFalha("Data de início não pode ser posterior à data de fim.");
+                    return resposta;
+                }
+
+                var professorId = (int)usuario.ProfessorId;
+                var overlapMsg = await ObterMensagemOverlapAoDefinirPeriodoParaPlano(professorId, planejamento.ID, novoInicio, novoFim);
+                if (overlapMsg != null)
+                {
+                    resposta.SetFalha(overlapMsg);
+                    return resposta;
+                }
+
                 if (!string.IsNullOrEmpty(planejamentoDTO.Apelido))
                 {
                     planejamento.Apelido= planejamentoDTO.Apelido;
@@ -88,6 +160,19 @@ namespace api.Services
                 {
                         planejamento.DescicaoPlanejamento = planejamentoDTO.DescicaoPlanejamento;
                  }
+
+                if (planejamentoDTO.ObjetivoCurtoPrazo != null)
+                    planejamento.ObjetivoCurtoPrazo = planejamentoDTO.ObjetivoCurtoPrazo;
+                if (planejamentoDTO.ObjetivoMedioPrazo != null)
+                    planejamento.ObjetivoMedioPrazo = planejamentoDTO.ObjetivoMedioPrazo;
+                if (planejamentoDTO.ObjetivoLongoPrazo != null)
+                    planejamento.ObjetivoLongoPrazo = planejamentoDTO.ObjetivoLongoPrazo;
+                if (planejamentoDTO.DocumentoDeclaradoAssinado.HasValue)
+                    planejamento.DocumentoDeclaradoAssinado = planejamentoDTO.DocumentoDeclaradoAssinado.Value;
+                if (planejamentoDTO.AssinaturaNomeResponsavel != null)
+                    planejamento.AssinaturaNomeResponsavel = planejamentoDTO.AssinaturaNomeResponsavel;
+                if (planejamentoDTO.AssinaturaCargo != null)
+                    planejamento.AssinaturaCargo = planejamentoDTO.AssinaturaCargo;
 
                     await _contexto.SaveChangesAsync();
             }
@@ -115,6 +200,23 @@ namespace api.Services
                         DataInicio = p.DataInicio,
                         DataFim = p.DataFim,
                         DescicaoPlanejamento = p.DescicaoPlanejamento,
+                        ObjetivoCurtoPrazo = p.ObjetivoCurtoPrazo,
+                        ObjetivoMedioPrazo = p.ObjetivoMedioPrazo,
+                        ObjetivoLongoPrazo = p.ObjetivoLongoPrazo,
+                        DocumentoDeclaradoAssinado = p.DocumentoDeclaradoAssinado,
+                        AssinaturaNomeResponsavel = p.AssinaturaNomeResponsavel,
+                        AssinaturaCargo = p.AssinaturaCargo,
+                        Encontros = p.Encontros
+                            .OrderBy(e => e.DataEnc).ThenBy(e => e.Id)
+                            .Select(e => new PaeeEncontroBuscarDTO
+                            {
+                                Id = e.Id,
+                                DataEnc = e.DataEnc,
+                                TextoPlanejado = e.TextoPlanejado,
+                                TextoRealizado = e.TextoRealizado,
+                                HabilidadeId = e.HabilidadeId,
+                                EstrategiaId = e.EstrategiaId,
+                            }).ToList(),
                         Habilidades = p.HabilidadesXPlanejamentos
                             .Select(hp => new HabilidadeBuscarDTO
                             {
@@ -175,6 +277,23 @@ namespace api.Services
                         DataInicio = p.DataInicio,
                         DataFim = p.DataFim,
                         DescicaoPlanejamento = p.DescicaoPlanejamento,
+                        ObjetivoCurtoPrazo = p.ObjetivoCurtoPrazo,
+                        ObjetivoMedioPrazo = p.ObjetivoMedioPrazo,
+                        ObjetivoLongoPrazo = p.ObjetivoLongoPrazo,
+                        DocumentoDeclaradoAssinado = p.DocumentoDeclaradoAssinado,
+                        AssinaturaNomeResponsavel = p.AssinaturaNomeResponsavel,
+                        AssinaturaCargo = p.AssinaturaCargo,
+                        Encontros = p.Encontros
+                            .OrderBy(e => e.DataEnc).ThenBy(e => e.Id)
+                            .Select(e => new PaeeEncontroBuscarDTO
+                            {
+                                Id = e.Id,
+                                DataEnc = e.DataEnc,
+                                TextoPlanejado = e.TextoPlanejado,
+                                TextoRealizado = e.TextoRealizado,
+                                HabilidadeId = e.HabilidadeId,
+                                EstrategiaId = e.EstrategiaId,
+                            }).ToList(),
                         Habilidades = p.HabilidadesXPlanejamentos
                             .Select(hp => new HabilidadeBuscarDTO
                             {
@@ -217,6 +336,150 @@ namespace api.Services
             catch (Exception)
             {
                 resposta.SetFalha("Erro ao buscar planejamento.");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> SubstituirEncontros(
+            int idPlanejamento,
+            PlanejamentoEncontrosSubstituicaoDTO dto,
+            Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+
+            await using var transacao = await _contexto.Database.BeginTransactionAsync();
+            try
+            {
+                var professorId = (int)usuario.ProfessorId!;
+                var planejamento = await _contexto.Planejamentos.FirstOrDefaultAsync(p =>
+                    p.ID == idPlanejamento && p.IdProfessor == professorId);
+                if (planejamento == null)
+                {
+                    await transacao.RollbackAsync();
+                    resposta.SetFalha("Planejamento não encontrado.");
+                    return resposta;
+                }
+
+                var habIdsComChave = dto.Encontros
+                    .Where(e => e.HabilidadeId.HasValue)
+                    .Select(e => e.HabilidadeId!.Value).Distinct().ToList();
+                if (habIdsComChave.Count > 0)
+                {
+                    var countH = await _contexto.Habilidades.CountAsync(h => habIdsComChave.Contains(h.Id));
+                    if (countH != habIdsComChave.Count)
+                    {
+                        await transacao.RollbackAsync();
+                        resposta.SetFalha("Uma ou mais habilidades informadas não existem.");
+                        return resposta;
+                    }
+                }
+
+                var estrIdsComChave = dto.Encontros
+                    .Where(e => e.EstrategiaId.HasValue)
+                    .Select(e => e.EstrategiaId!.Value).Distinct().ToList();
+                if (estrIdsComChave.Count > 0)
+                {
+                    var countE =
+                        await _contexto.Estrategias.CountAsync(e => estrIdsComChave.Contains(e.Id));
+                    if (countE != estrIdsComChave.Count)
+                    {
+                        await transacao.RollbackAsync();
+                        resposta.SetFalha("Uma ou mais estratégias informadas não existem.");
+                        return resposta;
+                    }
+                }
+
+                foreach (var linha in dto.Encontros)
+                {
+                    if (linha.DataEnc < planejamento.DataInicio || linha.DataEnc > planejamento.DataFim)
+                    {
+                        await transacao.RollbackAsync();
+                        resposta.SetFalha(
+                            "Cada encontro precisa estar com data dentro do período do PAEE (início até fim).");
+                        return resposta;
+                    }
+                }
+
+                var existentes =
+                    await _contexto.PlanejamentoEncontros.Where(e => e.PlanejamentoId == idPlanejamento)
+                        .ToListAsync();
+                _contexto.PlanejamentoEncontros.RemoveRange(existentes);
+
+                foreach (var linha in dto.Encontros)
+                {
+                    _contexto.PlanejamentoEncontros.Add(new PlanejamentoEncontro
+                    {
+                        PlanejamentoId = idPlanejamento,
+                        DataEnc = linha.DataEnc,
+                        TextoPlanejado = linha.TextoPlanejado,
+                        TextoRealizado = linha.TextoRealizado,
+                        HabilidadeId = linha.HabilidadeId,
+                        EstrategiaId = linha.EstrategiaId,
+                    });
+                }
+
+                await _contexto.SaveChangesAsync();
+                await transacao.CommitAsync();
+                resposta.Sucesso = true;
+                resposta.AdicionaObjeto(true);
+                resposta.AdicionaMensagem("Encontros atualizados com sucesso.");
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                await transacao.RollbackAsync();
+                resposta.SetFalha(ex.Message);
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<PaeeSugestaoDatasDTO>> SugerirDatasEncontro(int idPlanejamento,
+            Usuario usuario)
+        {
+            var resposta = new ServiceResponse<PaeeSugestaoDatasDTO>();
+            try
+            {
+                var professorId = (int)usuario.ProfessorId!;
+                var planoCtx = await _contexto.Planejamentos.AsNoTracking()
+                    .Where(p => p.ID == idPlanejamento && p.IdProfessor == professorId)
+                    .Select(p => new { p.DataInicio, p.DataFim })
+                    .FirstOrDefaultAsync();
+                if (planoCtx == null)
+                {
+                    resposta.SetFalha("Planejamento não encontrado.");
+                    return resposta;
+                }
+
+                var alunoPrim = await _contexto.AlunosXPlanejamentos
+                    .Where(ax => ax.PlanejamentoId == idPlanejamento)
+                    .Join(_contexto.Alunos.Where(a => a.IdProfessor == professorId), ax => ax.AlunoId, a => a.Id,
+                        (_, a) => a)
+                    .OrderBy(a => a.NomeCompleto)
+                    .Select(a => new { a.FrequenciaSemanalAtendimento, a.DiasSemanaAtendimentoJson })
+                    .FirstOrDefaultAsync();
+
+                if (alunoPrim == null)
+                {
+                    resposta.AdicionaObjeto(new PaeeSugestaoDatasDTO());
+                    resposta.AdicionaMensagem(
+                        "Nenhum aluno vinculado ao PAEE: não há base para sugerir datas de encontros.");
+                    return resposta;
+                }
+
+                var diasBrutos =
+                    PaeeDatasSugeridasGerador.DeserializarDiasDaSemana(alunoPrim.DiasSemanaAtendimentoJson);
+
+                var lista = PaeeDatasSugeridasGerador
+                    .Sugerir(planoCtx.DataInicio, planoCtx.DataFim, diasBrutos,
+                        alunoPrim.FrequenciaSemanalAtendimento)
+                    .ToList();
+
+                resposta.AdicionaObjeto(new PaeeSugestaoDatasDTO { Datas = lista });
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha(ex.Message);
                 return resposta;
             }
         }
@@ -304,6 +567,14 @@ namespace api.Services
             if (jaVinculado)
             {
                 resposta.SetFalha("Este aluno já está vinculado a esse planejamento.");
+                return resposta;
+            }
+
+            var overlap = await ObterMensagemOverlapAoVincularAlunoAsync((int)usuario.ProfessorId!,
+                planejamentoVincularAlunoDto.IdPlanejamento, planejamentoVincularAlunoDto.IdAluno);
+            if (overlap != null)
+            {
+                resposta.SetFalha(overlap);
                 return resposta;
             }
 
@@ -481,8 +752,16 @@ namespace api.Services
                 .Select(x => x.AlunoId)
                 .ToListAsync();
             var setJa = jaVinculados.ToHashSet();
+            var professorId = (int)usuario.ProfessorId!;
             foreach (var alunoId in distinctIds.Where(id => !setJa.Contains(id)))
             {
+                var overlap = await ObterMensagemOverlapAoVincularAlunoAsync(professorId, dto.IdPlanejamento, alunoId);
+                if (overlap != null)
+                {
+                    resposta.SetFalha(overlap);
+                    return resposta;
+                }
+
                 _contexto.AlunosXPlanejamentos.Add(new AlunosXPlanejamento
                 {
                     AlunoId = alunoId,

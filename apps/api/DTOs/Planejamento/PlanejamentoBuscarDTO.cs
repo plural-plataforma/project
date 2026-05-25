@@ -21,5 +21,19 @@ namespace api.DTOs.Planejamento
         public List<AlunoResumoDTO> Alunos { get; set; } = new();
         public List<EstrategiaBuscarDTO> Estrategias { get; set; } = new();
         public List<AvaliacaoBuscarDTO> Avaliacao { get; set; } = new();
+
+        public string? ObjetivoCurtoPrazo { get; set; }
+
+        public string? ObjetivoMedioPrazo { get; set; }
+
+        public string? ObjetivoLongoPrazo { get; set; }
+
+        public bool DocumentoDeclaradoAssinado { get; set; }
+
+        public string? AssinaturaNomeResponsavel { get; set; }
+
+        public string? AssinaturaCargo { get; set; }
+
+        public List<PaeeEncontroBuscarDTO> Encontros { get; set; } = [];
     }
 }
