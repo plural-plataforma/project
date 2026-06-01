@@ -22,9 +22,6 @@ namespace api.Services
             _usuario = usuario;
         }
 
-        private static bool PeriodosSobrepostos(DateOnly i1, DateOnly f1, DateOnly i2, DateOnly f2) =>
-            i1 <= f2 && i2 <= f1;
-
         /// <returns>Mensagem de erro ou null quando não há conflito.</returns>
         private async Task<string?> ObterMensagemOverlapAoDefinirPeriodoParaPlano(
             int professorId,
@@ -38,7 +35,7 @@ namespace api.Services
                 where outra.PlanejamentoId != planejamentoId
                 join p in _contexto.Planejamentos on outra.PlanejamentoId equals p.ID
                 where p.IdProfessor == professorId
-                      && PeriodosSobrepostos(iniProspectivo, fimProspectivo, p.DataInicio, p.DataFim)
+                      && iniProspectivo <= p.DataFim && p.DataInicio <= fimProspectivo
                 select p.Apelido
             ).FirstOrDefaultAsync();
 
@@ -63,7 +60,7 @@ namespace api.Services
                     ax => ax.PlanejamentoId,
                     p => p.ID,
                     (_, p) => p)
-                .Where(p => PeriodosSobrepostos(atual.DataInicio, atual.DataFim, p.DataInicio, p.DataFim))
+                .Where(p => atual.DataInicio <= p.DataFim && p.DataInicio <= atual.DataFim)
                 .Select(p => p.Apelido)
                 .FirstOrDefaultAsync();
 
