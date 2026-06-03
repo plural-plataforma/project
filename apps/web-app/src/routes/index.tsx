@@ -123,6 +123,7 @@ export function AppRouter() {
                 </Suspense>
               }
             />
+            {/* Rota de desempenho mantida, mas sem link na UI — recurso oculto por enquanto. */}
             <Route
               path="/avaliacoes/:avaliacaoId/desempenho"
               element={

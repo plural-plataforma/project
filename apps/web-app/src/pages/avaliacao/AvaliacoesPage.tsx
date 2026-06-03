@@ -1,14 +1,24 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, ClipboardText, CalendarBlank, Users, ChartBar, Warning, UserPlus } from '@phosphor-icons/react'
+import { Plus, ClipboardText, CalendarBlank, Users, Warning, UserPlus, DownloadSimple, FilePdf, FileDoc } from '@phosphor-icons/react'
 import { buscarAvaliacoesDiagnosticas, reivindicarAvaliacaoDiagnostica } from '@/services/avaliacaoDiagnosticaService'
+import { baixarAvaliacaoDiagnosticaPdf, baixarAvaliacaoDiagnosticaWord } from '@/lib/baixarAvaliacaoDiagnostica'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { SkeletonList } from '@/components/common/SkeletonCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import dayjs from 'dayjs'
 import type { AvaliacaoDiagnosticaResumo } from '@/types/avaliacao-diagnostica'
 import { sortByField } from '@/lib/utils'
@@ -40,7 +50,7 @@ export default function AvaliacoesPage() {
     <>
       <PageHeader
         title="Avaliações Diagnósticas"
-        description="Avalie o desempenho dos seus alunos com avaliações estruturadas"
+        description="Monte e aplique avaliações diagnósticas estruturadas por áreas e atividades"
         action={
           <Button onClick={() => navigate('/avaliacoes/nova/identificacao')}>
             <Plus size={16} weight="bold" />
@@ -114,8 +124,27 @@ function AvaliacaoCard({
   isReivindicando?: boolean
 }) {
   const status = statusConfig[av.status] ?? { label: av.status, variant: 'muted' as const }
-  const navigate = useNavigate()
+  const { success, error: showError } = useToast()
+  const [baixando, setBaixando] = useState<'pdf' | 'word' | null>(null)
   const semDono = av.professorId == null
+
+  async function baixar(formato: 'pdf' | 'word') {
+    setBaixando(formato)
+    try {
+      if (formato === 'pdf') {
+        await baixarAvaliacaoDiagnosticaPdf(av.id)
+        success('PDF gerado', 'Arquivo baixado com sucesso.')
+      } else {
+        await baixarAvaliacaoDiagnosticaWord(av.id)
+        success('Word gerado', 'Arquivo .docx baixado com sucesso.')
+      }
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    } finally {
+      setBaixando(null)
+    }
+  }
 
   return (
     <motion.div
@@ -162,13 +191,33 @@ function AvaliacaoCard({
               </Button>
             ) : (
               <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={baixando != null}
+                      aria-label={`Baixar avaliação ${av.titulo}`}
+                    >
+                      <DownloadSimple size={14} />
+                      Baixar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled={baixando != null} onClick={() => void baixar('pdf')}>
+                      <FilePdf size={14} className="mr-2" />
+                      PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled={baixando != null} onClick={() => void baixar('word')}>
+                      <FileDoc size={14} className="mr-2" />
+                      Word
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button size="sm" variant="outline" onClick={() => onOpen(av.id)}>
                   Abrir
                 </Button>
-                <Button size="sm" onClick={() => navigate(`/avaliacoes/${av.id}/desempenho`)}>
-                  <ChartBar size={14} />
-                  Desempenho
-                </Button>
+                {/* Desempenho oculto: recurso sem utilidade no fluxo atual; rota /avaliacoes/:id/desempenho mantida na API. */}
               </>
             )}
           </div>

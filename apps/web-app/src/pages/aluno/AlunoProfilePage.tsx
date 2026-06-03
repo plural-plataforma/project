@@ -545,9 +545,7 @@ export default function AlunoProfilePage() {
                       <ArrowSquareOut size={14} />
                       Abrir
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/avaliacoes/${avaliacao.id}/desempenho`)}>
-                      Desempenho
-                    </Button>
+                    {/* Desempenho oculto: recurso sem utilidade no fluxo atual. */}
                     <Button size="sm" onClick={() => baixarPdfAvaliacaoDiagnostica(avaliacao.id)}>
                       <DownloadSimple size={14} />
                       PDF
