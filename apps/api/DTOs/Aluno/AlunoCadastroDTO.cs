@@ -58,9 +58,9 @@ namespace api.DTOs.Aluno
 
         public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
 
-        /// <summary>Quantas vezes por semana o aluno é atendido no AEE (1–7).</summary>
+        /// <summary>Quantas vezes por semana o aluno é atendido no AEE (1–5, dias úteis).</summary>
         [Required]
-        [Range(1, 7)]
+        [Range(1, 5)]
         public int FrequenciaSemanalAtendimento { get; set; }
 
         /// <summary>Dias da semana do atendimento (mesma quantidade que a frequência).</summary>
@@ -76,11 +76,8 @@ namespace api.DTOs.Aluno
         [Required]
         public TipoAtendimentoAee TipoAtendimentoAee { get; set; }
 
-        /// <summary>Perfil pedagógico — potencialidades (substitui ênfase exclusiva em laudo).</summary>
-        public string? PerfilPedagogicoPotencialidades { get; set; }
-
-        /// <summary>Perfil pedagógico — necessidades educacionais.</summary>
-        public string? PerfilPedagogicoNecessidades { get; set; }
+        /// <summary>Perfil pedagógico do aluno (primeiras informações obtidas).</summary>
+        public string? PerfilPedagogico { get; set; }
     }
 }
 

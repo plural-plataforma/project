@@ -32,7 +32,7 @@ import { AlunoFormDialog } from './AlunoFormDialog'
 import { AlunoExcluirDialog } from './AlunoExcluirDialog'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
-import { TIPO_ATENDIMENTO_AEE_LABELS } from '@/types/aluno'
+import { labelTipoAtendimentoAee } from '@/types/aluno'
 
 export default function AlunoProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -119,8 +119,7 @@ export default function AlunoProfilePage() {
     aluno.duracaoAtendimentoMinutos != null ||
     aluno.tipoAtendimentoAee != null
 
-  const tipoAtendimentoLabel =
-    aluno.tipoAtendimentoAee != null ? TIPO_ATENDIMENTO_AEE_LABELS[aluno.tipoAtendimentoAee] : null
+  const tipoAtendimentoLabel = labelTipoAtendimentoAee(aluno.tipoAtendimentoAee)
 
   async function exportarPaeeWord(pdi: PlanejamentoAluno) {
     const laudos = alunoLaudos?.map((l) => l.codigoCid).filter(Boolean).join(', ') || 'Não informado'
@@ -383,26 +382,13 @@ export default function AlunoProfilePage() {
           </Card>
         )}
 
-        {(aluno.perfilPedagogicoPotencialidades?.trim() || aluno.perfilPedagogicoNecessidades?.trim()) && (
+        {aluno.perfilPedagogico?.trim() && (
           <Card>
             <CardHeader>
-              <CardTitle>Perfil pedagógico</CardTitle>
+              <CardTitle>Perfil pedagógico do aluno</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {aluno.perfilPedagogicoPotencialidades?.trim() && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Potencialidades</p>
-                  <p className="text-foreground whitespace-pre-wrap mt-1">{aluno.perfilPedagogicoPotencialidades}</p>
-                </div>
-              )}
-              {aluno.perfilPedagogicoNecessidades?.trim() && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Necessidades educacionais
-                  </p>
-                  <p className="text-foreground whitespace-pre-wrap mt-1">{aluno.perfilPedagogicoNecessidades}</p>
-                </div>
-              )}
+            <CardContent className="text-sm">
+              <p className="text-foreground whitespace-pre-wrap">{aluno.perfilPedagogico}</p>
             </CardContent>
           </Card>
         )}

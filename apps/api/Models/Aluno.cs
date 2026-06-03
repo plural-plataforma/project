@@ -67,6 +67,10 @@ namespace api.Models
 
         public TipoAtendimentoAee? TipoAtendimentoAee { get; set; }
 
+        /// <summary>Perfil pedagógico unificado (primeiras informações sobre o aluno).</summary>
+        [Column(TypeName = "text")]
+        public string? PerfilPedagogico { get; set; }
+
         [Column(TypeName = "text")]
         public string? PerfilPedagogicoPotencialidades { get; set; }
 

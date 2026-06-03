@@ -27,6 +27,11 @@ namespace api.Services
             _usuario = usuario;
         }
 
+        private static readonly HashSet<string> DiasUteisPermitidos = new(StringComparer.Ordinal)
+        {
+            "Segunda", "Terça", "Quarta", "Quinta", "Sexta",
+        };
+
         private static List<string> DeserializeDiasSemana(string? json)
         {
             if (string.IsNullOrWhiteSpace(json))
@@ -65,8 +70,6 @@ namespace api.Services
                 "quarta" or "quarta-feira" => "Quarta",
                 "quinta" or "quinta-feira" => "Quinta",
                 "sexta" or "sexta-feira" => "Sexta",
-                "sabado" or "sábado" => "Sábado",
-                "domingo" => "Domingo",
                 _ => ""
             };
             return !string.IsNullOrEmpty(canonico);
@@ -80,19 +83,56 @@ namespace api.Services
                 if (TryCanonizarDiaSemana(d, out var c))
                     resultado.Add(c);
                 else
-                    throw new ArgumentException($"Dia da semana inválido: \"{d}\". Use Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo.");
+                    throw new ArgumentException($"Dia da semana inválido: \"{d}\". Use Segunda, Terça, Quarta, Quinta ou Sexta.");
             }
             return resultado;
         }
 
         private static void ValidarAtendimento(int frequenciaSemanal, List<string> diasCanon)
         {
-            if (frequenciaSemanal < 1 || frequenciaSemanal > 7)
-                throw new ArgumentException("Frequência semanal deve ser entre 1 e 7.");
+            if (frequenciaSemanal < 1 || frequenciaSemanal > 5)
+                throw new ArgumentException("Frequência semanal deve ser entre 1 e 5 (dias úteis).");
             if (diasCanon.Count != frequenciaSemanal)
                 throw new ArgumentException($"Informe exatamente {frequenciaSemanal} dia(s) da semana, conforme a frequência de atendimento.");
             if (diasCanon.Distinct(StringComparer.Ordinal).Count() != diasCanon.Count)
                 throw new ArgumentException("Não repita o mesmo dia da semana na lista.");
+            if (diasCanon.Any(d => !DiasUteisPermitidos.Contains(d)))
+                throw new ArgumentException("Selecione apenas dias úteis (Segunda a Sexta).");
+        }
+
+        private static void ValidarTipoAtendimento(TipoAtendimentoAee tipo)
+        {
+            if (tipo == TipoAtendimentoAee.Itinerante)
+                throw new ArgumentException("Tipo de atendimento Itinerante não está disponível.");
+            if (!Enum.IsDefined(typeof(TipoAtendimentoAee), tipo) || (int)tipo > (int)TipoAtendimentoAee.Colaborativo)
+                throw new ArgumentException("Tipo de atendimento inválido.");
+        }
+
+        private static string? NormalizarPerfilPedagogico(string? valor) =>
+            string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
+
+        private static string? ResolverPerfilPedagogico(string? perfil, string? legadoPot, string? legadoNec)
+        {
+            var atual = NormalizarPerfilPedagogico(perfil);
+            if (!string.IsNullOrEmpty(atual))
+                return atual;
+
+            var partes = new[] { legadoPot, legadoNec }
+                .Select(NormalizarPerfilPedagogico)
+                .Where(p => !string.IsNullOrEmpty(p))
+                .ToList();
+
+            return partes.Count == 0 ? null : string.Join("\n\n", partes!);
+        }
+
+        private static void HydratePerfilPedagogicoDto(AlunoBuscarDTO dto)
+        {
+            dto.PerfilPedagogico = ResolverPerfilPedagogico(
+                dto.PerfilPedagogico,
+                dto.PerfilPedagogicoPotencialidades,
+                dto.PerfilPedagogicoNecessidades);
+            dto.PerfilPedagogicoPotencialidades = null;
+            dto.PerfilPedagogicoNecessidades = null;
         }
 
         private static string? ValidarDataNascimentoObrigatoria(DateOnly data)
@@ -125,6 +165,7 @@ namespace api.Services
                     {
                         diasCanon = CanonizarDiasSemana(alunoDTO.DiasSemanaAtendimento);
                         ValidarAtendimento(alunoDTO.FrequenciaSemanalAtendimento, diasCanon);
+                        ValidarTipoAtendimento(alunoDTO.TipoAtendimentoAee);
                     }
                     catch (ArgumentException ex)
                     {
@@ -157,8 +198,9 @@ namespace api.Services
                         DiasSemanaAtendimentoJson = SerializeDiasSemana(diasCanon),
                         DuracaoAtendimentoMinutos = alunoDTO.DuracaoAtendimentoMinutos,
                         TipoAtendimentoAee = alunoDTO.TipoAtendimentoAee,
-                        PerfilPedagogicoPotencialidades = alunoDTO.PerfilPedagogicoPotencialidades,
-                        PerfilPedagogicoNecessidades = alunoDTO.PerfilPedagogicoNecessidades,
+                        PerfilPedagogico = NormalizarPerfilPedagogico(alunoDTO.PerfilPedagogico),
+                        PerfilPedagogicoPotencialidades = null,
+                        PerfilPedagogicoNecessidades = null,
                         Cep = alunoDTO.Cep,
                         Logradouro = alunoDTO.Logradouro,
                         Numero = alunoDTO.Numero.HasValue ? (int)alunoDTO.Numero : 0,
@@ -325,13 +367,25 @@ namespace api.Services
                     aluno.DuracaoAtendimentoMinutos = alunoDTO.DuracaoAtendimentoMinutos;
 
                 if (alunoDTO.TipoAtendimentoAee.HasValue)
-                    aluno.TipoAtendimentoAee = alunoDTO.TipoAtendimentoAee;
+                {
+                    try
+                    {
+                        ValidarTipoAtendimento(alunoDTO.TipoAtendimentoAee.Value);
+                        aluno.TipoAtendimentoAee = alunoDTO.TipoAtendimentoAee;
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        resposta.SetFalha(ex.Message);
+                        return resposta;
+                    }
+                }
 
-                if (alunoDTO.PerfilPedagogicoPotencialidades != null)
-                    aluno.PerfilPedagogicoPotencialidades = alunoDTO.PerfilPedagogicoPotencialidades;
-
-                if (alunoDTO.PerfilPedagogicoNecessidades != null)
-                    aluno.PerfilPedagogicoNecessidades = alunoDTO.PerfilPedagogicoNecessidades;
+                if (alunoDTO.PerfilPedagogico != null)
+                {
+                    aluno.PerfilPedagogico = NormalizarPerfilPedagogico(alunoDTO.PerfilPedagogico);
+                    aluno.PerfilPedagogicoPotencialidades = null;
+                    aluno.PerfilPedagogicoNecessidades = null;
+                }
 
                 if (alunoDTO.Responsavel != null && aluno.IdResponsavel.HasValue)
                 {
@@ -411,6 +465,7 @@ namespace api.Services
                         DiasSemanaAtendimentoJson = a.DiasSemanaAtendimentoJson,
                         DuracaoAtendimentoMinutos = a.DuracaoAtendimentoMinutos,
                         TipoAtendimentoAee = a.TipoAtendimentoAee,
+                        PerfilPedagogico = a.PerfilPedagogico,
                         PerfilPedagogicoPotencialidades = a.PerfilPedagogicoPotencialidades,
                         PerfilPedagogicoNecessidades = a.PerfilPedagogicoNecessidades,
 
@@ -465,7 +520,10 @@ namespace api.Services
                     })
                     .ToListAsync();
                 foreach (var item in alunos)
+                {
                     HydrateDiasSemanaDto(item);
+                    HydratePerfilPedagogicoDto(item);
+                }
                 resposta.AdicionaObjeto(alunos);
                 resposta.Sucesso = true;
                 return resposta;
@@ -506,6 +564,7 @@ namespace api.Services
                         DiasSemanaAtendimentoJson = a.DiasSemanaAtendimentoJson,
                         DuracaoAtendimentoMinutos = a.DuracaoAtendimentoMinutos,
                         TipoAtendimentoAee = a.TipoAtendimentoAee,
+                        PerfilPedagogico = a.PerfilPedagogico,
                         PerfilPedagogicoPotencialidades = a.PerfilPedagogicoPotencialidades,
                         PerfilPedagogicoNecessidades = a.PerfilPedagogicoNecessidades,
 
@@ -567,6 +626,7 @@ namespace api.Services
                 }
 
                 HydrateDiasSemanaDto(aluno);
+                HydratePerfilPedagogicoDto(aluno);
 
                 resposta.AdicionaObjeto(aluno);
                 resposta.Sucesso = true;
