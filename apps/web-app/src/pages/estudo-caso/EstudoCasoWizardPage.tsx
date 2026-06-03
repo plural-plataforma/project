@@ -20,8 +20,7 @@ import { EstudoCasoStep4Resultado } from './steps/EstudoCasoStep4Resultado'
 const STEP_LABELS = [
   { label: 'Aluno', description: 'Quem é o foco' },
   { label: 'Contexto', description: 'Situação observada' },
-  { label: 'Eixos', description: 'Dimensões PAEE' },
-  { label: 'Rascunho', description: 'Texto simulado' },
+  { label: 'Eixos', description: 'Observações pedagógicas' },
 ]
 
 const STEP_COMPONENTS: Record<EstudoCasoWizardStep, React.ComponentType> = {
@@ -102,13 +101,14 @@ export default function EstudoCasoWizardPage() {
     setStep(urlStep)
   }, [stepParam, navigate, setStep, searchParams])
 
-  const stepIndex = estudoCasoStepIndex(currentStep)
+  const stepIndex =
+    currentStep === 'resultado' ? STEP_LABELS.length : estudoCasoStepIndex(currentStep)
   const direction = stepIndex
   const StepComponent = STEP_COMPONENTS[currentStep]
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Novo estudo de caso" backTo="/dashboard" />
+      <PageHeader title="Novo estudo de caso" backTo="/estudo-caso" />
 
       <StepProgressBar steps={STEP_LABELS} currentStep={stepIndex} className="mb-2" />
 

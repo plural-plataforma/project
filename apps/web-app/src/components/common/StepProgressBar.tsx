@@ -22,7 +22,7 @@ export function StepProgressBar({ steps, currentStep, className }: StepProgressB
         <motion.div
           className="absolute top-4 left-0 h-0.5 bg-primary origin-left"
           initial={{ scaleX: 0 }}
-          animate={{ scaleX: currentStep / (steps.length - 1) }}
+          animate={{ scaleX: steps.length <= 1 ? 1 : Math.min(1, currentStep / (steps.length - 1)) }}
           transition={{ duration: 0.4, ease: 'easeInOut' }}
           style={{ width: '100%' }}
         />

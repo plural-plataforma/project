@@ -376,7 +376,7 @@ export default function PlanejamentoDetailPage() {
                 })()
               }}
             >
-              <DownloadSimple size={14} /> Export Word
+              <DownloadSimple size={14} /> Baixar Word
             </Button>
             <Button variant="outline" size="sm" onClick={openEdit}>
               Editar dados

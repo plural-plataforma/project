@@ -241,15 +241,15 @@ export default function RelatosPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
       <PageHeader
-        title="Relatos de atendimento"
+        title="Registro de atendimento"
         description="Registro de sessões do AEE, presença e observações pedagógicas."
         action={
           <div className="flex flex-wrap gap-2 justify-end">
             <Button variant="outline" size="sm" type="button" onClick={() => void exportarConsolidado()}>
-              <DownloadSimple size={16} /> Exportar período (.docx)
+              <DownloadSimple size={16} /> Baixar período (.docx)
             </Button>
             <Button size="sm" type="button" onClick={abrirNovo}>
-              <Plus size={16} /> Novo relato
+              <Plus size={16} /> Novo registro
             </Button>
           </div>
         }

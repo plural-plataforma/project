@@ -118,6 +118,7 @@ export function EstudoCasoDetalheDialog({
     onSuccess: (d) => {
       qc.setQueryData(['estudo-caso', estudoId], d)
       qc.invalidateQueries({ queryKey: ['estudos-caso-aluno', d.alunoId] })
+      qc.invalidateQueries({ queryKey: ['estudos-caso-lista'] })
       setEditando(false)
       success('Alterações salvas', 'O rascunho anterior foi removido. Gere um novo texto simulado se precisar.')
     },
@@ -132,6 +133,7 @@ export function EstudoCasoDetalheDialog({
     onSuccess: () => {
       const aid = detalhe?.alunoId
       if (aid != null) qc.invalidateQueries({ queryKey: ['estudos-caso-aluno', aid] })
+      qc.invalidateQueries({ queryKey: ['estudos-caso-lista'] })
       qc.removeQueries({ queryKey: ['estudo-caso', estudoId] })
       success('Estudo excluído', 'O registro foi removido.')
       setExcluirOpen(false)
@@ -148,6 +150,7 @@ export function EstudoCasoDetalheDialog({
     onSuccess: (d) => {
       qc.setQueryData(['estudo-caso', estudoId], d)
       qc.invalidateQueries({ queryKey: ['estudos-caso-aluno', d.alunoId] })
+      qc.invalidateQueries({ queryKey: ['estudos-caso-lista'] })
       success('Rascunho gerado', 'Revise o texto antes de usar oficialmente.')
     },
     onError: (err: unknown) => {
@@ -372,11 +375,11 @@ export function EstudoCasoDetalheDialog({
                     <>
                       <Button type="button" size="sm" variant="outline" onClick={exportarPdf}>
                         <FilePdf size={14} />
-                        PDF
+                        Baixar PDF
                       </Button>
                       <Button type="button" size="sm" variant="outline" onClick={exportarWord}>
                         <DownloadSimple size={14} />
-                        Word
+                        Baixar Word
                       </Button>
                       <Button type="button" size="sm" variant="outline" onClick={copiarTexto}>
                         <Copy size={14} />

@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   House,
   Buildings,
@@ -20,7 +20,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PEDAGOGICAL_FLOW_STEPS, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
+import { PEDAGOGICAL_FLOW_STEPS, DOCUMENTACAO_PEDAGOGICA_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
+import { Files } from '@phosphor-icons/react'
 
 const FLOW_ICONS: Record<PedagogicalFlowStepId, Icon> = {
   escola: Buildings,
@@ -39,6 +40,12 @@ const navItems = [
     label: step.label,
     activePathPrefix: step.activePathPrefix ?? step.route,
   })),
+  {
+    to: DOCUMENTACAO_PEDAGOGICA_NAV.route,
+    icon: Files,
+    label: DOCUMENTACAO_PEDAGOGICA_NAV.label,
+    activePathPrefix: DOCUMENTACAO_PEDAGOGICA_NAV.activePathPrefix,
+  },
 ]
 
 function isNavItemActive(pathname: string, to: string, activePathPrefix?: string): boolean {
@@ -66,7 +73,10 @@ export function Sidebar({ professorNome }: SidebarProps) {
     navigate('/login', { replace: true })
   }
 
-  const NavContent = () => (
+  const NavContent = () => {
+    const { pathname } = useLocation()
+
+    return (
     <nav className="flex flex-col h-full">
       <NavLink
         to="/dashboard"
@@ -87,10 +97,10 @@ export function Sidebar({ professorNome }: SidebarProps) {
             to={to}
             end={to === '/dashboard'}
             onClick={() => setMobileOpen(false)}
-            className={({ isActive, location }) =>
+            className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150',
-                isActive || isNavItemActive(location.pathname, to, activePathPrefix)
+                isActive || isNavItemActive(pathname, to, activePathPrefix)
                   ? 'bg-primary text-white shadow-sm'
                   : 'text-muted-foreground hover:bg-primary-light hover:text-primary'
               )
@@ -144,7 +154,8 @@ export function Sidebar({ professorNome }: SidebarProps) {
         </p>
       </div>
     </nav>
-  )
+    )
+  }
 
   return (
     <>

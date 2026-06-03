@@ -29,6 +29,19 @@ public class EstudoDeCasoController : ControllerBase
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
+    [HttpGet("listar")]
+    public async Task<IActionResult> ListarTodos()
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.ListarTodosAsync(usuario);
+        if (!resposta.Sucesso)
+            return BadRequest(resposta);
+        return Ok(resposta);
+    }
+
     [HttpGet("por-aluno/{alunoId:int}")]
     public async Task<IActionResult> ListarPorAluno(int alunoId)
     {

@@ -30,6 +30,11 @@ export const buscarEixosEstudoCasoCatalogo = async (): Promise<EstudoCasoEixoCat
   return unwrapLista(data)
 }
 
+export const listarEstudosCaso = async (): Promise<EstudoCasoListaItem[]> => {
+  const { data } = await api.get<ServiceResponse<EstudoCasoListaItem>>('/EstudoDeCaso/listar')
+  return unwrapLista(data)
+}
+
 export const listarEstudosCasoPorAluno = async (alunoId: number): Promise<EstudoCasoListaItem[]> => {
   const { data } = await api.get<ServiceResponse<EstudoCasoListaItem>>(
     `/EstudoDeCaso/por-aluno/${alunoId}`

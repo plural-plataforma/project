@@ -1,4 +1,4 @@
-/** Ordem pedagógica acordada: Escola → Aluno → Estudo de caso → Avaliação → PAEE → Relatos. */
+/** Ordem pedagógica acordada: Escola → Aluno → Estudo de caso → Avaliação → PAEE → Registro de atendimento. */
 export type PedagogicalFlowStepId =
   | 'escola'
   | 'aluno'
@@ -48,7 +48,7 @@ export const PEDAGOGICAL_FLOW_STEPS: PedagogicalFlowStep[] = [
   {
     id: 'estudo-caso',
     label: 'Estudo de caso',
-    route: '/estudo-caso/nova/aluno',
+    route: '/estudo-caso',
     activePathPrefix: '/estudo-caso',
     journeyTitle: 'Elaborar estudo de caso',
     journeyDescription: 'Preencha os eixos do estudo de caso antes da avaliação diagnóstica e do PAEE.',
@@ -80,15 +80,22 @@ export const PEDAGOGICAL_FLOW_STEPS: PedagogicalFlowStep[] = [
   },
   {
     id: 'relatos',
-    label: 'Relatos',
+    label: 'Registro de atendimento',
     route: '/relatos',
     activePathPrefix: '/relatos',
-    journeyTitle: 'Registrar relatos de atendimento',
+    journeyTitle: 'Registrar atendimentos',
     journeyDescription: 'Documente sessões, presença e observações pedagógicas ao longo do período.',
-    ctaLabel: 'Registrar relato',
-    ctaDoneLabel: 'Ver relatos',
+    ctaLabel: 'Novo registro',
+    ctaDoneLabel: 'Ver registros',
     pendingReason: 'Disponível após criar ao menos um PAEE.',
   },
 ]
 
 export const PEDAGOGICAL_FLOW_STEP_COUNT = PEDAGOGICAL_FLOW_STEPS.length
+
+/** Menu extra (após o fluxo principal): download combinado quando estudo + PAEE existem. */
+export const DOCUMENTACAO_PEDAGOGICA_NAV = {
+  label: 'Estudo de caso + PAEE',
+  route: '/documentacao-pedagogica',
+  activePathPrefix: '/documentacao-pedagogica',
+} as const
