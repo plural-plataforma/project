@@ -15,6 +15,7 @@ import {
   Article,
   ClipboardText,
   Notebook,
+  Files,
 } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 import { buscarProfessor, buscarEscolasProfessor, isCadastroCompleto } from '@/services/professorService'
@@ -30,8 +31,10 @@ import { cn } from '@/lib/utils'
 import {
   PEDAGOGICAL_FLOW_STEPS,
   PEDAGOGICAL_FLOW_STEP_COUNT,
+  DOCUMENTACAO_PEDAGOGICA_NAV,
   type PedagogicalFlowStepId,
 } from '@/config/pedagogicalFlow'
+import { contarFusoesEstudoPaeeDisponiveis } from '@/pages/documentacao/DocumentacaoPedagogicaPage'
 
 type JourneyStatus = 'done' | 'current' | 'pending'
 
@@ -61,7 +64,7 @@ const COMPLETION_FEEDBACK: Partial<Record<PedagogicalFlowStepId, string>> = {
   aluno: 'Etapa concluída: aluno cadastrado. Próximo passo: elaborar estudo de caso.',
   'estudo-caso': 'Etapa concluída: estudo de caso registrado. Próximo passo: avaliação diagnóstica.',
   avaliacao: 'Etapa concluída: avaliação criada. Próximo passo: montar o PAEE.',
-  paee: 'Etapa concluída: PAEE criado. Próximo passo: registrar relatos de atendimento.',
+  paee: 'Etapa concluída: PAEE criado. Próximo passo: registrar atendimentos.',
   relatos: 'Parabéns! Você concluiu a jornada pedagógica inicial da plataforma.',
 }
 
@@ -114,6 +117,12 @@ export default function DashboardPage() {
     },
   })
 
+  const { data: totalFusoes = 0, isLoading: loadingFusoes } = useQuery({
+    queryKey: ['documentacao-pedagogica-count', alunos.map((a) => a.id).join(',')],
+    queryFn: contarFusoesEstudoPaeeDisponiveis,
+    enabled: alunos.length > 0 && planejamentos.length > 0,
+  })
+
   const isLoading =
     loadingProf ||
     loadingEscolas ||
@@ -121,7 +130,8 @@ export default function DashboardPage() {
     loadingPlan ||
     loadingAvaliacoes ||
     loadingEstudos ||
-    loadingRelatos
+    loadingRelatos ||
+    loadingFusoes
 
   const professorNome = professorData?.objeto?.nomeCompleto?.split(' ')[0] ?? 'Professor'
   const cadastroCompleto = professorData?.objeto ? isCadastroCompleto(professorData.objeto, escolas.length) : false
@@ -191,10 +201,10 @@ export default function DashboardPage() {
     () => [
       { label: 'Escolas', value: escolas.length, route: '/escolas', icon: Buildings },
       { label: 'Alunos', value: alunos.length, route: '/alunos', icon: Users },
-      { label: 'Estudos de caso', value: totalEstudosCaso, route: '/estudo-caso/nova/aluno', icon: Article },
+      { label: 'Estudos de caso', value: totalEstudosCaso, route: '/estudo-caso', icon: Article },
       { label: 'Avaliações', value: avaliacoes.length, route: '/avaliacoes', icon: ClipboardText },
       { label: 'PAEE', value: planejamentos.length, route: '/planejamentos', icon: BookOpen },
-      { label: 'Relatos', value: totalRelatos, route: '/relatos', icon: Notebook },
+      { label: 'Registro de atendimento', value: totalRelatos, route: '/relatos', icon: Notebook },
     ],
     [alunos.length, avaliacoes.length, escolas.length, planejamentos.length, totalEstudosCaso, totalRelatos]
   )
@@ -255,7 +265,7 @@ export default function DashboardPage() {
               </h1>
               <p className="text-white/70 mt-2 text-sm leading-relaxed max-w-md">
                 {isAllDone
-                  ? 'Você percorreu todas as etapas: escola, aluno, estudo de caso, avaliação, PAEE e relatos.'
+                  ? 'Você percorreu todas as etapas: escola, aluno, estudo de caso, avaliação, PAEE e registro de atendimento.'
                   : 'Siga a ordem recomendada — a mesma do menu — para documentar o atendimento com fluidez.'}
               </p>
             </div>
@@ -288,6 +298,33 @@ export default function DashboardPage() {
           )}
         </div>
       </motion.div>
+
+      {totalFusoes > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-primary/30 bg-primary/5 p-5"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Files size={22} className="text-primary" weight="duotone" />
+              </div>
+              <div>
+                <h2 className="font-bold text-foreground">Estudo de caso + PAEE</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {totalFusoes} aluno{totalFusoes !== 1 ? 's' : ''} com documentação pedagógica completa. Baixe o
+                  pacote consolidado.
+                </p>
+              </div>
+            </div>
+            <Button size="sm" onClick={() => navigate(DOCUMENTACAO_PEDAGOGICA_NAV.route)}>
+              Baixar documentação
+              <ArrowRight size={14} />
+            </Button>
+          </div>
+        </motion.div>
+      )}
 
       <div className="space-y-3">
         {journeyFeedback && (

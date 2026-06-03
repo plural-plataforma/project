@@ -43,6 +43,8 @@ export interface EstudoCasoDetalhe {
 
 export interface EstudoCasoListaItem {
   id: number
+  alunoId: number
+  alunoNomeCompleto: string
   titulo: string
   updatedAt: string
   possuiTextoSimulado: boolean

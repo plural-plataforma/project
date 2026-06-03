@@ -75,7 +75,8 @@ export const useEstudoCasoWizardStore = create<EstudoCasoWizardState>((set, get)
       anotacoesPorEixo: { ...state.anotacoesPorEixo, [eixoId]: texto },
     })),
   setCasoSalvo: (id, texto) => set({ casoIdSalvo: id, textoSimulado: texto }),
-  setCatalogoEixoIds: (ids) => set({ catalogoEixoIds: [...ids] }),
+  setCatalogoEixoIds: (ids) =>
+    set({ catalogoEixoIds: [...ids], eixosSelecionadosIds: [...ids] }),
   reset: () => set({ ...initial }),
 }))
 

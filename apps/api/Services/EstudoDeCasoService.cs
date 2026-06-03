@@ -65,6 +65,11 @@ public class EstudoDeCasoService
 
         try
         {
+            var aluno = await _db.Alunos.AsNoTracking()
+                .Where(a => a.Id == alunoId)
+                .Select(a => new { a.NomeCompleto })
+                .FirstAsync();
+
             var lista = await _db.EstudosCaso
                 .AsNoTracking()
                 .Where(c => c.AlunoId == alunoId && c.ProfessorId == pid)
@@ -72,6 +77,46 @@ public class EstudoDeCasoService
                 .Select(c => new EstudoDeCasoListaItemDTO
                 {
                     Id = c.Id,
+                    AlunoId = alunoId,
+                    AlunoNomeCompleto = aluno.NomeCompleto,
+                    Titulo = c.Titulo,
+                    UpdatedAt = c.UpdatedAt,
+                    PossuiTextoSimulado = c.TextoSimulado != null && c.TextoSimulado.Trim().Length > 0,
+                })
+                .ToListAsync();
+
+            r.ListaObjetos = lista;
+            r.Sucesso = true;
+            return r;
+        }
+        catch (Exception ex)
+        {
+            r.SetFalha($"Erro ao listar estudos de caso: {ex.Message}");
+            return r;
+        }
+    }
+
+    public async Task<ServiceResponse<EstudoDeCasoListaItemDTO>> ListarTodosAsync(Usuario usuario)
+    {
+        var r = new ServiceResponse<EstudoDeCasoListaItemDTO>();
+        var pid = usuario.ProfessorId ?? 0;
+        if (pid == 0)
+        {
+            r.SetFalha("Professor não vinculado ao usuário.");
+            return r;
+        }
+
+        try
+        {
+            var lista = await _db.EstudosCaso
+                .AsNoTracking()
+                .Where(c => c.ProfessorId == pid)
+                .OrderByDescending(c => c.UpdatedAt)
+                .Select(c => new EstudoDeCasoListaItemDTO
+                {
+                    Id = c.Id,
+                    AlunoId = c.AlunoId,
+                    AlunoNomeCompleto = c.Aluno.NomeCompleto,
                     Titulo = c.Titulo,
                     UpdatedAt = c.UpdatedAt,
                     PossuiTextoSimulado = c.TextoSimulado != null && c.TextoSimulado.Trim().Length > 0,

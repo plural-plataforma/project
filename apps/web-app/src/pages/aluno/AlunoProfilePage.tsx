@@ -33,6 +33,7 @@ import { AlunoExcluirDialog } from './AlunoExcluirDialog'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { labelTipoAtendimentoAee } from '@/types/aluno'
+import { baixarEstudoCasoWord } from '@/lib/baixarEstudoCaso'
 
 export default function AlunoProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -120,6 +121,16 @@ export default function AlunoProfilePage() {
     aluno.tipoAtendimentoAee != null
 
   const tipoAtendimentoLabel = labelTipoAtendimentoAee(aluno.tipoAtendimentoAee)
+
+  async function baixarEstudoNaLista(estudoId: number) {
+    try {
+      await baixarEstudoCasoWord(estudoId)
+      success('Download iniciado', 'Arquivo Word do estudo de caso baixado.')
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    }
+  }
 
   async function exportarPaeeWord(pdi: PlanejamentoAluno) {
     const laudos = alunoLaudos?.map((l) => l.codigoCid).filter(Boolean).join(', ') || 'Não informado'
@@ -439,7 +450,7 @@ export default function AlunoProfilePage() {
                     </Button>
                     <Button size="sm" onClick={() => exportarPaeeWord(p)}>
                       <DownloadSimple size={14} />
-                      Exportar
+                      Baixar
                     </Button>
                   </div>
                 </div>
@@ -484,9 +495,20 @@ export default function AlunoProfilePage() {
                         )}
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => setEstudoCasoDetalheId(ec.id)}>
-                      Ver detalhes
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        aria-label={`Baixar estudo de caso ${ec.titulo}`}
+                        onClick={() => void baixarEstudoNaLista(ec.id)}
+                      >
+                        <DownloadSimple size={14} />
+                        Baixar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEstudoCasoDetalheId(ec.id)}>
+                        Ver detalhes
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

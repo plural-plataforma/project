@@ -53,6 +53,8 @@ public class EstudoDeCasoDetalheDTO
 public class EstudoDeCasoListaItemDTO
 {
     public int Id { get; set; }
+    public int AlunoId { get; set; }
+    public string AlunoNomeCompleto { get; set; } = string.Empty;
     public string Titulo { get; set; } = string.Empty;
     public DateTime UpdatedAt { get; set; }
     public bool PossuiTextoSimulado { get; set; }
