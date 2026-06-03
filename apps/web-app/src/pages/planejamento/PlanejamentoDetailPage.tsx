@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
@@ -44,7 +44,6 @@ import {
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
 import dayjs from 'dayjs'
@@ -88,10 +87,8 @@ export default function PlanejamentoDetailPage() {
   const [objCurto, setObjCurto] = useState('')
   const [objMedio, setObjMedio] = useState('')
   const [objLongo, setObjLongo] = useState('')
-  const [docDeclaradoAssinado, setDocDeclaradoAssinado] = useState(false)
-  const [assinaturaNome, setAssinaturaNome] = useState('')
-  const [assinaturaCargo, setAssinaturaCargo] = useState('')
   const [encLinhas, setEncLinhas] = useState<LinhaPaeeEnc[]>([])
+  const datasAutoCarregadasRef = useRef<number | null>(null)
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ['planejamento', id],
@@ -165,24 +162,47 @@ export default function PlanejamentoDetailPage() {
   /* eslint-disable react-hooks/set-state-in-effect --
      Sincroniza rascunhos com dados da API quando o servidor devolve objeto planejamento atualizado. */
   useEffect(() => {
-    if (!plan) return
+    if (!plan || !id) return
     setObjCurto(plan.objetivoCurtoPrazo ?? '')
     setObjMedio(plan.objetivoMedioPrazo ?? '')
     setObjLongo(plan.objetivoLongoPrazo ?? '')
-    setDocDeclaradoAssinado(plan.documentoDeclaradoAssinado ?? false)
-    setAssinaturaNome(plan.assinaturaNomeResponsavel ?? '')
-    setAssinaturaCargo(plan.assinaturaCargo ?? '')
-    setEncLinhas(
-      (plan.encontros ?? []).map((e) => ({
-        key: `e-${e.id}`,
-        dataEnc: e.dataEnc,
-        textoPlanejado: e.textoPlanejado ?? '',
-        textoRealizado: e.textoRealizado ?? '',
-        habilidadeId: e.habilidadeId ?? null,
-        estrategiaId: e.estrategiaId ?? null,
-      })),
-    )
-  }, [plan])
+
+    const salvos = plan.encontros ?? []
+    if (salvos.length > 0) {
+      setEncLinhas(
+        salvos.map((e) => ({
+          key: `e-${e.id}`,
+          dataEnc: e.dataEnc,
+          textoPlanejado: e.textoPlanejado ?? '',
+          habilidadeId: e.habilidadeId ?? null,
+          estrategiaId: e.estrategiaId ?? null,
+        })),
+      )
+      return
+    }
+
+    const planId = Number(id)
+    if (datasAutoCarregadasRef.current === planId) return
+    datasAutoCarregadasRef.current = planId
+
+    void obterSugestaoDatasEncontros(planId)
+      .then((datas) => {
+        if (datas.length === 0) {
+          setEncLinhas([])
+          return
+        }
+        setEncLinhas(
+          datas.map((d) => ({
+            key: novaLinhaEncKey(),
+            dataEnc: d,
+            textoPlanejado: '',
+            habilidadeId: null,
+            estrategiaId: null,
+          })),
+        )
+      })
+      .catch(() => setEncLinhas([]))
+  }, [plan, id])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const salvarObjetivosMutation = useMutation({
@@ -197,13 +217,10 @@ export default function PlanejamentoDetailPage() {
         objetivoCurtoPrazo: objCurto,
         objetivoMedioPrazo: objMedio,
         objetivoLongoPrazo: objLongo,
-        documentoDeclaradoAssinado: docDeclaradoAssinado,
-        assinaturaNomeResponsavel: assinaturaNome,
-        assinaturaCargo: assinaturaCargo,
       })
     },
     onSuccess: () => {
-      success('Objetivos e assinatura salvos!')
+      success('Objetivos salvos!')
       invalidate()
     },
     onError: (err: unknown) => {
@@ -217,7 +234,6 @@ export default function PlanejamentoDetailPage() {
       const payload: PaeeEncontroEntrada[] = encLinhas.map((row) => ({
         dataEnc: row.dataEnc,
         textoPlanejado: row.textoPlanejado,
-        textoRealizado: row.textoRealizado,
         habilidadeId: row.habilidadeId,
         estrategiaId: row.estrategiaId,
       }))
@@ -225,7 +241,8 @@ export default function PlanejamentoDetailPage() {
     },
     onSuccess: () => {
       success('Encontros salvos!')
-      invalidate()
+      void qc.invalidateQueries({ queryKey: ['planejamentos'] })
+      navigate('/planejamentos')
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -250,7 +267,6 @@ export default function PlanejamentoDetailPage() {
               key: novaLinhaEncKey(),
               dataEnc: d,
               textoPlanejado: '',
-              textoRealizado: '',
               habilidadeId: null,
               estrategiaId: null,
             })
@@ -278,28 +294,15 @@ export default function PlanejamentoDetailPage() {
       objetivoCurtoPrazo: objCurto,
       objetivoMedioPrazo: objMedio,
       objetivoLongoPrazo: objLongo,
-      documentoDeclaradoAssinado: docDeclaradoAssinado,
-      assinaturaNomeResponsavel: assinaturaNome,
-      assinaturaCargo: assinaturaCargo,
       encontros: encOrd.map((r, ix) => ({
         id: ix + 1,
         dataEnc: r.dataEnc,
         textoPlanejado: r.textoPlanejado || null,
-        textoRealizado: r.textoRealizado || null,
         habilidadeId: r.habilidadeId ?? null,
         estrategiaId: r.estrategiaId ?? null,
       })),
     }
-  }, [
-    plan,
-    objCurto,
-    objMedio,
-    objLongo,
-    docDeclaradoAssinado,
-    assinaturaNome,
-    assinaturaCargo,
-    encLinhas,
-  ])
+  }, [plan, objCurto, objMedio, objLongo, encLinhas])
 
   if (isLoading) return <SkeletonList count={4} />
   if (!plan) return <p className="text-muted-foreground">Planejamento não encontrado.</p>
@@ -397,7 +400,7 @@ export default function PlanejamentoDetailPage() {
       <Tabs defaultValue="visao-geral" className="mt-6 w-full">
         <TabsList className="flex h-auto flex-wrap gap-1 p-2">
           <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
-          <TabsTrigger value="objetivos">Objetivos e documentação</TabsTrigger>
+          <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
           <TabsTrigger value="encontros">Encontros</TabsTrigger>
         </TabsList>
 
@@ -598,23 +601,6 @@ export default function PlanejamentoDetailPage() {
                 />
               </div>
 
-              <div className="flex flex-wrap items-start gap-4 border-t border-border pt-4">
-                <div className="flex items-start gap-2 shrink-0 max-w-[20rem]">
-                  <Checkbox
-                    id="doc-assinado"
-                    checked={docDeclaradoAssinado}
-                    onCheckedChange={(c) => setDocDeclaradoAssinado(c === true)}
-                  />
-                  <label htmlFor="doc-assinado" className="text-sm cursor-pointer leading-snug">
-                    Documentação conferida pela responsável (metadado, sem integração ICP-Brasil)
-                  </label>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-3 flex-1 min-w-0">
-                  <Input label="Nome para assinatura" value={assinaturaNome} onChange={(e) => setAssinaturaNome(e.target.value)} />
-                  <Input label="Cargo ou vínculo" value={assinaturaCargo} onChange={(e) => setAssinaturaCargo(e.target.value)} />
-                </div>
-              </div>
-
               <div className="flex justify-end">
                 <Button
                   size="sm"
@@ -622,7 +608,7 @@ export default function PlanejamentoDetailPage() {
                   onClick={() => salvarObjetivosMutation.mutate()}
                   type="button"
                 >
-                  Salvar objetivos e assinatura
+                  Salvar objetivos
                 </Button>
               </div>
             </CardContent>
@@ -633,7 +619,7 @@ export default function PlanejamentoDetailPage() {
           <Card>
             <CardHeader>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="text-base">Grade de encontros (planejado / realizado)</CardTitle>
+                <CardTitle className="text-base">Grade de encontros</CardTitle>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
@@ -654,7 +640,6 @@ export default function PlanejamentoDetailPage() {
                           key: novaLinhaEncKey(),
                           dataEnc: plan.dataInicio,
                           textoPlanejado: '',
-                          textoRealizado: '',
                           habilidadeId: null,
                           estrategiaId: null,
                         }].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc)),
@@ -676,14 +661,13 @@ export default function PlanejamentoDetailPage() {
             </CardHeader>
             <CardContent className="overflow-x-auto">
               {!encLinhas.length ? (
-                <p className="text-sm text-muted-foreground">Nenhuma linha — use Sugestão de datas ou Nova linha.</p>
+                <p className="text-sm text-muted-foreground">Nenhuma linha — vincule um aluno com dias de atendimento ou use Nova linha.</p>
               ) : (
-                <table className="w-full text-sm border-collapse border border-border min-w-[760px]">
+                <table className="w-full text-sm border-collapse border border-border min-w-[640px]">
                   <thead>
                     <tr className="border-b bg-muted/40">
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Data</th>
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Planejado</th>
-                      <th className="text-left border-r border-border px-2 py-2 font-medium">Realizado</th>
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Habilidade</th>
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Estratégia</th>
                       <th className="w-[44px]" aria-label="Remover" />
@@ -706,7 +690,7 @@ export default function PlanejamentoDetailPage() {
                             className="rounded border border-input bg-background px-1 py-1 w-full max-w-[11rem]"
                           />
                         </td>
-                        <td className="border-r align-top p-2 w-[22%]">
+                        <td className="border-r align-top p-2 w-[28%]">
                           <textarea
                             rows={2}
                             aria-label={`Conteúdo planejado encontro ${idx + 1}`}
@@ -718,19 +702,7 @@ export default function PlanejamentoDetailPage() {
                             className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
                           />
                         </td>
-                        <td className="border-r align-top p-2 w-[22%]">
-                          <textarea
-                            rows={2}
-                            aria-label={`Conteúdo realizado encontro ${idx + 1}`}
-                            value={linha.textoRealizado ?? ''}
-                            onChange={(ev) =>
-                              setEncLinhas(arr.map((r) =>
-                                r.key === linha.key ? { ...r, textoRealizado: ev.target.value } : r,
-                              ))}
-                            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
-                          />
-                        </td>
-                        <td className="border-r align-top p-2 w-[17%]">
+                        <td className="border-r align-top p-2 w-[20%]">
                           <select
                             aria-label={`Habilidade encontro ${idx + 1}`}
                             className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
@@ -750,7 +722,7 @@ export default function PlanejamentoDetailPage() {
                             ))}
                           </select>
                         </td>
-                        <td className="border-r align-top p-2 w-[17%]">
+                        <td className="border-r align-top p-2 w-[20%]">
                           <select
                             aria-label={`Estratégia encontro ${idx + 1}`}
                             className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
@@ -788,8 +760,8 @@ export default function PlanejamentoDetailPage() {
             </CardContent>
           </Card>
           <p className="text-xs text-muted-foreground px-1">
-            Sugestão de datas usa o primeiro aluno vinculado (ordenado por nome), dias da semana e frequência cadastrados.
-            Todas as datas devem ficar dentro do período do PAEE.
+            As datas são pré-preenchidas com base no primeiro aluno vinculado (dias da semana e frequência do cadastro).
+            Use &quot;Sugestão de datas&quot; para incluir novas datas ou &quot;Nova linha&quot; para adicionar manualmente.
           </p>
         </TabsContent>
       </Tabs>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, BookOpen, MagnifyingGlass, Eye, CalendarBlank, Trash } from '@phosphor-icons/react'
+import { Plus, BookOpen, MagnifyingGlass, CalendarBlank, Trash, DownloadSimple, FilePdf, FileDoc } from '@phosphor-icons/react'
 import {
   buscarPlanejamento,
   cadastrarPlanejamento,
@@ -40,6 +40,13 @@ import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyE
 import { sortByField } from '@/lib/utils'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { baixarPlanejamentoPdf, baixarPlanejamentoWord } from '@/lib/baixarPlanejamento'
 import type { Aluno } from '@/types/aluno'
 import type { Planejamento } from '@/types/planejamento'
 import type { Habilidade } from '@/types/habilidade'
@@ -283,65 +290,19 @@ export default function PlanejamentosPage() {
       ) : (
         <div className="space-y-3">
           <AnimatePresence initial={false}>
-            {filtered.map((p, i) => {
-              const status = getStatus(p)
-              return (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ duration: 0.25, delay: i * 0.04 }}
-                >
-                  <Card className="p-5 hover:border-primary transition-colors duration-200 group">
-                    <div className="flex items-start justify-between gap-3">
-                      <button
-                        type="button"
-                        className="flex items-start gap-3 flex-1 min-w-0 text-left rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        onClick={() => navigate(`/planejamentos/${p.id}`)}
-                        aria-label={`Abrir PAEE ${p.apelido}`}
-                      >
-                        <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
-                          <BookOpen size={20} className="text-primary" weight="duotone" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-foreground truncate">{p.apelido}</h3>
-                            <Badge variant={status.variant}>{status.label}</Badge>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                            <CalendarBlank size={12} />
-                            <span>{formatDate(p.dataInicio)} → {formatDate(p.dataFim)}</span>
-                          </div>
-                          <div className="flex gap-2 mt-2 flex-wrap">
-                            {!!p.alunos?.length && (
-                              <Badge variant="muted">{p.alunos.length} aluno{p.alunos.length !== 1 ? 's' : ''}</Badge>
-                            )}
-                            {!!p.habilidades?.length && (
-                              <Badge variant="muted">{p.habilidades.length} habilidade{p.habilidades.length !== 1 ? 's' : ''}</Badge>
-                            )}
-                            {!!p.estrategias?.length && (
-                              <Badge variant="muted">{p.estrategias.length} estratégia{p.estrategias.length !== 1 ? 's' : ''}</Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Eye size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
-                      </button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 text-muted-foreground hover:text-destructive"
-                        aria-label={`Excluir PAEE ${p.apelido}`}
-                        onClick={() => setPdiParaExcluir(p)}
-                      >
-                        <Trash size={20} weight="bold" />
-                      </Button>
-                    </div>
-                  </Card>
-                </motion.div>
-              )
-            })}
+            {filtered.map((p, i) => (
+              <PaeeCard
+                key={p.id}
+                planejamento={p}
+                index={i}
+                status={getStatus(p)}
+                formatDate={formatDate}
+                onVer={(planId) => navigate(`/planejamentos/${planId}`)}
+                onExcluir={() => setPdiParaExcluir(p)}
+                onDownloadError={(title, message) => showError(title, message)}
+                onDownloadSuccess={(title, message) => success(title, message)}
+              />
+            ))}
           </AnimatePresence>
         </div>
       )}
@@ -617,5 +578,121 @@ export default function PlanejamentosPage() {
         }}
       />
     </>
+  )
+}
+
+function PaeeCard({
+  planejamento: p,
+  index,
+  status,
+  formatDate,
+  onVer,
+  onExcluir,
+  onDownloadSuccess,
+  onDownloadError,
+}: {
+  planejamento: Planejamento
+  index: number
+  status: { label: string; variant: 'default' | 'success' | 'muted' | 'danger' | 'amber' }
+  formatDate: (d: string) => string
+  onVer: (id: number) => void
+  onExcluir: () => void
+  onDownloadSuccess: (title: string, message: string) => void
+  onDownloadError: (title: string, message: string) => void
+}) {
+  const [baixando, setBaixando] = useState<'pdf' | 'word' | null>(null)
+
+  async function baixar(formato: 'pdf' | 'word') {
+    setBaixando(formato)
+    try {
+      if (formato === 'pdf') {
+        await baixarPlanejamentoPdf(p.id)
+        onDownloadSuccess('PDF gerado', 'Arquivo baixado com sucesso.')
+      } else {
+        await baixarPlanejamentoWord(p.id)
+        onDownloadSuccess('Word gerado', 'Arquivo .docx baixado com sucesso.')
+      }
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      onDownloadError(fb.title, formatFriendlyErrorBody(fb))
+    } finally {
+      setBaixando(null)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.25, delay: index * 0.04 }}
+    >
+      <Card className="p-5 hover:border-primary transition-colors duration-200">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
+            <BookOpen size={20} className="text-primary" weight="duotone" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="font-bold text-foreground truncate">{p.apelido}</h3>
+              <Badge variant={status.variant}>{status.label}</Badge>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <CalendarBlank size={12} />
+              <span>{formatDate(p.dataInicio)} → {formatDate(p.dataFim)}</span>
+            </div>
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {!!p.alunos?.length && (
+                <Badge variant="muted">{p.alunos.length} aluno{p.alunos.length !== 1 ? 's' : ''}</Badge>
+              )}
+              {!!p.habilidades?.length && (
+                <Badge variant="muted">{p.habilidades.length} habilidade{p.habilidades.length !== 1 ? 's' : ''}</Badge>
+              )}
+              {!!p.estrategias?.length && (
+                <Badge variant="muted">{p.estrategias.length} estratégia{p.estrategias.length !== 1 ? 's' : ''}</Badge>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={baixando != null}
+                  aria-label={`Baixar PAEE ${p.apelido}`}
+                >
+                  <DownloadSimple size={14} />
+                  Baixar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem disabled={baixando != null} onClick={() => void baixar('pdf')}>
+                  <FilePdf size={14} className="mr-2" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={baixando != null} onClick={() => void baixar('word')}>
+                  <FileDoc size={14} className="mr-2" />
+                  Word
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="sm" variant="outline" onClick={() => onVer(p.id)}>
+              Ver
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-destructive"
+              aria-label={`Excluir PAEE ${p.apelido}`}
+              onClick={onExcluir}
+            >
+              <Trash size={18} weight="bold" />
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
   )
 }

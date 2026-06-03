@@ -7,7 +7,6 @@ import {
   PencilSimple,
   Trash,
   DownloadSimple,
-  MagnifyingGlass,
 } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -44,20 +43,18 @@ import {
   relatorioConsolidadoRelatos,
 } from '@/services/relatoAtendimentoService'
 import { downloadRelatosConsolidadoDocx } from '@/lib/exportRelatosConsolidadoDocx'
-import type { RelatoAtendimento, RelatoTipoOcorrencia } from '@/types/relatoAtendimento'
+import type { RelatoAtendimento } from '@/types/relatoAtendimento'
 import type { Planejamento } from '@/types/planejamento'
 
-const TIPO_OPTIONS: { value: RelatoTipoOcorrencia; label: string }[] = [
-  { value: 0, label: 'Sessão normal' },
-  { value: 1, label: 'Cancelada' },
-  { value: 2, label: 'Reagendada' },
-]
+const DETALHES_ATENDIMENTO_LABEL =
+  'Detalhes do atendimento (avanços e dificuldades e ou justificativa de ausência).'
 
-function splitLinhas(texto: string): string[] {
-  return texto
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
+function montarDetalhesEdicao(r: RelatoAtendimento): string {
+  const partes: string[] = []
+  if (r.observacoes?.trim()) partes.push(r.observacoes.trim())
+  if (r.avancos?.length) partes.push(`Avanços:\n${r.avancos.join('\n')}`)
+  if (r.dificuldades?.length) partes.push(`Dificuldades:\n${r.dificuldades.join('\n')}`)
+  return partes.join('\n\n')
 }
 
 export default function RelatosPage() {
@@ -76,12 +73,9 @@ export default function RelatosPage() {
   const [formPlano, setFormPlano] = useState<string>('none')
   const [formData, setFormData] = useState(hoje.format('YYYY-MM-DD'))
   const [formPresenca, setFormPresenca] = useState<string>('sim')
-  const [formTipo, setFormTipo] = useState<string>('0')
   const [formHab, setFormHab] = useState<string>('none')
   const [formEst, setFormEst] = useState<string>('none')
   const [formObs, setFormObs] = useState('')
-  const [formAvancos, setFormAvancos] = useState('')
-  const [formDific, setFormDific] = useState('')
 
   const { data: alunos = [] } = useQuery({ queryKey: ['alunos'], queryFn: buscarAlunos })
   const { data: planejamentos = [] } = useQuery({ queryKey: ['planejamentos'], queryFn: buscarPlanejamento })
@@ -134,12 +128,9 @@ export default function RelatosPage() {
     setFormPlano('none')
     setFormData(hoje.format('YYYY-MM-DD'))
     setFormPresenca('sim')
-    setFormTipo('0')
     setFormHab('none')
     setFormEst('none')
     setFormObs('')
-    setFormAvancos('')
-    setFormDific('')
     setDlgOpen(true)
   }
 
@@ -149,12 +140,9 @@ export default function RelatosPage() {
     setFormPlano(r.planejamentoId != null ? String(r.planejamentoId) : 'none')
     setFormData(r.dataSessao)
     setFormPresenca(r.presencaPresente ? 'sim' : 'nao')
-    setFormTipo(String(r.tipoOcorrencia))
     setFormHab(r.habilidadeId != null ? String(r.habilidadeId) : 'none')
     setFormEst(r.estrategiaId != null ? String(r.estrategiaId) : 'none')
-    setFormObs(r.observacoes ?? '')
-    setFormAvancos((r.avancos ?? []).join('\n'))
-    setFormDific((r.dificuldades ?? []).join('\n'))
+    setFormObs(montarDetalhesEdicao(r))
     setDlgOpen(true)
   }
 
@@ -164,13 +152,10 @@ export default function RelatosPage() {
       if (!aid) throw new Error('Selecione o aluno.')
 
       const presenca = formPresenca === 'sim'
-      const tipo = Number(formTipo) as RelatoTipoOcorrencia
       const obs = formObs.trim()
 
       if (!presenca && !obs)
-        throw new Error('Informe observações quando o aluno não esteve presente.')
-      if (tipo !== 0 && !obs)
-        throw new Error('Informe observações quando a ocorrência não for sessão normal.')
+        throw new Error('Informe os detalhes do atendimento quando o aluno não esteve presente.')
 
       const pid = formPlano === 'none' ? null : Number(formPlano)
       const hid = formHab === 'none' ? null : Number(formHab)
@@ -181,12 +166,12 @@ export default function RelatosPage() {
         planejamentoId: pid,
         dataSessao: formData,
         presencaPresente: presenca,
-        tipoOcorrencia: tipo,
+        tipoOcorrencia: 0 as const,
         habilidadeId: hid,
         estrategiaId: eid,
         observacoes: obs.length ? obs : null,
-        avancos: splitLinhas(formAvancos),
-        dificuldades: splitLinhas(formDific),
+        avancos: [] as string[],
+        dificuldades: [] as string[],
       }
 
       if (editando) {
@@ -303,7 +288,6 @@ export default function RelatosPage() {
                     <th className="px-3 py-2 font-semibold">Data</th>
                     <th className="px-3 py-2 font-semibold">Aluno</th>
                     <th className="px-3 py-2 font-semibold">Presença</th>
-                    <th className="px-3 py-2 font-semibold">Tipo</th>
                     <th className="px-3 py-2 font-semibold">PAEE</th>
                     <th className="px-3 py-2 font-semibold w-[120px]" />
                   </tr>
@@ -316,9 +300,6 @@ export default function RelatosPage() {
                       </td>
                       <td className="px-3 py-2">{r.alunoNome}</td>
                       <td className="px-3 py-2">{r.presencaPresente ? 'Presente' : 'Ausente'}</td>
-                      <td className="px-3 py-2">
-                        {TIPO_OPTIONS.find((t) => t.value === r.tipoOcorrencia)?.label ?? r.tipoOcorrencia}
-                      </td>
                       <td className="px-3 py-2 text-muted-foreground truncate max-w-[200px]" title={r.planejamentoApelido ?? ''}>
                         {r.planejamentoApelido ?? '—'}
                       </td>
@@ -399,36 +380,19 @@ export default function RelatosPage() {
               </Select>
             </div>
 
-            <Input label="Data da sessão" type="date" value={formData} onChange={(e) => setFormData(e.target.value)} />
+            <Input label="Data do atendimento" type="date" value={formData} onChange={(e) => setFormData(e.target.value)} />
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-sm font-semibold mb-1.5 block">Presença</label>
-                <Select value={formPresenca} onValueChange={setFormPresenca}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sim">Presente</SelectItem>
-                    <SelectItem value="nao">Ausente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold mb-1.5 block">Tipo de ocorrência</label>
-                <Select value={formTipo} onValueChange={setFormTipo}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIPO_OPTIONS.map((t) => (
-                      <SelectItem key={t.value} value={String(t.value)}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <label className="text-sm font-semibold mb-1.5 block">Presença</label>
+              <Select value={formPresenca} onValueChange={setFormPresenca}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sim">Presente</SelectItem>
+                  <SelectItem value="nao">Ausente</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -466,35 +430,13 @@ export default function RelatosPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold mb-1.5 block">Observações</label>
+              <label className="text-sm font-semibold mb-1.5 block">{DETALHES_ATENDIMENTO_LABEL}</label>
               <textarea
-                rows={3}
+                rows={5}
                 value={formObs}
                 onChange={(e) => setFormObs(e.target.value)}
-                placeholder="Detalhes da sessão, justificativa de ausência ou reagendamento…"
+                placeholder="Descreva avanços, dificuldades ou justificativa de ausência…"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold mb-1.5 flex items-center gap-1">
-                <MagnifyingGlass size={14} /> Avanços (um por linha)
-              </label>
-              <textarea
-                rows={2}
-                value={formAvancos}
-                onChange={(e) => setFormAvancos(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs resize-y min-h-12"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold mb-1.5 block">Dificuldades (uma por linha)</label>
-              <textarea
-                rows={2}
-                value={formDific}
-                onChange={(e) => setFormDific(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs resize-y min-h-12"
               />
             </div>
           </div>
