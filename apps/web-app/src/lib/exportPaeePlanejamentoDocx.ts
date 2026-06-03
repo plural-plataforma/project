@@ -40,7 +40,19 @@ function sortNomes(list: string[]) {
   return [...list].sort((a, b) => a.localeCompare(b, 'pt-BR'))
 }
 
-/** Gera `.docx` editável com período do PAEE, objetivos CM/L, vínculos, encontros e metadados de assinatura. */
+function labelHabilidade(plan: Planejamento, id?: number | null): string {
+  if (id == null) return '—'
+  const h = plan.habilidades?.find((x) => x.id === id)
+  return h?.resumo || h?.descricao || String(id)
+}
+
+function labelEstrategia(plan: Planejamento, id?: number | null): string {
+  if (id == null) return '—'
+  const e = plan.estrategias?.find((x) => x.id === id)
+  return e?.descricao || String(id)
+}
+
+/** Gera `.docx` editável com período do PAEE, objetivos CM/L, vínculos e grade de encontros. */
 export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejamentoDocxParams): Promise<void> {
   const p = params.planejamento
   const nomeArquivoSlug = slugArquivoPart(p.apelido)
@@ -69,17 +81,14 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
     return c !== 0 ? c : a.id - b.id
   })
 
-  const enHeaders = ['Data', 'Planejado', 'Realizado', 'Hab. id', 'Est. id']
+  const enHeaders = ['Data', 'Planejado', 'Habilidade', 'Estratégia']
   const rows = encontrosSorted.map((e) => {
     const dh = new Date(`${e.dataEnc}T12:00:00`).toLocaleDateString('pt-BR')
-    const hab = e.habilidadeId != null ? String(e.habilidadeId) : '—'
-    const est = e.estrategiaId != null ? String(e.estrategiaId) : '—'
     return [
       dh,
       (e.textoPlanejado ?? '').trim().length ? (e.textoPlanejado ?? '') : '—',
-      (e.textoRealizado ?? '').trim().length ? (e.textoRealizado ?? '') : '—',
-      hab,
-      est,
+      labelHabilidade(p, e.habilidadeId),
+      labelEstrategia(p, e.estrategiaId),
     ]
   })
 
@@ -221,9 +230,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
         ] as IFileChild[])),
     new Paragraph({ spacing: { after: 460 } }),
     new Paragraph({
-      children: [
-        new TextRun({ text: '7. ENCONTROS (PLANEJADO / REALIZADO):', bold: true, size: 26 }),
-      ],
+      children: [new TextRun({ text: '7. ENCONTROS:', bold: true, size: 26 })],
       spacing: { after: 240 },
     }),
   ]
@@ -238,10 +245,12 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
       })
     )
   } else {
+    const colWidths = [1400, 3600, 2500, 2500]
     const headerRow = new TableRow({
       children: enHeaders.map(
-        (cell) =>
+        (cell, ix) =>
           new TableCell({
+            width: { size: colWidths[ix], type: WidthType.DXA },
             children: [
               new Paragraph({
                 children: [new TextRun({ text: cell, bold: true, size: 18 })],
@@ -254,12 +263,9 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
       (cols) =>
         new TableRow({
           children: cols.map(
-            (text) =>
+            (text, ix) =>
               new TableCell({
-                width: {
-                  size: 2000,
-                  type: WidthType.DXA,
-                },
+                width: { size: colWidths[ix], type: WidthType.DXA },
                 children: [
                   new Paragraph({
                     children: [new TextRun({ text: text.length ? text : ' ', size: 18 })],
@@ -272,10 +278,8 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
 
     children.push(
       new Table({
-        width: {
-          size: 10000,
-          type: WidthType.DXA,
-        },
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: colWidths,
         rows: [headerRow, ...dataRows],
       })
     )
@@ -288,33 +292,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
     )
   }
 
-  const assinatura: IFileChild[] = [
-    new Paragraph({
-      children: [new TextRun({ text: '8. DOCUMENTAÇÃO E ASSINATURA (METADADO):', bold: true, size: 26 })],
-      spacing: { after: 200 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: `Documentação declarada como conferida pela responsável: ${p.documentoDeclaradoAssinado ? 'Sim' : 'Não'}`,
-        }),
-      ],
-      spacing: { after: 140 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun(
-          `Nome impresso: ${(p.assinaturaNomeResponsavel ?? '').trim() || '(não preenchido)'}`
-        ),
-      ],
-      spacing: { after: 140 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun(`Cargo ou vínculo: ${(p.assinaturaCargo ?? '').trim() || '(não preenchido)'}`),
-      ],
-      spacing: { after: 360 },
-    }),
+  children.push(
     new Paragraph({
       children: [
         new TextRun({
@@ -326,10 +304,9 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
           color: '777777',
         }),
       ],
-    }),
-  ]
-
-  children.push(...assinatura)
+      spacing: { before: 360 },
+    })
+  )
 
   const doc = new Document({
     creator: 'Plural Plataforma',

@@ -299,6 +299,28 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="grid grid-cols-2 md:grid-cols-3 gap-3"
+        >
+          {quickStats.map(({ label, value, route, icon: Icon }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => navigate(route)}
+              className="flex flex-col gap-1 p-4 rounded-xl border border-border bg-card hover:border-primary hover:shadow-elevated transition-all duration-200 text-left cursor-pointer group"
+            >
+              <Icon size={20} className="text-primary group-hover:scale-110 transition-transform" weight="duotone" />
+              <span className="text-2xl font-black text-foreground">{value}</span>
+              <span className="text-xs text-muted-foreground font-medium">{label}</span>
+            </button>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+
       {totalFusoes > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -341,28 +363,6 @@ export default function DashboardPage() {
           />
         ))}
       </div>
-
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-3 gap-3"
-        >
-          {quickStats.map(({ label, value, route, icon: Icon }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => navigate(route)}
-              className="flex flex-col gap-1 p-4 rounded-xl border border-border bg-card hover:border-primary hover:shadow-elevated transition-all duration-200 text-left cursor-pointer group"
-            >
-              <Icon size={20} className="text-primary group-hover:scale-110 transition-transform" weight="duotone" />
-              <span className="text-2xl font-black text-foreground">{value}</span>
-              <span className="text-xs text-muted-foreground font-medium">{label}</span>
-            </button>
-          ))}
-        </motion.div>
-      </AnimatePresence>
     </div>
   )
 }

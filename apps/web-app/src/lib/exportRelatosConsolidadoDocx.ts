@@ -11,12 +11,6 @@ import {
 } from 'docx'
 import type { RelatoAtendimento } from '@/types/relatoAtendimento'
 
-const LABEL_TIPO: Record<number, string> = {
-  0: 'Normal',
-  1: 'Cancelada',
-  2: 'Reagendada',
-}
-
 export interface ExportRelatosConsolidadoParams {
   dataInicio: string
   dataFim: string
@@ -32,16 +26,24 @@ export async function downloadRelatosConsolidadoDocx(params: ExportRelatosConsol
     return c !== 0 ? c : a.alunoNome.localeCompare(b.alunoNome)
   })
 
-  const header = ['Data', 'Aluno', 'Presença', 'Tipo', 'PAEE', 'Observações']
+  const header = ['Data', 'Aluno', 'Presença', 'PAEE', 'Detalhes do atendimento']
   const rows = ord.map((r) => {
     const dh = new Date(`${r.dataSessao}T12:00:00`).toLocaleDateString('pt-BR')
+    const detalhes = [
+      r.observacoes?.trim(),
+      r.avancos?.length ? `Avanços: ${r.avancos.join('; ')}` : '',
+      r.dificuldades?.length ? `Dificuldades: ${r.dificuldades.join('; ')}` : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
     return [
       dh,
       r.alunoNome,
       r.presencaPresente ? 'Presente' : 'Ausente',
-      LABEL_TIPO[r.tipoOcorrencia] ?? String(r.tipoOcorrencia),
       r.planejamentoApelido ?? '—',
-      (r.observacoes ?? '').replace(/\s+/g, ' ').trim() || '—',
+      detalhes || '—',
     ]
   })
 
