@@ -52,7 +52,7 @@ namespace api.DTOs.Aluno
 
         public DateOnly? DataNascimento { get; set; }
 
-        [Range(1, 7)]
+        [Range(1, 5)]
         public int? FrequenciaSemanalAtendimento { get; set; }
 
         public List<string>? DiasSemanaAtendimento { get; set; }
@@ -62,9 +62,7 @@ namespace api.DTOs.Aluno
 
         public TipoAtendimentoAee? TipoAtendimentoAee { get; set; }
 
-        public string? PerfilPedagogicoPotencialidades { get; set; }
-
-        public string? PerfilPedagogicoNecessidades { get; set; }
+        public string? PerfilPedagogico { get; set; }
 
         public ResponsavelCadastroSimplificadoDTO? Responsavel { get; set; }
 

@@ -17,13 +17,17 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/useToast'
 import type { Aluno, TipoAtendimentoAeeCodigo } from '@/types/aluno'
-import { TIPO_ATENDIMENTO_AEE_LABELS } from '@/types/aluno'
+import {
+  TIPO_ATENDIMENTO_AEE_LABELS,
+  TIPO_ATENDIMENTO_AEE_OPCOES,
+  DIAS_SEMANA_ATENDIMENTO_OPCOES,
+} from '@/types/aluno'
 import type { Escola } from '@/types/escolas'
 import { useEffect, useMemo, useState } from 'react'
 import { fetchEstados, fetchMunicipios } from '@/services/locationsService'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 
-const DIAS_SEMANA_OPCOES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'] as const
+const DIAS_SEMANA_OPCOES = DIAS_SEMANA_ATENDIMENTO_OPCOES
 
 function buildSchema(isEditing: boolean) {
   return z
@@ -45,12 +49,11 @@ function buildSchema(isEditing: boolean) {
       estado: z.string().min(2, 'Estado obrigatório'),
       cidade: z.string().optional(),
       idEscola: z.number({ invalid_type_error: 'Selecione a escola' }).optional(),
-      frequenciaSemanalAtendimento: z.coerce.number().min(1, 'Mínimo 1').max(7, 'Máximo 7'),
+      frequenciaSemanalAtendimento: z.coerce.number().min(1, 'Mínimo 1').max(5, 'Máximo 5 (dias úteis)'),
       diasSemana: z.array(z.string()),
       duracaoAtendimentoMinutos: z.coerce.number().min(15, 'Mínimo 15 min').max(600, 'Máximo 600 min'),
-      tipoAtendimentoAee: z.coerce.number().min(0).max(3),
-      perfilPotencialidades: z.string().optional(),
-      perfilNecessidades: z.string().optional(),
+      tipoAtendimentoAee: z.coerce.number().min(0).max(2),
+      perfilPedagogico: z.string().optional(),
       responsavelNome: z.string().min(2, 'Nome do responsável obrigatório'),
       responsavelTelefone: z.string().min(8, 'Telefone obrigatório'),
       responsavelEmail: z
@@ -139,8 +142,7 @@ export function AlunoFormDialog({
       diasSemana: [],
       duracaoAtendimentoMinutos: 50,
       tipoAtendimentoAee: 0,
-      perfilPotencialidades: '',
-      perfilNecessidades: '',
+      perfilPedagogico: '',
       responsavelNome: '',
       responsavelTelefone: '',
       responsavelEmail: '',
@@ -219,9 +221,9 @@ export function AlunoFormDialog({
   useEffect(() => {
     if (!open) return
 
-    const diasServidor = editingAluno?.diasSemanaAtendimento?.length
-      ? [...editingAluno.diasSemanaAtendimento]
-      : []
+    const diasServidor = (editingAluno?.diasSemanaAtendimento ?? []).filter((d) =>
+      (DIAS_SEMANA_OPCOES as readonly string[]).includes(d)
+    )
 
     reset({
       nomeCompleto: editingAluno?.nomeCompleto ?? '',
@@ -241,9 +243,8 @@ export function AlunoFormDialog({
       frequenciaSemanalAtendimento: editingAluno?.frequenciaSemanalAtendimento ?? 1,
       diasSemana: diasServidor,
       duracaoAtendimentoMinutos: editingAluno?.duracaoAtendimentoMinutos ?? 50,
-      tipoAtendimentoAee: (editingAluno?.tipoAtendimentoAee ?? 0) as number,
-      perfilPotencialidades: editingAluno?.perfilPedagogicoPotencialidades ?? '',
-      perfilNecessidades: editingAluno?.perfilPedagogicoNecessidades ?? '',
+      tipoAtendimentoAee: Math.min((editingAluno?.tipoAtendimentoAee ?? 0) as number, 2) as number,
+      perfilPedagogico: editingAluno?.perfilPedagogico ?? '',
       responsavelNome: editingAluno?.responsavel?.nomeCompleto ?? '',
       responsavelTelefone: editingAluno?.responsavel?.telefone ?? '',
       responsavelEmail: editingAluno?.responsavel?.email ?? '',
@@ -292,8 +293,7 @@ export function AlunoFormDialog({
         diasSemanaAtendimento: data.diasSemana,
         duracaoAtendimentoMinutos: data.duracaoAtendimentoMinutos,
         tipoAtendimentoAee: tipo,
-        perfilPedagogicoPotencialidades: data.perfilPotencialidades?.trim() || null,
-        perfilPedagogicoNecessidades: data.perfilNecessidades?.trim() || null,
+        perfilPedagogico: data.perfilPedagogico?.trim() || null,
         responsavel: {
           nomeCompleto: data.responsavelNome,
           telefone: data.responsavelTelefone,
@@ -510,7 +510,7 @@ export function AlunoFormDialog({
                 label="Vezes por semana"
                 type="number"
                 min={1}
-                max={7}
+                max={5}
                 error={errors.frequenciaSemanalAtendimento?.message}
                 {...register('frequenciaSemanalAtendimento', { valueAsNumber: true })}
               />
@@ -533,7 +533,7 @@ export function AlunoFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {([0, 1, 2, 3] as const).map((codigo) => (
+                  {TIPO_ATENDIMENTO_AEE_OPCOES.map((codigo) => (
                     <SelectItem key={codigo} value={String(codigo)}>
                       {TIPO_ATENDIMENTO_AEE_LABELS[codigo]}
                     </SelectItem>
@@ -576,21 +576,15 @@ export function AlunoFormDialog({
           </div>
 
           <div className="border-t border-border pt-4 space-y-3">
-            <p className="text-sm font-bold text-foreground">Perfil pedagógico do aluno</p>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold">Potencialidades</label>
+              <label className="text-sm font-bold text-foreground">Perfil pedagógico do aluno</label>
+              <p className="text-xs text-muted-foreground">
+                Descreva as primeiras informações obtidas sobre o aluno.
+              </p>
               <textarea
-                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Descreva ou liste potencialidades observadas"
-                {...register('perfilPotencialidades')}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold">Necessidades educacionais</label>
-              <textarea
-                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Descreva necessidades de aprendizagem / barreiras pedagógicas"
-                {...register('perfilNecessidades')}
+                className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Potencialidades, necessidades, observações iniciais…"
+                {...register('perfilPedagogico')}
               />
             </div>
           </div>

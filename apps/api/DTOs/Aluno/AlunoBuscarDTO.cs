@@ -50,8 +50,12 @@ namespace api.DTOs.Aluno
 
         public TipoAtendimentoAee? TipoAtendimentoAee { get; set; }
 
+        public string? PerfilPedagogico { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
         public string? PerfilPedagogicoPotencialidades { get; set; }
 
+        [System.Text.Json.Serialization.JsonIgnore]
         public string? PerfilPedagogicoNecessidades { get; set; }
 
         public ResponsavelCadastroSimplificadoDTO Responsavel { get; set; }

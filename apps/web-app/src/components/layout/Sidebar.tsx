@@ -11,6 +11,7 @@ import {
   List,
   X,
 } from '@phosphor-icons/react'
+import type { Icon } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -19,16 +20,32 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { PEDAGOGICAL_FLOW_STEPS, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
+
+const FLOW_ICONS: Record<PedagogicalFlowStepId, Icon> = {
+  escola: Buildings,
+  aluno: Users,
+  'estudo-caso': Article,
+  avaliacao: ClipboardText,
+  paee: BookOpen,
+  relatos: Notebook,
+}
 
 const navItems = [
-  { to: '/dashboard', icon: House, label: 'Início' },
-  { to: '/escolas', icon: Buildings, label: 'Escolas' },
-  { to: '/alunos', icon: Users, label: 'Alunos' },
-  { to: '/planejamentos', icon: BookOpen, label: 'PAEE' },
-  { to: '/avaliacoes', icon: ClipboardText, label: 'Avaliações' },
-  { to: '/relatos', icon: Notebook, label: 'Relatos' },
-  { to: '/estudo-caso/nova/aluno', icon: Article, label: 'Estudo de caso' },
+  { to: '/dashboard', icon: House, label: 'Início', activePathPrefix: '/dashboard' },
+  ...PEDAGOGICAL_FLOW_STEPS.map((step) => ({
+    to: step.route,
+    icon: FLOW_ICONS[step.id],
+    label: step.label,
+    activePathPrefix: step.activePathPrefix ?? step.route,
+  })),
 ]
+
+function isNavItemActive(pathname: string, to: string, activePathPrefix?: string): boolean {
+  if (to === '/dashboard') return pathname === '/dashboard'
+  const prefix = activePathPrefix ?? to
+  return pathname === to || pathname.startsWith(`${prefix}/`)
+}
 
 interface SidebarProps {
   professorNome?: string
@@ -38,7 +55,7 @@ export function Sidebar({ professorNome }: SidebarProps) {
   const { signOut, logoutLoading } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
-  useTheme() // aplica a classe .dark no <html> reativamente
+  useTheme()
 
   const initials = professorNome
     ? professorNome.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
@@ -51,7 +68,6 @@ export function Sidebar({ professorNome }: SidebarProps) {
 
   const NavContent = () => (
     <nav className="flex flex-col h-full">
-      {/* Logo */}
       <NavLink
         to="/dashboard"
         className="flex items-center gap-2.5 px-4 py-4 border-b border-border hover:bg-primary-light transition-colors duration-150"
@@ -64,17 +80,17 @@ export function Sidebar({ professorNome }: SidebarProps) {
         </div>
       </NavLink>
 
-      {/* Nav links */}
       <div className="flex-1 py-4 px-3 space-y-1">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label, activePathPrefix }) => (
           <NavLink
             key={to}
             to={to}
+            end={to === '/dashboard'}
             onClick={() => setMobileOpen(false)}
-            className={({ isActive }) =>
+            className={({ isActive, location }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150',
-                isActive
+                isActive || isNavItemActive(location.pathname, to, activePathPrefix)
                   ? 'bg-primary text-white shadow-sm'
                   : 'text-muted-foreground hover:bg-primary-light hover:text-primary'
               )
@@ -86,7 +102,6 @@ export function Sidebar({ professorNome }: SidebarProps) {
         ))}
       </div>
 
-      {/* Profile + theme + logout */}
       <div className="border-t border-border p-3 space-y-1">
         <NavLink
           to="/perfil"
@@ -106,7 +121,6 @@ export function Sidebar({ professorNome }: SidebarProps) {
           <span className="truncate max-w-[120px]">{professorNome || 'Perfil'}</span>
         </NavLink>
 
-        {/* Theme switcher */}
         <div className="flex items-center justify-between px-3 py-2">
           <span className="text-xs text-muted-foreground font-medium">Tema</span>
           <ThemeToggle />
@@ -134,12 +148,10 @@ export function Sidebar({ professorNome }: SidebarProps) {
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-border bg-card h-screen sticky top-0">
         <NavContent />
       </aside>
 
-      {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 bg-card border-b border-border">
         <NavLink to="/dashboard" className="flex items-center gap-2" aria-label="Ir para o dashboard">
           <img src="/favicon.png" alt="" aria-hidden className="h-6 w-6 object-contain" />
@@ -155,7 +167,6 @@ export function Sidebar({ professorNome }: SidebarProps) {
         </Button>
       </div>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
