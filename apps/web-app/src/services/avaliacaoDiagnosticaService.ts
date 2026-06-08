@@ -66,6 +66,11 @@ export const buscarAvaliacoesDiagnosticas = async (): Promise<AvaliacaoDiagnosti
     quantidadeBlocos: (a.quantidadeBlocos ?? a.totalBlocos ?? 0) as number,
     status: (a.status ?? (a.concluida ? 'Concluida' : 'EmAndamento')) as string,
     professorId: (a.professorId ?? null) as number | null,
+    dataAplicacao: String(a.dataAplicacao ?? a.DataAplicacao ?? ''),
+    createdAt: String(a.createdAt ?? a.CreatedAt ?? a.dataAplicacao ?? a.DataAplicacao ?? ''),
+    updatedAt: String(
+      a.updatedAt ?? a.UpdatedAt ?? a.dataAplicacao ?? a.DataAplicacao ?? a.createdAt ?? a.CreatedAt ?? ''
+    ),
   })) as AvaliacaoDiagnosticaResumo[]
 }
 
