@@ -462,78 +462,169 @@ public class EstudoDeCasoService
 
     private static string MontarTextoSimulado(EstudoDeCaso entity, DiagnosticoFinal? diagnosticoRecente)
     {
-        var nome = entity.Aluno?.NomeCompleto?.Trim() ?? "Aluno";
-        var dnTxt = entity.Aluno?.DataNascimento is { } dnData
-            ? $"Data de nascimento: {dnData:dd/MM/yyyy}."
-            : "Data de nascimento: não informada no cadastro.";
-        var idadeTxt = "";
-        if (entity.Aluno?.DataNascimento is { } dnIdade)
+        var nome = entity.Aluno?.NomeCompleto?.Trim() ?? "Aluno(a)";
+        var escola = entity.Aluno?.Escola?.NomeInstituicao?.Trim() ?? "—";
+        var professor = entity.Professor?.NomeCompleto?.Trim() ?? "—";
+        var anoSerie = entity.Aluno?.Ano?.Trim() ?? "—";
+        var titulo = entity.Titulo.Trim();
+        var dataTxt = DateTime.UtcNow.ToString("dd/MM/yyyy");
+
+        int? idade = null;
+        if (entity.Aluno?.DataNascimento is { } dn)
         {
             var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
-            var anos = hoje.Year - dnIdade.Year - (hoje.DayOfYear < dnIdade.DayOfYear ? 1 : 0);
+            var anos = hoje.Year - dn.Year - (hoje.DayOfYear < dn.DayOfYear ? 1 : 0);
             if (anos >= 0 && anos < 130)
-                idadeTxt = $" Idade cronológica aproximada: {anos} anos.";
+                idade = anos;
         }
+        var idadeStr = idade.HasValue ? $"{idade.Value} anos de idade" : "idade não informada no cadastro";
 
-        var escolaNome = entity.Aluno?.Escola?.NomeInstituicao?.Trim();
-        var professorNome = entity.Professor?.NomeCompleto?.Trim();
-        var anoSerie = entity.Aluno?.Ano?.Trim();
+        var eixosOrdenados = entity.ItensEixo.OrderBy(i => i.CatalogoEixo?.OrdemExibicao ?? 0).ToList();
+        var temDiagnostico = diagnosticoRecente != null;
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("*** TEXTO SIMULADO (RASCUNHO AUTOMÁTICO — REVISÃO PEDAGÓGICA OBRIGATÓRIA) ***");
-        sb.AppendLine();
-        sb.AppendLine("--- Identificação institucional e cadastro ---");
-        sb.AppendLine($"Instituição de ensino: {(string.IsNullOrEmpty(escolaNome) ? "—" : escolaNome)}");
-        sb.AppendLine(
-            "Logotipo da instituição: não há campo de URL no cadastro da escola nesta versão — utilize o modelo oficial da rede, se existir.");
-        sb.AppendLine($"Professor(a) responsável (cadastro): {(string.IsNullOrEmpty(professorNome) ? "—" : professorNome)}");
-        sb.AppendLine($"Estudo de caso — {entity.Titulo.Trim()}");
-        sb.AppendLine($"Aluno(a): {nome}");
-        sb.AppendLine(dnTxt + idadeTxt);
-        if (!string.IsNullOrEmpty(anoSerie))
-            sb.AppendLine($"Ano/série (cadastro): {anoSerie}");
-        sb.AppendLine($"Gerado em (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm}");
+
+        // Aviso de rascunho
+        sb.AppendLine("*** RASCUNHO AUTOMÁTICO — REVISÃO PEDAGÓGICA OBRIGATÓRIA ***");
         sb.AppendLine();
 
-        sb.AppendLine("--- Recorte do diagnóstico mais recente (avaliação diagnóstica na plataforma) ---");
-        if (diagnosticoRecente == null)
+        // Cabeçalho
+        sb.AppendLine("ESTUDO DE CASO — AEE");
+        sb.AppendLine(titulo);
+        sb.AppendLine();
+        sb.AppendLine($"Estudante: {nome}   |   Ano/Série: {anoSerie}   |   Data: {dataTxt}");
+        sb.AppendLine($"Escola: {escola}   |   Professor(a) AEE: {professor}");
+        sb.AppendLine();
+
+        // 1. Identificação
+        sb.AppendLine("1. Identificação do(a) estudante");
+        sb.AppendLine();
+        var s1 = new System.Text.StringBuilder();
+        s1.Append($"{nome}, {idadeStr}");
+        if (!string.IsNullOrEmpty(anoSerie) && anoSerie != "—")
+            s1.Append($", matriculado(a) no {anoSerie}");
+        s1.Append(". ");
+        if (temDiagnostico)
         {
-            sb.AppendLine(
-                "Não há diagnóstico final registrado para este(a) aluno(a). O texto seguinte baseia-se apenas no estudo de caso e nos eixos selecionados.");
+            var perfil = RotuloNivelAutonomia(diagnosticoRecente!.NivelPerfilAutonomia).ToLower();
+            s1.Append($"Perfil de autonomia identificado na avaliação diagnóstica: {perfil}. ");
+            if (!string.IsNullOrWhiteSpace(diagnosticoRecente.Resumo))
+                s1.Append(diagnosticoRecente.Resumo.Trim() + " ");
         }
         else
         {
-            var avTitulo = diagnosticoRecente.AvaliacaoDiagnostica?.Titulo?.Trim() ?? $"Avaliação #{diagnosticoRecente.AvaliacaoDiagnosticaId}";
-            sb.AppendLine($"Avaliação: {avTitulo}");
-            sb.AppendLine($"Diagnóstico gerado em (UTC): {diagnosticoRecente.GeradoEm:yyyy-MM-dd HH:mm}");
-            sb.AppendLine($"Perfil de autonomia (agregado): {RotuloNivelAutonomia(diagnosticoRecente.NivelPerfilAutonomia)}");
-            if (!string.IsNullOrWhiteSpace(diagnosticoRecente.Resumo))
-                sb.AppendLine($"Resumo: {diagnosticoRecente.Resumo.Trim()}");
-            if (!string.IsNullOrWhiteSpace(diagnosticoRecente.Recomendacoes))
-                sb.AppendLine($"Recomendações registradas: {diagnosticoRecente.Recomendacoes.Trim()}");
+            s1.Append("Até o presente momento, não há diagnóstico clínico definitivo registrado na plataforma. ");
         }
-
+        s1.Append(entity.ContextoSituacao.Trim());
+        sb.AppendLine(s1.ToString());
         sb.AppendLine();
-        sb.AppendLine("--- Contexto relatado pela equipe ---");
-        sb.AppendLine(entity.ContextoSituacao.Trim());
-        sb.AppendLine();
-        sb.AppendLine("--- Recorte por eixos (orientação para PAEE) ---");
 
-        foreach (var item in entity.ItensEixo.OrderBy(i => i.CatalogoEixo?.OrdemExibicao ?? 0))
+        // 2. Barreiras e potencialidades
+        sb.AppendLine("2. Levantamento das barreiras e potencialidades");
+        sb.AppendLine();
+        sb.AppendLine("Barreiras observadas:");
+        foreach (var item in eixosOrdenados)
         {
             var rotulo = item.CatalogoEixo?.Rotulo ?? $"Eixo #{item.EixoCatalogoId}";
-            sb.AppendLine();
-            sb.AppendLine($"• {rotulo}");
-            if (!string.IsNullOrWhiteSpace(item.CatalogoEixo?.DescricaoHint))
-                sb.AppendLine($"  Referência: {item.CatalogoEixo.DescricaoHint.Trim()}");
             if (!string.IsNullOrWhiteSpace(item.Anotacao))
-                sb.AppendLine($"  Observação registrada: {item.Anotacao.Trim()}");
-            sb.AppendLine($"  Sugestão de análise (simulada): relacionar indicadores observados em sala/atendimento com demandas de mediação e metas próximas do ciclo PAEE, priorizando coerência com o perfil do(a) estudante.");
+                sb.AppendLine($"• {rotulo}: {item.Anotacao.Trim()}");
+            else
+            {
+                var hint = item.CatalogoEixo?.DescricaoHint?.Trim();
+                sb.AppendLine(!string.IsNullOrWhiteSpace(hint)
+                    ? $"• {rotulo}: [Completar — referência: {hint}]"
+                    : $"• {rotulo}: [Completar com observações específicas]");
+            }
         }
-
         sb.AppendLine();
-        sb.AppendLine("--- Encerramento ---");
-        sb.AppendLine("Este texto não substitui avaliação clínica nem parecer especializado: utilize como ponto de partida para discussão em equipe e adequação ao currículo.");
+        sb.AppendLine("Potencialidades identificadas:");
+        sb.AppendLine("• [Completar com pontos fortes e habilidades preservadas do(a) estudante]");
+        sb.AppendLine("• [Exemplo: boa comunicação oral; interesse em atividades concretas e visuais; vínculo positivo com colegas e professores]");
+        sb.AppendLine();
+
+        // 3. Avaliação pedagógica e funcional
+        sb.AppendLine("3. Avaliação pedagógica e funcional");
+        sb.AppendLine();
+        if (temDiagnostico)
+        {
+            var avTitulo = diagnosticoRecente!.AvaliacaoDiagnostica?.Titulo?.Trim()
+                ?? $"Avaliação #{diagnosticoRecente.AvaliacaoDiagnosticaId}";
+            var perfil = RotuloNivelAutonomia(diagnosticoRecente.NivelPerfilAutonomia).ToLower();
+            sb.AppendLine($"A avaliação diagnóstica mais recente ({avTitulo}, {diagnosticoRecente.GeradoEm:dd/MM/yyyy}) indica perfil de {perfil}.");
+            if (!string.IsNullOrWhiteSpace(diagnosticoRecente.Recomendacoes))
+                sb.AppendLine($"Recomendações registradas: {diagnosticoRecente.Recomendacoes.Trim()}");
+            sb.AppendLine();
+        }
+        sb.AppendLine("Com base nas observações realizadas nos eixos pedagógicos, verificou-se:");
+        sb.AppendLine();
+        foreach (var item in eixosOrdenados)
+        {
+            var rotulo = (item.CatalogoEixo?.Rotulo ?? $"Eixo #{item.EixoCatalogoId}").ToLower();
+            if (!string.IsNullOrWhiteSpace(item.Anotacao))
+                sb.AppendLine($"Em relação a {rotulo}: {item.Anotacao.Trim()}");
+            else
+            {
+                var hint = item.CatalogoEixo?.DescricaoHint?.Trim();
+                sb.AppendLine(!string.IsNullOrWhiteSpace(hint)
+                    ? $"Em relação a {rotulo}: [Completar — referência: {hint}]"
+                    : $"Em relação a {rotulo}: [Completar com observações específicas]");
+            }
+        }
+        sb.AppendLine();
+
+        // 4. Necessidades educacionais específicas
+        sb.AppendLine("4. Definição das necessidades educacionais específicas");
+        sb.AppendLine();
+        sb.AppendLine($"O(A) estudante {nome} necessita de:");
+        sb.AppendLine();
+        foreach (var item in eixosOrdenados)
+        {
+            var rotulo = (item.CatalogoEixo?.Rotulo ?? $"Eixo #{item.EixoCatalogoId}").ToLower();
+            sb.AppendLine($"• Suporte e estratégias específicas para {rotulo};");
+        }
+        sb.AppendLine("• Adaptação das propostas pedagógicas conforme seu nível atual de aprendizagem;");
+        sb.AppendLine("• Ampliação do tempo para realização das atividades;");
+        sb.AppendLine("• Mediação pedagógica individualizada;");
+        sb.AppendLine("• Articulação entre AEE, professor(a) regente e família.");
+        sb.AppendLine();
+
+        // 5. Planejamento AEE
+        sb.AppendLine("5. Planejamento das ações do AEE");
+        sb.AppendLine();
+        sb.AppendLine("Objetivos do AEE:");
+        foreach (var item in eixosOrdenados)
+        {
+            var rotulo = (item.CatalogoEixo?.Rotulo ?? $"Eixo #{item.EixoCatalogoId}").ToLower();
+            sb.AppendLine($"• Desenvolver habilidades relacionadas a {rotulo};");
+        }
+        sb.AppendLine();
+        sb.AppendLine("Estratégias:");
+        sb.AppendLine("• Uso de recursos visuais e materiais concretos;");
+        sb.AppendLine("• Sequência de tarefas curtas e objetivas;");
+        sb.AppendLine("• Repetição planejada e mediação contínua;");
+        sb.AppendLine("• Atividades lúdicas e jogos pedagógicos adaptados;");
+        sb.AppendLine("• Rotina estruturada com momentos de avaliação contínua;");
+        sb.AppendLine("• Articulação entre AEE, professor(a) regente e família.");
+        sb.AppendLine();
+        sb.AppendLine("Recursos:");
+        sb.AppendLine("• [Completar com recursos específicos utilizados no AEE]");
+        sb.AppendLine("• Tecnologias educacionais, quando necessário;");
+        sb.AppendLine("• Atividades e materiais adaptados conforme as necessidades identificadas.");
+        sb.AppendLine();
+        sb.AppendLine("Encaminhamentos:");
+        sb.AppendLine();
+
+        // Encerramento
+        var enc = new System.Text.StringBuilder();
+        enc.Append($"O(A) estudante {nome} apresenta necessidades educacionais que requerem acompanhamento pedagógico contínuo, individualizado e intencional. ");
+        if (!temDiagnostico)
+            enc.Append("As observações realizadas indicam a necessidade de investigação mais aprofundada, sendo recomendada avaliação multiprofissional (psicologia, fonoaudiologia, psicopedagogia e/ou neuropediatria) para compreender melhor as necessidades e possíveis fatores associados. ");
+        enc.Append("O trabalho do AEE deverá ocorrer de forma articulada com a sala comum, priorizando estratégias acessíveis, fortalecimento da autoestima, desenvolvimento da autonomia e garantia de participação significativa no ambiente escolar. ");
+        enc.Append("A participação da família é fundamental nesse processo, sendo necessário fortalecer o diálogo e as orientações quanto ao acompanhamento escolar e especializado.");
+        sb.AppendLine(enc.ToString());
+        sb.AppendLine();
+        sb.AppendLine("---");
+        sb.AppendLine("Rascunho gerado automaticamente pela plataforma Plural. Revisão e complementação pedagógica são obrigatórias antes de qualquer uso oficial.");
 
         return sb.ToString();
     }
