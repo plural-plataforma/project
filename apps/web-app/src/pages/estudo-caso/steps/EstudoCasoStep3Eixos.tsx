@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Rows } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
-import { LoadingScreen } from '@/components/common/LoadingScreen'
+import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { buscarEixosEstudoCasoCatalogo } from '@/services/estudoCasoService'
 import {
   useEstudoCasoWizardStore,
@@ -46,7 +46,7 @@ export function EstudoCasoStep3Eixos() {
 
   return (
     <>
-      <LoadingScreen visible={salvarMutation.isPending} message="Gerando estudo de caso…" />
+      <DocGeracaoLoadingScreen visible={salvarMutation.isPending} />
       <div className="max-w-2xl space-y-4">
         <div className="flex items-center gap-2 text-primary">
           <Rows size={22} weight="duotone" />

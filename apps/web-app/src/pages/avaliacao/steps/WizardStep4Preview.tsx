@@ -16,7 +16,7 @@ import { buscarBlocosComAtividades } from '@/services/blocosService'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { LoadingScreen } from '@/components/common/LoadingScreen'
+import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import dayjs from 'dayjs'
@@ -119,9 +119,9 @@ export function WizardStep4Preview() {
 
   return (
     <>
-    <LoadingScreen
+    <DocGeracaoLoadingScreen
       visible={createMutation.isPending}
-      message={isEditing ? 'Atualizando avaliação diagnóstica...' : 'Criando avaliação diagnóstica...'}
+      sections={['Identificação da avaliação', 'Alunos selecionados', 'Áreas e atividades', 'Configurações de aplicação']}
     />
     <div className="max-w-2xl">
         <div className="mb-6">

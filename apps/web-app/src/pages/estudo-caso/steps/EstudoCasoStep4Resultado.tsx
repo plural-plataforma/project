@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DownloadSimple, FilePdf } from '@phosphor-icons/react'
+import { motion } from 'framer-motion'
+import { CheckCircle, DownloadSimple, FilePdf, ListChecks } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/useToast'
 import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
@@ -29,6 +30,11 @@ export function EstudoCasoStep4Resultado() {
   function novo() {
     reset()
     navigate('/estudo-caso/nova/aluno', { replace: true })
+  }
+
+  function concluir() {
+    reset()
+    navigate('/estudo-caso', { replace: true })
   }
 
   async function baixarWord() {
@@ -84,23 +90,34 @@ export function EstudoCasoStep4Resultado() {
           <p className="text-sm font-medium text-foreground">
             Estudo #{casoIdSalvo} — revise o texto abaixo antes de usar oficialmente.
           </p>
-          <pre className="whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground max-h-[420px] overflow-y-auto">
+          <motion.pre
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+            className="whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground max-h-[420px] overflow-y-auto"
+          >
             {textoSimulado}
-          </pre>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={baixarPdf}>
-              <FilePdf size={16} />
-              Baixar PDF
-            </Button>
-            <Button type="button" variant="outline" onClick={baixarWord}>
-              <DownloadSimple size={16} />
-              Baixar Word
-            </Button>
-            <Button type="button" variant="outline" onClick={novo}>
-              Novo estudo de caso
-            </Button>
-            <Button type="button" variant="outline" onClick={() => navigate(`/alunos/${alunoId}`)}>
-              Ver perfil do aluno
+          </motion.pre>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={baixarPdf}>
+                <FilePdf size={16} />
+                Baixar PDF
+              </Button>
+              <Button type="button" variant="outline" onClick={baixarWord}>
+                <DownloadSimple size={16} />
+                Baixar Word
+              </Button>
+              <Button type="button" variant="outline" onClick={novo}>
+                Novo estudo de caso
+              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate(`/alunos/${alunoId}`)}>
+                Ver perfil do aluno
+              </Button>
+            </div>
+            <Button type="button" onClick={concluir}>
+              <ListChecks size={16} weight="bold" />
+              Concluir
             </Button>
           </div>
         </>
