@@ -38,7 +38,7 @@ import dayjs from 'dayjs'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { sortByField } from '@/lib/utils'
-import { LoadingScreen } from '@/components/common/LoadingScreen'
+import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import {
   DropdownMenu,
@@ -245,7 +245,10 @@ export default function PlanejamentosPage() {
 
   return (
     <>
-      <LoadingScreen visible={createMutation.isPending} message="Criando PAEE e vinculando..." />
+      <DocGeracaoLoadingScreen
+        visible={createMutation.isPending}
+        sections={['Dados do planejamento', 'Habilidades e estratégias', 'Alunos vinculados', 'Avaliações associadas']}
+      />
 
       <PageHeader
         title="PAEE"

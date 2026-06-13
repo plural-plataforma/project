@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, DownloadSimple, FilePdf, PencilSimple, Trash } from '@phosphor-icons/react'
+import { DocGeracaoAnimation } from '@/components/common/DocGeracaoAnimation'
 import {
   Dialog,
   DialogContent,
@@ -366,27 +367,27 @@ export function EstudoCasoDetalheDialog({
               </div>
 
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Texto simulado (rascunho)
+                    Rascunho do documento
                   </p>
                   <div className="flex flex-wrap gap-2">
-                  {detalhe.textoSimulado?.trim() && (
-                    <>
-                      <Button type="button" size="sm" variant="outline" onClick={exportarPdf}>
-                        <FilePdf size={14} />
-                        Baixar PDF
-                      </Button>
-                      <Button type="button" size="sm" variant="outline" onClick={exportarWord}>
-                        <DownloadSimple size={14} />
-                        Baixar Word
-                      </Button>
-                      <Button type="button" size="sm" variant="outline" onClick={copiarTexto}>
-                        <Copy size={14} />
-                        Copiar
-                      </Button>
-                    </>
-                  )}
+                    {detalhe.textoSimulado?.trim() && !gerarMutation.isPending && (
+                      <>
+                        <Button type="button" size="sm" variant="outline" onClick={exportarPdf}>
+                          <FilePdf size={14} />
+                          Baixar PDF
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={exportarWord}>
+                          <DownloadSimple size={14} />
+                          Baixar Word
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={copiarTexto}>
+                          <Copy size={14} />
+                          Copiar
+                        </Button>
+                      </>
+                    )}
                     <Button
                       type="button"
                       size="sm"
@@ -394,17 +395,21 @@ export function EstudoCasoDetalheDialog({
                       loading={gerarMutation.isPending}
                       onClick={() => gerarMutation.mutate()}
                     >
-                      {detalhe.textoSimulado?.trim() ? 'Regenerar rascunho' : 'Gerar rascunho simulado'}
+                      {detalhe.textoSimulado?.trim() ? 'Regenerar rascunho' : 'Gerar rascunho'}
                     </Button>
                   </div>
                 </div>
-                {detalhe.textoSimulado?.trim() ? (
-                  <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground max-h-[280px] overflow-y-auto">
-                    {detalhe.textoSimulado}
-                  </pre>
-                ) : (
-                  <p className="mt-2 text-muted-foreground text-sm">Ainda não há texto gerado para este registro.</p>
-                )}
+                <DocGeracaoAnimation isGenerating={gerarMutation.isPending} minHeight="260px">
+                  {detalhe.textoSimulado?.trim() ? (
+                    <pre className="whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground max-h-[280px] overflow-y-auto">
+                      {detalhe.textoSimulado}
+                    </pre>
+                  ) : (
+                    <p className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                      Ainda não há rascunho gerado para este registro.
+                    </p>
+                  )}
+                </DocGeracaoAnimation>
               </div>
 
               <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground pt-2 border-t border-border">
