@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ClockCounterClockwise, FloppyDisk, LightbulbFilament, CheckCircle } from '@phosphor-icons/react'
+import { FloppyDisk, LightbulbFilament, CheckCircle } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
+import { InlineLoader } from '@/components/common/LoadingScreen'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { HistoryTimelinePanel, type HistoryTimelineEntry } from '@/components/lists'
 import { buscarAvaliacaoPorId, buscarHistoricoDesempenho, finalizarAvaliacao, registrarDesempenhoBatch } from '@/services/avaliacaoDiagnosticaService'
 import { buscarHabilidades } from '@/services/habilidadeService'
 import { useToast } from '@/hooks/useToast'
@@ -17,6 +19,15 @@ const NIVEL_OPTIONS: Array<{ value: NivelRealizacao; label: string }> = [
   { value: 'ComAjuda', label: 'Com ajuda' },
   { value: 'NaoRealizou', label: 'Não realizou' },
 ]
+
+const NIVEL_BADGE: Record<
+  string,
+  HistoryTimelineEntry['badge']
+> = {
+  Autonomia: { label: 'Autonomia', variant: 'success' },
+  ComAjuda: { label: 'Com ajuda', variant: 'amber' },
+  NaoRealizou: { label: 'Não realizou', variant: 'danger' },
+}
 
 const keyFor = (alunoId: number, atividadeId: number): string => `${alunoId}:${atividadeId}`
 
@@ -36,7 +47,7 @@ export default function AvaliacaoDesempenhoPage() {
     enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
   })
 
-  const { data: historico, isFetching: isRefreshingHistorico, refetch: refetchHistorico } = useQuery({
+  const { data: historico, isLoading: isLoadingHistorico, isFetching: isRefreshingHistorico, refetch: refetchHistorico } = useQuery({
     queryKey: ['avaliacao-desempenho-historico', avaliacaoId],
     queryFn: () => buscarHistoricoDesempenho(avaliacaoId),
     enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
@@ -108,6 +119,42 @@ export default function AvaliacaoDesempenhoPage() {
       )
   }, [avaliacao])
 
+  const historicoEntries = useMemo((): HistoryTimelineEntry[] => {
+    const alunoPorId = new Map(alunos.map((a) => [a.id, a.nome]))
+    const atividadePorId = new Map(atividades.map((a) => [a.atividadeId, a.atividadeTitulo]))
+    const entries: HistoryTimelineEntry[] = []
+
+    for (const item of historico?.itens ?? []) {
+      entries.push({
+        id: `item-${item.id}`,
+        kind: 'activity',
+        occurredAt: item.dataRegistro,
+        primary: alunoPorId.get(item.alunoId) ?? `Aluno #${item.alunoId}`,
+        secondary: atividadePorId.get(item.atividadeId) ?? `Atividade #${item.atividadeId}`,
+        badge:
+          NIVEL_BADGE[item.nivelRealizacao] ?? {
+            label: item.nivelRealizacao,
+            variant: 'muted',
+          },
+      })
+    }
+
+    for (const obs of historico?.observacoesAlunos ?? []) {
+      entries.push({
+        id: `obs-${obs.id}`,
+        kind: 'observation',
+        occurredAt: obs.dataRegistro,
+        primary: alunoPorId.get(obs.alunoId) ?? `Aluno #${obs.alunoId}`,
+        detail: obs.observacao,
+        badge: { label: 'Observação geral', variant: 'purple' },
+      })
+    }
+
+    return entries.sort(
+      (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    )
+  }, [historico, alunos, atividades])
+
   const salvarMutation = useMutation({
     mutationFn: async () => {
       const itens: RegistrarDesempenhoBatchRequest['itens'] = []
@@ -175,7 +222,7 @@ export default function AvaliacaoDesempenhoPage() {
   }
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Carregando avaliação...</p>
+    return <InlineLoader message="Carregando avaliação..." />
   }
 
   if (!avaliacao) {
@@ -337,34 +384,14 @@ export default function AvaliacaoDesempenhoPage() {
         ))
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ClockCounterClockwise size={18} />
-            Histórico de lançamentos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(historico?.itens?.length ?? 0) === 0 && (historico?.observacoesAlunos?.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground">Ainda não há histórico para esta avaliação.</p>
-          ) : (
-            <>
-              {historico?.itens.slice(0, 20).map((item) => (
-                <div key={`hist-item-${item.id}`} className="text-sm text-foreground rounded-md bg-muted p-2">
-                  Aluno {item.alunoId} • Atividade {item.atividadeId} • {item.nivelRealizacao} •{' '}
-                  {new Date(item.dataRegistro).toLocaleString('pt-BR')}
-                </div>
-              ))}
-              {historico?.observacoesAlunos.slice(0, 10).map((item) => (
-                <div key={`hist-obs-${item.id}`} className="text-sm text-foreground rounded-md bg-muted p-2">
-                  Obs. geral aluno {item.alunoId} • {new Date(item.dataRegistro).toLocaleString('pt-BR')} •{' '}
-                  {item.observacao}
-                </div>
-              ))}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <HistoryTimelinePanel
+        title="Histórico de lançamentos"
+        entries={historicoEntries}
+        isLoading={isLoadingHistorico}
+        isRefreshing={isRefreshingHistorico}
+        maxItems={30}
+        emptyMessage="Ainda não há histórico para esta avaliação."
+      />
     </div>
   )
 }

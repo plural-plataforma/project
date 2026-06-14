@@ -12,6 +12,13 @@ import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { authLogin, useAuth } from '@/context/AuthContext'
 import { getApiErrorFeedback, formatFriendlyErrorBody } from '@/lib/apiFriendlyError'
 import { useToast } from '@/hooks/useToast'
+import { PEDAGOGICAL_FLOW_STEP_COUNT } from '@/config/pedagogicalFlow'
+
+const LOGIN_STATS = [
+  { num: String(PEDAGOGICAL_FLOW_STEP_COUNT), label: 'Etapas da jornada PAEE' },
+  { num: '3', label: 'Níveis de diagnóstico' },
+  { num: '2', label: 'Exportação PDF e Word' },
+] as const
 
 export const loginSchema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -73,6 +80,7 @@ export default function LoginPage() {
         {/* Blobs decorativos de fundo */}
         <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/5 blur-3xl" />
         <div className="absolute bottom-0 -left-20 w-80 h-80 rounded-full bg-amber/10 blur-3xl" />
+        <div className="absolute top-1/3 right-8 w-48 h-48 rounded-full bg-brand-purple/20 blur-3xl" />
 
         {/* Conteúdo */}
         <div className="relative flex flex-col h-full p-10 justify-between">
@@ -86,7 +94,7 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col leading-none">
               <span className="text-white font-black text-lg tracking-tight">Plural</span>
-              <span className="text-white/50 text-[9px] font-semibold tracking-widest uppercase">Plataforma</span>
+              <span className="text-brand-purple/90 text-[9px] font-semibold tracking-widest uppercase">Plataforma</span>
             </div>
           </div>
 
@@ -115,21 +123,20 @@ export default function LoginPage() {
           </div>
 
           {/* Stats + versão — rodapé */}
-          <div className="flex items-end justify-between">
-            <div className="flex gap-8">
-              {[
-                { num: '3', label: 'Módulos integrados' },
-                { num: '100%', label: 'Focado no professor' },
-              ].map(({ num, label }) => (
-                <div key={label} className="flex flex-col">
-                  <span className="text-amber font-black text-2xl">{num}</span>
-                  <span className="text-white/50 text-xs font-medium">{label}</span>
+          <div className="space-y-5 border-t border-white/10 pt-6">
+            <div className="grid grid-cols-3 gap-4">
+              {LOGIN_STATS.map(({ num, label }) => (
+                <div key={label} className="flex flex-col gap-1 min-w-0">
+                  <span className="text-amber font-black text-3xl tabular-nums leading-none">{num}</span>
+                  <span className="text-white/55 text-[11px] font-medium leading-snug">{label}</span>
                 </div>
               ))}
             </div>
-            <span className="text-white/30 text-[10px] font-mono tabular-nums">
-              v{__APP_VERSION__}
-            </span>
+            <div className="flex justify-end">
+              <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/75 tabular-nums tracking-wide">
+                v{__APP_VERSION__}
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -146,10 +153,13 @@ export default function LoginPage() {
           {/* Logo mobile */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <img src="/favicon.png" alt="" aria-hidden className="h-8 w-8 object-contain" />
-            <div className="leading-none">
+            <div className="leading-none flex-1">
               <span className="text-primary font-black text-xl tracking-tight block">Plural</span>
-              <span className="text-muted-foreground text-[9px] font-semibold tracking-widest uppercase">Plataforma</span>
+              <span className="text-brand-purple text-[9px] font-semibold tracking-widest uppercase">Plataforma</span>
             </div>
+            <span className="inline-flex items-center rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-brand-purple tabular-nums">
+              v{__APP_VERSION__}
+            </span>
           </div>
 
           <motion.div

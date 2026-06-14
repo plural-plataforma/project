@@ -1,6 +1,8 @@
 export { AnimatedList, AnimatedListItem } from './AnimatedList'
 export { DownloadFormatMenu } from './DownloadFormatMenu'
 export { FilterEmptyState } from './FilterEmptyState'
+export { HistoryTimelinePanel } from './HistoryTimelinePanel'
+export type { HistoryTimelineBadge, HistoryTimelineEntry, HistoryTimelineKind } from './HistoryTimelinePanel'
 export { ListFilterBar } from './ListFilterBar'
 export { ListNoticeBanner } from './ListNoticeBanner'
 export { ListPageLayout } from './ListPageLayout'
@@ -17,6 +19,8 @@ export {
   listFilterCardClass,
   listMetaRowClass,
   listResultToolbarClass,
+  historyTimelineItemClass,
+  historyTimelineLineClass,
   listSubtitleClass,
   mutedListRowClass,
 } from './listStyles'
