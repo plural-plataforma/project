@@ -484,10 +484,6 @@ public class EstudoDeCasoService
 
         var sb = new System.Text.StringBuilder();
 
-        // Aviso de rascunho
-        sb.AppendLine("*** RASCUNHO AUTOMÁTICO — REVISÃO PEDAGÓGICA OBRIGATÓRIA ***");
-        sb.AppendLine();
-
         // Cabeçalho
         sb.AppendLine("ESTUDO DE CASO — AEE");
         sb.AppendLine(titulo);
@@ -622,9 +618,6 @@ public class EstudoDeCasoService
         enc.Append("O trabalho do AEE deverá ocorrer de forma articulada com a sala comum, priorizando estratégias acessíveis, fortalecimento da autoestima, desenvolvimento da autonomia e garantia de participação significativa no ambiente escolar. ");
         enc.Append("A participação da família é fundamental nesse processo, sendo necessário fortalecer o diálogo e as orientações quanto ao acompanhamento escolar e especializado.");
         sb.AppendLine(enc.ToString());
-        sb.AppendLine();
-        sb.AppendLine("---");
-        sb.AppendLine("Rascunho gerado automaticamente pela plataforma Plural. Revisão e complementação pedagógica são obrigatórias antes de qualquer uso oficial.");
 
         return sb.ToString();
     }
