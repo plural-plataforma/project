@@ -229,15 +229,16 @@ export const buscarDiagnosticoFinal = async (
 }
 
 export const finalizarAvaliacao = async (id: number): Promise<{ mensagem: string }> => {
-  const response = await api.put<ServiceResponse<AvaliacaoDiagnosticaDetalhada>>(
-    `${AVALIACAO_DIAGNOSTICA_BASE_PATH}/atualizar/${id}`,
-    { id, concluida: true }
-  )
-  if (!response.data.sucesso) {
-    throw new Error(response.data.mensagens?.join(', ') || 'Erro ao finalizar avaliação')
-  }
-  return {
-    mensagem: response.data.mensagens?.[0] ?? 'Avaliação finalizada com sucesso.',
+  try {
+    const response = await api.post<{ mensagem: string }>(
+      `${AVALIACAO_DIAGNOSTICA_BASE_PATH}/${id}/finalizar`
+    )
+    return response.data
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      throw new Error('Finalização de avaliação não está disponível neste ambiente da API.')
+    }
+    throw error
   }
 }
 

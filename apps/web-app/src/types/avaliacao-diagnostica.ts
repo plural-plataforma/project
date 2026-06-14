@@ -19,6 +19,8 @@ export interface AlunoPerfilAutonomiaResumo {
   sugestaoPaee: string
   /** Proporção de atividades em "Autonomia" entre as já avaliadas; ausente se não houver base. */
   percentualAutonomiaCalculado?: number | null
+  habilidadesFortes?: string | null
+  habilidadesAReenforcar?: string | null
 }
 
 export interface AvaliacaoDiagnosticaResumo {

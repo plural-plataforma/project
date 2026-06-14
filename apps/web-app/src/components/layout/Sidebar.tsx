@@ -86,12 +86,14 @@ export function Sidebar({ professorNome }: SidebarProps) {
         <img src="/favicon.png" alt="" aria-hidden className="h-7 w-7 object-contain shrink-0" />
         <div className="leading-none">
           <span className="text-primary font-black text-base tracking-tight block">Plural</span>
-          <span className="text-muted-foreground text-[8px] font-semibold tracking-widest uppercase">Plataforma</span>
+          <span className="text-brand-purple text-[8px] font-semibold tracking-widest uppercase">Plataforma</span>
         </div>
       </NavLink>
 
       <div className="flex-1 py-4 px-3 space-y-1">
-        {navItems.map(({ to, icon: Icon, label, activePathPrefix }) => (
+        {navItems.map(({ to, icon: Icon, label, activePathPrefix }) => {
+          const active = isNavItemActive(pathname, to, activePathPrefix)
+          return (
           <NavLink
             key={to}
             to={to}
@@ -100,16 +102,25 @@ export function Sidebar({ professorNome }: SidebarProps) {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150',
-                isActive || isNavItemActive(pathname, to, activePathPrefix)
-                  ? 'bg-primary text-white shadow-sm'
+                isActive || active
+                  ? 'bg-primary text-white shadow-sm border-l-[3px] border-l-brand-purple'
                   : 'text-muted-foreground hover:bg-primary-light hover:text-primary'
               )
             }
           >
-            <Icon size={20} weight="duotone" />
-            {label}
+            {({ isActive }) => (
+              <>
+                <Icon
+                  size={20}
+                  weight="duotone"
+                  className={cn((isActive || active) && 'text-amber')}
+                />
+                {label}
+              </>
+            )}
           </NavLink>
-        ))}
+          )
+        })}
       </div>
 
       <div className="border-t border-border p-3 space-y-1">
@@ -149,7 +160,7 @@ export function Sidebar({ professorNome }: SidebarProps) {
           Sair
         </button>
 
-        <p className="px-3 pt-1 text-[10px] font-mono text-muted-foreground/50 tabular-nums">
+        <p className="px-3 pt-1 text-[10px] font-mono text-brand-purple/60 tabular-nums">
           v{__APP_VERSION__}
         </p>
       </div>

@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Buildings, MagnifyingGlass, PencilSimple, MapPin } from '@phosphor-icons/react'
 import { buscarEscolasProfessor, vincularEscola } from '@/services/professorService'
 import { salvarEscola } from '@/services/escolasService'
 import { PageHeader } from '@/components/common/PageHeader'
-import { EmptyState } from '@/components/common/EmptyState'
-import { SkeletonList } from '@/components/common/SkeletonCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
+import {
+  AnimatedList,
+  AnimatedListItem,
+  FilterEmptyState,
+  ListFilterBar,
+  ListPageLayout,
+  ListResultToolbar,
+  ResourceListCard,
+} from '@/components/lists'
 import {
   Select,
   SelectContent,
@@ -169,85 +173,72 @@ export default function EscolasPage() {
         }
       />
 
-      {/* Search */}
-      <div className="mb-4">
-        <Input
-          placeholder="Buscar por nome, cidade ou estado..."
-          leftIcon={<MagnifyingGlass size={16} />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      {isLoading ? (
-        <SkeletonList count={3} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<Buildings size={32} />}
-          title={search ? 'Nenhuma escola encontrada' : 'Nenhuma escola vinculada'}
-          description={
-            search
-              ? 'Tente outro termo de busca.'
-              : 'Cadastre e vincule a primeira escola para desbloquear os demais módulos.'
-          }
-          action={
-            !search && (
+      <ListPageLayout
+        isLoading={isLoading}
+        isEmpty={filtered.length === 0}
+        filters={
+          <ListFilterBar>
+            <div className="flex-1 min-w-[200px]">
+              <Input
+                placeholder="Buscar por nome, cidade ou estado..."
+                leftIcon={<MagnifyingGlass size={16} />}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </ListFilterBar>
+        }
+        empty={
+          <FilterEmptyState
+            icon={<Buildings size={32} />}
+            hasActiveFilters={!!search}
+            filteredTitle="Nenhuma escola encontrada"
+            defaultTitle="Nenhuma escola vinculada"
+            defaultDescription="Cadastre e vincule a primeira escola para desbloquear os demais módulos."
+            defaultAction={
               <Button onClick={openCreate}>
                 <Plus size={16} weight="bold" />
                 Cadastrar escola
               </Button>
-            )
-          }
-        />
-      ) : (
-        <div className="space-y-3">
-          <AnimatePresence initial={false}>
-            {filtered.map((escola, i) => (
-              <motion.div
-                key={escola.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.25, delay: i * 0.04 }}
-              >
-                <Card className="p-5 hover:border-primary transition-colors duration-200 group">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
-                        <Buildings size={20} className="text-primary" weight="duotone" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-foreground truncate">{escola.nomeInstituicao}</h3>
-                        {(escola.cidade || escola.estado) && (
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                            <MapPin size={12} />
-                            <span>{[escola.cidade, escola.estado].filter(Boolean).join(', ')}</span>
-                          </div>
-                        )}
-                        {escola.tipo && (
-                          <Badge variant="default" className="mt-2">
-                            {escola.tipo}
-                          </Badge>
-                        )}
-                      </div>
+            }
+          />
+        }
+        toolbar={<ListResultToolbar count={filtered.length} noun="escola" />}
+      >
+        <AnimatedList>
+          {filtered.map((escola, i) => (
+            <AnimatedListItem key={escola.id} itemKey={escola.id} index={i}>
+              <ResourceListCard
+                className="group"
+                icon={<Buildings size={20} weight="duotone" />}
+                title={escola.nomeInstituicao}
+                subtitle={
+                  (escola.cidade || escola.estado) ? (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                      <MapPin size={12} />
+                      <span>{[escola.cidade, escola.estado].filter(Boolean).join(', ')}</span>
                     </div>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(escola)}
-                      aria-label="Editar escola"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <PencilSimple size={16} />
-                    </Button>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+                  ) : undefined
+                }
+                metaBadges={
+                  escola.tipo ? [{ label: escola.tipo, variant: 'default' as const }] : []
+                }
+                actions={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEdit(escola)}
+                    aria-label="Editar escola"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <PencilSimple size={16} />
+                  </Button>
+                }
+              />
+            </AnimatedListItem>
+          ))}
+        </AnimatedList>
+      </ListPageLayout>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

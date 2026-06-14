@@ -29,10 +29,18 @@ export function PageHeader({ title, description, backTo, action, className }: Pa
           </Button>
         )}
         <div>
-          <h1 className="text-2xl font-black text-foreground leading-tight">{title}</h1>
-          {description && (
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
-          )}
+          <div className="flex items-start gap-2.5">
+            <span
+              className="mt-1.5 h-8 w-1 shrink-0 rounded-full bg-brand-purple"
+              aria-hidden
+            />
+            <div>
+              <h1 className="text-2xl font-black text-foreground leading-tight">{title}</h1>
+              {description && (
+                <p className="text-sm text-muted-foreground mt-1">{description}</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       {action && <div className="shrink-0">{action}</div>}
