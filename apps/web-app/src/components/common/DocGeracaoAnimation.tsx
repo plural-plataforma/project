@@ -17,7 +17,7 @@ const STATUS_MESSAGES = [
   'Estruturando as seções do documento…',
   'Organizando as necessidades identificadas…',
   'Revisando o conteúdo pedagógico…',
-  'Finalizando o rascunho…',
+  'Finalizando o documento…',
 ]
 
 const SKELETON_ROWS: number[][] = [

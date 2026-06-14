@@ -152,7 +152,7 @@ export default function EstudosCasoPage() {
                 title={ec.titulo}
                 badges={[
                   {
-                    label: ec.possuiTextoSimulado ? 'Rascunho disponível' : 'Sem rascunho',
+                    label: ec.possuiTextoSimulado ? 'Documento gerado' : 'Sem documento',
                     variant: ec.possuiTextoSimulado ? 'secondary' : 'outline',
                   },
                 ]}

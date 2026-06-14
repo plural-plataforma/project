@@ -129,7 +129,7 @@ export function EstudoCasoDetalheDialog({
       qc.invalidateQueries({ queryKey: ['estudos-caso-aluno', d.alunoId] })
       qc.invalidateQueries({ queryKey: ['estudos-caso-lista'] })
       setEditando(false)
-      success('Alterações salvas', 'O rascunho anterior foi removido. Gere um novo texto simulado se precisar.')
+      success('Alterações salvas', 'O documento anterior foi removido. Gere um novo documento se precisar.')
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -225,7 +225,7 @@ export function EstudoCasoDetalheDialog({
     mutationFn: async () => {
       if (!detalhe) throw new Error('Estudo indisponível.')
       const concluido = await estudoCasoEstaConcluidoAsync(detalhe)
-      if (!concluido) throw new Error('Conclua o estudo de caso (todos os eixos ou rascunho gerado) antes de criar o PAEE.')
+      if (!concluido) throw new Error('Conclua o estudo de caso (todos os eixos ou documento gerado) antes de criar o PAEE.')
       return criarPaeeAPartirDoEstudoDeCaso({ estudo: detalhe })
     },
     onSuccess: (plano) => {
@@ -280,7 +280,7 @@ export function EstudoCasoDetalheDialog({
           {detalhe && editando && (
             <div className="space-y-4 text-sm border border-border rounded-lg p-4 bg-muted/20">
               <p className="text-xs text-muted-foreground">
-                Ao salvar, o rascunho simulado atual será <strong>removido</strong> até você gerar outro.
+                Ao salvar, o documento gerado atual será <strong>removido</strong> até você gerar outro.
               </p>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground" htmlFor="ec-edit-titulo">

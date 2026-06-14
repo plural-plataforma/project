@@ -13,11 +13,16 @@ import {
   CalendarBlank,
   Clock,
   Article,
+  Lightning,
 } from '@phosphor-icons/react'
 import { buscarAlunoPorId, excluirAluno } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
 import { buscarAvaliacaoPorId, buscarAvaliacoesDiagnosticas } from '@/services/avaliacaoDiagnosticaService'
-import { listarEstudosCasoPorAluno } from '@/services/estudoCasoService'
+import { buscarEstudoCasoPorId, listarEstudosCasoPorAluno } from '@/services/estudoCasoService'
+import {
+  criarPaeeAPartirDoEstudoDeCaso,
+  estudoCasoEstaConcluidoAsync,
+} from '@/lib/criarPaeeAPartirDoEstudoDeCaso'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
 import { DownloadFormatMenu } from '@/components/lists'
@@ -43,6 +48,7 @@ export default function AlunoProfilePage() {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [estudoCasoDetalheId, setEstudoCasoDetalheId] = useState<number | null>(null)
+  const [gerandoPaeeEstudoId, setGerandoPaeeEstudoId] = useState<number | null>(null)
 
   const { data: aluno, isLoading } = useQuery({
     queryKey: ['aluno', id],
@@ -70,6 +76,28 @@ export default function AlunoProfilePage() {
     queryKey: ['estudos-caso-aluno', aluno?.id],
     queryFn: () => listarEstudosCasoPorAluno(aluno!.id!),
     enabled: !!aluno?.id,
+  })
+
+  const gerarPaeeMutation = useMutation({
+    mutationFn: async (estudoId: number) => {
+      setGerandoPaeeEstudoId(estudoId)
+      const detalhe = await buscarEstudoCasoPorId(estudoId)
+      const concluido = await estudoCasoEstaConcluidoAsync(detalhe)
+      if (!concluido) throw new Error('Conclua o estudo de caso antes de gerar o PAEE.')
+      return criarPaeeAPartirDoEstudoDeCaso({ estudo: detalhe })
+    },
+    onSuccess: (plano) => {
+      success('PAEE criado', 'Revise objetivos, encontros e assinatura no detalhe do plano.')
+      void qc.invalidateQueries({ queryKey: ['planejamentos'] })
+      void qc.invalidateQueries({ queryKey: ['aluno', id] })
+      setGerandoPaeeEstudoId(null)
+      navigate(`/planejamentos/${plano.id}`)
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+      setGerandoPaeeEstudoId(null)
+    },
   })
 
   const deleteMutation = useMutation({
@@ -369,7 +397,7 @@ export default function AlunoProfilePage() {
           </Card>
         )}
 
-        {/* Estudos de caso (PAEE) */}
+        {/* Estudos de caso */}
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
             <CardTitle className="flex items-center gap-2">
@@ -390,33 +418,49 @@ export default function AlunoProfilePage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {estudosCaso.map((ec) => (
-                  <div key={ec.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-muted">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-foreground truncate">{ec.titulo}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Atualizado em {new Date(ec.updatedAt).toLocaleString('pt-BR')}
-                      </p>
-                      <div className="flex gap-2 mt-1 flex-wrap">
-                        {ec.possuiTextoSimulado ? (
-                          <Badge variant="secondary">Rascunho disponível</Badge>
-                        ) : (
-                          <Badge variant="outline">Sem rascunho automático</Badge>
+                {estudosCaso.map((ec) => {
+                  const semPaee = !aluno.planejamentos?.length
+                  const podeCriarPaee = semPaee && ec.possuiTextoSimulado
+                  const gerando = gerandoPaeeEstudoId === ec.id && gerarPaeeMutation.isPending
+                  return (
+                    <div key={ec.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-muted">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm text-foreground truncate">{ec.titulo}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Atualizado em {new Date(ec.updatedAt).toLocaleString('pt-BR')}
+                        </p>
+                        <div className="flex gap-2 mt-1 flex-wrap">
+                          {ec.possuiTextoSimulado ? (
+                            <Badge variant="secondary">Documento gerado</Badge>
+                          ) : (
+                            <Badge variant="outline">Sem documento</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0flex-wrap">
+                        {podeCriarPaee && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            loading={gerando}
+                            onClick={() => gerarPaeeMutation.mutate(ec.id)}
+                          >
+                            <Lightning size={14} />
+                            Gerar PAEE
+                          </Button>
                         )}
+                        <DownloadFormatMenu
+                          ariaLabel={`Baixar estudo de caso ${ec.titulo}`}
+                          onPdf={() => baixarEstudoPdf(ec.id)}
+                          onWord={() => baixarEstudoWord(ec.id)}
+                        />
+                        <Button size="sm" variant="outline" onClick={() => setEstudoCasoDetalheId(ec.id)}>
+                          Ver detalhes
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <DownloadFormatMenu
-                        ariaLabel={`Baixar estudo de caso ${ec.titulo}`}
-                        onPdf={() => baixarEstudoPdf(ec.id)}
-                        onWord={() => baixarEstudoWord(ec.id)}
-                      />
-                      <Button size="sm" variant="outline" onClick={() => setEstudoCasoDetalheId(ec.id)}>
-                        Ver detalhes
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>

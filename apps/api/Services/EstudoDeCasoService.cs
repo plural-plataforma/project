@@ -326,7 +326,7 @@ public class EstudoDeCasoService
                 .FirstAsync(c => c.Id == caso.Id);
 
             r.AdicionaObjeto(MapearDetalhe(carregado));
-            r.AdicionaMensagem("Estudo de caso atualizado. Gere novamente o rascunho simulado se precisar.");
+            r.AdicionaMensagem("Estudo de caso atualizado. Gere novamente o documento se precisar.");
             r.Sucesso = true;
             return r;
         }

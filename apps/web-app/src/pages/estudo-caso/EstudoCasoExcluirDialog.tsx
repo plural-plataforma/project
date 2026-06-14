@@ -30,7 +30,7 @@ export function EstudoCasoExcluirDialog({
           <DialogTitle>Excluir estudo de caso?</DialogTitle>
           <DialogDescription>
             O registro <span className="font-semibold text-foreground">{titulo}</span> será removido permanentemente,
-            incluindo o rascunho simulado. Esta ação não pode ser desfeita.
+            incluindo o documento gerado. Esta ação não pode ser desfeita.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
