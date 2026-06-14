@@ -30,6 +30,12 @@ namespace api.Models
         [Column(TypeName = "text")]
         public string Recomendacoes { get; set; } = string.Empty;
 
+        [Column(TypeName = "text")]
+        public string? HabilidadesFortes { get; set; }
+
+        [Column(TypeName = "text")]
+        public string? HabilidadesAReenforcar { get; set; }
+
         public DateTime GeradoEm { get; set; } = DateTime.UtcNow;
     }
 }
