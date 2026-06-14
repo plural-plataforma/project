@@ -3,16 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
-  Users,
-  Brain,
-  Lightning,
-  CheckSquare,
   Plus,
   X,
-  CalendarBlank,
   MagnifyingGlass,
   DownloadSimple,
-  MagicWand,
 } from '@phosphor-icons/react'
 import {
   buscarPlanejamentoPorId,
@@ -33,8 +27,6 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -46,11 +38,13 @@ import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyE
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
-import dayjs from 'dayjs'
 import { sortByField } from '@/lib/utils'
 import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
 import { PlanejamentoObjetivosTab } from './PlanejamentoObjetivosTab'
 import { PlanejamentoRevisaoTab } from './PlanejamentoRevisaoTab'
+import { PlanejamentoVisaoGeralTab } from './PlanejamentoVisaoGeralTab'
+import { PlanejamentoEncontrosTab, type LinhaPaeeEnc } from './PlanejamentoEncontrosTab'
+import { PlanejamentoAssinaturaTab } from './PlanejamentoAssinaturaTab'
 
 const NIVEL_ENSINO_MAP: Record<number, string> = {
   1: 'Ed. Infantil',
@@ -58,8 +52,6 @@ const NIVEL_ENSINO_MAP: Record<number, string> = {
   3: 'Fundamental II',
   4: 'Ensino Médio',
 }
-
-type LinhaPaeeEnc = PaeeEncontroEntrada & { key: string }
 
 const novaLinhaEncKey = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -359,8 +351,6 @@ export default function PlanejamentoDetailPage() {
   if (isLoading) return <SkeletonList count={4} />
   if (!plan) return <p className="text-muted-foreground">Planejamento não encontrado.</p>
 
-  const formatDate = (d: string) => dayjs(d).format('DD/MM/YYYY')
-
   const alunosVinculadosIds = new Set((plan.alunos ?? []).map((a) => a.id))
   const habsVinculadasIds = new Set((plan.habilidades ?? []).map((h) => h.id))
   const estsVinculadasIds = new Set((plan.estrategias ?? []).map((e) => e.id))
@@ -458,164 +448,23 @@ export default function PlanejamentoDetailPage() {
           <TabsTrigger value="revisao">Revisão</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="visao-geral" className="mt-6 space-y-4">
-        {/* ─ Overview editável ─ */}
-        {editingInfo ? (
-          <Card>
-            <CardContent className="pt-5 space-y-3">
-              <Input label="Nome do PAEE" value={formApelido} onChange={(e) => setFormApelido(e.target.value)} />
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Data de início" type="date" value={formDataInicio} onChange={(e) => setFormDataInicio(e.target.value)} />
-                <Input label="Data de fim" type="date" value={formDataFim} onChange={(e) => setFormDataFim(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-foreground">Descrição</label>
-                <textarea
-                  rows={3}
-                  value={formDescricao}
-                  onChange={(e) => setFormDescricao(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" size="sm" onClick={() => setEditingInfo(false)}>Cancelar</Button>
-                <Button size="sm" loading={updateMutation.isPending} onClick={() => updateMutation.mutate()}>Salvar</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="pt-5">
-              <div className="flex flex-wrap gap-4 items-center">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <CalendarBlank size={14} />
-                  <span>{formatDate(plan.dataInicio)} → {formatDate(plan.dataFim)}</span>
-                </div>
-                {plan.descicaoPlanejamento && (
-                  <p className="text-sm text-foreground leading-relaxed w-full">{plan.descicaoPlanejamento}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid md:grid-cols-2 gap-4">
-
-          {/* ─ Alunos ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Users size={16} className="text-primary" />
-                  Alunos ({plan.alunos?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('alunos')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.alunos?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhum aluno vinculado.</p>
-              ) : (
-                <div className="space-y-2">
-                  {sortByField(plan.alunos, 'nomeCompleto').map((a) => (
-                    <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted">
-                      <div className="h-6 w-6 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                        {a.nomeCompleto[0]}
-                      </div>
-                      <span className="text-sm font-medium text-foreground flex-1 truncate">{a.nomeCompleto}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ─ Habilidades ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Brain size={16} className="text-primary" />
-                  Habilidades ({plan.habilidades?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('habilidades')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.habilidades?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhuma habilidade vinculada.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {sortByField(plan.habilidades, 'descricao').map((h) => (
-                    <Badge key={h.id} variant="default">
-                      {h.resumo || h.descricao || `Habilidade ${h.id}`}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ─ Estratégias ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Lightning size={16} className="text-primary" />
-                  Estratégias ({plan.estrategias?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('estrategias')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.estrategias?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhuma estratégia vinculada.</p>
-              ) : (
-                <div className="space-y-2">
-                  {sortByField(plan.estrategias, 'descricao').map((e) => (
-                    <div key={e.id} className="text-sm text-foreground p-2 rounded-lg bg-muted">
-                      {e.descricao}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ─ Critérios Avaliativos ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <CheckSquare size={16} className="text-primary" />
-                  Critérios Avaliativos ({plan.avaliacao?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('avaliacoes')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.avaliacao?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhum critério vinculado.</p>
-              ) : (
-                <div className="space-y-2">
-                  {plan.avaliacao.map((v) => (
-                    <div key={v.id} className="text-sm text-foreground p-2 rounded-lg bg-muted">
-                      {v.descricao}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <TabsContent value="visao-geral" className="mt-6">
+          <PlanejamentoVisaoGeralTab
+            plan={plan}
+            editingInfo={editingInfo}
+            formApelido={formApelido}
+            setFormApelido={setFormApelido}
+            formDataInicio={formDataInicio}
+            setFormDataInicio={setFormDataInicio}
+            formDataFim={formDataFim}
+            setFormDataFim={setFormDataFim}
+            formDescricao={formDescricao}
+            setFormDescricao={setFormDescricao}
+            saving={updateMutation.isPending}
+            onSave={() => updateMutation.mutate()}
+            onCancelEdit={() => setEditingInfo(false)}
+            onOpenVincModal={openVincModal}
+          />
         </TabsContent>
 
         <TabsContent value="objetivos" className="mt-6 space-y-4">
@@ -637,212 +486,30 @@ export default function PlanejamentoDetailPage() {
           />
         </TabsContent>
 
-        <TabsContent value="encontros" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="text-base">Grade de encontros</CardTitle>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={() => sugestaoDatasMutation.mutate()}
-                    loading={sugestaoDatasMutation.isPending}
-                  >
-                    <MagicWand size={14} /> Sugestão de datas
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={() =>
-                      setEncLinhas((rows) =>
-                        [...rows, {
-                          key: novaLinhaEncKey(),
-                          dataEnc: plan.dataInicio,
-                          textoPlanejado: '',
-                          textoRealizado: '',
-                          habilidadeId: null,
-                          estrategiaId: null,
-                        }].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc)),
-                      )
-                    }
-                  >
-                    <Plus size={14} /> Nova linha
-                  </Button>
-                  <Button
-                    size="sm"
-                    loading={salvarEncontrosMutation.isPending}
-                    type="button"
-                    onClick={() => salvarEncontrosMutation.mutate()}
-                  >
-                    Salvar encontros
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              {!encLinhas.length ? (
-                <p className="text-sm text-muted-foreground">Nenhuma linha — vincule um aluno com dias de atendimento ou use Nova linha.</p>
-              ) : (
-                <table className="w-full text-sm border-collapse border border-border min-w-[800px]">
-                  <thead>
-                    <tr className="border-b bg-muted/40">
-                      <th className="text-left border-r border-border px-2 py-2 font-medium">Data</th>
-                      <th className="text-left border-r border-border px-2 py-2 font-medium">Planejado</th>
-                      <th className="text-left border-r border-border px-2 py-2 font-medium">Realizado</th>
-                      <th className="text-left border-r border-border px-2 py-2 font-medium">Habilidade</th>
-                      <th className="text-left border-r border-border px-2 py-2 font-medium">Estratégia</th>
-                      <th className="w-[44px]" aria-label="Remover" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {encLinhas.map((linha, idx, arr) => (
-                      <tr key={linha.key} className="border-b border-border odd:bg-muted/10">
-                        <td className="border-r align-top p-2">
-                          <input
-                            type="date"
-                            value={linha.dataEnc}
-                            max={plan.dataFim}
-                            min={plan.dataInicio}
-                            aria-label={`Data do encontro ${idx + 1}`}
-                            onChange={(ev) =>
-                              setEncLinhas(arr.map((r) =>
-                                r.key === linha.key ? { ...r, dataEnc: ev.target.value } : r,
-                              ))}
-                            className="rounded border border-input bg-background px-1 py-1 w-full max-w-[11rem]"
-                          />
-                        </td>
-                        <td className="border-r align-top p-2 w-[22%]">
-                          <textarea
-                            rows={2}
-                            aria-label={`Conteúdo planejado encontro ${idx + 1}`}
-                            value={linha.textoPlanejado ?? ''}
-                            onChange={(ev) =>
-                              setEncLinhas(arr.map((r) =>
-                                r.key === linha.key ? { ...r, textoPlanejado: ev.target.value } : r,
-                              ))}
-                            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
-                          />
-                        </td>
-                        <td className="border-r align-top p-2 w-[22%]">
-                          <textarea
-                            rows={2}
-                            aria-label={`Conteúdo realizado encontro ${idx + 1}`}
-                            value={linha.textoRealizado ?? ''}
-                            onChange={(ev) =>
-                              setEncLinhas(arr.map((r) =>
-                                r.key === linha.key ? { ...r, textoRealizado: ev.target.value } : r,
-                              ))}
-                            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
-                          />
-                        </td>
-                        <td className="border-r align-top p-2 w-[16%]">
-                          <select
-                            aria-label={`Habilidade encontro ${idx + 1}`}
-                            className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
-                            value={linha.habilidadeId ?? ''}
-                            onChange={(ev) => {
-                              const raw = ev.target.value
-                              setEncLinhas(arr.map((r) =>
-                                r.key === linha.key
-                                  ? { ...r, habilidadeId: raw === '' ? null : Number(raw) }
-                                  : r,
-                              ))
-                            }}
-                          >
-                            <option value="">—</option>
-                            {(plan.habilidades ?? []).map((h) => (
-                              <option key={h.id} value={h.id}>{h.resumo || h.descricao || h.id}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="border-r align-top p-2 w-[16%]">
-                          <select
-                            aria-label={`Estratégia encontro ${idx + 1}`}
-                            className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
-                            value={linha.estrategiaId ?? ''}
-                            onChange={(ev) => {
-                              const raw = ev.target.value
-                              setEncLinhas(arr.map((r) =>
-                                r.key === linha.key
-                                  ? { ...r, estrategiaId: raw === '' ? null : Number(raw) }
-                                  : r,
-                              ))
-                            }}
-                          >
-                            <option value="">—</option>
-                            {(plan.estrategias ?? []).map((est) => (
-                              <option key={est.id} value={est.id}>{est.descricao}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="align-top p-1 text-center">
-                          <button
-                            type="button"
-                            aria-label={`Remover linha ${idx + 1}`}
-                            className="inline-flex rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => setEncLinhas(arr.filter((r) => r.key !== linha.key))}
-                          >
-                            <X size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </CardContent>
-          </Card>
-          <p className="text-xs text-muted-foreground px-1">
-            As datas são pré-preenchidas com base no primeiro aluno vinculado (dias da semana e frequência do cadastro).
-            Use &quot;Sugestão de datas&quot; para incluir novas datas ou &quot;Nova linha&quot; para adicionar manualmente.
-          </p>
+        <TabsContent value="encontros" className="mt-6">
+          <PlanejamentoEncontrosTab
+            plan={plan}
+            encLinhas={encLinhas}
+            setEncLinhas={setEncLinhas}
+            saving={salvarEncontrosMutation.isPending}
+            onSave={() => salvarEncontrosMutation.mutate()}
+            sugerindoDatas={sugestaoDatasMutation.isPending}
+            onSugerirDatas={() => sugestaoDatasMutation.mutate()}
+            onNovaLinhaKey={novaLinhaEncKey}
+          />
         </TabsContent>
 
-        <TabsContent value="assinatura" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Assinatura do documento</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Metadado para controle interno — não substitui assinatura digital certificada (ICP-Brasil).
-              </p>
-              <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={docAssinado}
-                  onChange={(e) => setDocAssinado(e.target.checked)}
-                  className="rounded border-input"
-                />
-                Documento declarado como assinado
-              </label>
-              <Input
-                label="Nome do responsável"
-                value={assinaturaNome}
-                onChange={(e) => setAssinaturaNome(e.target.value)}
-                placeholder="Ex.: Maria Silva"
-              />
-              <Input
-                label="Cargo / função"
-                value={assinaturaCargo}
-                onChange={(e) => setAssinaturaCargo(e.target.value)}
-                placeholder="Ex.: Professora de AEE"
-              />
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  loading={salvarAssinaturaMutation.isPending}
-                  onClick={() => salvarAssinaturaMutation.mutate()}
-                  type="button"
-                >
-                  Salvar assinatura
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="assinatura" className="mt-6">
+          <PlanejamentoAssinaturaTab
+            docAssinado={docAssinado}
+            setDocAssinado={setDocAssinado}
+            assinaturaNome={assinaturaNome}
+            setAssinaturaNome={setAssinaturaNome}
+            assinaturaCargo={assinaturaCargo}
+            setAssinaturaCargo={setAssinaturaCargo}
+            saving={salvarAssinaturaMutation.isPending}
+            onSave={() => salvarAssinaturaMutation.mutate()}
+          />
         </TabsContent>
 
         <TabsContent value="revisao" className="mt-6 space-y-4">
