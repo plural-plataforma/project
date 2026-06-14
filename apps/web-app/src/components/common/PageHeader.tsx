@@ -31,7 +31,7 @@ export function PageHeader({ title, description, backTo, action, className }: Pa
         <div>
           <div className="flex items-start gap-2.5">
             <span
-              className="mt-1.5 h-8 w-1 shrink-0 rounded-full bg-brand-purple"
+              className="mt-1.5 h-8 w-0.5 shrink-0 rounded-full bg-brand-purple"
               aria-hidden
             />
             <div>

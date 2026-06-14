@@ -103,7 +103,7 @@ export function Sidebar({ professorNome }: SidebarProps) {
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150',
                 isActive || active
-                  ? 'bg-primary text-white shadow-sm border-l-[3px] border-l-brand-purple'
+                  ? 'bg-primary text-white shadow-sm border-l-[1.5px] border-l-brand-purple'
                   : 'text-muted-foreground hover:bg-primary-light hover:text-primary'
               )
             }

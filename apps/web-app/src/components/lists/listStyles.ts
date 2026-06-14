@@ -25,7 +25,7 @@ export const listIconBoxClasses = {
 
 export function listCardClass(highlight: keyof typeof listCardHighlightClasses = 'default') {
   return cn(
-    'p-5 border-l-4 shadow-card transition-all duration-200',
+    'p-5 border-l-2 shadow-card transition-all duration-200',
     listCardHighlightClasses[highlight],
     listCardAccentClasses[highlight]
   )
