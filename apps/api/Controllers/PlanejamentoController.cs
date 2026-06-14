@@ -280,6 +280,16 @@ namespace api.Controllers
             return BadRequest(resposta);
         }
 
+        [HttpGet("objetivos-catalogo")]
+        public async Task<IActionResult> ListarObjetivosCatalogo()
+        {
+            var resposta = await _planejamentoService.ListarObjetivosCatalogoAsync();
+            if (resposta.Sucesso)
+                return Ok(resposta);
+
+            return BadRequest(resposta);
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Excluir(int id)
         {

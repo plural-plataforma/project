@@ -159,11 +159,20 @@ namespace api.Services
                  }
 
                 if (planejamentoDTO.ObjetivoCurtoPrazo != null)
+                {
                     planejamento.ObjetivoCurtoPrazo = planejamentoDTO.ObjetivoCurtoPrazo;
+                    planejamento.ObjetivoCurtoCatalogoId = planejamentoDTO.ObjetivoCurtoCatalogoId;
+                }
                 if (planejamentoDTO.ObjetivoMedioPrazo != null)
+                {
                     planejamento.ObjetivoMedioPrazo = planejamentoDTO.ObjetivoMedioPrazo;
+                    planejamento.ObjetivoMedioCatalogoId = planejamentoDTO.ObjetivoMedioCatalogoId;
+                }
                 if (planejamentoDTO.ObjetivoLongoPrazo != null)
+                {
                     planejamento.ObjetivoLongoPrazo = planejamentoDTO.ObjetivoLongoPrazo;
+                    planejamento.ObjetivoLongoCatalogoId = planejamentoDTO.ObjetivoLongoCatalogoId;
+                }
                 if (planejamentoDTO.DocumentoDeclaradoAssinado.HasValue)
                     planejamento.DocumentoDeclaradoAssinado = planejamentoDTO.DocumentoDeclaradoAssinado.Value;
                 if (planejamentoDTO.AssinaturaNomeResponsavel != null)
@@ -200,6 +209,9 @@ namespace api.Services
                         ObjetivoCurtoPrazo = p.ObjetivoCurtoPrazo,
                         ObjetivoMedioPrazo = p.ObjetivoMedioPrazo,
                         ObjetivoLongoPrazo = p.ObjetivoLongoPrazo,
+                        ObjetivoCurtoCatalogoId = p.ObjetivoCurtoCatalogoId,
+                        ObjetivoMedioCatalogoId = p.ObjetivoMedioCatalogoId,
+                        ObjetivoLongoCatalogoId = p.ObjetivoLongoCatalogoId,
                         DocumentoDeclaradoAssinado = p.DocumentoDeclaradoAssinado,
                         AssinaturaNomeResponsavel = p.AssinaturaNomeResponsavel,
                         AssinaturaCargo = p.AssinaturaCargo,
@@ -277,6 +289,9 @@ namespace api.Services
                         ObjetivoCurtoPrazo = p.ObjetivoCurtoPrazo,
                         ObjetivoMedioPrazo = p.ObjetivoMedioPrazo,
                         ObjetivoLongoPrazo = p.ObjetivoLongoPrazo,
+                        ObjetivoCurtoCatalogoId = p.ObjetivoCurtoCatalogoId,
+                        ObjetivoMedioCatalogoId = p.ObjetivoMedioCatalogoId,
+                        ObjetivoLongoCatalogoId = p.ObjetivoLongoCatalogoId,
                         DocumentoDeclaradoAssinado = p.DocumentoDeclaradoAssinado,
                         AssinaturaNomeResponsavel = p.AssinaturaNomeResponsavel,
                         AssinaturaCargo = p.AssinaturaCargo,
@@ -910,6 +925,35 @@ namespace api.Services
             await _contexto.SaveChangesAsync();
             resposta.Sucesso = true;
             return resposta;
+        }
+
+        public async Task<ServiceResponse<PaeeObjetivoCatalogoDTO>> ListarObjetivosCatalogoAsync()
+        {
+            var resposta = new ServiceResponse<PaeeObjetivoCatalogoDTO>();
+            try
+            {
+                var itens = await _contexto.PaeeObjetivosCatalogo
+                    .OrderBy(o => o.Prazo)
+                    .ThenBy(o => o.OrdemExibicao)
+                    .Select(o => new PaeeObjetivoCatalogoDTO
+                    {
+                        Id = o.Id,
+                        Codigo = o.Codigo,
+                        Rotulo = o.Rotulo,
+                        TextoModelo = o.TextoModelo,
+                        Prazo = o.Prazo.ToString(),
+                        OrdemExibicao = o.OrdemExibicao,
+                    })
+                    .ToListAsync();
+                resposta.AdicionaObjetos(itens);
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha(ex.Message);
+                return resposta;
+            }
         }
     }
 }

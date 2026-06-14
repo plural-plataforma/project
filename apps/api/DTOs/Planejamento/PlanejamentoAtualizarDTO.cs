@@ -21,6 +21,12 @@ namespace api.DTOs.Planejamento
 
         public string? ObjetivoLongoPrazo { get; set; }
 
+        public int? ObjetivoCurtoCatalogoId { get; set; }
+
+        public int? ObjetivoMedioCatalogoId { get; set; }
+
+        public int? ObjetivoLongoCatalogoId { get; set; }
+
         public bool? DocumentoDeclaradoAssinado { get; set; }
 
         public string? AssinaturaNomeResponsavel { get; set; }
