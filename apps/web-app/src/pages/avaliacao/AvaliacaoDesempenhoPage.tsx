@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ClockCounterClockwise, FloppyDisk, LightbulbFilament } from '@phosphor-icons/react'
+import { ClockCounterClockwise, FloppyDisk, LightbulbFilament, CheckCircle } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { buscarAvaliacaoPorId, buscarHistoricoDesempenho, registrarDesempenhoBatch } from '@/services/avaliacaoDiagnosticaService'
+import { buscarAvaliacaoPorId, buscarHistoricoDesempenho, finalizarAvaliacao, registrarDesempenhoBatch } from '@/services/avaliacaoDiagnosticaService'
 import { buscarHabilidades } from '@/services/habilidadeService'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
@@ -30,17 +30,19 @@ export default function AvaliacaoDesempenhoPage() {
   const [nivelMap, setNivelMap] = useState<Record<string, NivelRealizacao>>({})
   const [obsAlunoMap, setObsAlunoMap] = useState<Record<number, string>>({})
 
-  const { data: avaliacao, isLoading } = useQuery({
+  const { data: avaliacao, isLoading, isFetching: isRefreshingAvaliacao, refetch: refetchAvaliacao } = useQuery({
     queryKey: ['avaliacao-detalhada', avaliacaoId],
     queryFn: () => buscarAvaliacaoPorId(avaliacaoId),
     enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
   })
 
-  const { data: historico } = useQuery({
+  const { data: historico, isFetching: isRefreshingHistorico, refetch: refetchHistorico } = useQuery({
     queryKey: ['avaliacao-desempenho-historico', avaliacaoId],
     queryFn: () => buscarHistoricoDesempenho(avaliacaoId),
     enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
   })
+
+  const isRefreshingDesempenho = isRefreshingAvaliacao || isRefreshingHistorico
 
   const { data: habilidades = [] } = useQuery({
     queryKey: ['habilidades'],
@@ -143,16 +145,28 @@ export default function AvaliacaoDesempenhoPage() {
         observacoesAlunos,
       })
     },
-    onSuccess: () => {
-      success('Desempenho salvo', 'Novo evento histórico registrado com sucesso.')
-      queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada', avaliacaoId] })
-      queryClient.invalidateQueries({ queryKey: ['avaliacao-desempenho-historico', avaliacaoId] })
-      queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada'] })
-      navigate('/avaliacoes')
+    onSuccess: async () => {
+      success('Desempenho salvo', 'Perfil e sugestões PAEE atualizados.')
+      await Promise.all([refetchAvaliacao(), refetchHistorico()])
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes-diagnosticas'] })
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
       error('Falha ao salvar desempenho', formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const finalizarMutation = useMutation({
+    mutationFn: () => finalizarAvaliacao(avaliacaoId),
+    onSuccess: (data) => {
+      success('Avaliação finalizada', data.mensagem)
+      queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada', avaliacaoId] })
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes-diagnosticas'] })
+      navigate('/avaliacoes')
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      error('Falha ao finalizar', formatFriendlyErrorBody(fb))
     },
   })
 
@@ -175,13 +189,27 @@ export default function AvaliacaoDesempenhoPage() {
         description={`${avaliacao.titulo}${avaliacao.concluida ? ' (concluída)' : ''}`}
         backTo="/avaliacoes"
         action={(
-          <Button
-            onClick={() => salvarMutation.mutate()}
-            loading={salvarMutation.isPending}
-          >
-            <FloppyDisk size={16} />
-            Salvar lançamentos
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => salvarMutation.mutate()}
+              loading={salvarMutation.isPending}
+              disabled={finalizarMutation.isPending}
+            >
+              <FloppyDisk size={16} />
+              Salvar lançamentos
+            </Button>
+            <Button
+              type="button"
+              onClick={() => finalizarMutation.mutate()}
+              loading={finalizarMutation.isPending}
+              disabled={avaliacao.concluida || salvarMutation.isPending}
+            >
+              <CheckCircle size={16} weight="bold" />
+              Finalizar avaliação
+            </Button>
+          </div>
         )}
       />
 
@@ -189,15 +217,20 @@ export default function AvaliacaoDesempenhoPage() {
         Você pode continuar lançando e editando desempenho mesmo após concluir a avaliação.
       </p>
 
-      {perfisOrdenados.length > 0 && (
+      {(perfisOrdenados.length > 0 || isRefreshingDesempenho) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Perfil de autonomia e PAEE</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              Perfil de autonomia e sugestões PAEE
+              {isRefreshingDesempenho && (
+                <span className="text-xs font-normal text-muted-foreground">Atualizando…</span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Visão em níveis discretos (Autonomia, Com ajuda, Não realizou) calculada a partir dos lançamentos por atividade.
-              Atualiza quando você salva e ao recarregar esta tela.
+              Atualiza quando você salva.
             </p>
             <div className="space-y-3">
               {perfisOrdenados.map((p) => (
@@ -213,6 +246,18 @@ export default function AvaliacaoDesempenhoPage() {
                       <LightbulbFilament size={16} className="shrink-0 text-amber-600 mt-0.5" aria-hidden />
                       <span>{p.sugestaoPaee}</span>
                     </p>
+                    {p.habilidadesAReenforcar?.trim() && (
+                      <p className="text-xs text-foreground leading-snug">
+                        <span className="font-semibold">Habilidades a reforçar: </span>
+                        {p.habilidadesAReenforcar}
+                      </p>
+                    )}
+                    {p.habilidadesFortes?.trim() && (
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        <span className="font-semibold text-foreground/80">Habilidades fortes: </span>
+                        {p.habilidadesFortes}
+                      </p>
+                    )}
                   </div>
               ))}
             </div>

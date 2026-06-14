@@ -27,7 +27,7 @@ export function ThemeToggle() {
           className={cn(
             'flex items-center justify-center h-7 w-7 rounded-md transition-all duration-200 cursor-pointer',
             mode === m
-              ? 'bg-card text-primary shadow-sm'
+              ? 'bg-card text-amber shadow-sm ring-1 ring-brand-purple/25'
               : 'text-muted-foreground hover:text-foreground'
           )}
         >

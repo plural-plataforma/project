@@ -8,32 +8,32 @@ import {
   Phone,
   Envelope,
   User,
-  DownloadSimple,
   ArrowSquareOut,
   Trash,
   CalendarBlank,
   Clock,
   Article,
 } from '@phosphor-icons/react'
-import { AlignmentType, Document, Packer, Paragraph, TextRun } from 'docx'
 import { buscarAlunoPorId, excluirAluno } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
-import { buscarAvaliacaoPorId, buscarAvaliacoesDiagnosticas, gerarPdfBlob } from '@/services/avaliacaoDiagnosticaService'
+import { buscarAvaliacaoPorId, buscarAvaliacoesDiagnosticas } from '@/services/avaliacaoDiagnosticaService'
 import { listarEstudosCasoPorAluno } from '@/services/estudoCasoService'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
+import { DownloadFormatMenu } from '@/components/lists'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import type { PlanejamentoAluno } from '@/types/planejamento'
 import { EstudoCasoDetalheDialog } from '@/pages/estudo-caso/EstudoCasoDetalheDialog'
 import { AlunoFormDialog } from './AlunoFormDialog'
 import { AlunoExcluirDialog } from './AlunoExcluirDialog'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { labelTipoAtendimentoAee } from '@/types/aluno'
-import { baixarEstudoCasoWord } from '@/lib/baixarEstudoCaso'
+import { baixarEstudoCasoPdf, baixarEstudoCasoWord } from '@/lib/baixarEstudoCaso'
+import { baixarPlanejamentoPdf, baixarPlanejamentoWord } from '@/lib/baixarPlanejamento'
+import { baixarAvaliacaoDiagnosticaPdf, baixarAvaliacaoDiagnosticaWord } from '@/lib/baixarAvaliacaoDiagnostica'
 
 export default function AlunoProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -90,8 +90,6 @@ export default function AlunoProfilePage() {
   if (!aluno) return <p className="text-muted-foreground">Aluno não encontrado.</p>
   const alunoId = aluno.id ?? 0
   const alunoNome = aluno.nomeCompleto
-  const alunoAno = aluno.ano
-  const alunoLaudos = aluno.laudos
 
   const initials = aluno.nomeCompleto
     .split(' ')
@@ -122,152 +120,63 @@ export default function AlunoProfilePage() {
 
   const tipoAtendimentoLabel = labelTipoAtendimentoAee(aluno.tipoAtendimentoAee)
 
-  async function baixarEstudoNaLista(estudoId: number) {
+  async function baixarEstudoPdf(estudoId: number) {
     try {
-      await baixarEstudoCasoWord(estudoId)
-      success('Download iniciado', 'Arquivo Word do estudo de caso baixado.')
+      await baixarEstudoCasoPdf(estudoId)
+      success('PDF gerado', 'Arquivo baixado com sucesso.')
     } catch (err: unknown) {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     }
   }
 
-  async function exportarPaeeWord(pdi: PlanejamentoAluno) {
-    const laudos = alunoLaudos?.map((l) => l.codigoCid).filter(Boolean).join(', ') || 'Não informado'
-    const periodoInicio = pdi.dataInicio ? new Date(pdi.dataInicio).toLocaleDateString('pt-BR') : 'Não informado'
-    const periodoFim = pdi.dataFim ? new Date(pdi.dataFim).toLocaleDateString('pt-BR') : 'Não informado'
-    const bullet = (text: string) =>
-      new Paragraph({
-        children: [new TextRun({ text: `• ${text}`, size: 24 })],
-        indent: { left: 560 },
-        spacing: { after: 180 },
-      })
-
-    const doc = new Document({
-      creator: 'Plural Plataforma',
-      title: `PAEE - ${alunoNome}`,
-      sections: [
-        {
-          properties: {
-            page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } },
-          },
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: 'PLANO DE ATENDIMENTO EDUCACIONAL ESPECIALIZADO (PAEE)',
-                  bold: true,
-                  size: 36,
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 800 },
-            }),
-
-            new Paragraph({ children: [new TextRun({ text: '1. IDENTIFICAÇÃO DO (A) ALUNO (A):', bold: true, size: 26 })] }),
-            new Paragraph({ children: [new TextRun('Nome: '), new TextRun({ text: alunoNome, bold: true })] }),
-            new Paragraph({ children: [new TextRun(`Ano escolar/período: ${alunoAno || '___'}º ano`)] }),
-            new Paragraph({ children: [new TextRun('Diagnóstico Médico: '), new TextRun(laudos)] }),
-            new Paragraph({ spacing: { after: 600 } }),
-
-            new Paragraph({ children: [new TextRun({ text: '2. ORGANIZAÇÃO DO ATENDIMENTO:', bold: true, size: 26 })] }),
-            new Paragraph({ children: [new TextRun('Período de execução: '), new TextRun(`${periodoInicio} até ${periodoFim}`)] }),
-            new Paragraph({
-              children: [
-                new TextRun(
-                  `Frequência no AEE (cadastro): ${aluno.frequenciaSemanalAtendimento != null ? `${aluno.frequenciaSemanalAtendimento} vez(es) por semana` : '___'}`
-                ),
-              ],
-            }),
-            new Paragraph({
-              children: [
-                new TextRun(
-                  `Dias: ${aluno.diasSemanaAtendimento?.length ? aluno.diasSemanaAtendimento.join(', ') : '___'} · Duração: ${aluno.duracaoAtendimentoMinutos != null ? `${aluno.duracaoAtendimentoMinutos} min` : '___'} · Tipo: ${tipoAtendimentoLabel ?? '___'}`
-                ),
-              ],
-            }),
-            new Paragraph({ spacing: { after: 600 } }),
-
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: '3. OBJETIVOS DO PAEE: (o que é preciso atingir, meta)',
-                  bold: true,
-                  size: 26,
-                }),
-              ],
-            }),
-            new Paragraph({ spacing: { after: 300 } }),
-            ...(pdi.habilidades?.length
-              ? pdi.habilidades.map((h) =>
-                  bullet(h.descricao || h.resumo || `Habilidade ${h.id}`)
-                )
-              : [new Paragraph({
-                children: [new TextRun({ text: '• Nenhuma habilidade vinculada.', italics: true, color: '666666' })],
-                indent: { left: 560 },
-                spacing: { after: 300 },
-              })]),
-            new Paragraph({ spacing: { after: 600 } }),
-
-            new Paragraph({ children: [new TextRun({ text: '4. ESTRATÉGIAS A SEREM UTILIZADAS:', bold: true, size: 26 })] }),
-            new Paragraph({ spacing: { after: 300 } }),
-            ...(pdi.estrategias?.length
-              ? pdi.estrategias.map((e) => bullet(e.descricao))
-              : [new Paragraph({
-                children: [new TextRun({ text: '• Nenhuma estratégia cadastrada.', italics: true, color: '666666' })],
-                indent: { left: 560 },
-                spacing: { after: 300 },
-              })]),
-
-            new Paragraph({ children: [new TextRun({ text: '5. CRITÉRIOS AVALIATIVOS:', bold: true, size: 26 })] }),
-            new Paragraph({ spacing: { after: 300 } }),
-            ...(pdi.avaliacao?.length
-              ? pdi.avaliacao.map((a) => bullet(a.descricao))
-              : [new Paragraph({
-                children: [new TextRun({ text: '• Nenhum critério cadastrado.', italics: true, color: '666666' })],
-                indent: { left: 560 },
-                spacing: { after: 300 },
-              })]),
-            new Paragraph({ spacing: { after: 1000 } }),
-
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}`,
-                  italics: true,
-                  size: 20,
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-            }),
-          ],
-        },
-      ],
-    })
-
-    const blob = await Packer.toBlob(doc)
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `PAEE_${alunoNome.replace(/[^a-zA-Z0-9]/g, '_')}_${pdi.apelido}.docx`
-    link.click()
-    window.URL.revokeObjectURL(url)
+  async function baixarEstudoWord(estudoId: number) {
+    try {
+      await baixarEstudoCasoWord(estudoId)
+      success('Word gerado', 'Arquivo .docx baixado com sucesso.')
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    }
   }
 
-  async function baixarPdfAvaliacaoDiagnostica(avaliacaoId: number) {
+  async function baixarPaeePdf(planejamentoId: number) {
     try {
-      const blob = await gerarPdfBlob(avaliacaoId)
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `avaliacao-diagnostica-${avaliacaoId}.pdf`
-      link.click()
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Erro ao baixar PDF da avaliação diagnóstica:', error)
+      await baixarPlanejamentoPdf(planejamentoId)
+      success('PDF gerado', 'Arquivo baixado com sucesso.')
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    }
+  }
+
+  async function baixarPaeeWord(planejamentoId: number) {
+    try {
+      await baixarPlanejamentoWord(planejamentoId)
+      success('Word gerado', 'Arquivo .docx baixado com sucesso.')
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    }
+  }
+
+  async function baixarAvaliacaoPdf(avaliacaoId: number) {
+    try {
+      await baixarAvaliacaoDiagnosticaPdf(avaliacaoId)
+      success('PDF gerado', 'Arquivo baixado com sucesso.')
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    }
+  }
+
+  async function baixarAvaliacaoWord(avaliacaoId: number) {
+    try {
+      await baixarAvaliacaoDiagnosticaWord(avaliacaoId)
+      success('Word gerado', 'Arquivo .docx baixado com sucesso.')
+    } catch (err: unknown) {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
     }
   }
 
@@ -448,10 +357,11 @@ export default function AlunoProfilePage() {
                       <ArrowSquareOut size={14} />
                       Abrir
                     </Button>
-                    <Button size="sm" onClick={() => exportarPaeeWord(p)}>
-                      <DownloadSimple size={14} />
-                      Baixar
-                    </Button>
+                    <DownloadFormatMenu
+                      ariaLabel={`Baixar PAEE ${p.apelido}`}
+                      onPdf={() => baixarPaeePdf(p.id)}
+                      onWord={() => baixarPaeeWord(p.id)}
+                    />
                   </div>
                 </div>
               ))}
@@ -496,15 +406,11 @@ export default function AlunoProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        aria-label={`Baixar estudo de caso ${ec.titulo}`}
-                        onClick={() => void baixarEstudoNaLista(ec.id)}
-                      >
-                        <DownloadSimple size={14} />
-                        Baixar
-                      </Button>
+                      <DownloadFormatMenu
+                        ariaLabel={`Baixar estudo de caso ${ec.titulo}`}
+                        onPdf={() => baixarEstudoPdf(ec.id)}
+                        onWord={() => baixarEstudoWord(ec.id)}
+                      />
                       <Button size="sm" variant="outline" onClick={() => setEstudoCasoDetalheId(ec.id)}>
                         Ver detalhes
                       </Button>
@@ -545,11 +451,11 @@ export default function AlunoProfilePage() {
                       <ArrowSquareOut size={14} />
                       Abrir
                     </Button>
-                    {/* Desempenho oculto: recurso sem utilidade no fluxo atual. */}
-                    <Button size="sm" onClick={() => baixarPdfAvaliacaoDiagnostica(avaliacao.id)}>
-                      <DownloadSimple size={14} />
-                      PDF
-                    </Button>
+                    <DownloadFormatMenu
+                      ariaLabel={`Baixar avaliação ${avaliacao.titulo}`}
+                      onPdf={() => baixarAvaliacaoPdf(avaliacao.id)}
+                      onWord={() => baixarAvaliacaoWord(avaliacao.id)}
+                    />
                   </div>
                 </div>
               ))}

@@ -1,19 +1,18 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import {
   NotePencil,
   Plus,
   PencilSimple,
   Trash,
   DownloadSimple,
+  User,
 } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import { PageHeader } from '@/components/common/PageHeader'
-import { SkeletonList } from '@/components/common/SkeletonCard'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +27,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  AnimatedList,
+  AnimatedListItem,
+  ListFilterBar,
+  ListPageLayout,
+  ListResultToolbar,
+  ResourceListCard,
+  listDangerIconButtonClass,
+} from '@/components/lists'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { sortByField } from '@/lib/utils'
@@ -224,7 +232,7 @@ export default function RelatosPage() {
   const alunosOrd = sortByField(alunos, 'nomeCompleto')
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+    <>
       <PageHeader
         title="Registro de atendimento"
         description="Registro de sessões do AEE, presença e observações pedagógicas."
@@ -240,9 +248,12 @@ export default function RelatosPage() {
         }
       />
 
-      <Card className="mt-6">
-        <CardContent className="pt-5 space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
+      <ListPageLayout
+        isLoading={isLoading}
+        isEmpty={relatos.length === 0}
+        skeletonCount={5}
+        filters={
+          <ListFilterBar>
             <div className="grid grid-cols-2 gap-2 min-w-[200px] flex-1">
               <Input
                 label="De"
@@ -268,71 +279,80 @@ export default function RelatosPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="mt-4">
-        {isLoading ? (
-          <SkeletonList count={5} />
-        ) : relatos.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            Nenhum relato neste período. Ajuste as datas ou registre uma nova sessão.
-          </p>
-        ) : (
-          <div className="rounded-xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[720px]">
-                <thead>
-                  <tr className="border-b bg-muted/50 text-left">
-                    <th className="px-3 py-2 font-semibold">Data</th>
-                    <th className="px-3 py-2 font-semibold">Aluno</th>
-                    <th className="px-3 py-2 font-semibold">Presença</th>
-                    <th className="px-3 py-2 font-semibold">PAEE</th>
-                    <th className="px-3 py-2 font-semibold w-[120px]" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {relatos.map((r) => (
-                    <tr key={r.id} className="border-b border-border odd:bg-muted/20">
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {new Date(`${r.dataSessao}T12:00:00`).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-3 py-2">{r.alunoNome}</td>
-                      <td className="px-3 py-2">{r.presencaPresente ? 'Presente' : 'Ausente'}</td>
-                      <td className="px-3 py-2 text-muted-foreground truncate max-w-[200px]" title={r.planejamentoApelido ?? ''}>
-                        {r.planejamentoApelido ?? '—'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex gap-1 justify-end">
-                          <Button variant="ghost" size="sm" type="button" aria-label={`Editar relato ${r.id}`} onClick={() => abrirEditar(r)}>
-                            <PencilSimple size={16} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            className="text-destructive hover:text-destructive"
-                            aria-label={`Excluir relato ${r.id}`}
-                            disabled={excluirMutation.isPending}
-                            onClick={() => {
-                              if (window.confirm('Excluir este relato permanentemente?')) {
-                                excluirMutation.mutate(r.id)
-                              }
-                            }}
-                          >
-                            <Trash size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
+          </ListFilterBar>
+        }
+        empty={
+          <EmptyState
+            icon={<NotePencil size={32} />}
+            title="Nenhum relato neste período"
+            description="Ajuste as datas ou registre uma nova sessão de atendimento."
+            action={
+              <Button size="sm" type="button" onClick={abrirNovo}>
+                <Plus size={16} /> Novo registro
+              </Button>
+            }
+          />
+        }
+        toolbar={<ListResultToolbar count={relatos.length} noun="registro" nounPlural="registros" />}
+      >
+        <AnimatedList>
+          {relatos.map((r, i) => (
+            <AnimatedListItem key={r.id} itemKey={r.id} index={i}>
+              <ResourceListCard
+                icon={<NotePencil size={20} weight="duotone" />}
+                title={new Date(`${r.dataSessao}T12:00:00`).toLocaleDateString('pt-BR', {
+                  weekday: 'short',
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+                badges={[
+                  {
+                    label: r.presencaPresente ? 'Presente' : 'Ausente',
+                    variant: r.presencaPresente ? 'success' : 'danger',
+                  },
+                ]}
+                subtitle={
+                  <span className="inline-flex items-center gap-1">
+                    <User size={12} />
+                    {r.alunoNome}
+                  </span>
+                }
+                meta={
+                  r.planejamentoApelido ? (
+                    <span>{r.planejamentoApelido}</span>
+                  ) : (
+                    <span className="italic">Sem PAEE vinculado</span>
+                  )
+                }
+                actions={
+                  <>
+                    <Button variant="outline" size="sm" type="button" onClick={() => abrirEditar(r)}>
+                      <PencilSimple size={14} />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      className={listDangerIconButtonClass}
+                      aria-label={`Excluir relato ${r.id}`}
+                      disabled={excluirMutation.isPending}
+                      onClick={() => {
+                        if (window.confirm('Excluir este relato permanentemente?')) {
+                          excluirMutation.mutate(r.id)
+                        }
+                      }}
+                    >
+                      <Trash size={18} weight="bold" />
+                    </Button>
+                  </>
+                }
+              />
+            </AnimatedListItem>
+          ))}
+        </AnimatedList>
+      </ListPageLayout>
 
       <Dialog open={dlgOpen} onOpenChange={(o) => !o && setDlgOpen(false)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
@@ -451,6 +471,6 @@ export default function RelatosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </>
   )
 }

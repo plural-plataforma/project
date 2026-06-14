@@ -14,6 +14,8 @@ const buttonVariants = cva(
           'bg-amber text-amber-foreground shadow-sm hover:bg-amber/90 active:scale-[0.98]',
         outline:
           'border border-primary text-primary bg-transparent hover:bg-primary-light active:scale-[0.98]',
+        secondary:
+          'bg-primary-light text-primary hover:bg-primary-light/70 active:scale-[0.98]',
         ghost:
           'text-primary hover:bg-primary-light active:scale-[0.98]',
         destructive:

@@ -63,13 +63,27 @@ export async function downloadAvaliacaoDiagnosticaDocx(
       )
     )
     for (const perfil of [...perfis].sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto))) {
-      const pct =
-        perfil.percentualAutonomiaCalculado != null
-          ? ` — Índice de autonomia: ${Math.round(perfil.percentualAutonomiaCalculado)}%`
-          : ''
-      children.push(paragrafo(`${perfil.nomeCompleto}${pct}`, { bold: true, spacingAfter: 60 }))
+      children.push(paragrafo(`${perfil.nomeCompleto}`, { bold: true, spacingAfter: 60 }))
       children.push(paragrafo(perfil.rotuloExibicao, { size: 20, spacingAfter: 60 }))
-      children.push(paragrafo(`Sugestão PAEE: ${perfil.sugestaoPaee}`, { size: 20, spacingAfter: 200 }))
+      children.push(paragrafo(`Sugestão PAEE: ${perfil.sugestaoPaee}`, { size: 20, spacingAfter: 60 }))
+      if (perfil.habilidadesAReenforcar?.trim()) {
+        children.push(
+          paragrafo(`Habilidades a reforçar: ${perfil.habilidadesAReenforcar.trim()}`, {
+            size: 20,
+            spacingAfter: 60,
+          })
+        )
+      }
+      if (perfil.habilidadesFortes?.trim()) {
+        children.push(
+          paragrafo(`Habilidades fortes: ${perfil.habilidadesFortes.trim()}`, {
+            size: 20,
+            spacingAfter: 200,
+          })
+        )
+      } else {
+        children.push(paragrafo(' ', { size: 20, spacingAfter: 140 }))
+      }
     }
   }
 
