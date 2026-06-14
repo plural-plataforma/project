@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { CheckCircle, DownloadSimple, FilePdf, ListChecks } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/useToast'
+import { EstudoCasoDocumentoViewer } from '@/components/estudo-caso/EstudoCasoDocumentoViewer'
 import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
 import { downloadEstudoCasoPdf } from '@/lib/exportEstudoCasoPdf'
 import {
@@ -88,16 +89,15 @@ export function EstudoCasoStep4Resultado() {
       {jaSalvo && (
         <>
           <p className="text-sm font-medium text-foreground">
-            Estudo #{casoIdSalvo} — revise o texto abaixo antes de usar oficialmente.
+            Estudo #{casoIdSalvo} — revise o texto abaixo antes de exportar.
           </p>
-          <motion.pre
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
-            className="whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground max-h-[420px] overflow-y-auto"
           >
-            {textoSimulado}
-          </motion.pre>
+            <EstudoCasoDocumentoViewer texto={textoSimulado} scrollClassName="max-h-[480px]" />
+          </motion.div>
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={baixarPdf}>

@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
 
 export interface ExportEstudoCasoPdfParams {
   tituloEstudo: string
@@ -79,7 +80,7 @@ export function downloadEstudoCasoPdf(params: ExportEstudoCasoPdfParams): void {
     return linhasQuebradas.length
   }
 
-  const linhas = params.textoCompleto.split(/\r?\n/)
+  const linhas = sanitizarTextoEstudoCaso(params.textoCompleto).split(/\r?\n/)
   let proximaESubtitulo = false
 
   for (const linha of linhas) {

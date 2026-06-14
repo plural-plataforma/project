@@ -1,6 +1,7 @@
 import { AlignmentType, Document, Packer, Paragraph, TextRun } from 'docx'
 import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
 import { baixarEstudoCasoWord } from '@/lib/baixarEstudoCaso'
+import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
 import { buscarPlanejamentoPorId } from '@/services/planejamentoService'
 import { buscarEstudoCasoPorId, gerarTextoSimuladoEstudoCaso } from '@/services/estudoCasoService'
 import type { Planejamento } from '@/types/planejamento'
@@ -19,7 +20,7 @@ export async function baixarFusaoEstudoCasoPaee(params: {
   if (!detalhe.textoSimulado?.trim()) {
     detalhe = await gerarTextoSimuladoEstudoCaso(params.estudoId)
   }
-  const textoEstudo = detalhe.textoSimulado?.trim()
+  const textoEstudo = sanitizarTextoEstudoCaso(detalhe.textoSimulado?.trim() ?? '')
   if (!textoEstudo) throw new Error('Estudo de caso sem texto para download.')
 
   const plano: Planejamento = await buscarPlanejamentoPorId(params.planejamentoId)

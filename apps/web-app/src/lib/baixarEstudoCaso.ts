@@ -1,5 +1,6 @@
 import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
 import { downloadEstudoCasoPdf } from '@/lib/exportEstudoCasoPdf'
+import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
 import { buscarEstudoCasoPorId, gerarTextoSimuladoEstudoCaso } from '@/services/estudoCasoService'
 
 async function obterTextoEstudo(estudoId: number): Promise<{
@@ -11,7 +12,7 @@ async function obterTextoEstudo(estudoId: number): Promise<{
   if (!detalhe.textoSimulado?.trim()) {
     detalhe = await gerarTextoSimuladoEstudoCaso(estudoId)
   }
-  const texto = detalhe.textoSimulado?.trim()
+  const texto = sanitizarTextoEstudoCaso(detalhe.textoSimulado?.trim() ?? '')
   if (!texto) throw new Error('Não há texto disponível para download.')
   return {
     titulo: detalhe.titulo.trim() || 'Estudo de caso',

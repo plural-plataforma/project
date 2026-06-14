@@ -1,8 +1,11 @@
 import { jsPDF } from 'jspdf'
 import type { Planejamento } from '@/types/planejamento'
+import type { Aluno } from '@/types/aluno'
+import { formatOrganizacaoAtendimentoAluno } from '@/lib/paeeExportHelpers'
 
 export interface ExportPaeePlanejamentoPdfParams {
   planejamento: Planejamento
+  alunoAtendimento?: Aluno | null
 }
 
 function slugArquivoPart(texto: string): string {
@@ -53,7 +56,7 @@ function addParagraph(doc: jsPDF, text: string, y: number, margin: number, maxW:
   return y + 4
 }
 
-/** PDF texto com estrutura alinhada ao Word/aba Encontros (sem coluna Realizado). */
+/** PDF texto com estrutura alinhada ao Word/aba Encontros. */
 export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfParams): void {
   const p = params.planejamento
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
@@ -81,15 +84,24 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
   const nomes = (p.alunos ?? []).map((a) => a.nomeCompleto).filter(Boolean)
   y = addParagraph(doc, nomes.length ? nomes.map((n) => `• ${n}`).join('\n') : 'Nenhum aluno vinculado.', y, margin, maxW)
 
-  y = addSection(doc, '2. PERÍODO', y, margin, maxW)
+  y = addSection(doc, '2. PERÍODO E ORGANIZAÇÃO DO ATENDIMENTO', y, margin, maxW)
   y = addParagraph(doc, `Período do PAEE: ${periodoInicio} até ${periodoFim}`, y, margin, maxW)
+  const textoOrg =
+    nomes.length > 1
+      ? 'Vários alunos vinculados — consultar cadastro individual.'
+      : nomes.length === 1 && params.alunoAtendimento
+        ? formatOrganizacaoAtendimentoAluno(params.alunoAtendimento)
+        : nomes.length === 1
+          ? 'Conferir cadastro do aluno para frequência e dias.'
+          : 'Informar quando houver aluno(s) vinculado(s).'
+  y = addParagraph(doc, textoOrg, y, margin, maxW)
 
-  y = addSection(doc, '3. OBJETIVOS', y, margin, maxW)
+  y = addSection(doc, '3. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO', y, margin, maxW)
   y = addParagraph(doc, `Curto prazo: ${textoObj(p.objetivoCurtoPrazo)}`, y, margin, maxW)
   y = addParagraph(doc, `Médio prazo: ${textoObj(p.objetivoMedioPrazo)}`, y, margin, maxW)
   y = addParagraph(doc, `Longo prazo: ${textoObj(p.objetivoLongoPrazo)}`, y, margin, maxW)
 
-  y = addSection(doc, '4. HABILIDADES', y, margin, maxW)
+  y = addSection(doc, '4. OBJETIVOS RELACIONADOS ÀS HABILIDADES', y, margin, maxW)
   y = addParagraph(
     doc,
     p.habilidades?.length
@@ -100,7 +112,7 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
     maxW
   )
 
-  y = addSection(doc, '5. ESTRATÉGIAS', y, margin, maxW)
+  y = addSection(doc, '5. ESTRATÉGIAS A SEREM UTILIZADAS', y, margin, maxW)
   y = addParagraph(
     doc,
     p.estrategias?.length
@@ -132,6 +144,7 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
       const bloco = [
         `Data: ${dataFmt}`,
         `Planejado: ${(enc.textoPlanejado ?? '').trim() || '—'}`,
+        `Realizado: ${(enc.textoRealizado ?? '').trim() || '—'}`,
         `Habilidade: ${labelHabilidade(p, enc.habilidadeId)}`,
         `Estratégia: ${labelEstrategia(p, enc.estrategiaId)}`,
       ].join('\n')
@@ -139,6 +152,19 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
       y += 2
     }
   }
+
+  y = addSection(doc, '8. ASSINATURA', y, margin, maxW)
+  y = addParagraph(
+    doc,
+    [
+      `Documento declarado assinado: ${p.documentoDeclaradoAssinado ? 'Sim' : 'Não'}`,
+      `Responsável: ${(p.assinaturaNomeResponsavel ?? '').trim() || '(não informado)'}`,
+      `Cargo: ${(p.assinaturaCargo ?? '').trim() || '(não informado)'}`,
+    ].join('\n'),
+    y,
+    margin,
+    maxW
+  )
 
   y = addParagraph(
     doc,

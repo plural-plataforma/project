@@ -49,6 +49,8 @@ import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
 import dayjs from 'dayjs'
 import { sortByField } from '@/lib/utils'
 import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
+import { PlanejamentoObjetivosTab } from './PlanejamentoObjetivosTab'
+import { PlanejamentoRevisaoTab } from './PlanejamentoRevisaoTab'
 
 const NIVEL_ENSINO_MAP: Record<number, string> = {
   1: 'Ed. Infantil',
@@ -87,6 +89,12 @@ export default function PlanejamentoDetailPage() {
   const [objCurto, setObjCurto] = useState('')
   const [objMedio, setObjMedio] = useState('')
   const [objLongo, setObjLongo] = useState('')
+  const [objCurtoCatalogoId, setObjCurtoCatalogoId] = useState<number | null>(null)
+  const [objMedioCatalogoId, setObjMedioCatalogoId] = useState<number | null>(null)
+  const [objLongoCatalogoId, setObjLongoCatalogoId] = useState<number | null>(null)
+  const [docAssinado, setDocAssinado] = useState(false)
+  const [assinaturaNome, setAssinaturaNome] = useState('')
+  const [assinaturaCargo, setAssinaturaCargo] = useState('')
   const [encLinhas, setEncLinhas] = useState<LinhaPaeeEnc[]>([])
   const datasAutoCarregadasRef = useRef<number | null>(null)
 
@@ -166,6 +174,12 @@ export default function PlanejamentoDetailPage() {
     setObjCurto(plan.objetivoCurtoPrazo ?? '')
     setObjMedio(plan.objetivoMedioPrazo ?? '')
     setObjLongo(plan.objetivoLongoPrazo ?? '')
+    setObjCurtoCatalogoId(plan.objetivoCurtoCatalogoId ?? null)
+    setObjMedioCatalogoId(plan.objetivoMedioCatalogoId ?? null)
+    setObjLongoCatalogoId(plan.objetivoLongoCatalogoId ?? null)
+    setDocAssinado(plan.documentoDeclaradoAssinado ?? false)
+    setAssinaturaNome(plan.assinaturaNomeResponsavel ?? '')
+    setAssinaturaCargo(plan.assinaturaCargo ?? '')
 
     const salvos = plan.encontros ?? []
     if (salvos.length > 0) {
@@ -174,6 +188,7 @@ export default function PlanejamentoDetailPage() {
           key: `e-${e.id}`,
           dataEnc: e.dataEnc,
           textoPlanejado: e.textoPlanejado ?? '',
+          textoRealizado: e.textoRealizado ?? '',
           habilidadeId: e.habilidadeId ?? null,
           estrategiaId: e.estrategiaId ?? null,
         })),
@@ -196,6 +211,7 @@ export default function PlanejamentoDetailPage() {
             key: novaLinhaEncKey(),
             dataEnc: d,
             textoPlanejado: '',
+            textoRealizado: '',
             habilidadeId: null,
             estrategiaId: null,
           })),
@@ -217,6 +233,9 @@ export default function PlanejamentoDetailPage() {
         objetivoCurtoPrazo: objCurto,
         objetivoMedioPrazo: objMedio,
         objetivoLongoPrazo: objLongo,
+        objetivoCurtoCatalogoId: objCurtoCatalogoId,
+        objetivoMedioCatalogoId: objMedioCatalogoId,
+        objetivoLongoCatalogoId: objLongoCatalogoId,
       })
     },
     onSuccess: () => {
@@ -234,6 +253,7 @@ export default function PlanejamentoDetailPage() {
       const payload: PaeeEncontroEntrada[] = encLinhas.map((row) => ({
         dataEnc: row.dataEnc,
         textoPlanejado: row.textoPlanejado,
+        textoRealizado: row.textoRealizado,
         habilidadeId: row.habilidadeId,
         estrategiaId: row.estrategiaId,
       }))
@@ -242,7 +262,31 @@ export default function PlanejamentoDetailPage() {
     onSuccess: () => {
       success('Encontros salvos!')
       void qc.invalidateQueries({ queryKey: ['planejamentos'] })
-      navigate('/planejamentos')
+      invalidate()
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const salvarAssinaturaMutation = useMutation({
+    mutationFn: async () => {
+      if (!plan) throw new Error('Plano indisponível')
+      await atualizarPlanejamento({
+        id: Number(id),
+        apelido: plan.apelido,
+        dataInicio: plan.dataInicio,
+        dataFim: plan.dataFim,
+        descicaoPlanejamento: plan.descicaoPlanejamento,
+        documentoDeclaradoAssinado: docAssinado,
+        assinaturaNomeResponsavel: assinaturaNome.trim() || null,
+        assinaturaCargo: assinaturaCargo.trim() || null,
+      })
+    },
+    onSuccess: () => {
+      success('Assinatura salva!')
+      invalidate()
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -267,6 +311,7 @@ export default function PlanejamentoDetailPage() {
               key: novaLinhaEncKey(),
               dataEnc: d,
               textoPlanejado: '',
+              textoRealizado: '',
               habilidadeId: null,
               estrategiaId: null,
             })
@@ -294,15 +339,22 @@ export default function PlanejamentoDetailPage() {
       objetivoCurtoPrazo: objCurto,
       objetivoMedioPrazo: objMedio,
       objetivoLongoPrazo: objLongo,
+      objetivoCurtoCatalogoId: objCurtoCatalogoId,
+      objetivoMedioCatalogoId: objMedioCatalogoId,
+      objetivoLongoCatalogoId: objLongoCatalogoId,
+      documentoDeclaradoAssinado: docAssinado,
+      assinaturaNomeResponsavel: assinaturaNome.trim() || null,
+      assinaturaCargo: assinaturaCargo.trim() || null,
       encontros: encOrd.map((r, ix) => ({
         id: ix + 1,
         dataEnc: r.dataEnc,
         textoPlanejado: r.textoPlanejado || null,
+        textoRealizado: r.textoRealizado || null,
         habilidadeId: r.habilidadeId ?? null,
         estrategiaId: r.estrategiaId ?? null,
       })),
     }
-  }, [plan, objCurto, objMedio, objLongo, encLinhas])
+  }, [plan, objCurto, objMedio, objLongo, objCurtoCatalogoId, objMedioCatalogoId, objLongoCatalogoId, docAssinado, assinaturaNome, assinaturaCargo, encLinhas])
 
   if (isLoading) return <SkeletonList count={4} />
   if (!plan) return <p className="text-muted-foreground">Planejamento não encontrado.</p>
@@ -402,6 +454,8 @@ export default function PlanejamentoDetailPage() {
           <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
           <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
           <TabsTrigger value="encontros">Encontros</TabsTrigger>
+          <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
+          <TabsTrigger value="revisao">Revisão</TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral" className="mt-6 space-y-4">
@@ -565,54 +619,22 @@ export default function PlanejamentoDetailPage() {
         </TabsContent>
 
         <TabsContent value="objetivos" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Objetivos (curto, médio e longo prazo)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="obj-curto" className="text-sm font-semibold text-foreground">Curto prazo</label>
-                <textarea
-                  id="obj-curto"
-                  rows={3}
-                  value={objCurto}
-                  onChange={(e) => setObjCurto(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="obj-medio" className="text-sm font-semibold text-foreground">Médio prazo</label>
-                <textarea
-                  id="obj-medio"
-                  rows={3}
-                  value={objMedio}
-                  onChange={(e) => setObjMedio(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="obj-longo" className="text-sm font-semibold text-foreground">Longo prazo</label>
-                <textarea
-                  id="obj-longo"
-                  rows={3}
-                  value={objLongo}
-                  onChange={(e) => setObjLongo(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  loading={salvarObjetivosMutation.isPending}
-                  onClick={() => salvarObjetivosMutation.mutate()}
-                  type="button"
-                >
-                  Salvar objetivos
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <PlanejamentoObjetivosTab
+            objCurto={objCurto}
+            objMedio={objMedio}
+            objLongo={objLongo}
+            objCurtoCatalogoId={objCurtoCatalogoId}
+            objMedioCatalogoId={objMedioCatalogoId}
+            objLongoCatalogoId={objLongoCatalogoId}
+            onObjCurtoChange={setObjCurto}
+            onObjMedioChange={setObjMedio}
+            onObjLongoChange={setObjLongo}
+            onObjCurtoCatalogoIdChange={setObjCurtoCatalogoId}
+            onObjMedioCatalogoIdChange={setObjMedioCatalogoId}
+            onObjLongoCatalogoIdChange={setObjLongoCatalogoId}
+            onSave={() => salvarObjetivosMutation.mutate()}
+            saving={salvarObjetivosMutation.isPending}
+          />
         </TabsContent>
 
         <TabsContent value="encontros" className="mt-6 space-y-4">
@@ -640,6 +662,7 @@ export default function PlanejamentoDetailPage() {
                           key: novaLinhaEncKey(),
                           dataEnc: plan.dataInicio,
                           textoPlanejado: '',
+                          textoRealizado: '',
                           habilidadeId: null,
                           estrategiaId: null,
                         }].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc)),
@@ -663,11 +686,12 @@ export default function PlanejamentoDetailPage() {
               {!encLinhas.length ? (
                 <p className="text-sm text-muted-foreground">Nenhuma linha — vincule um aluno com dias de atendimento ou use Nova linha.</p>
               ) : (
-                <table className="w-full text-sm border-collapse border border-border min-w-[640px]">
+                <table className="w-full text-sm border-collapse border border-border min-w-[800px]">
                   <thead>
                     <tr className="border-b bg-muted/40">
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Data</th>
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Planejado</th>
+                      <th className="text-left border-r border-border px-2 py-2 font-medium">Realizado</th>
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Habilidade</th>
                       <th className="text-left border-r border-border px-2 py-2 font-medium">Estratégia</th>
                       <th className="w-[44px]" aria-label="Remover" />
@@ -690,7 +714,7 @@ export default function PlanejamentoDetailPage() {
                             className="rounded border border-input bg-background px-1 py-1 w-full max-w-[11rem]"
                           />
                         </td>
-                        <td className="border-r align-top p-2 w-[28%]">
+                        <td className="border-r align-top p-2 w-[22%]">
                           <textarea
                             rows={2}
                             aria-label={`Conteúdo planejado encontro ${idx + 1}`}
@@ -702,7 +726,19 @@ export default function PlanejamentoDetailPage() {
                             className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
                           />
                         </td>
-                        <td className="border-r align-top p-2 w-[20%]">
+                        <td className="border-r align-top p-2 w-[22%]">
+                          <textarea
+                            rows={2}
+                            aria-label={`Conteúdo realizado encontro ${idx + 1}`}
+                            value={linha.textoRealizado ?? ''}
+                            onChange={(ev) =>
+                              setEncLinhas(arr.map((r) =>
+                                r.key === linha.key ? { ...r, textoRealizado: ev.target.value } : r,
+                              ))}
+                            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-[3rem]"
+                          />
+                        </td>
+                        <td className="border-r align-top p-2 w-[16%]">
                           <select
                             aria-label={`Habilidade encontro ${idx + 1}`}
                             className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
@@ -722,7 +758,7 @@ export default function PlanejamentoDetailPage() {
                             ))}
                           </select>
                         </td>
-                        <td className="border-r align-top p-2 w-[20%]">
+                        <td className="border-r align-top p-2 w-[16%]">
                           <select
                             aria-label={`Estratégia encontro ${idx + 1}`}
                             className="w-full rounded border border-input bg-background px-1 py-1 text-xs"
@@ -763,6 +799,68 @@ export default function PlanejamentoDetailPage() {
             As datas são pré-preenchidas com base no primeiro aluno vinculado (dias da semana e frequência do cadastro).
             Use &quot;Sugestão de datas&quot; para incluir novas datas ou &quot;Nova linha&quot; para adicionar manualmente.
           </p>
+        </TabsContent>
+
+        <TabsContent value="assinatura" className="mt-6 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Assinatura do documento</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Metadado para controle interno — não substitui assinatura digital certificada (ICP-Brasil).
+              </p>
+              <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={docAssinado}
+                  onChange={(e) => setDocAssinado(e.target.checked)}
+                  className="rounded border-input"
+                />
+                Documento declarado como assinado
+              </label>
+              <Input
+                label="Nome do responsável"
+                value={assinaturaNome}
+                onChange={(e) => setAssinaturaNome(e.target.value)}
+                placeholder="Ex.: Maria Silva"
+              />
+              <Input
+                label="Cargo / função"
+                value={assinaturaCargo}
+                onChange={(e) => setAssinaturaCargo(e.target.value)}
+                placeholder="Ex.: Professora de AEE"
+              />
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  loading={salvarAssinaturaMutation.isPending}
+                  onClick={() => salvarAssinaturaMutation.mutate()}
+                  type="button"
+                >
+                  Salvar assinatura
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="revisao" className="mt-6 space-y-4">
+          {planoParaExportacao && (
+            <PlanejamentoRevisaoTab
+              plano={planoParaExportacao}
+              onExportWord={() => {
+                void (async () => {
+                  try {
+                    await downloadPaeePlanejamentoDocx({ planejamento: planoParaExportacao })
+                    success('Arquivo Word gerado.')
+                  } catch (e: unknown) {
+                    showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
+                  }
+                })()
+              }}
+            />
+          )}
         </TabsContent>
       </Tabs>
 

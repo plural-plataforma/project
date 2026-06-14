@@ -25,6 +25,15 @@ export interface PaeeSugestaoDatas {
   datas: string[]
 }
 
+export interface PaeeObjetivoCatalogo {
+  id: number
+  codigo: string
+  rotulo: string
+  textoModelo: string
+  prazo: 'Curto' | 'Medio' | 'Longo' | string
+  ordemExibicao: number
+}
+
 export interface Planejamento {
   id: number
   apelido: string
@@ -34,6 +43,9 @@ export interface Planejamento {
   objetivoCurtoPrazo?: string | null
   objetivoMedioPrazo?: string | null
   objetivoLongoPrazo?: string | null
+  objetivoCurtoCatalogoId?: number | null
+  objetivoMedioCatalogoId?: number | null
+  objetivoLongoCatalogoId?: number | null
   documentoDeclaradoAssinado?: boolean
   assinaturaNomeResponsavel?: string | null
   assinaturaCargo?: string | null

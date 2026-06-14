@@ -1,5 +1,5 @@
 import { api } from '@/api/http'
-import type { Planejamento, PlanejamentoResponse, PaeeEncontroEntrada, PaeeSugestaoDatas } from '@/types/planejamento'
+import type { Planejamento, PlanejamentoResponse, PaeeEncontroEntrada, PaeeSugestaoDatas, PaeeObjetivoCatalogo } from '@/types/planejamento'
 import { getApiErrorMessageForUser } from '@/lib/apiFriendlyError'
 
 type ExcluirPlanejamentoResponse = { sucesso: boolean; mensagens?: string[] }
@@ -48,6 +48,9 @@ export const atualizarPlanejamento = async (payload: {
   objetivoCurtoPrazo?: string | null
   objetivoMedioPrazo?: string | null
   objetivoLongoPrazo?: string | null
+  objetivoCurtoCatalogoId?: number | null
+  objetivoMedioCatalogoId?: number | null
+  objetivoLongoCatalogoId?: number | null
   documentoDeclaradoAssinado?: boolean | null
   assinaturaNomeResponsavel?: string | null
   assinaturaCargo?: string | null
@@ -77,6 +80,18 @@ export const obterSugestaoDatasEncontros = async (idPlanejamento: number): Promi
   if (!response.data.sucesso)
     throw new Error(response.data.mensagens?.join(', ') || 'Não foi possível obter sugestão de datas')
   return response.data.objeto?.datas ?? []
+}
+
+export const buscarObjetivosPaeeCatalogo = async (): Promise<PaeeObjetivoCatalogo[]> => {
+  const response = await api.get<{
+    sucesso: boolean
+    mensagens?: string[]
+    listaObjetos?: PaeeObjetivoCatalogo[]
+  }>('/Planejamento/objetivos-catalogo')
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao buscar catálogo de objetivos')
+  }
+  return response.data.listaObjetos ?? []
 }
 
 export const excluirPlanejamento = async (id: number): Promise<void> => {

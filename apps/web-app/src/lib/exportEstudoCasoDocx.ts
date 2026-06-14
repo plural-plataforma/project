@@ -7,6 +7,7 @@ import {
   TextRun,
   convertInchesToTwip,
 } from 'docx'
+import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
 
 export interface ExportEstudoCasoDocxParams {
   tituloEstudo: string
@@ -233,7 +234,7 @@ function textoParaParagrafos(textoCompleto: string): Paragraph[] {
 
 /** Gera um .docx formatado conforme o template AEE definitivo. */
 export async function downloadEstudoCasoDocx(params: ExportEstudoCasoDocxParams): Promise<void> {
-  const children = textoParaParagrafos(params.textoCompleto)
+  const children = textoParaParagrafos(sanitizarTextoEstudoCaso(params.textoCompleto))
 
   const doc = new Document({
     creator: 'Plural Plataforma',

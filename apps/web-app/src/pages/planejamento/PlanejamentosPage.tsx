@@ -50,6 +50,7 @@ import { sortByField } from '@/lib/utils'
 import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { baixarPlanejamentoPdf, baixarPlanejamentoWord } from '@/lib/baixarPlanejamento'
+import { avaliarCompletudePaee } from '@/lib/paeeCompletude'
 import type { Aluno } from '@/types/aluno'
 import type { Planejamento } from '@/types/planejamento'
 import type { Habilidade } from '@/types/habilidade'
@@ -170,6 +171,7 @@ export default function PlanejamentosPage() {
     register,
     handleSubmit,
     reset,
+    trigger,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) as any })
 
@@ -318,6 +320,9 @@ export default function PlanejamentosPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Novo PAEE</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Após criar, complete objetivos, encontros e assinatura na página de detalhe do PAEE.
+            </p>
           </DialogHeader>
 
           {/* Stepper */}
@@ -552,8 +557,14 @@ export default function PlanejamentosPage() {
                     <Button
                       type="button"
                       onClick={() => {
-                        const idx = STEPS.findIndex((s) => s.id === step)
-                        setStep(STEPS[idx + 1].id)
+                        void (async () => {
+                          if (step === 'info') {
+                            const ok = await trigger(['apelido', 'dataInicio', 'dataFim'])
+                            if (!ok) return
+                          }
+                          const idx = STEPS.findIndex((s) => s.id === step)
+                          setStep(STEPS[idx + 1].id)
+                        })()
                       }}
                     >
                       Próximo
@@ -604,7 +615,12 @@ function PaeeCard({
   onDownloadSuccess: (title: string, message: string) => void
   onDownloadError: (title: string, message: string) => void
 }) {
+  const { completo, percentual } = avaliarCompletudePaee(p)
   const metaBadges = [
+    {
+      label: completo ? 'Completo' : `${percentual}%`,
+      variant: (completo ? 'success' : 'amber') as const,
+    },
     ...(p.alunos?.length
       ? [{ label: `${p.alunos.length} aluno${p.alunos.length !== 1 ? 's' : ''}`, variant: 'muted' as const }]
       : []),
