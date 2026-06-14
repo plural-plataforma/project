@@ -86,6 +86,8 @@ namespace api.DTOs.AvaliacaoDiagnostica
         public string SugestaoPaee { get; set; } = string.Empty;
         /// <summary>Percentual interno usado no corte (atividades em Autonomia sobre avaliadas), ou null se não aplicável.</summary>
         public double? PercentualAutonomiaCalculado { get; set; }
+        public string? HabilidadesFortes { get; set; }
+        public string? HabilidadesAReenforcar { get; set; }
     }
 
     public class AvaliacaoDiagnosticaDetailDTO

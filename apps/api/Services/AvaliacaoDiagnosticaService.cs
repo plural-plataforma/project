@@ -134,17 +134,46 @@ namespace api.Services
                     }
                 }
 
+                var existentes = await _contexto.DesempenhosAtividades
+                    .Where(d => d.AvaliacaoDiagnosticaId == dto.AvaliacaoDiagnosticaId)
+                    .ToListAsync();
+
                 foreach (var item in dto.Itens)
                 {
-                    _contexto.DesempenhosAtividades.Add(new DesempenhoAtividade
+                    var vigente = existentes
+                        .Where(d => d.AlunoId == item.AlunoId && d.AtividadeId == item.AtividadeId)
+                        .OrderByDescending(d => d.DataRegistro)
+                        .FirstOrDefault();
+
+                    if (vigente != null)
                     {
-                        AvaliacaoDiagnosticaId = dto.AvaliacaoDiagnosticaId,
-                        AlunoId = item.AlunoId,
-                        AtividadeId = item.AtividadeId,
-                        NivelRealizacao = item.NivelRealizacao,
-                        Observacao = item.Observacao,
-                        DataRegistro = DateTime.UtcNow,
-                    });
+                        vigente.NivelRealizacao = item.NivelRealizacao;
+                        vigente.Observacao = item.Observacao;
+                        vigente.DataRegistro = DateTime.UtcNow;
+
+                        var duplicatas = existentes
+                            .Where(d =>
+                                d.AlunoId == item.AlunoId
+                                && d.AtividadeId == item.AtividadeId
+                                && d.Id != vigente.Id)
+                            .ToList();
+                        if (duplicatas.Count > 0)
+                            _contexto.DesempenhosAtividades.RemoveRange(duplicatas);
+                    }
+                    else
+                    {
+                        var novo = new DesempenhoAtividade
+                        {
+                            AvaliacaoDiagnosticaId = dto.AvaliacaoDiagnosticaId,
+                            AlunoId = item.AlunoId,
+                            AtividadeId = item.AtividadeId,
+                            NivelRealizacao = item.NivelRealizacao,
+                            Observacao = item.Observacao,
+                            DataRegistro = DateTime.UtcNow,
+                        };
+                        _contexto.DesempenhosAtividades.Add(novo);
+                        existentes.Add(novo);
+                    }
                 }
 
                 foreach (var obsAluno in dto.ObservacoesAlunos.Where(o => !string.IsNullOrWhiteSpace(o.Observacao)))
@@ -166,6 +195,12 @@ namespace api.Services
                         DataRegistro = DateTime.UtcNow,
                     });
                 }
+
+                await _contexto.SaveChangesAsync();
+
+                var alunosAfetados = dto.Itens.Select(i => i.AlunoId).Distinct().ToList();
+                foreach (var alunoId in alunosAfetados)
+                    await GerarOuAtualizarDiagnosticoFinalAsync(dto.AvaliacaoDiagnosticaId, alunoId);
 
                 await _contexto.SaveChangesAsync();
                 await transacao.CommitAsync();
@@ -239,6 +274,210 @@ namespace api.Services
             }
         }
 
+        public async Task<ServiceResponse<DiagnosticoFinalDTO>> BuscarDiagnosticoFinalAsync(
+            int avaliacaoId,
+            int alunoId,
+            Usuario usuario)
+        {
+            var resposta = new ServiceResponse<DiagnosticoFinalDTO>();
+            try
+            {
+                var avaliacaoOk = await _contexto.AvaliacoesDiagnosticas.AnyAsync(a =>
+                    a.Id == avaliacaoId && (a.ProfessorId == usuario.ProfessorId || a.ProfessorId == null));
+                if (!avaliacaoOk)
+                {
+                    resposta.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return resposta;
+                }
+
+                var entity = await _contexto.DiagnosticosFinais
+                    .AsNoTracking()
+                    .Include(d => d.Aluno)
+                    .FirstOrDefaultAsync(d => d.AvaliacaoDiagnosticaId == avaliacaoId && d.AlunoId == alunoId);
+
+                if (entity == null)
+                {
+                    resposta.SetFalha("Diagnóstico final ainda não gerado. Registre o desempenho do aluno nesta avaliação.");
+                    return resposta;
+                }
+
+                resposta.AdicionaObjeto(MapearDiagnosticoFinalDto(entity));
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao buscar diagnóstico final: {ex.Message}");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<SugestoesPaeeAlunoDTO>> BuscarSugestoesPaeeAsync(
+            int avaliacaoId,
+            int alunoId,
+            Usuario usuario)
+        {
+            var resposta = new ServiceResponse<SugestoesPaeeAlunoDTO>();
+            try
+            {
+                var avaliacaoOk = await _contexto.AvaliacoesDiagnosticas.AnyAsync(a =>
+                    a.Id == avaliacaoId && (a.ProfessorId == usuario.ProfessorId || a.ProfessorId == null));
+                if (!avaliacaoOk)
+                {
+                    resposta.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return resposta;
+                }
+
+                var vigentes = await ObterDesempenhosVigentesAsync(avaliacaoId, alunoId);
+                var (nivel, _) = PerfilAutonomiaHelper.DeNiveisRealizacaoComPercentual(
+                    vigentes.Select(d => d.NivelRealizacao));
+                var (fortes, reforcar) = await SugestaoPaeePorHabilidadeHelper.CalcularAsync(_contexto, vigentes);
+
+                resposta.AdicionaObjeto(new SugestoesPaeeAlunoDTO
+                {
+                    AlunoId = alunoId,
+                    NivelPerfilAutonomia = nivel,
+                    RotuloExibicao = PerfilAutonomiaHelper.RotuloPortugues(nivel),
+                    SugestaoPaee = PerfilAutonomiaHelper.SugestaoPaee(nivel),
+                    HabilidadesFortes = string.IsNullOrWhiteSpace(fortes) ? null : fortes,
+                    HabilidadesAReenforcar = string.IsNullOrWhiteSpace(reforcar) ? null : reforcar,
+                });
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao buscar sugestões PAEE: {ex.Message}");
+                return resposta;
+            }
+        }
+
+        public async Task<ServiceResponse<object>> FinalizarAvaliacaoAsync(int id, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<object>();
+            try
+            {
+                var avaliacao = await _contexto.AvaliacoesDiagnosticas
+                    .Include(a => a.AlunosParticipantes)
+                    .FirstOrDefaultAsync(a => a.Id == id && a.ProfessorId == usuario.ProfessorId);
+
+                if (avaliacao == null)
+                {
+                    resposta.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return resposta;
+                }
+
+                foreach (var ap in avaliacao.AlunosParticipantes)
+                    await GerarOuAtualizarDiagnosticoFinalAsync(id, ap.AlunoId);
+
+                avaliacao.Concluida = true;
+                avaliacao.UpdatedAt = DateTime.UtcNow;
+                await _contexto.SaveChangesAsync();
+
+                resposta.AdicionaObjeto(new { mensagem = "Avaliação finalizada e diagnósticos gerados." });
+                resposta.AdicionaMensagem("Avaliação finalizada com sucesso.");
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao finalizar avaliação: {ex.Message}");
+                return resposta;
+            }
+        }
+
+        private async Task<List<DesempenhoAtividade>> ObterDesempenhosVigentesAsync(int avaliacaoId, int alunoId)
+        {
+            var todos = await _contexto.DesempenhosAtividades
+                .AsNoTracking()
+                .Where(d => d.AvaliacaoDiagnosticaId == avaliacaoId && d.AlunoId == alunoId)
+                .ToListAsync();
+
+            return todos
+                .GroupBy(d => d.AtividadeId)
+                .Select(g => g.OrderByDescending(x => x.DataRegistro).First())
+                .ToList();
+        }
+
+        private async Task GerarOuAtualizarDiagnosticoFinalAsync(int avaliacaoId, int alunoId)
+        {
+            var vigentes = await ObterDesempenhosVigentesAsync(avaliacaoId, alunoId);
+            var niveis = vigentes.Select(d => d.NivelRealizacao).ToList();
+            var (nivel, _) = PerfilAutonomiaHelper.DeNiveisRealizacaoComPercentual(niveis);
+            var (fortes, reforcar) = await SugestaoPaeePorHabilidadeHelper.CalcularAsync(_contexto, vigentes);
+
+            var countAutonomia = vigentes.Count(d =>
+                string.Equals(d.NivelRealizacao, "Autonomia", StringComparison.OrdinalIgnoreCase));
+            var countComAjuda = vigentes.Count(d =>
+                string.Equals(d.NivelRealizacao, "ComAjuda", StringComparison.OrdinalIgnoreCase));
+            var countNaoRealizou = vigentes.Count(d =>
+                string.Equals(d.NivelRealizacao, "NaoRealizou", StringComparison.OrdinalIgnoreCase));
+
+            var obsGeral = await _contexto.AvaliacoesAlunos
+                .AsNoTracking()
+                .Where(a => a.AvaliacaoDiagnosticaId == avaliacaoId && a.AlunoId == alunoId)
+                .Select(a => a.ObservacaoGeral)
+                .FirstOrDefaultAsync();
+
+            var resumo = new System.Text.StringBuilder();
+            resumo.Append(
+                $"Atividades avaliadas: {vigentes.Count}. Autonomia: {countAutonomia}; Com ajuda: {countComAjuda}; Não realizou: {countNaoRealizou}.");
+            if (!string.IsNullOrWhiteSpace(obsGeral))
+                resumo.Append(' ').Append(obsGeral.Trim());
+
+            var recomendacoes = PerfilAutonomiaHelper.SugestaoPaee(nivel);
+            if (!string.IsNullOrWhiteSpace(reforcar))
+                recomendacoes += $" Habilidades prioritárias para reforço: {reforcar}.";
+            if (!string.IsNullOrWhiteSpace(fortes))
+                recomendacoes += $" Habilidades com desempenho favorável: {fortes}.";
+
+            var existente = await _contexto.DiagnosticosFinais
+                .FirstOrDefaultAsync(d => d.AvaliacaoDiagnosticaId == avaliacaoId && d.AlunoId == alunoId);
+
+            var now = DateTime.UtcNow;
+            if (existente == null)
+            {
+                _contexto.DiagnosticosFinais.Add(new DiagnosticoFinal
+                {
+                    AvaliacaoDiagnosticaId = avaliacaoId,
+                    AlunoId = alunoId,
+                    Resumo = resumo.ToString(),
+                    NivelPerfilAutonomia = nivel,
+                    Recomendacoes = recomendacoes,
+                    HabilidadesFortes = string.IsNullOrWhiteSpace(fortes) ? null : fortes,
+                    HabilidadesAReenforcar = string.IsNullOrWhiteSpace(reforcar) ? null : reforcar,
+                    GeradoEm = now,
+                });
+            }
+            else
+            {
+                existente.Resumo = resumo.ToString();
+                existente.NivelPerfilAutonomia = nivel;
+                existente.Recomendacoes = recomendacoes;
+                existente.HabilidadesFortes = string.IsNullOrWhiteSpace(fortes) ? null : fortes;
+                existente.HabilidadesAReenforcar = string.IsNullOrWhiteSpace(reforcar) ? null : reforcar;
+                existente.GeradoEm = now;
+            }
+        }
+
+        private static DiagnosticoFinalDTO MapearDiagnosticoFinalDto(DiagnosticoFinal entity)
+        {
+            return new DiagnosticoFinalDTO
+            {
+                Id = entity.Id,
+                AvaliacaoDiagnosticaId = entity.AvaliacaoDiagnosticaId,
+                AlunoId = entity.AlunoId,
+                AlunoNomeCompleto = entity.Aluno?.NomeCompleto ?? string.Empty,
+                Resumo = entity.Resumo,
+                NivelPerfilAutonomia = entity.NivelPerfilAutonomia,
+                RotuloExibicao = PerfilAutonomiaHelper.RotuloPortugues(entity.NivelPerfilAutonomia),
+                Recomendacoes = entity.Recomendacoes,
+                HabilidadesFortes = entity.HabilidadesFortes,
+                HabilidadesAReenforcar = entity.HabilidadesAReenforcar,
+                GeradoEm = entity.GeradoEm,
+            };
+        }
+
         // Método auxiliar para montar o DTO detalhado (usado em Create, Update e GetById)
         private async Task<AvaliacaoDiagnosticaDetailDTO> MontarDetailDTO(int avaliacaoId)
         {
@@ -289,13 +528,25 @@ namespace api.Services
                 .GroupBy(r => r.AlunoId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.NivelRealizacao).ToList());
 
+            var atividadePorId = avaliacao.AtividadesSelecionadas
+                .Where(aa => aa.Atividade != null)
+                .Select(aa => aa.Atividade!)
+                .GroupBy(a => a.Id)
+                .ToDictionary(g => g.Key, g => g.First());
+
             var perfisAutonomiaPorAluno = avaliacao.AlunosParticipantes
                 .Select(ap =>
                 {
+                    var vigentesAluno = registrosMaisRecentesPorPar
+                        .Where(r => r.AlunoId == ap.AlunoId)
+                        .ToList();
                     var niveis = niveisPorAluno.TryGetValue(ap.AlunoId, out var list)
                         ? list
                         : [];
                     var (nivel, pct) = PerfilAutonomiaHelper.DeNiveisRealizacaoComPercentual(niveis);
+                    var (fortes, reforcar) = SugestaoPaeePorHabilidadeHelper.CalcularFromAtividades(
+                        vigentesAluno,
+                        atividadePorId);
                     return new AlunoPerfilAutonomiaResumoDTO
                     {
                         AlunoId = ap.AlunoId,
@@ -304,6 +555,8 @@ namespace api.Services
                         RotuloExibicao = PerfilAutonomiaHelper.RotuloPortugues(nivel),
                         SugestaoPaee = PerfilAutonomiaHelper.SugestaoPaee(nivel),
                         PercentualAutonomiaCalculado = pct,
+                        HabilidadesFortes = string.IsNullOrWhiteSpace(fortes) ? null : fortes,
+                        HabilidadesAReenforcar = string.IsNullOrWhiteSpace(reforcar) ? null : reforcar,
                     };
                 })
                 .ToList();
@@ -832,13 +1085,9 @@ namespace api.Services
 
                                 foreach (var perfil in dto.PerfisAutonomiaPorAluno.OrderBy(p => p.NomeCompleto))
                                 {
-                                    var pctTxt = perfil.PercentualAutonomiaCalculado.HasValue
-                                        ? $" — Índice de autonomia nas atividades registradas: {PerfilAutonomiaHelper.PercentualResumoFormatado(perfil.PercentualAutonomiaCalculado.Value)}"
-                                        : string.Empty;
-
                                     col.Item().PaddingTop(10).Column(bloco =>
                                     {
-                                        bloco.Item().Text($"{perfil.NomeCompleto}{pctTxt}")
+                                        bloco.Item().Text(perfil.NomeCompleto)
                                             .SemiBold().FontSize(11).FontColor(Colors.Blue.Darken2);
 
                                         bloco.Item().PaddingTop(2).Text(perfil.RotuloExibicao)
@@ -846,6 +1095,20 @@ namespace api.Services
 
                                         bloco.Item().PaddingTop(4).Text($"Sugestão PAEE: {perfil.SugestaoPaee}")
                                             .FontSize(9).Italic().FontColor(Colors.Grey.Darken1);
+
+                                        if (!string.IsNullOrWhiteSpace(perfil.HabilidadesAReenforcar))
+                                        {
+                                            bloco.Item().PaddingTop(3).Text(
+                                                    $"Habilidades a reforçar: {perfil.HabilidadesAReenforcar}")
+                                                .FontSize(9).FontColor(Colors.Grey.Darken2);
+                                        }
+
+                                        if (!string.IsNullOrWhiteSpace(perfil.HabilidadesFortes))
+                                        {
+                                            bloco.Item().PaddingTop(2).Text(
+                                                    $"Habilidades fortes: {perfil.HabilidadesFortes}")
+                                                .FontSize(9).FontColor(Colors.Grey.Darken2);
+                                        }
                                     });
                                 }
                             }

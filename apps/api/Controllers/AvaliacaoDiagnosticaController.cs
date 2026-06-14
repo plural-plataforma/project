@@ -112,6 +112,44 @@ public class AvaliacaoDiagnosticaController : ControllerBase
         return Ok(resposta);
     }
 
+    [HttpGet("diagnosticos-finais/{avaliacaoId}/{alunoId}")]
+    public async Task<IActionResult> BuscarDiagnosticoFinal(int avaliacaoId, int alunoId)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.BuscarDiagnosticoFinalAsync(avaliacaoId, alunoId, usuario!);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrada") || m.Contains("não gerado"))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta.Objeto);
+    }
+
+    [HttpGet("{avaliacaoId}/sugestoes-paee/{alunoId}")]
+    public async Task<IActionResult> BuscarSugestoesPaee(int avaliacaoId, int alunoId)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.BuscarSugestoesPaeeAsync(avaliacaoId, alunoId, usuario!);
+        return resposta.Sucesso ? Ok(resposta.Objeto) : BadRequest(resposta);
+    }
+
+    [HttpPost("{id}/finalizar")]
+    public async Task<IActionResult> Finalizar(int id)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        var resposta = await _service.FinalizarAvaliacaoAsync(id, usuario!);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrada"))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta.Objeto);
+    }
+
     [HttpGet("gerar-pdf/{id}")]  // ou POST, conforme preferir
     public async Task<IActionResult> GerarPdf(int id)
     {
