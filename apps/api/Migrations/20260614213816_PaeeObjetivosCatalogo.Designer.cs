@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260614213816_PaeeObjetivosCatalogo")]
+    partial class PaeeObjetivosCatalogo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -331,7 +334,7 @@ namespace api.Migrations
                     b.HasIndex("IdResponsavel")
                         .HasDatabaseName("ix_alunos_idresponsavel");
 
-                    b.ToTable("alunos", (string)null);
+                    b.ToTable("alunos");
                 });
 
             modelBuilder.Entity("api.Models.AlunosXPlanejamento", b =>
@@ -350,7 +353,7 @@ namespace api.Migrations
 
                     b.HasIndex("AlunoId");
 
-                    b.ToTable("alunosxplanejamento", (string)null);
+                    b.ToTable("alunosxplanejamento");
                 });
 
             modelBuilder.Entity("api.Models.Atividade", b =>
@@ -415,7 +418,7 @@ namespace api.Migrations
                     b.HasIndex("BlocoId")
                         .HasDatabaseName("ix_atividade_blocoid");
 
-                    b.ToTable("atividade", (string)null);
+                    b.ToTable("atividade");
                 });
 
             modelBuilder.Entity("api.Models.Avaliacao", b =>
@@ -442,7 +445,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_avaliacao");
 
-                    b.ToTable("avaliacao", (string)null);
+                    b.ToTable("avaliacao");
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoAluno", b =>
@@ -472,7 +475,7 @@ namespace api.Migrations
                     b.HasIndex("AlunoId")
                         .HasDatabaseName("ix_avaliacoes_alunos_alunoid");
 
-                    b.ToTable("avaliacoes_alunos", (string)null);
+                    b.ToTable("avaliacoes_alunos");
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnostica", b =>
@@ -527,7 +530,7 @@ namespace api.Migrations
                     b.HasIndex("ProfessorId")
                         .HasDatabaseName("ix_avaliacoes_diagnosticas_professorid");
 
-                    b.ToTable("avaliacoes_diagnosticas", (string)null);
+                    b.ToTable("avaliacoes_diagnosticas");
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaAtividade", b =>
@@ -545,7 +548,7 @@ namespace api.Migrations
                     b.HasIndex("AtividadeId")
                         .HasDatabaseName("ix_avaliacoes_diagnosticas_atividades_atividadeid");
 
-                    b.ToTable("avaliacoes_diagnosticas_atividades", (string)null);
+                    b.ToTable("avaliacoes_diagnosticas_atividades");
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaBloco", b =>
@@ -567,7 +570,7 @@ namespace api.Migrations
                     b.HasIndex("BlocoId")
                         .HasDatabaseName("ix_avaliacoes_diagnosticas_blocos_blocoid");
 
-                    b.ToTable("avaliacoes_diagnosticas_blocos", (string)null);
+                    b.ToTable("avaliacoes_diagnosticas_blocos");
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoXPlanejamento", b =>
@@ -586,7 +589,7 @@ namespace api.Migrations
 
                     b.HasIndex("AvaliacaoId");
 
-                    b.ToTable("avaliacaoxplanejamento", (string)null);
+                    b.ToTable("avaliacaoxplanejamento");
                 });
 
             modelBuilder.Entity("api.Models.Bloco", b =>
@@ -633,7 +636,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_bloco");
 
-                    b.ToTable("bloco", (string)null);
+                    b.ToTable("bloco");
                 });
 
             modelBuilder.Entity("api.Models.DesempenhoAtividade", b =>
@@ -683,7 +686,7 @@ namespace api.Migrations
 
                     b.HasIndex("AvaliacaoDiagnosticaId", "AlunoId", "AtividadeId");
 
-                    b.ToTable("desempenhos_atividades", (string)null);
+                    b.ToTable("desempenhos_atividades");
                 });
 
             modelBuilder.Entity("api.Models.DiagnosticoFinal", b =>
@@ -737,7 +740,7 @@ namespace api.Migrations
                     b.HasIndex("AvaliacaoDiagnosticaId")
                         .HasDatabaseName("ix_diagnosticos_finais_avaliacaodiagnosticaid");
 
-                    b.ToTable("diagnosticos_finais", (string)null);
+                    b.ToTable("diagnosticos_finais");
                 });
 
             modelBuilder.Entity("api.Models.Escola", b =>
@@ -795,7 +798,7 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_escolas");
 
-                    b.ToTable("escolas", (string)null);
+                    b.ToTable("escolas");
                 });
 
             modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
@@ -816,7 +819,7 @@ namespace api.Migrations
                     b.HasIndex("ProfessorId")
                         .HasDatabaseName("ix_escolasxprofessores_professorid");
 
-                    b.ToTable("escolasxprofessores", (string)null);
+                    b.ToTable("escolasxprofessores");
                 });
 
             modelBuilder.Entity("api.Models.Estrategias", b =>
@@ -839,7 +842,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_estrategias");
 
-                    b.ToTable("estrategias", (string)null);
+                    b.ToTable("estrategias");
                 });
 
             modelBuilder.Entity("api.Models.EstrategiasXPlanejamento", b =>
@@ -858,7 +861,7 @@ namespace api.Migrations
 
                     b.HasIndex("EstrategiaId");
 
-                    b.ToTable("estrategiasxplanejamento", (string)null);
+                    b.ToTable("estrategiasxplanejamento");
                 });
 
             modelBuilder.Entity("api.Models.EstudoDeCaso", b =>
@@ -909,7 +912,7 @@ namespace api.Migrations
                     b.HasIndex("ProfessorId")
                         .HasDatabaseName("ix_estudos_caso_professorid");
 
-                    b.ToTable("estudos_caso", (string)null);
+                    b.ToTable("estudos_caso");
                 });
 
             modelBuilder.Entity("api.Models.EstudoDeCasoEixoCatalogo", b =>
@@ -947,7 +950,7 @@ namespace api.Migrations
                     b.HasIndex("Codigo")
                         .IsUnique();
 
-                    b.ToTable("estudo_caso_eixos_catalogo", (string)null);
+                    b.ToTable("estudo_caso_eixos_catalogo");
                 });
 
             modelBuilder.Entity("api.Models.EstudoDeCasoItemEixo", b =>
@@ -980,7 +983,7 @@ namespace api.Migrations
                     b.HasIndex("EstudoDeCasoId", "EixoCatalogoId")
                         .IsUnique();
 
-                    b.ToTable("estudo_caso_itens_eixo", (string)null);
+                    b.ToTable("estudo_caso_itens_eixo");
                 });
 
             modelBuilder.Entity("api.Models.Habilidade", b =>
@@ -1015,7 +1018,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_habilidades");
 
-                    b.ToTable("habilidades", (string)null);
+                    b.ToTable("habilidades");
                 });
 
             modelBuilder.Entity("api.Models.HabilidadesXPlanejamento", b =>
@@ -1034,7 +1037,7 @@ namespace api.Migrations
 
                     b.HasIndex("HabilidadeId");
 
-                    b.ToTable("habilidadesxplanejamento", (string)null);
+                    b.ToTable("habilidadesxplanejamento");
                 });
 
             modelBuilder.Entity("api.Models.Laudo", b =>
@@ -1070,7 +1073,7 @@ namespace api.Migrations
                     b.HasIndex("IdAluno")
                         .HasDatabaseName("ix_laudos_idaluno");
 
-                    b.ToTable("laudos", (string)null);
+                    b.ToTable("laudos");
                 });
 
             modelBuilder.Entity("api.Models.ObservacaoAlunoAvaliacaoHistorico", b =>
@@ -1103,7 +1106,7 @@ namespace api.Migrations
 
                     b.HasIndex("AvaliacaoDiagnosticaId", "AlunoId", "DataRegistro");
 
-                    b.ToTable("observacoes_alunos_avaliacao_historico", (string)null);
+                    b.ToTable("observacoes_alunos_avaliacao_historico");
                 });
 
             modelBuilder.Entity("api.Models.PaeeObjetivoCatalogo", b =>
@@ -1145,7 +1148,7 @@ namespace api.Migrations
                     b.HasIndex("Codigo")
                         .IsUnique();
 
-                    b.ToTable("paee_objetivos_catalogo", (string)null);
+                    b.ToTable("paee_objetivos_catalogo");
                 });
 
             modelBuilder.Entity("api.Models.Planejamento", b =>
@@ -1228,7 +1231,7 @@ namespace api.Migrations
                     b.HasIndex("ObjetivoMedioCatalogoId")
                         .HasDatabaseName("ix_planejamentos_objetivomediocatalogoid");
 
-                    b.ToTable("planejamentos", (string)null);
+                    b.ToTable("planejamentos");
                 });
 
             modelBuilder.Entity("api.Models.PlanejamentoEncontro", b =>
@@ -1276,7 +1279,7 @@ namespace api.Migrations
                     b.HasIndex("PlanejamentoId", "DataEnc")
                         .HasDatabaseName("ix_planejamento_encontros_planejamentoid_dataenc");
 
-                    b.ToTable("planejamento_encontros", (string)null);
+                    b.ToTable("planejamento_encontros");
                 });
 
             modelBuilder.Entity("api.Models.Professor", b =>
@@ -1359,7 +1362,7 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_professores");
 
-                    b.ToTable("professores", (string)null);
+                    b.ToTable("professores");
                 });
 
             modelBuilder.Entity("api.Models.RelatoAtendimento", b =>
@@ -1426,7 +1429,7 @@ namespace api.Migrations
                     b.HasIndex("AlunoId", "DataSessao")
                         .HasDatabaseName("ix_relatos_atendimento_alunoid_datasessao");
 
-                    b.ToTable("relatos_atendimento", (string)null);
+                    b.ToTable("relatos_atendimento");
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>
@@ -1491,7 +1494,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_responsaveis");
 
-                    b.ToTable("responsaveis", (string)null);
+                    b.ToTable("responsaveis");
                 });
 
             modelBuilder.Entity("api.Models.Usuario", b =>

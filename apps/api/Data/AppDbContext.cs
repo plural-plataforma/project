@@ -39,6 +39,7 @@ namespace Data
         public DbSet<EstudoDeCaso> EstudosCaso { get; set; }
         public DbSet<EstudoDeCasoItemEixo> EstudoCasoItensEixo { get; set; }
         public DbSet<RelatoAtendimento> RelatosAtendimento { get; set; }
+        public DbSet<PaeeObjetivoCatalogo> PaeeObjetivosCatalogo { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -230,6 +231,10 @@ namespace Data
 
             modelBuilder.Entity<EstudoDeCasoEixoCatalogo>()
                 .HasIndex(e => e.Codigo)
+                .IsUnique();
+
+            modelBuilder.Entity<PaeeObjetivoCatalogo>()
+                .HasIndex(o => o.Codigo)
                 .IsUnique();
 
             modelBuilder.Entity<EstudoDeCasoItemEixo>()
