@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, DownloadSimple, FilePdf, PencilSimple, Trash } from '@phosphor-icons/react'
+import { Copy, DownloadSimple, FilePdf, PencilSimple, Trash, Lightning } from '@phosphor-icons/react'
 import { DocGeracaoAnimation } from '@/components/common/DocGeracaoAnimation'
 import {
   Dialog,
@@ -25,6 +26,12 @@ import {
 } from '@/services/estudoCasoService'
 import { EstudoCasoExcluirDialog } from '@/pages/estudo-caso/EstudoCasoExcluirDialog'
 import { estudoCasoCatalogoEixosCompleto } from '@/stores/estudoCasoWizardStore'
+import {
+  criarPaeeAPartirDoEstudoDeCaso,
+  estudoCasoEstaConcluidoAsync,
+} from '@/lib/criarPaeeAPartirDoEstudoDeCaso'
+import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
+import { EstudoCasoDocumentoViewer } from '@/components/estudo-caso/EstudoCasoDocumentoViewer'
 
 interface EstudoCasoDetalheDialogProps {
   open: boolean
@@ -37,6 +44,7 @@ export function EstudoCasoDetalheDialog({
   onOpenChange,
   estudoId,
 }: EstudoCasoDetalheDialogProps) {
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const { success, error: showError } = useToast()
   const [editando, setEditando] = useState(false)
@@ -152,7 +160,7 @@ export function EstudoCasoDetalheDialog({
       qc.setQueryData(['estudo-caso', estudoId], d)
       qc.invalidateQueries({ queryKey: ['estudos-caso-aluno', d.alunoId] })
       qc.invalidateQueries({ queryKey: ['estudos-caso-lista'] })
-      success('Rascunho gerado', 'Revise o texto antes de usar oficialmente.')
+      success('Documento gerado', 'Texto atualizado.')
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -164,7 +172,7 @@ export function EstudoCasoDetalheDialog({
     const t = detalhe?.textoSimulado?.trim()
     if (!t) return
     try {
-      await navigator.clipboard.writeText(t)
+      await navigator.clipboard.writeText(sanitizarTextoEstudoCaso(t))
       success('Copiado', 'Texto enviado para a área de transferência.')
     } catch {
       showError('Não foi possível copiar', 'Seu navegador pode ter bloqueado o acesso à área de transferência.')
@@ -180,7 +188,7 @@ export function EstudoCasoDetalheDialog({
         alunoNome: detalhe.alunoNomeCompleto || 'Aluno(a)',
         textoCompleto: texto,
       })
-      success('Documento gerado', 'Arquivo .docx baixado — revise antes de uso oficial.')
+      success('Documento gerado', 'Arquivo .docx baixado.')
     } catch {
       showError('Exportação', 'Não foi possível gerar o arquivo Word.')
     }
@@ -195,7 +203,7 @@ export function EstudoCasoDetalheDialog({
         alunoNome: detalhe.alunoNomeCompleto || 'Aluno(a)',
         textoCompleto: texto,
       })
-      success('PDF gerado', 'Arquivo baixado — revise antes de uso oficial.')
+      success('PDF gerado', 'Arquivo baixado.')
     } catch {
       showError('Exportação PDF', 'Não foi possível gerar o arquivo.')
     }
@@ -213,15 +221,33 @@ export function EstudoCasoDetalheDialog({
       editEixoIds
     )
 
+  const gerarPaeeMutation = useMutation({
+    mutationFn: async () => {
+      if (!detalhe) throw new Error('Estudo indisponível.')
+      const concluido = await estudoCasoEstaConcluidoAsync(detalhe)
+      if (!concluido) throw new Error('Conclua o estudo de caso (todos os eixos ou rascunho gerado) antes de criar o PAEE.')
+      return criarPaeeAPartirDoEstudoDeCaso({ estudo: detalhe })
+    },
+    onSuccess: (plano) => {
+      success('PAEE criado', 'Revise objetivos, encontros e assinatura no detalhe do plano.')
+      void qc.invalidateQueries({ queryKey: ['planejamentos'] })
+      handleDialogOpenChange(false)
+      navigate(`/planejamentos/${plano.id}`)
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto gap-3">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto gap-3">
           <DialogHeader>
             <DialogTitle>{editando ? 'Editar estudo de caso' : detalhe?.titulo ?? 'Estudo de caso'}</DialogTitle>
             <DialogDescription>
-              Conteúdo de apoio ao PAEE. Texto automático é marcado como <strong>rascunho simulado</strong> e exige
-              revisão.
+              Estudo de caso AEE vinculado ao PAEE. Gere, revise e exporte o documento do estudante.
             </DialogDescription>
           </DialogHeader>
 
@@ -230,6 +256,16 @@ export function EstudoCasoDetalheDialog({
               <Button type="button" size="sm" variant="outline" onClick={iniciarEdicao}>
                 <PencilSimple size={14} />
                 Editar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                loading={gerarPaeeMutation.isPending}
+                onClick={() => gerarPaeeMutation.mutate()}
+              >
+                <Lightning size={14} />
+                Gerar PAEE
               </Button>
               <Button type="button" size="sm" variant="destructive" onClick={() => setExcluirOpen(true)}>
                 <Trash size={14} weight="bold" />
@@ -369,7 +405,7 @@ export function EstudoCasoDetalheDialog({
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Rascunho do documento
+                    Documento
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {detalhe.textoSimulado?.trim() && !gerarMutation.isPending && (
@@ -395,18 +431,19 @@ export function EstudoCasoDetalheDialog({
                       loading={gerarMutation.isPending}
                       onClick={() => gerarMutation.mutate()}
                     >
-                      {detalhe.textoSimulado?.trim() ? 'Regenerar rascunho' : 'Gerar rascunho'}
+                      {detalhe.textoSimulado?.trim() ? 'Regenerar documento' : 'Gerar documento'}
                     </Button>
                   </div>
                 </div>
                 <DocGeracaoAnimation isGenerating={gerarMutation.isPending} minHeight="260px">
                   {detalhe.textoSimulado?.trim() ? (
-                    <pre className="whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground max-h-[280px] overflow-y-auto">
-                      {detalhe.textoSimulado}
-                    </pre>
+                    <EstudoCasoDocumentoViewer
+                      texto={detalhe.textoSimulado}
+                      scrollClassName="max-h-[min(52vh,520px)]"
+                    />
                   ) : (
-                    <p className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                      Ainda não há rascunho gerado para este registro.
+                    <p className="rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
+                      Ainda não há documento gerado. Use &quot;Gerar documento&quot; para montar o estudo de caso completo.
                     </p>
                   )}
                 </DocGeracaoAnimation>

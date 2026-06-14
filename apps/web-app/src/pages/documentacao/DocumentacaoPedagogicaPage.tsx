@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { baixarFusaoEstudoCasoPaee } from '@/lib/baixarFusaoEstudoCasoPaee'
+import { avaliarCompletudePaee } from '@/lib/paeeCompletude'
 import { buscarAlunos } from '@/services/alunoService'
 import { listarEstudosCasoPorAluno } from '@/services/estudoCasoService'
 import { buscarPlanejamento } from '@/services/planejamentoService'
@@ -33,13 +34,16 @@ async function listarFusoesDisponiveis(): Promise<FusaoEstudoPaeeItem[]> {
     if (paees.length === 0) continue
 
     const estudos = await listarEstudosCasoPorAluno(aid)
-    if (estudos.length === 0) continue
+    const estudoConcluido = estudos.find((e) => e.possuiTextoSimulado)
+    if (!estudoConcluido) continue
+
+    const paee = [...paees]
+      .filter((p) => avaliarCompletudePaee(p).completo)
+      .sort((a, b) => new Date(b.dataFim).getTime() - new Date(a.dataFim).getTime())[0]
+    if (!paee) continue
 
     const estudo = [...estudos].sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    )[0]
-    const paee = [...paees].sort(
-      (a, b) => new Date(b.dataFim).getTime() - new Date(a.dataFim).getTime()
     )[0]
 
     itens.push({
