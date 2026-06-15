@@ -14,6 +14,16 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
+export type FiltroExpiracao = 'todos' | 'expirado' | '30' | '60' | '90'
+
+const EXPIRACAO_OPTIONS: Array<{ value: FiltroExpiracao; label: string }> = [
+  { value: 'todos', label: 'Todas as expirações' },
+  { value: 'expirado', label: 'Expirado' },
+  { value: '30', label: 'Expira em 30 dias' },
+  { value: '60', label: 'Expira em 60 dias' },
+  { value: '90', label: 'Expira em 90 dias' },
+]
+
 interface SearchFilterBarProps<TStatus extends string> {
   search: string;
   setSearch: (value: string) => void;
@@ -21,6 +31,8 @@ interface SearchFilterBarProps<TStatus extends string> {
   setStatusFilter: (value: TStatus) => void;
   statusOptions: Array<{ value: TStatus; label: string }>;
   placeholder?: string;
+  expirationFilter?: FiltroExpiracao;
+  setExpirationFilter?: (value: FiltroExpiracao) => void;
 }
 
 export default function SearchFilterBar<TStatus extends string>({
@@ -30,6 +42,8 @@ export default function SearchFilterBar<TStatus extends string>({
   setStatusFilter,
   statusOptions,
   placeholder = 'Buscar por nome ou e-mail...',
+  expirationFilter,
+  setExpirationFilter,
 }: SearchFilterBarProps<TStatus>) {
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -98,7 +112,7 @@ export default function SearchFilterBar<TStatus extends string>({
         />
 
         {/* Filtro de Status */}
-        <FormControl sx={{ minWidth: 250 }}>
+        <FormControl sx={{ minWidth: 200 }}>
           <Select
             value={statusFilter}
             onChange={handleStatusChange}
@@ -124,6 +138,38 @@ export default function SearchFilterBar<TStatus extends string>({
             ))}
           </Select>
         </FormControl>
+
+        {/* Filtro de Expiração */}
+        {setExpirationFilter && (
+          <FormControl sx={{ minWidth: 200 }}>
+            <Select
+              value={expirationFilter ?? 'todos'}
+              onChange={(e) => setExpirationFilter(e.target.value as FiltroExpiracao)}
+              displayEmpty
+              IconComponent={KeyboardArrowDownIcon}
+              sx={{
+                height: 50,
+                borderRadius: '8px',
+                backgroundColor: expirationFilter && expirationFilter !== 'todos' ? '#fff3e0' : '#fff',
+                color: expirationFilter && expirationFilter !== 'todos' ? '#e65100' : '#276678',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: expirationFilter && expirationFilter !== 'todos'
+                    ? 'rgba(230, 81, 0, 0.5)'
+                    : 'rgba(39, 102, 120, 0.42)',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline, &.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(39, 102, 120, 0.42)',
+                },
+              }}
+            >
+              {EXPIRACAO_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
         {/* Botão de filtros avançados (mantido como placeholder) 
         <Button
