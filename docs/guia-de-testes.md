@@ -14,27 +14,14 @@
 
 ---
 
-## Seção 1 — Acesso: Cadastro, Login e Onboarding
+## Seção 1 — Acesso: Login e Onboarding
 
 ### O que esta tela faz
 É a porta de entrada da plataforma. Permite criar uma conta nova ou entrar com uma já existente.
 
 ---
 
-### 1.1 Criar conta nova
-
-| # | O que fazer | O que deve acontecer |
-|---|---|---|
-| 1 | Acesse a URL da plataforma | Aparece a tela de login |
-| 2 | Clique em **"Criar conta"** ou **"Cadastro"** | Abre o formulário de cadastro |
-| 3 | Preencha nome completo, e-mail e senha (mínimo 6 caracteres) | Campos aceitam os dados digitados |
-| 4 | Aceite os termos e clique em **"Criar conta"** | Mensagem de confirmação e redirecionamento para o dashboard |
-
-> **Atenção:** Teste com e-mail inválido (ex.: `teste`) — o sistema deve bloquear o envio.
-
----
-
-### 1.2 Login com conta existente
+### 1.1 Login com conta existente
 
 | # | O que fazer | O que deve acontecer |
 |---|---|---|
@@ -45,7 +32,7 @@
 
 ---
 
-### 1.3 Onboarding (primeiro acesso)
+### 1.2 Onboarding (primeiro acesso)
 
 | # | O que fazer | O que deve acontecer |
 |---|---|---|
