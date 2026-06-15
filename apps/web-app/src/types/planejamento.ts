@@ -8,7 +8,6 @@ export interface PaeeEncontro {
   id: number
   dataEnc: string
   textoPlanejado?: string | null
-  textoRealizado?: string | null
   habilidadeId?: number | null
   estrategiaId?: number | null
 }
@@ -16,7 +15,6 @@ export interface PaeeEncontro {
 export interface PaeeEncontroEntrada {
   dataEnc: string
   textoPlanejado?: string | null
-  textoRealizado?: string | null
   habilidadeId?: number | null
   estrategiaId?: number | null
 }
@@ -46,9 +44,6 @@ export interface Planejamento {
   objetivoCurtoCatalogoId?: number | null
   objetivoMedioCatalogoId?: number | null
   objetivoLongoCatalogoId?: number | null
-  documentoDeclaradoAssinado?: boolean
-  assinaturaNomeResponsavel?: string | null
-  assinaturaCargo?: string | null
   encontros?: PaeeEncontro[]
   habilidades?: Habilidade[]
   estrategias?: Estrategia[]

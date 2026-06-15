@@ -144,7 +144,6 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
       const bloco = [
         `Data: ${dataFmt}`,
         `Planejado: ${(enc.textoPlanejado ?? '').trim() || '—'}`,
-        `Realizado: ${(enc.textoRealizado ?? '').trim() || '—'}`,
         `Habilidade: ${labelHabilidade(p, enc.habilidadeId)}`,
         `Estratégia: ${labelEstrategia(p, enc.estrategiaId)}`,
       ].join('\n')
@@ -152,19 +151,6 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
       y += 2
     }
   }
-
-  y = addSection(doc, '8. ASSINATURA', y, margin, maxW)
-  y = addParagraph(
-    doc,
-    [
-      `Documento declarado assinado: ${p.documentoDeclaradoAssinado ? 'Sim' : 'Não'}`,
-      `Responsável: ${(p.assinaturaNomeResponsavel ?? '').trim() || '(não informado)'}`,
-      `Cargo: ${(p.assinaturaCargo ?? '').trim() || '(não informado)'}`,
-    ].join('\n'),
-    y,
-    margin,
-    maxW
-  )
 
   y = addParagraph(
     doc,
