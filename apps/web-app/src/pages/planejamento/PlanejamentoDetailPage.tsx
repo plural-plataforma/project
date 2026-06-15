@@ -40,11 +40,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
 import { sortByField } from '@/lib/utils'
 import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
+import { baixarPlanejamentoPdf } from '@/lib/baixarPlanejamento'
 import { PlanejamentoObjetivosTab } from './PlanejamentoObjetivosTab'
 import { PlanejamentoRevisaoTab } from './PlanejamentoRevisaoTab'
 import { PlanejamentoVisaoGeralTab } from './PlanejamentoVisaoGeralTab'
 import { PlanejamentoEncontrosTab, type LinhaPaeeEnc } from './PlanejamentoEncontrosTab'
-import { PlanejamentoAssinaturaTab } from './PlanejamentoAssinaturaTab'
 
 const NIVEL_ENSINO_MAP: Record<number, string> = {
   1: 'Ed. Infantil',
@@ -84,9 +84,6 @@ export default function PlanejamentoDetailPage() {
   const [objCurtoCatalogoId, setObjCurtoCatalogoId] = useState<number | null>(null)
   const [objMedioCatalogoId, setObjMedioCatalogoId] = useState<number | null>(null)
   const [objLongoCatalogoId, setObjLongoCatalogoId] = useState<number | null>(null)
-  const [docAssinado, setDocAssinado] = useState(false)
-  const [assinaturaNome, setAssinaturaNome] = useState('')
-  const [assinaturaCargo, setAssinaturaCargo] = useState('')
   const [encLinhas, setEncLinhas] = useState<LinhaPaeeEnc[]>([])
   const datasAutoCarregadasRef = useRef<number | null>(null)
 
@@ -169,9 +166,6 @@ export default function PlanejamentoDetailPage() {
     setObjCurtoCatalogoId(plan.objetivoCurtoCatalogoId ?? null)
     setObjMedioCatalogoId(plan.objetivoMedioCatalogoId ?? null)
     setObjLongoCatalogoId(plan.objetivoLongoCatalogoId ?? null)
-    setDocAssinado(plan.documentoDeclaradoAssinado ?? false)
-    setAssinaturaNome(plan.assinaturaNomeResponsavel ?? '')
-    setAssinaturaCargo(plan.assinaturaCargo ?? '')
 
     const salvos = plan.encontros ?? []
     if (salvos.length > 0) {
@@ -180,7 +174,6 @@ export default function PlanejamentoDetailPage() {
           key: `e-${e.id}`,
           dataEnc: e.dataEnc,
           textoPlanejado: e.textoPlanejado ?? '',
-          textoRealizado: e.textoRealizado ?? '',
           habilidadeId: e.habilidadeId ?? null,
           estrategiaId: e.estrategiaId ?? null,
         })),
@@ -203,7 +196,6 @@ export default function PlanejamentoDetailPage() {
             key: novaLinhaEncKey(),
             dataEnc: d,
             textoPlanejado: '',
-            textoRealizado: '',
             habilidadeId: null,
             estrategiaId: null,
           })),
@@ -245,7 +237,6 @@ export default function PlanejamentoDetailPage() {
       const payload: PaeeEncontroEntrada[] = encLinhas.map((row) => ({
         dataEnc: row.dataEnc,
         textoPlanejado: row.textoPlanejado,
-        textoRealizado: row.textoRealizado,
         habilidadeId: row.habilidadeId,
         estrategiaId: row.estrategiaId,
       }))
@@ -254,31 +245,7 @@ export default function PlanejamentoDetailPage() {
     onSuccess: () => {
       success('Encontros salvos!')
       void qc.invalidateQueries({ queryKey: ['planejamentos'] })
-      invalidate()
-    },
-    onError: (err: unknown) => {
-      const fb = getApiErrorFeedback(err)
-      showError(fb.title, formatFriendlyErrorBody(fb))
-    },
-  })
-
-  const salvarAssinaturaMutation = useMutation({
-    mutationFn: async () => {
-      if (!plan) throw new Error('Plano indisponível')
-      await atualizarPlanejamento({
-        id: Number(id),
-        apelido: plan.apelido,
-        dataInicio: plan.dataInicio,
-        dataFim: plan.dataFim,
-        descicaoPlanejamento: plan.descicaoPlanejamento,
-        documentoDeclaradoAssinado: docAssinado,
-        assinaturaNomeResponsavel: assinaturaNome.trim() || null,
-        assinaturaCargo: assinaturaCargo.trim() || null,
-      })
-    },
-    onSuccess: () => {
-      success('Assinatura salva!')
-      invalidate()
+      navigate('/planejamentos')
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -303,7 +270,6 @@ export default function PlanejamentoDetailPage() {
               key: novaLinhaEncKey(),
               dataEnc: d,
               textoPlanejado: '',
-              textoRealizado: '',
               habilidadeId: null,
               estrategiaId: null,
             })
@@ -334,19 +300,15 @@ export default function PlanejamentoDetailPage() {
       objetivoCurtoCatalogoId: objCurtoCatalogoId,
       objetivoMedioCatalogoId: objMedioCatalogoId,
       objetivoLongoCatalogoId: objLongoCatalogoId,
-      documentoDeclaradoAssinado: docAssinado,
-      assinaturaNomeResponsavel: assinaturaNome.trim() || null,
-      assinaturaCargo: assinaturaCargo.trim() || null,
       encontros: encOrd.map((r, ix) => ({
         id: ix + 1,
         dataEnc: r.dataEnc,
         textoPlanejado: r.textoPlanejado || null,
-        textoRealizado: r.textoRealizado || null,
         habilidadeId: r.habilidadeId ?? null,
         estrategiaId: r.estrategiaId ?? null,
       })),
     }
-  }, [plan, objCurto, objMedio, objLongo, objCurtoCatalogoId, objMedioCatalogoId, objLongoCatalogoId, docAssinado, assinaturaNome, assinaturaCargo, encLinhas])
+  }, [plan, objCurto, objMedio, objLongo, objCurtoCatalogoId, objMedioCatalogoId, objLongoCatalogoId, encLinhas])
 
   if (isLoading) return <SkeletonList count={4} />
   if (!plan) return <p className="text-muted-foreground">Planejamento não encontrado.</p>
@@ -412,6 +374,23 @@ export default function PlanejamentoDetailPage() {
               onClick={() => {
                 void (async () => {
                   try {
+                    await baixarPlanejamentoPdf(Number(id))
+                    success('PDF gerado.')
+                  } catch (e: unknown) {
+                    showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
+                  }
+                })()
+              }}
+            >
+              <DownloadSimple size={14} /> Baixar PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => {
+                void (async () => {
+                  try {
                     if (!planoParaExportacao) return
                     await downloadPaeePlanejamentoDocx({ planejamento: planoParaExportacao })
                     success('Arquivo Word gerado.')
@@ -444,7 +423,6 @@ export default function PlanejamentoDetailPage() {
           <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
           <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
           <TabsTrigger value="encontros">Encontros</TabsTrigger>
-          <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
           <TabsTrigger value="revisao">Revisão</TabsTrigger>
         </TabsList>
 
@@ -496,19 +474,6 @@ export default function PlanejamentoDetailPage() {
             sugerindoDatas={sugestaoDatasMutation.isPending}
             onSugerirDatas={() => sugestaoDatasMutation.mutate()}
             onNovaLinhaKey={novaLinhaEncKey}
-          />
-        </TabsContent>
-
-        <TabsContent value="assinatura" className="mt-6">
-          <PlanejamentoAssinaturaTab
-            docAssinado={docAssinado}
-            setDocAssinado={setDocAssinado}
-            assinaturaNome={assinaturaNome}
-            setAssinaturaNome={setAssinaturaNome}
-            assinaturaCargo={assinaturaCargo}
-            setAssinaturaCargo={setAssinaturaCargo}
-            saving={salvarAssinaturaMutation.isPending}
-            onSave={() => salvarAssinaturaMutation.mutate()}
           />
         </TabsContent>
 

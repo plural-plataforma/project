@@ -7,7 +7,6 @@ export interface LinhaPaeeEnc {
   key: string
   dataEnc: string
   textoPlanejado: string
-  textoRealizado: string
   habilidadeId: number | null
   estrategiaId: number | null
 }
@@ -59,7 +58,6 @@ export function PlanejamentoEncontrosTab({
                       key: onNovaLinhaKey(),
                       dataEnc: plan.dataInicio,
                       textoPlanejado: '',
-                      textoRealizado: '',
                       habilidadeId: null,
                       estrategiaId: null,
                     }].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc)),
@@ -90,7 +88,6 @@ export function PlanejamentoEncontrosTab({
                 <tr className="border-b bg-muted/40">
                   <th className="text-left border-r border-border px-2 py-2 font-medium">Data</th>
                   <th className="text-left border-r border-border px-2 py-2 font-medium">Planejado</th>
-                  <th className="text-left border-r border-border px-2 py-2 font-medium">Realizado</th>
                   <th className="text-left border-r border-border px-2 py-2 font-medium">Habilidade</th>
                   <th className="text-left border-r border-border px-2 py-2 font-medium">Estratégia</th>
                   <th className="w-[44px]" aria-label="Remover" />
@@ -127,19 +124,6 @@ export function PlanejamentoEncontrosTab({
                             className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-12"
                           />
                         </td>
-                        <td className="border-r align-top p-2 w-[22%]">
-                          <textarea
-                            rows={2}
-                            aria-label={`Conteúdo realizado encontro ${idx + 1}`}
-                            value={linha.textoRealizado ?? ''}
-                            onChange={(ev) =>
-                              setEncLinhas(arr.map((r) =>
-                                r.key === linha.key ? { ...r, textoRealizado: ev.target.value } : r,
-                              ))
-                            }
-                            className="w-full rounded border border-input bg-background px-2 py-1 text-xs resize-y min-h-12"
-                      />
-                    </td>
                     <td className="border-r align-top p-2 w-[16%]">
                       <select
                         aria-label={`Habilidade encontro ${idx + 1}`}

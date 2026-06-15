@@ -249,14 +249,13 @@ describe('planejamentoService', () => {
   })
 
   describe('substituirEncontrosPlanejamento', () => {
-    it('envia textoRealizado no payload', async () => {
+    it('envia encontros no payload', async () => {
       vi.mocked(api.put).mockResolvedValue({ data: { sucesso: true } })
 
       await substituirEncontrosPlanejamento(3, [
         {
           dataEnc: '2026-03-01',
           textoPlanejado: 'Planejado',
-          textoRealizado: 'Realizado',
           habilidadeId: 1,
           estrategiaId: 2,
         },
@@ -267,7 +266,6 @@ describe('planejamentoService', () => {
           {
             dataEnc: '2026-03-01',
             textoPlanejado: 'Planejado',
-            textoRealizado: 'Realizado',
             habilidadeId: 1,
             estrategiaId: 2,
           },

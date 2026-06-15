@@ -58,7 +58,7 @@ export const PEDAGOGICAL_FLOW_STEPS: PedagogicalFlowStep[] = [
   },
   {
     id: 'avaliacao',
-    label: 'Avaliação diagnóstica',
+    label: 'Avaliações',
     route: '/avaliacoes',
     activePathPrefix: '/avaliacoes',
     journeyTitle: 'Realizar avaliação diagnóstica',

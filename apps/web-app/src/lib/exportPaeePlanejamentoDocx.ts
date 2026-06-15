@@ -94,13 +94,12 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
     return c !== 0 ? c : a.id - b.id
   })
 
-  const enHeaders = ['Data', 'Planejado', 'Realizado', 'Habilidade', 'Estratégia']
+  const enHeaders = ['Data', 'Planejado', 'Habilidade', 'Estratégia']
   const rows = encontrosSorted.map((e) => {
     const dh = new Date(`${e.dataEnc}T12:00:00`).toLocaleDateString('pt-BR')
     return [
       dh,
       (e.textoPlanejado ?? '').trim().length ? (e.textoPlanejado ?? '') : '—',
-      (e.textoRealizado ?? '').trim().length ? (e.textoRealizado ?? '') : '—',
       labelHabilidade(p, e.habilidadeId),
       labelEstrategia(p, e.estrategiaId),
     ]
@@ -254,7 +253,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
       })
     )
   } else {
-    const colWidths = [1200, 2800, 2800, 2200, 2200]
+    const colWidths = [1200, 4000, 2800, 3200]
     const headerRow = new TableRow({
       children: enHeaders.map(
         (cell, ix) =>
@@ -302,37 +301,6 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
   }
 
   children.push(
-    new Paragraph({
-      children: [new TextRun({ text: '8. ASSINATURA:', bold: true, size: 26 })],
-      spacing: { before: 360, after: 200 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Documento declarado assinado: ', bold: true }),
-        new TextRun({ text: p.documentoDeclaradoAssinado ? 'Sim' : 'Não', size: 22 }),
-      ],
-      spacing: { after: 160 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Responsável: ', bold: true }),
-        new TextRun({
-          text: (p.assinaturaNomeResponsavel ?? '').trim() || '(não informado)',
-          size: 22,
-        }),
-      ],
-      spacing: { after: 160 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Cargo: ', bold: true }),
-        new TextRun({
-          text: (p.assinaturaCargo ?? '').trim() || '(não informado)',
-          size: 22,
-        }),
-      ],
-      spacing: { after: 400 },
-    }),
     new Paragraph({
       children: [
         new TextRun({
