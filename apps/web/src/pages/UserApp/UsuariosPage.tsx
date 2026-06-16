@@ -9,13 +9,13 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
-import SearchFilterBar from '../../components/SearchFilterBar';
+import SearchFilterBar, { type FiltroExpiracao } from '../../components/SearchFilterBar';
 import { UsersListLayout } from '../../components/layouts/UsersListLayout';
 import ProfileUserAppEdit from './ProfileUserApp';
 import { Usuario } from '../../types/userTypes';
 import StatsGrid, { StatCardData } from '../../components/StatsGrid';
 
-import { UsersThree, UserCheck } from '@phosphor-icons/react';
+import { UsersThree, UserCheck, Warning } from '@phosphor-icons/react';
 
 import { fetchUsuariosAdmin, PaginatedUsuarios } from '../../services/adminService';
 import { registerUser } from '../../services/authService';
@@ -32,6 +32,7 @@ export default function UsuariosPage() {
   const [filtroStatusCadastro, setFiltroStatusCadastro] = useState<
     'todos' | 'cadastrado' | 'Inativo'
   >('todos');
+  const [filtroExpiracao, setFiltroExpiracao] = useState<FiltroExpiracao>('todos');
 
   const [snackOpen, setSnackOpen] = useState(false);
   const [snackMessage, setSnackMessage] = useState('');
@@ -78,6 +79,7 @@ export default function UsuariosPage() {
   // Filtro local
   const filteredUsuarios = useMemo(() => {
     const term = search.toLowerCase().trim();
+    const now = new Date()
 
     return usuarios.filter((user) => {
       const matchesSearch =
@@ -90,15 +92,41 @@ export default function UsuariosPage() {
         (filtroStatusCadastro === 'cadastrado' && user.ativo === true) ||
         (filtroStatusCadastro === 'Inativo' && user.ativo === false);
 
-      return matchesSearch && matchesStatus;
+      let matchesExpiracao = true
+      if (filtroExpiracao !== 'todos') {
+        if (!user.expirationDate) {
+          matchesExpiracao = false
+        } else {
+          const exp = new Date(user.expirationDate)
+          const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          if (filtroExpiracao === 'expirado') matchesExpiracao = diffDays < 0
+          else {
+            const dias = Number(filtroExpiracao)
+            matchesExpiracao = diffDays >= 0 && diffDays <= dias
+          }
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesExpiracao;
     });
-  }, [usuarios, search, filtroStatusCadastro]);
+  }, [usuarios, search, filtroStatusCadastro, filtroExpiracao]);
 
   // Estatísticas
   const totalUsuarios = usuarios.length;
   const usuariosAtivos = usuarios.filter((u) => u.ativo).length;
   const percentualAtivos =
     totalUsuarios > 0 ? Math.round((usuariosAtivos / totalUsuarios) * 1000) / 10 : 0;
+
+  const now = new Date()
+  const expirandoEm60 = usuarios.filter((u) => {
+    if (!u.expirationDate) return false
+    const diff = Math.ceil((new Date(u.expirationDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return diff >= 0 && diff <= 60
+  }).length
+  const expirados = usuarios.filter((u) => {
+    if (!u.expirationDate) return false
+    return new Date(u.expirationDate) < now
+  }).length
 
   const statsCards: StatCardData[] = [
     {
@@ -116,6 +144,14 @@ export default function UsuariosPage() {
       icone: <UserCheck size={32} weight="duotone" />,
       corFundoIcone: '#DCFCE7',
       corIcone: '#16A34A',
+    },
+    {
+      titulo: 'Expiram em 60 dias',
+      valor: expirandoEm60.toLocaleString(),
+      variacao: expirados > 0 ? `+${expirados} já expirado${expirados !== 1 ? 's' : ''}` : 'Nenhum expirado',
+      icone: <Warning size={32} weight="duotone" />,
+      corFundoIcone: '#FFF3E0',
+      corIcone: '#E65100',
     },
   ];
 
@@ -194,6 +230,8 @@ export default function UsuariosPage() {
           { value: 'Inativo', label: 'Inativos' },
         ]}
         placeholder="Buscar por nome, e-mail ou telefone..."
+        expirationFilter={filtroExpiracao}
+        setExpirationFilter={setFiltroExpiracao}
       />
 
       <Box sx={{ px: { xs: 2, md: 4 } }}>
