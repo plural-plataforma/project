@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { BookOpen, Users, Brain, Lightning, CheckSquare, Plus, X, CalendarBlank, MagnifyingGlass } from '@phosphor-icons/react'
+import {
+  Plus,
+  X,
+  MagnifyingGlass,
+  DownloadSimple,
+} from '@phosphor-icons/react'
 import {
   buscarPlanejamentoPorId,
   atualizarPlanejamento,
@@ -11,6 +16,8 @@ import {
   vincularHabilidadePlano,
   vincularEstrategiaPlano,
   vincularAvaliacaoPlano,
+  substituirEncontrosPlanejamento,
+  obterSugestaoDatasEncontros,
 } from '@/services/planejamentoService'
 import { buscarAlunos } from '@/services/alunoService'
 import { buscarHabilidades } from '@/services/habilidadeService'
@@ -20,8 +27,6 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -29,13 +34,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
 import { sortByField } from '@/lib/utils'
-import dayjs from 'dayjs'
-import type { Aluno } from '@/types/aluno'
-import type { Habilidade } from '@/types/habilidade'
-import type { Estrategia } from '@/types/estrategia'
-import type { Avaliacao } from '@/types/avaliacao'
+import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
+import { baixarPlanejamentoPdf } from '@/lib/baixarPlanejamento'
+import { PlanejamentoObjetivosTab } from './PlanejamentoObjetivosTab'
+import { PlanejamentoRevisaoTab } from './PlanejamentoRevisaoTab'
+import { PlanejamentoVisaoGeralTab } from './PlanejamentoVisaoGeralTab'
+import { PlanejamentoEncontrosTab, type LinhaPaeeEnc } from './PlanejamentoEncontrosTab'
 
 const NIVEL_ENSINO_MAP: Record<number, string> = {
   1: 'Ed. Infantil',
@@ -43,6 +52,11 @@ const NIVEL_ENSINO_MAP: Record<number, string> = {
   3: 'Fundamental II',
   4: 'Ensino Médio',
 }
+
+const novaLinhaEncKey = (): string =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? `n-${crypto.randomUUID()}`
+    : `n-${Date.now()}-${Math.random()}`
 
 export default function PlanejamentoDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -63,6 +77,15 @@ export default function PlanejamentoDetailPage() {
   const [vincModal, setVincModal] = useState<VincModal>(null)
   const [searchVinc, setSearchVinc] = useState('')
   const [filterNivel, setFilterNivel] = useState('')
+
+  const [objCurto, setObjCurto] = useState('')
+  const [objMedio, setObjMedio] = useState('')
+  const [objLongo, setObjLongo] = useState('')
+  const [objCurtoCatalogoId, setObjCurtoCatalogoId] = useState<number | null>(null)
+  const [objMedioCatalogoId, setObjMedioCatalogoId] = useState<number | null>(null)
+  const [objLongoCatalogoId, setObjLongoCatalogoId] = useState<number | null>(null)
+  const [encLinhas, setEncLinhas] = useState<LinhaPaeeEnc[]>([])
+  const datasAutoCarregadasRef = useRef<number | null>(null)
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ['planejamento', id],
@@ -87,7 +110,10 @@ export default function PlanejamentoDetailPage() {
       descicaoPlanejamento: formDescricao,
     }),
     onSuccess: () => { success('PAEE atualizado!'); invalidate(); setEditingInfo(false) },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   function openEdit() {
@@ -109,7 +135,10 @@ export default function PlanejamentoDetailPage() {
       else if (type === 'avaliacoes') await vincularAvaliacaoPlano(planId, itemId)
     },
     onSuccess: () => { success('Vinculado!'); invalidate() },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -121,13 +150,168 @@ export default function PlanejamentoDetailPage() {
       void qc.invalidateQueries({ queryKey: ['planejamento', id] })
       navigate('/planejamentos')
     },
-    onError: (err: Error) => showError('Não foi possível excluir', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError('Não foi possível excluir', formatFriendlyErrorBody(fb))
+    },
   })
+
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Sincroniza rascunhos com dados da API quando o servidor devolve objeto planejamento atualizado. */
+  useEffect(() => {
+    if (!plan || !id) return
+    setObjCurto(plan.objetivoCurtoPrazo ?? '')
+    setObjMedio(plan.objetivoMedioPrazo ?? '')
+    setObjLongo(plan.objetivoLongoPrazo ?? '')
+    setObjCurtoCatalogoId(plan.objetivoCurtoCatalogoId ?? null)
+    setObjMedioCatalogoId(plan.objetivoMedioCatalogoId ?? null)
+    setObjLongoCatalogoId(plan.objetivoLongoCatalogoId ?? null)
+
+    const salvos = plan.encontros ?? []
+    if (salvos.length > 0) {
+      setEncLinhas(
+        salvos.map((e) => ({
+          key: `e-${e.id}`,
+          dataEnc: e.dataEnc,
+          textoPlanejado: e.textoPlanejado ?? '',
+          habilidadeId: e.habilidadeId ?? null,
+          estrategiaId: e.estrategiaId ?? null,
+        })),
+      )
+      return
+    }
+
+    const planId = Number(id)
+    if (datasAutoCarregadasRef.current === planId) return
+    datasAutoCarregadasRef.current = planId
+
+    void obterSugestaoDatasEncontros(planId)
+      .then((datas) => {
+        if (datas.length === 0) {
+          setEncLinhas([])
+          return
+        }
+        setEncLinhas(
+          datas.map((d) => ({
+            key: novaLinhaEncKey(),
+            dataEnc: d,
+            textoPlanejado: '',
+            habilidadeId: null,
+            estrategiaId: null,
+          })),
+        )
+      })
+      .catch(() => setEncLinhas([]))
+  }, [plan, id])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const salvarObjetivosMutation = useMutation({
+    mutationFn: async () => {
+      if (!plan) throw new Error('Plano indisponível')
+      await atualizarPlanejamento({
+        id: Number(id),
+        apelido: plan.apelido,
+        dataInicio: plan.dataInicio,
+        dataFim: plan.dataFim,
+        descicaoPlanejamento: plan.descicaoPlanejamento,
+        objetivoCurtoPrazo: objCurto,
+        objetivoMedioPrazo: objMedio,
+        objetivoLongoPrazo: objLongo,
+        objetivoCurtoCatalogoId: objCurtoCatalogoId,
+        objetivoMedioCatalogoId: objMedioCatalogoId,
+        objetivoLongoCatalogoId: objLongoCatalogoId,
+      })
+    },
+    onSuccess: () => {
+      success('Objetivos salvos!')
+      invalidate()
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const salvarEncontrosMutation = useMutation({
+    mutationFn: async () => {
+      const payload: PaeeEncontroEntrada[] = encLinhas.map((row) => ({
+        dataEnc: row.dataEnc,
+        textoPlanejado: row.textoPlanejado,
+        habilidadeId: row.habilidadeId,
+        estrategiaId: row.estrategiaId,
+      }))
+      await substituirEncontrosPlanejamento(Number(id), payload)
+    },
+    onSuccess: () => {
+      success('Encontros salvos!')
+      void qc.invalidateQueries({ queryKey: ['planejamentos'] })
+      navigate('/planejamentos')
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const sugestaoDatasMutation = useMutation({
+    mutationFn: () => obterSugestaoDatasEncontros(Number(id)),
+    onSuccess: (datas) => {
+      if (datas.length === 0) {
+        showError('Sem sugestões', 'Vincule um aluno com dias de atendimento no cadastro ou preencha as datas manualmente.')
+        return
+      }
+      setEncLinhas((prev) => {
+        const existentes = new Set(prev.map((p) => p.dataEnc))
+        const novas: LinhaPaeeEnc[] = []
+        for (const d of datas) {
+          if (!existentes.has(d)) {
+            existentes.add(d)
+            novas.push({
+              key: novaLinhaEncKey(),
+              dataEnc: d,
+              textoPlanejado: '',
+              habilidadeId: null,
+              estrategiaId: null,
+            })
+          }
+        }
+        if (novas.length === 0) {
+          success('Datas sugeridas já estavam na grade.')
+        } else {
+          success(`${novas.length} data(s) sugerida(s) adicionada(s).`)
+        }
+        return [...prev, ...novas].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc))
+      })
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const planoParaExportacao: Planejamento | null = useMemo(() => {
+    if (!plan) return null
+    const encOrd = [...encLinhas].sort((a, b) => a.dataEnc.localeCompare(b.dataEnc))
+    return {
+      ...plan,
+      objetivoCurtoPrazo: objCurto,
+      objetivoMedioPrazo: objMedio,
+      objetivoLongoPrazo: objLongo,
+      objetivoCurtoCatalogoId: objCurtoCatalogoId,
+      objetivoMedioCatalogoId: objMedioCatalogoId,
+      objetivoLongoCatalogoId: objLongoCatalogoId,
+      encontros: encOrd.map((r, ix) => ({
+        id: ix + 1,
+        dataEnc: r.dataEnc,
+        textoPlanejado: r.textoPlanejado || null,
+        habilidadeId: r.habilidadeId ?? null,
+        estrategiaId: r.estrategiaId ?? null,
+      })),
+    }
+  }, [plan, objCurto, objMedio, objLongo, objCurtoCatalogoId, objMedioCatalogoId, objLongoCatalogoId, encLinhas])
 
   if (isLoading) return <SkeletonList count={4} />
   if (!plan) return <p className="text-muted-foreground">Planejamento não encontrado.</p>
-
-  const formatDate = (d: string) => dayjs(d).format('DD/MM/YYYY')
 
   const alunosVinculadosIds = new Set((plan.alunos ?? []).map((a) => a.id))
   const habsVinculadasIds = new Set((plan.habilidades ?? []).map((h) => h.id))
@@ -183,6 +367,41 @@ export default function PlanejamentoDetailPage() {
         backTo="/planejamentos"
         action={
           <div className="flex flex-wrap gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    await baixarPlanejamentoPdf(Number(id))
+                    success('PDF gerado.')
+                  } catch (e: unknown) {
+                    showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
+                  }
+                })()
+              }}
+            >
+              <DownloadSimple size={14} /> Baixar PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    if (!planoParaExportacao) return
+                    await downloadPaeePlanejamentoDocx({ planejamento: planoParaExportacao })
+                    success('Arquivo Word gerado.')
+                  } catch (e: unknown) {
+                    showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
+                  }
+                })()
+              }}
+            >
+              <DownloadSimple size={14} /> Baixar Word
+            </Button>
             <Button variant="outline" size="sm" onClick={openEdit}>
               Editar dados
             </Button>
@@ -199,166 +418,83 @@ export default function PlanejamentoDetailPage() {
         }
       />
 
-      <div className="space-y-4">
+      <Tabs defaultValue="visao-geral" className="mt-6 w-full">
+        <TabsList className="flex h-auto flex-wrap gap-1 p-2">
+          <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
+          <TabsTrigger value="objetivos">Objetivos</TabsTrigger>
+          <TabsTrigger value="encontros">Encontros</TabsTrigger>
+          <TabsTrigger value="revisao">Revisão</TabsTrigger>
+        </TabsList>
 
-        {/* ─ Overview editável ─ */}
-        {editingInfo ? (
-          <Card>
-            <CardContent className="pt-5 space-y-3">
-              <Input label="Nome do PAEE" value={formApelido} onChange={(e) => setFormApelido(e.target.value)} />
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Data de início" type="date" value={formDataInicio} onChange={(e) => setFormDataInicio(e.target.value)} />
-                <Input label="Data de fim" type="date" value={formDataFim} onChange={(e) => setFormDataFim(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-foreground">Descrição</label>
-                <textarea
-                  rows={3}
-                  value={formDescricao}
-                  onChange={(e) => setFormDescricao(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" size="sm" onClick={() => setEditingInfo(false)}>Cancelar</Button>
-                <Button size="sm" loading={updateMutation.isPending} onClick={() => updateMutation.mutate()}>Salvar</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="pt-5">
-              <div className="flex flex-wrap gap-4 items-center">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <CalendarBlank size={14} />
-                  <span>{formatDate(plan.dataInicio)} → {formatDate(plan.dataFim)}</span>
-                </div>
-                {plan.descicaoPlanejamento && (
-                  <p className="text-sm text-foreground leading-relaxed w-full">{plan.descicaoPlanejamento}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <TabsContent value="visao-geral" className="mt-6">
+          <PlanejamentoVisaoGeralTab
+            plan={plan}
+            editingInfo={editingInfo}
+            formApelido={formApelido}
+            setFormApelido={setFormApelido}
+            formDataInicio={formDataInicio}
+            setFormDataInicio={setFormDataInicio}
+            formDataFim={formDataFim}
+            setFormDataFim={setFormDataFim}
+            formDescricao={formDescricao}
+            setFormDescricao={setFormDescricao}
+            saving={updateMutation.isPending}
+            onSave={() => updateMutation.mutate()}
+            onCancelEdit={() => setEditingInfo(false)}
+            onOpenVincModal={openVincModal}
+          />
+        </TabsContent>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <TabsContent value="objetivos" className="mt-6 space-y-4">
+          <PlanejamentoObjetivosTab
+            objCurto={objCurto}
+            objMedio={objMedio}
+            objLongo={objLongo}
+            objCurtoCatalogoId={objCurtoCatalogoId}
+            objMedioCatalogoId={objMedioCatalogoId}
+            objLongoCatalogoId={objLongoCatalogoId}
+            onObjCurtoChange={setObjCurto}
+            onObjMedioChange={setObjMedio}
+            onObjLongoChange={setObjLongo}
+            onObjCurtoCatalogoIdChange={setObjCurtoCatalogoId}
+            onObjMedioCatalogoIdChange={setObjMedioCatalogoId}
+            onObjLongoCatalogoIdChange={setObjLongoCatalogoId}
+            onSave={() => salvarObjetivosMutation.mutate()}
+            saving={salvarObjetivosMutation.isPending}
+          />
+        </TabsContent>
 
-          {/* ─ Alunos ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Users size={16} className="text-primary" />
-                  Alunos ({plan.alunos?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('alunos')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.alunos?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhum aluno vinculado.</p>
-              ) : (
-                <div className="space-y-2">
-                  {sortByField(plan.alunos, 'nomeCompleto').map((a) => (
-                    <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted">
-                      <div className="h-6 w-6 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                        {a.nomeCompleto[0]}
-                      </div>
-                      <span className="text-sm font-medium text-foreground flex-1 truncate">{a.nomeCompleto}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="encontros" className="mt-6">
+          <PlanejamentoEncontrosTab
+            plan={plan}
+            encLinhas={encLinhas}
+            setEncLinhas={setEncLinhas}
+            saving={salvarEncontrosMutation.isPending}
+            onSave={() => salvarEncontrosMutation.mutate()}
+            sugerindoDatas={sugestaoDatasMutation.isPending}
+            onSugerirDatas={() => sugestaoDatasMutation.mutate()}
+            onNovaLinhaKey={novaLinhaEncKey}
+          />
+        </TabsContent>
 
-          {/* ─ Habilidades ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Brain size={16} className="text-primary" />
-                  Habilidades ({plan.habilidades?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('habilidades')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.habilidades?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhuma habilidade vinculada.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {sortByField(plan.habilidades, 'descricao').map((h) => (
-                    <Badge key={h.id} variant="default">
-                      {h.resumo || h.descricao || `Habilidade ${h.id}`}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ─ Estratégias ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Lightning size={16} className="text-primary" />
-                  Estratégias ({plan.estrategias?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('estrategias')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.estrategias?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhuma estratégia vinculada.</p>
-              ) : (
-                <div className="space-y-2">
-                  {sortByField(plan.estrategias, 'descricao').map((e) => (
-                    <div key={e.id} className="text-sm text-foreground p-2 rounded-lg bg-muted">
-                      {e.descricao}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ─ Critérios Avaliativos ─ */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <CheckSquare size={16} className="text-primary" />
-                  Critérios Avaliativos ({plan.avaliacao?.length ?? 0})
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => openVincModal('avaliacoes')}>
-                  <Plus size={14} /> Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!plan.avaliacao?.length ? (
-                <p className="text-sm text-muted-foreground">Nenhum critério vinculado.</p>
-              ) : (
-                <div className="space-y-2">
-                  {plan.avaliacao.map((v) => (
-                    <div key={v.id} className="text-sm text-foreground p-2 rounded-lg bg-muted">
-                      {v.descricao}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+        <TabsContent value="revisao" className="mt-6 space-y-4">
+          {planoParaExportacao && (
+            <PlanejamentoRevisaoTab
+              plano={planoParaExportacao}
+              onExportWord={() => {
+                void (async () => {
+                  try {
+                    await downloadPaeePlanejamentoDocx({ planejamento: planoParaExportacao })
+                    success('Arquivo Word gerado.')
+                  } catch (e: unknown) {
+                    showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
+                  }
+                })()
+              }}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* ─ Modal de Vinculação ─ */}
       <Dialog open={!!vincModal} onOpenChange={() => setVincModal(null)}>

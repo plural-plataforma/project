@@ -10,6 +10,8 @@ import {
   vincularEstrategiaPlano,
   vincularAvaliacaoPlano,
   vincularAlunosPlanoLote,
+  substituirEncontrosPlanejamento,
+  buscarObjetivosPaeeCatalogo,
 } from './planejamentoService'
 import { api } from '@/api/http'
 
@@ -18,6 +20,7 @@ vi.mock('@/api/http', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    put: vi.fn(),
     delete: vi.fn(),
   },
 }))
@@ -242,6 +245,48 @@ describe('planejamentoService', () => {
       })
 
       await expect(vincularAlunosPlanoLote(1, [9])).rejects.toThrow('Planejamento não encontrado.')
+    })
+  })
+
+  describe('substituirEncontrosPlanejamento', () => {
+    it('envia encontros no payload', async () => {
+      vi.mocked(api.put).mockResolvedValue({ data: { sucesso: true } })
+
+      await substituirEncontrosPlanejamento(3, [
+        {
+          dataEnc: '2026-03-01',
+          textoPlanejado: 'Planejado',
+          habilidadeId: 1,
+          estrategiaId: 2,
+        },
+      ])
+
+      expect(api.put).toHaveBeenCalledWith('/Planejamento/3/encontros', {
+        encontros: [
+          {
+            dataEnc: '2026-03-01',
+            textoPlanejado: 'Planejado',
+            habilidadeId: 1,
+            estrategiaId: 2,
+          },
+        ],
+      })
+    })
+  })
+
+  describe('buscarObjetivosPaeeCatalogo', () => {
+    it('retorna lista do catálogo', async () => {
+      vi.mocked(api.get).mockResolvedValue({
+        data: {
+          sucesso: true,
+          listaObjetos: [{ id: 1, codigo: 'CURTO_X', rotulo: 'X', textoModelo: 'Texto', prazo: 'Curto', ordemExibicao: 1 }],
+        },
+      })
+
+      const result = await buscarObjetivosPaeeCatalogo()
+
+      expect(result).toHaveLength(1)
+      expect(result[0].prazo).toBe('Curto')
     })
   })
 })

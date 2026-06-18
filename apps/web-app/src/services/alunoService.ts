@@ -1,42 +1,10 @@
 import { api } from '@/api/http'
 import type { Aluno, AlunoResponse } from '@/types/aluno'
-import { type AxiosError } from 'axios'
-
-type ApiErrorData = {
-  mensagens?: string[]
-  message?: string
-  title?: string
-  errors?: string[] | Record<string, string[]>
-}
+import { getApiErrorMessageForUser } from '@/lib/apiFriendlyError'
 
 const getApiErrorMessage = (error: unknown, fallback: string): string => {
-  const axiosError = error as AxiosError<ApiErrorData>
-  const data = axiosError.response?.data
-
-  if (data) {
-    if (Array.isArray(data.mensagens) && data.mensagens.length > 0) {
-      return data.mensagens.join(', ')
-    }
-
-    if (typeof data.message === 'string' && data.message.trim()) {
-      return data.message
-    }
-
-    if (typeof data.title === 'string' && data.title.trim()) {
-      return data.title
-    }
-
-    if (Array.isArray(data.errors) && data.errors.length > 0) {
-      return data.errors[0] ?? fallback
-    }
-
-    if (data.errors && typeof data.errors === 'object') {
-      const firstError = Object.values(data.errors).flat()[0]
-      if (firstError) return firstError
-    }
-  }
-
-  return axiosError.message || fallback
+  const msg = getApiErrorMessageForUser(error).trim()
+  return msg || fallback
 }
 
 export const buscarAlunos = async (): Promise<Aluno[]> => {

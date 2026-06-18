@@ -1,5 +1,6 @@
-﻿using api.DTOs.Laudo;
+using api.DTOs.Laudo;
 using api.DTOs.Responsavel;
+using api.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace api.DTOs.Aluno
@@ -9,6 +10,10 @@ namespace api.DTOs.Aluno
         [Required]
         [MaxLength(256)]
         public string NomeCompleto { get; set; }
+
+        /// <summary>Data de nascimento (obrigatória no cadastro novo).</summary>
+        [Required]
+        public DateOnly DataNascimento { get; set; }
 
         [MaxLength(9)]
         public string? Cep { get; set; }
@@ -53,9 +58,26 @@ namespace api.DTOs.Aluno
 
         public List<LaudoCadastroSimplificadoDTO>? Laudos { get; set; }
 
+        /// <summary>Quantas vezes por semana o aluno é atendido no AEE (1–5, dias úteis).</summary>
+        [Required]
+        [Range(1, 5)]
+        public int FrequenciaSemanalAtendimento { get; set; }
 
+        /// <summary>Dias da semana do atendimento (mesma quantidade que a frequência).</summary>
+        [Required]
+        [MinLength(1)]
+        public List<string> DiasSemanaAtendimento { get; set; } = [];
 
+        /// <summary>Duração de cada atendimento em minutos.</summary>
+        [Required]
+        [Range(15, 600)]
+        public int DuracaoAtendimentoMinutos { get; set; }
 
+        [Required]
+        public TipoAtendimentoAee TipoAtendimentoAee { get; set; }
+
+        /// <summary>Perfil pedagógico do aluno (primeiras informações obtidas).</summary>
+        public string? PerfilPedagogico { get; set; }
     }
 }
 

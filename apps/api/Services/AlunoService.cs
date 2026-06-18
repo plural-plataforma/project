@@ -10,11 +10,14 @@ using api.Responses;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace api.Services
 {
     public class AlunoService
     {
+        private static readonly JsonSerializerOptions JsonDiasOptions = new() { PropertyNameCaseInsensitive = true };
+
         private readonly AppDbContext _contexto;
         private readonly UserManager<Usuario> _usuario;
 
@@ -24,6 +27,132 @@ namespace api.Services
             _usuario = usuario;
         }
 
+        private static readonly HashSet<string> DiasUteisPermitidos = new(StringComparer.Ordinal)
+        {
+            "Segunda", "Terça", "Quarta", "Quinta", "Sexta",
+        };
+
+        private static List<string> DeserializeDiasSemana(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return [];
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(json, JsonDiasOptions) ?? [];
+            }
+            catch
+            {
+                return [];
+            }
+        }
+
+        private static string? SerializeDiasSemana(List<string> dias)
+        {
+            if (dias == null || dias.Count == 0)
+                return null;
+            return JsonSerializer.Serialize(dias);
+        }
+
+        /// <summary>Converte entrada da UI para rótulos canônicos (pt-BR).</summary>
+        private static bool TryCanonizarDiaSemana(string entrada, out string canonico)
+        {
+            canonico = "";
+            if (string.IsNullOrWhiteSpace(entrada))
+                return false;
+            var k = entrada.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+            // remove combining marks for robust compare
+            var chars = k.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray();
+            k = new string(chars);
+            canonico = k switch
+            {
+                "segunda" or "segunda-feira" => "Segunda",
+                "terca" or "terça" or "terca-feira" or "terça-feira" => "Terça",
+                "quarta" or "quarta-feira" => "Quarta",
+                "quinta" or "quinta-feira" => "Quinta",
+                "sexta" or "sexta-feira" => "Sexta",
+                _ => ""
+            };
+            return !string.IsNullOrEmpty(canonico);
+        }
+
+        private static List<string> CanonizarDiasSemana(List<string> dias)
+        {
+            var resultado = new List<string>();
+            foreach (var d in dias)
+            {
+                if (TryCanonizarDiaSemana(d, out var c))
+                    resultado.Add(c);
+                else
+                    throw new ArgumentException($"Dia da semana inválido: \"{d}\". Use Segunda, Terça, Quarta, Quinta ou Sexta.");
+            }
+            return resultado;
+        }
+
+        private static void ValidarAtendimento(int frequenciaSemanal, List<string> diasCanon)
+        {
+            if (frequenciaSemanal < 1 || frequenciaSemanal > 5)
+                throw new ArgumentException("Frequência semanal deve ser entre 1 e 5 (dias úteis).");
+            if (diasCanon.Count != frequenciaSemanal)
+                throw new ArgumentException($"Informe exatamente {frequenciaSemanal} dia(s) da semana, conforme a frequência de atendimento.");
+            if (diasCanon.Distinct(StringComparer.Ordinal).Count() != diasCanon.Count)
+                throw new ArgumentException("Não repita o mesmo dia da semana na lista.");
+            if (diasCanon.Any(d => !DiasUteisPermitidos.Contains(d)))
+                throw new ArgumentException("Selecione apenas dias úteis (Segunda a Sexta).");
+        }
+
+        private static void ValidarTipoAtendimento(TipoAtendimentoAee tipo)
+        {
+            if (tipo == TipoAtendimentoAee.Itinerante)
+                throw new ArgumentException("Tipo de atendimento Itinerante não está disponível.");
+            if (!Enum.IsDefined(typeof(TipoAtendimentoAee), tipo) || (int)tipo > (int)TipoAtendimentoAee.Colaborativo)
+                throw new ArgumentException("Tipo de atendimento inválido.");
+        }
+
+        private static string? NormalizarPerfilPedagogico(string? valor) =>
+            string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
+
+        private static string? ResolverPerfilPedagogico(string? perfil, string? legadoPot, string? legadoNec)
+        {
+            var atual = NormalizarPerfilPedagogico(perfil);
+            if (!string.IsNullOrEmpty(atual))
+                return atual;
+
+            var partes = new[] { legadoPot, legadoNec }
+                .Select(NormalizarPerfilPedagogico)
+                .Where(p => !string.IsNullOrEmpty(p))
+                .ToList();
+
+            return partes.Count == 0 ? null : string.Join("\n\n", partes!);
+        }
+
+        private static void HydratePerfilPedagogicoDto(AlunoBuscarDTO dto)
+        {
+            dto.PerfilPedagogico = ResolverPerfilPedagogico(
+                dto.PerfilPedagogico,
+                dto.PerfilPedagogicoPotencialidades,
+                dto.PerfilPedagogicoNecessidades);
+            dto.PerfilPedagogicoPotencialidades = null;
+            dto.PerfilPedagogicoNecessidades = null;
+        }
+
+        private static string? ValidarDataNascimentoObrigatoria(DateOnly data)
+        {
+            if (data == default)
+                return "Data de nascimento é obrigatória.";
+            var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (data > hoje)
+                return "Data de nascimento não pode ser futura.";
+            if (data.Year < 1900)
+                return "Data de nascimento inválida.";
+            return null;
+        }
+
+        private static void HydrateDiasSemanaDto(AlunoBuscarDTO dto)
+        {
+            dto.DiasSemanaAtendimento = DeserializeDiasSemana(dto.DiasSemanaAtendimentoJson);
+            dto.DiasSemanaAtendimentoJson = null;
+        }
+
         public async Task<ServiceResponse<AlunoCadastroDTO>> Cadastro(AlunoCadastroDTO alunoDTO, Usuario usuario)
         {
             var resposta = new ServiceResponse<AlunoCadastroDTO>();
@@ -31,11 +160,31 @@ namespace api.Services
             {
                 try
                 {
+                    List<string> diasCanon;
+                    try
+                    {
+                        diasCanon = CanonizarDiasSemana(alunoDTO.DiasSemanaAtendimento);
+                        ValidarAtendimento(alunoDTO.FrequenciaSemanalAtendimento, diasCanon);
+                        ValidarTipoAtendimento(alunoDTO.TipoAtendimentoAee);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        resposta.SetFalha(ex.Message);
+                        return resposta;
+                    }
+
+                    var errDnCadastro = ValidarDataNascimentoObrigatoria(alunoDTO.DataNascimento);
+                    if (errDnCadastro != null)
+                    {
+                        resposta.SetFalha(errDnCadastro);
+                        return resposta;
+                    }
+
                     Responsavel responsavel = new Responsavel()
                     {
                         NomeCompleto = alunoDTO.Responsavel.NomeCompleto,
                         Telefone = alunoDTO.Responsavel.Telefone,
-                        Email = alunoDTO.Responsavel.Email
+                        Email = alunoDTO.Responsavel.Email ?? ""
                     };
 
                     _contexto.Responsaveis.Add(responsavel);
@@ -44,6 +193,14 @@ namespace api.Services
                     Aluno aluno = new Aluno
                     {
                         NomeCompleto = alunoDTO.NomeCompleto,
+                        DataNascimento = alunoDTO.DataNascimento,
+                        FrequenciaSemanalAtendimento = alunoDTO.FrequenciaSemanalAtendimento,
+                        DiasSemanaAtendimentoJson = SerializeDiasSemana(diasCanon),
+                        DuracaoAtendimentoMinutos = alunoDTO.DuracaoAtendimentoMinutos,
+                        TipoAtendimentoAee = alunoDTO.TipoAtendimentoAee,
+                        PerfilPedagogico = NormalizarPerfilPedagogico(alunoDTO.PerfilPedagogico),
+                        PerfilPedagogicoPotencialidades = null,
+                        PerfilPedagogicoNecessidades = null,
                         Cep = alunoDTO.Cep,
                         Logradouro = alunoDTO.Logradouro,
                         Numero = alunoDTO.Numero.HasValue ? (int)alunoDTO.Numero : 0,
@@ -102,6 +259,21 @@ namespace api.Services
                 if (aluno == null)
                 {
                     resposta.SetFalha("Aluno não encontrado.");
+                    return resposta;
+                }
+
+                if (alunoDTO.DataNascimento.HasValue)
+                {
+                    var errDnAtual = ValidarDataNascimentoObrigatoria(alunoDTO.DataNascimento.Value);
+                    if (errDnAtual != null)
+                    {
+                        resposta.SetFalha(errDnAtual);
+                        return resposta;
+                    }
+                }
+                else if (!aluno.DataNascimento.HasValue)
+                {
+                    resposta.SetFalha("Data de nascimento é obrigatória. Informe no cadastro do aluno.");
                     return resposta;
                 }
 
@@ -172,6 +344,84 @@ namespace api.Services
                     aluno.Sexo = alunoDTO.Sexo;
                 }
 
+                if (alunoDTO.DataNascimento.HasValue)
+                    aluno.DataNascimento = alunoDTO.DataNascimento;
+
+                if (alunoDTO.FrequenciaSemanalAtendimento.HasValue && alunoDTO.DiasSemanaAtendimento != null)
+                {
+                    try
+                    {
+                        var diasCanon = CanonizarDiasSemana(alunoDTO.DiasSemanaAtendimento);
+                        ValidarAtendimento(alunoDTO.FrequenciaSemanalAtendimento.Value, diasCanon);
+                        aluno.FrequenciaSemanalAtendimento = alunoDTO.FrequenciaSemanalAtendimento;
+                        aluno.DiasSemanaAtendimentoJson = SerializeDiasSemana(diasCanon);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        resposta.SetFalha(ex.Message);
+                        return resposta;
+                    }
+                }
+
+                if (alunoDTO.DuracaoAtendimentoMinutos.HasValue)
+                    aluno.DuracaoAtendimentoMinutos = alunoDTO.DuracaoAtendimentoMinutos;
+
+                if (alunoDTO.TipoAtendimentoAee.HasValue)
+                {
+                    try
+                    {
+                        ValidarTipoAtendimento(alunoDTO.TipoAtendimentoAee.Value);
+                        aluno.TipoAtendimentoAee = alunoDTO.TipoAtendimentoAee;
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        resposta.SetFalha(ex.Message);
+                        return resposta;
+                    }
+                }
+
+                if (alunoDTO.PerfilPedagogico != null)
+                {
+                    aluno.PerfilPedagogico = NormalizarPerfilPedagogico(alunoDTO.PerfilPedagogico);
+                    aluno.PerfilPedagogicoPotencialidades = null;
+                    aluno.PerfilPedagogicoNecessidades = null;
+                }
+
+                if (alunoDTO.Responsavel != null && aluno.IdResponsavel.HasValue)
+                {
+                    var resp = await _contexto.Responsaveis.FirstOrDefaultAsync(r => r.Id == aluno.IdResponsavel.Value);
+                    if (resp != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(alunoDTO.Responsavel.NomeCompleto))
+                            resp.NomeCompleto = alunoDTO.Responsavel.NomeCompleto;
+                        if (!string.IsNullOrWhiteSpace(alunoDTO.Responsavel.Telefone))
+                            resp.Telefone = alunoDTO.Responsavel.Telefone;
+                        if (alunoDTO.Responsavel.Email != null)
+                            resp.Email = alunoDTO.Responsavel.Email;
+                    }
+                }
+
+                if (alunoDTO.Laudos != null)
+                {
+                    var existentes = await _contexto.Laudos.Where(l => l.IdAluno == aluno.Id).ToListAsync();
+                    _contexto.Laudos.RemoveRange(existentes);
+                    var novos = alunoDTO.Laudos
+                        .Where(l =>
+                            !string.IsNullOrWhiteSpace(l.CodigoCid)
+                            || !string.IsNullOrWhiteSpace(l.NomeMedico)
+                            || !string.IsNullOrWhiteSpace(l.Descricao))
+                        .Select(l => new Laudo
+                        {
+                            CodigoCid = l.CodigoCid ?? "",
+                            NomeMedico = l.NomeMedico ?? "",
+                            Descricao = l.Descricao ?? "",
+                            IdAluno = aluno.Id
+                        })
+                        .ToList();
+                    if (novos.Count > 0)
+                        await _contexto.Laudos.AddRangeAsync(novos);
+                }
+
                 await _contexto.SaveChangesAsync();
             }
             catch (Exception ex)
@@ -210,6 +460,14 @@ namespace api.Services
                         Ano = a.Ano,
                         Turno = a.Turno,
                         Sexo = a.Sexo,
+                        DataNascimento = a.DataNascimento,
+                        FrequenciaSemanalAtendimento = a.FrequenciaSemanalAtendimento,
+                        DiasSemanaAtendimentoJson = a.DiasSemanaAtendimentoJson,
+                        DuracaoAtendimentoMinutos = a.DuracaoAtendimentoMinutos,
+                        TipoAtendimentoAee = a.TipoAtendimentoAee,
+                        PerfilPedagogico = a.PerfilPedagogico,
+                        PerfilPedagogicoPotencialidades = a.PerfilPedagogicoPotencialidades,
+                        PerfilPedagogicoNecessidades = a.PerfilPedagogicoNecessidades,
 
                         Responsavel = a.Responsavel != null
                             ? new ResponsavelCadastroSimplificadoDTO
@@ -261,6 +519,11 @@ namespace api.Services
                             : new List<PlanejamentoBuscarSimplificadoDTO>()
                     })
                     .ToListAsync();
+                foreach (var item in alunos)
+                {
+                    HydrateDiasSemanaDto(item);
+                    HydratePerfilPedagogicoDto(item);
+                }
                 resposta.AdicionaObjeto(alunos);
                 resposta.Sucesso = true;
                 return resposta;
@@ -296,6 +559,14 @@ namespace api.Services
                         Ano = a.Ano,
                         Turno = a.Turno,
                         Sexo = a.Sexo,
+                        DataNascimento = a.DataNascimento,
+                        FrequenciaSemanalAtendimento = a.FrequenciaSemanalAtendimento,
+                        DiasSemanaAtendimentoJson = a.DiasSemanaAtendimentoJson,
+                        DuracaoAtendimentoMinutos = a.DuracaoAtendimentoMinutos,
+                        TipoAtendimentoAee = a.TipoAtendimentoAee,
+                        PerfilPedagogico = a.PerfilPedagogico,
+                        PerfilPedagogicoPotencialidades = a.PerfilPedagogicoPotencialidades,
+                        PerfilPedagogicoNecessidades = a.PerfilPedagogicoNecessidades,
 
                         Responsavel = a.Responsavel != null
                             ? new ResponsavelCadastroSimplificadoDTO
@@ -353,6 +624,9 @@ namespace api.Services
                     resposta.SetFalha("Aluno não encontrado.");
                     return resposta;
                 }
+
+                HydrateDiasSemanaDto(aluno);
+                HydratePerfilPedagogicoDto(aluno);
 
                 resposta.AdicionaObjeto(aluno);
                 resposta.Sucesso = true;

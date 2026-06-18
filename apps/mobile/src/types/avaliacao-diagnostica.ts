@@ -9,6 +9,13 @@ export type NivelRealizacao =
   | 'NaoRealizou'        // Não conseguiu realizar
   | 'NaoAvaliado';       // Ainda não avaliado
 
+/** Perfil agregado (substitui percentual numérico legado em diagnósticos persistidos). */
+export type NivelPerfilAutonomia =
+  | 'NaoAvaliado'
+  | 'PredominioDependencia'
+  | 'AutonomiaMediada'
+  | 'PredominioAutonomia';
+
 /**
  * Resumo de uma avaliação diagnóstica (usado na lista "Minhas Avaliações")
  */
@@ -56,6 +63,14 @@ export interface AvaliacaoDiagnosticaDetalhada {
   concluida: boolean;
   createdAt?: string;
   updatedAt?: string;
+  perfisAutonomiaPorAluno?: Array<{
+    alunoId: number;
+    nomeCompleto: string;
+    nivelPerfilAutonomia: NivelPerfilAutonomia | string;
+    rotuloExibicao: string;
+    sugestaoPaee: string;
+    percentualAutonomiaCalculado?: number | null;
+  }>;
 }
 
 /**
@@ -126,7 +141,7 @@ export interface DiagnosticoFinal {
     nomeCompleto: string;
   };
   resumo: string;                        // ex: "Dificuldade moderada em reconhecimento de letras"
-  percentualAutonomia: number;           // 0 a 100
+  nivelPerfilAutonomia: NivelPerfilAutonomia | string;
   recomendacoes: string;
   habilidadesFortes?: string;
   habilidadesAReenforcar?: string;
@@ -141,7 +156,8 @@ export interface DiagnosticoFinal {
 export interface DiagnosticoResumo {
   id: number;
   alunoNome: string;
-  percentualAutonomia: number;
+  nivelPerfilAutonomia: NivelPerfilAutonomia | string;
+  rotuloExibicao?: string;
   resumoCurto: string;
   geradoEm: string;
 }

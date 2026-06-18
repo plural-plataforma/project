@@ -1,6 +1,7 @@
-﻿using api.DTOs.Laudo;
+using api.DTOs.Laudo;
 using api.DTOs.Planejamento;
 using api.DTOs.Responsavel;
+using api.Models;
 
 namespace api.DTOs.Aluno
 {
@@ -35,6 +36,27 @@ namespace api.DTOs.Aluno
         public string? Turno { get; set; }
 
         public string? Sexo { get; set; }
+
+        public DateOnly? DataNascimento { get; set; }
+
+        public int? FrequenciaSemanalAtendimento { get; set; }
+
+        public List<string> DiasSemanaAtendimento { get; set; } = [];
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? DiasSemanaAtendimentoJson { get; set; }
+
+        public int? DuracaoAtendimentoMinutos { get; set; }
+
+        public TipoAtendimentoAee? TipoAtendimentoAee { get; set; }
+
+        public string? PerfilPedagogico { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? PerfilPedagogicoPotencialidades { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? PerfilPedagogicoNecessidades { get; set; }
 
         public ResponsavelCadastroSimplificadoDTO Responsavel { get; set; }
 

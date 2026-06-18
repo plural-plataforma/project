@@ -65,7 +65,7 @@ export const registrarDesempenhoBatch = async (
   dados: RegistrarDesempenhoBatchRequest
 ): Promise<{ mensagem: string }> => {
   try {
-    const response = await api.post('/desempenhos/batch', dados);
+    const response = await api.post('/avaliacaodiagnostica/desempenhos/batch', dados);
     return response.data;
   } catch (error) {
     console.error('Erro ao registrar desempenhos em batch:', error);
@@ -79,7 +79,7 @@ export const buscarDiagnosticoFinal = async (
   alunoId: number
 ): Promise<DiagnosticoFinal> => {
   try {
-    const response = await api.get(`/diagnosticos-finais/${avaliacaoId}/${alunoId}`);
+    const response = await api.get(`/avaliacaodiagnostica/diagnosticos-finais/${avaliacaoId}/${alunoId}`);
     return response.data;
   } catch (error) {
     console.error(`Erro ao buscar diagnóstico final (avaliação ${avaliacaoId}, aluno ${alunoId}):`, error);

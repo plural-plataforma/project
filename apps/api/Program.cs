@@ -78,23 +78,38 @@ else
     throw new InvalidOperationException("Seção 'Hotmart' não encontrada no appsettings.json");
 }
 
-// Validações básicas das variáveis de ambiente (obrigatórias)
-var requiredEnvVars = new[] { "DB_PASSWORD", "USER_ID", "SERVER_URL", "PORT_API", "JWT_SECRET", "HOTTOK" };
+// JWT e webhook Hotmart continuam obrigatórios para subir a API
+var requiredEnvVars = new[] { "JWT_SECRET", "HOTTOK" };
 foreach (var varName in requiredEnvVars)
 {
     if (string.IsNullOrWhiteSpace(builder.Configuration[varName]))
         throw new InvalidOperationException($"{varName} não encontrada no .env ou configuração");
 }
 
-// Monta connection string com substituições
+// Monta connection string: template com placeholders (.env) OU string completa (ex.: Postgres local em Development)
 var baseConnectionString = builder.Configuration.GetConnectionString("AppDbContext")
     ?? throw new InvalidOperationException("AppDbContext não encontrada no appsettings.json");
 
-var connectionString = baseConnectionString
-    .Replace("{USER_ID}", builder.Configuration["USER_ID"])
-    .Replace("{DB_PASSWORD}", builder.Configuration["DB_PASSWORD"])
-    .Replace("{SERVER_URL}", builder.Configuration["SERVER_URL"])
-    .Replace("{PORT_API}", builder.Configuration["PORT_API"]);
+string connectionString;
+if (baseConnectionString.Contains("{USER_ID}", StringComparison.Ordinal))
+{
+    var requiredDbEnvVars = new[] { "DB_PASSWORD", "USER_ID", "SERVER_URL", "PORT_API" };
+    foreach (var varName in requiredDbEnvVars)
+    {
+        if (string.IsNullOrWhiteSpace(builder.Configuration[varName]))
+            throw new InvalidOperationException($"{varName} não encontrada no .env ou configuração (necessária quando ConnectionStrings:AppDbContext usa placeholders).");
+    }
+
+    connectionString = baseConnectionString
+        .Replace("{USER_ID}", builder.Configuration["USER_ID"])
+        .Replace("{DB_PASSWORD}", builder.Configuration["DB_PASSWORD"])
+        .Replace("{SERVER_URL}", builder.Configuration["SERVER_URL"])
+        .Replace("{PORT_API}", builder.Configuration["PORT_API"]);
+}
+else
+{
+    connectionString = baseConnectionString.Trim();
+}
 
 // Limita conexões por instância (evita "Max client connections reached" no Postgres).
 // Produção: ajuste Database:MaxPoolSize ou variável de ambiente Database__MaxPoolSize conforme max_connections ÷ instâncias da API.
@@ -142,6 +157,8 @@ builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
 builder.Services.AddScoped<AvaliacaoDiagnosticaService>();
+builder.Services.AddScoped<EstudoDeCasoService>();
+builder.Services.AddScoped<RelatoAtendimentoService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
 builder.Services.AddScoped<EmailService>();

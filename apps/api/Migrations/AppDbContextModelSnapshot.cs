@@ -235,10 +235,26 @@ namespace api.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("complemento");
 
+                    b.Property<DateOnly?>("DataNascimento")
+                        .HasColumnType("date")
+                        .HasColumnName("datanascimento");
+
+                    b.Property<string>("DiasSemanaAtendimentoJson")
+                        .HasColumnType("text")
+                        .HasColumnName("diassemanaatendimentojson");
+
+                    b.Property<int?>("DuracaoAtendimentoMinutos")
+                        .HasColumnType("integer")
+                        .HasColumnName("duracaoatendimentominutos");
+
                     b.Property<string>("Estado")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("estado");
+
+                    b.Property<int?>("FrequenciaSemanalAtendimento")
+                        .HasColumnType("integer")
+                        .HasColumnName("frequenciasemanalatendimento");
 
                     b.Property<int>("IdEscola")
                         .HasColumnType("integer")
@@ -272,6 +288,18 @@ namespace api.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("numero");
 
+                    b.Property<string>("PerfilPedagogico")
+                        .HasColumnType("text")
+                        .HasColumnName("perfilpedagogico");
+
+                    b.Property<string>("PerfilPedagogicoNecessidades")
+                        .HasColumnType("text")
+                        .HasColumnName("perfilpedagogiconecessidades");
+
+                    b.Property<string>("PerfilPedagogicoPotencialidades")
+                        .HasColumnType("text")
+                        .HasColumnName("perfilpedagogicopotencialidades");
+
                     b.Property<string>("Sexo")
                         .HasMaxLength(1)
                         .HasColumnType("character varying(1)")
@@ -281,6 +309,10 @@ namespace api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("telefone");
+
+                    b.Property<int?>("TipoAtendimentoAee")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipoatendimentoaee");
 
                     b.Property<string>("Turno")
                         .HasMaxLength(10)
@@ -299,7 +331,7 @@ namespace api.Migrations
                     b.HasIndex("IdResponsavel")
                         .HasDatabaseName("ix_alunos_idresponsavel");
 
-                    b.ToTable("alunos");
+                    b.ToTable("alunos", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AlunosXPlanejamento", b =>
@@ -318,7 +350,7 @@ namespace api.Migrations
 
                     b.HasIndex("AlunoId");
 
-                    b.ToTable("alunosxplanejamento");
+                    b.ToTable("alunosxplanejamento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Atividade", b =>
@@ -383,7 +415,7 @@ namespace api.Migrations
                     b.HasIndex("BlocoId")
                         .HasDatabaseName("ix_atividade_blocoid");
 
-                    b.ToTable("atividade");
+                    b.ToTable("atividade", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Avaliacao", b =>
@@ -410,7 +442,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_avaliacao");
 
-                    b.ToTable("avaliacao");
+                    b.ToTable("avaliacao", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoAluno", b =>
@@ -440,7 +472,7 @@ namespace api.Migrations
                     b.HasIndex("AlunoId")
                         .HasDatabaseName("ix_avaliacoes_alunos_alunoid");
 
-                    b.ToTable("avaliacoes_alunos");
+                    b.ToTable("avaliacoes_alunos", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnostica", b =>
@@ -495,7 +527,7 @@ namespace api.Migrations
                     b.HasIndex("ProfessorId")
                         .HasDatabaseName("ix_avaliacoes_diagnosticas_professorid");
 
-                    b.ToTable("avaliacoes_diagnosticas");
+                    b.ToTable("avaliacoes_diagnosticas", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaAtividade", b =>
@@ -513,7 +545,7 @@ namespace api.Migrations
                     b.HasIndex("AtividadeId")
                         .HasDatabaseName("ix_avaliacoes_diagnosticas_atividades_atividadeid");
 
-                    b.ToTable("avaliacoes_diagnosticas_atividades");
+                    b.ToTable("avaliacoes_diagnosticas_atividades", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoDiagnosticaBloco", b =>
@@ -535,7 +567,7 @@ namespace api.Migrations
                     b.HasIndex("BlocoId")
                         .HasDatabaseName("ix_avaliacoes_diagnosticas_blocos_blocoid");
 
-                    b.ToTable("avaliacoes_diagnosticas_blocos");
+                    b.ToTable("avaliacoes_diagnosticas_blocos", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.AvaliacaoXPlanejamento", b =>
@@ -554,7 +586,7 @@ namespace api.Migrations
 
                     b.HasIndex("AvaliacaoId");
 
-                    b.ToTable("avaliacaoxplanejamento");
+                    b.ToTable("avaliacaoxplanejamento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Bloco", b =>
@@ -601,7 +633,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_bloco");
 
-                    b.ToTable("bloco");
+                    b.ToTable("bloco", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.DesempenhoAtividade", b =>
@@ -651,7 +683,7 @@ namespace api.Migrations
 
                     b.HasIndex("AvaliacaoDiagnosticaId", "AlunoId", "AtividadeId");
 
-                    b.ToTable("desempenhos_atividades");
+                    b.ToTable("desempenhos_atividades", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.DiagnosticoFinal", b =>
@@ -675,9 +707,18 @@ namespace api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("geradoem");
 
-                    b.Property<double>("PercentualAutonomia")
-                        .HasColumnType("double precision")
-                        .HasColumnName("percentualautonomia");
+                    b.Property<string>("HabilidadesAReenforcar")
+                        .HasColumnType("text")
+                        .HasColumnName("habilidadesareenforcar");
+
+                    b.Property<string>("HabilidadesFortes")
+                        .HasColumnType("text")
+                        .HasColumnName("habilidadesfortes");
+
+                    b.Property<string>("NivelPerfilAutonomia")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("nivelperfilautonomia");
 
                     b.Property<string>("Recomendacoes")
                         .HasColumnType("text")
@@ -696,7 +737,7 @@ namespace api.Migrations
                     b.HasIndex("AvaliacaoDiagnosticaId")
                         .HasDatabaseName("ix_diagnosticos_finais_avaliacaodiagnosticaid");
 
-                    b.ToTable("diagnosticos_finais");
+                    b.ToTable("diagnosticos_finais", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Escola", b =>
@@ -754,7 +795,7 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_escolas");
 
-                    b.ToTable("escolas");
+                    b.ToTable("escolas", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.EscolaXProfessor", b =>
@@ -775,7 +816,7 @@ namespace api.Migrations
                     b.HasIndex("ProfessorId")
                         .HasDatabaseName("ix_escolasxprofessores_professorid");
 
-                    b.ToTable("escolasxprofessores");
+                    b.ToTable("escolasxprofessores", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Estrategias", b =>
@@ -798,7 +839,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_estrategias");
 
-                    b.ToTable("estrategias");
+                    b.ToTable("estrategias", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.EstrategiasXPlanejamento", b =>
@@ -817,7 +858,129 @@ namespace api.Migrations
 
                     b.HasIndex("EstrategiaId");
 
-                    b.ToTable("estrategiasxplanejamento");
+                    b.ToTable("estrategiasxplanejamento", (string)null);
+                });
+
+            modelBuilder.Entity("api.Models.EstudoDeCaso", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AlunoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("alunoid");
+
+                    b.Property<string>("ContextoSituacao")
+                        .HasColumnType("text")
+                        .HasColumnName("contextosituacao");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdat");
+
+                    b.Property<int>("ProfessorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("professorid");
+
+                    b.Property<string>("TextoSimulado")
+                        .HasColumnType("text")
+                        .HasColumnName("textosimulado");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("titulo");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedat");
+
+                    b.HasKey("Id")
+                        .HasName("pk_estudos_caso");
+
+                    b.HasIndex("AlunoId")
+                        .HasDatabaseName("ix_estudos_caso_alunoid");
+
+                    b.HasIndex("ProfessorId")
+                        .HasDatabaseName("ix_estudos_caso_professorid");
+
+                    b.ToTable("estudos_caso", (string)null);
+                });
+
+            modelBuilder.Entity("api.Models.EstudoDeCasoEixoCatalogo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("codigo");
+
+                    b.Property<string>("DescricaoHint")
+                        .HasColumnType("text")
+                        .HasColumnName("descricaohint");
+
+                    b.Property<int>("OrdemExibicao")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordemexibicao");
+
+                    b.Property<string>("Rotulo")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("rotulo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_estudo_caso_eixos_catalogo");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("estudo_caso_eixos_catalogo", (string)null);
+                });
+
+            modelBuilder.Entity("api.Models.EstudoDeCasoItemEixo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Anotacao")
+                        .HasColumnType("text")
+                        .HasColumnName("anotacao");
+
+                    b.Property<int>("EixoCatalogoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("eixocatalogoid");
+
+                    b.Property<int>("EstudoDeCasoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("estudodecasoid");
+
+                    b.HasKey("Id")
+                        .HasName("pk_estudo_caso_itens_eixo");
+
+                    b.HasIndex("EixoCatalogoId")
+                        .HasDatabaseName("ix_estudo_caso_itens_eixo_eixocatalogoid");
+
+                    b.HasIndex("EstudoDeCasoId", "EixoCatalogoId")
+                        .IsUnique();
+
+                    b.ToTable("estudo_caso_itens_eixo", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Habilidade", b =>
@@ -852,7 +1015,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_habilidades");
 
-                    b.ToTable("habilidades");
+                    b.ToTable("habilidades", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.HabilidadesXPlanejamento", b =>
@@ -871,7 +1034,7 @@ namespace api.Migrations
 
                     b.HasIndex("HabilidadeId");
 
-                    b.ToTable("habilidadesxplanejamento");
+                    b.ToTable("habilidadesxplanejamento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Laudo", b =>
@@ -907,7 +1070,7 @@ namespace api.Migrations
                     b.HasIndex("IdAluno")
                         .HasDatabaseName("ix_laudos_idaluno");
 
-                    b.ToTable("laudos");
+                    b.ToTable("laudos", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.ObservacaoAlunoAvaliacaoHistorico", b =>
@@ -940,7 +1103,49 @@ namespace api.Migrations
 
                     b.HasIndex("AvaliacaoDiagnosticaId", "AlunoId", "DataRegistro");
 
-                    b.ToTable("observacoes_alunos_avaliacao_historico");
+                    b.ToTable("observacoes_alunos_avaliacao_historico", (string)null);
+                });
+
+            modelBuilder.Entity("api.Models.PaeeObjetivoCatalogo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("codigo");
+
+                    b.Property<int>("OrdemExibicao")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordemexibicao");
+
+                    b.Property<int>("Prazo")
+                        .HasColumnType("integer")
+                        .HasColumnName("prazo");
+
+                    b.Property<string>("Rotulo")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("rotulo");
+
+                    b.Property<string>("TextoModelo")
+                        .HasColumnType("text")
+                        .HasColumnName("textomodelo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_paee_objetivos_catalogo");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("paee_objetivos_catalogo", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Planejamento", b =>
@@ -956,6 +1161,14 @@ namespace api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("apelido");
 
+                    b.Property<string>("AssinaturaCargo")
+                        .HasColumnType("text")
+                        .HasColumnName("assinaturacargo");
+
+                    b.Property<string>("AssinaturaNomeResponsavel")
+                        .HasColumnType("text")
+                        .HasColumnName("assinaturanomeresponsavel");
+
                     b.Property<DateOnly>("DataFim")
                         .HasColumnType("date")
                         .HasColumnName("datafim");
@@ -968,9 +1181,37 @@ namespace api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("descicaoplanejamento");
 
+                    b.Property<bool>("DocumentoDeclaradoAssinado")
+                        .HasColumnType("boolean")
+                        .HasColumnName("documentodeclaradoassinado");
+
                     b.Property<int>("IdProfessor")
                         .HasColumnType("integer")
                         .HasColumnName("idprofessor");
+
+                    b.Property<int?>("ObjetivoCurtoCatalogoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("objetivocurtocatalogoid");
+
+                    b.Property<string>("ObjetivoCurtoPrazo")
+                        .HasColumnType("text")
+                        .HasColumnName("objetivocurtoprazo");
+
+                    b.Property<int?>("ObjetivoLongoCatalogoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("objetivolongocatalogoid");
+
+                    b.Property<string>("ObjetivoLongoPrazo")
+                        .HasColumnType("text")
+                        .HasColumnName("objetivolongoprazo");
+
+                    b.Property<int?>("ObjetivoMedioCatalogoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("objetivomediocatalogoid");
+
+                    b.Property<string>("ObjetivoMedioPrazo")
+                        .HasColumnType("text")
+                        .HasColumnName("objetivomedioprazo");
 
                     b.HasKey("ID")
                         .HasName("pk_planejamentos");
@@ -978,7 +1219,64 @@ namespace api.Migrations
                     b.HasIndex("IdProfessor")
                         .HasDatabaseName("ix_planejamentos_idprofessor");
 
-                    b.ToTable("planejamentos");
+                    b.HasIndex("ObjetivoCurtoCatalogoId")
+                        .HasDatabaseName("ix_planejamentos_objetivocurtocatalogoid");
+
+                    b.HasIndex("ObjetivoLongoCatalogoId")
+                        .HasDatabaseName("ix_planejamentos_objetivolongocatalogoid");
+
+                    b.HasIndex("ObjetivoMedioCatalogoId")
+                        .HasDatabaseName("ix_planejamentos_objetivomediocatalogoid");
+
+                    b.ToTable("planejamentos", (string)null);
+                });
+
+            modelBuilder.Entity("api.Models.PlanejamentoEncontro", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("DataEnc")
+                        .HasColumnType("date")
+                        .HasColumnName("dataenc");
+
+                    b.Property<int?>("EstrategiaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("estrategiaid");
+
+                    b.Property<int?>("HabilidadeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("habilidadeid");
+
+                    b.Property<int>("PlanejamentoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("planejamentoid");
+
+                    b.Property<string>("TextoPlanejado")
+                        .HasColumnType("text")
+                        .HasColumnName("textoplanejado");
+
+                    b.Property<string>("TextoRealizado")
+                        .HasColumnType("text")
+                        .HasColumnName("textorealizado");
+
+                    b.HasKey("Id")
+                        .HasName("pk_planejamento_encontros");
+
+                    b.HasIndex("EstrategiaId")
+                        .HasDatabaseName("ix_planejamento_encontros_estrategiaid");
+
+                    b.HasIndex("HabilidadeId")
+                        .HasDatabaseName("ix_planejamento_encontros_habilidadeid");
+
+                    b.HasIndex("PlanejamentoId", "DataEnc")
+                        .HasDatabaseName("ix_planejamento_encontros_planejamentoid_dataenc");
+
+                    b.ToTable("planejamento_encontros", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Professor", b =>
@@ -1061,7 +1359,74 @@ namespace api.Migrations
                     b.HasKey("ID")
                         .HasName("pk_professores");
 
-                    b.ToTable("professores");
+                    b.ToTable("professores", (string)null);
+                });
+
+            modelBuilder.Entity("api.Models.RelatoAtendimento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AlunoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("alunoid");
+
+                    b.Property<string>("AvancosJson")
+                        .HasColumnType("text")
+                        .HasColumnName("avancosjson");
+
+                    b.Property<DateOnly>("DataSessao")
+                        .HasColumnType("date")
+                        .HasColumnName("datasessao");
+
+                    b.Property<string>("DificuldadesJson")
+                        .HasColumnType("text")
+                        .HasColumnName("dificuldadesjson");
+
+                    b.Property<int?>("EstrategiaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("estrategiaid");
+
+                    b.Property<int?>("HabilidadeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("habilidadeid");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("text")
+                        .HasColumnName("observacoes");
+
+                    b.Property<int?>("PlanejamentoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("planejamentoid");
+
+                    b.Property<bool>("PresencaPresente")
+                        .HasColumnType("boolean")
+                        .HasColumnName("presencapresente");
+
+                    b.Property<int>("TipoOcorrencia")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipoocorrencia");
+
+                    b.HasKey("Id")
+                        .HasName("pk_relatos_atendimento");
+
+                    b.HasIndex("EstrategiaId")
+                        .HasDatabaseName("ix_relatos_atendimento_estrategiaid");
+
+                    b.HasIndex("HabilidadeId")
+                        .HasDatabaseName("ix_relatos_atendimento_habilidadeid");
+
+                    b.HasIndex("PlanejamentoId")
+                        .HasDatabaseName("ix_relatos_atendimento_planejamentoid");
+
+                    b.HasIndex("AlunoId", "DataSessao")
+                        .HasDatabaseName("ix_relatos_atendimento_alunoid_datasessao");
+
+                    b.ToTable("relatos_atendimento", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>
@@ -1126,7 +1491,7 @@ namespace api.Migrations
                     b.HasKey("Id")
                         .HasName("pk_responsaveis");
 
-                    b.ToTable("responsaveis");
+                    b.ToTable("responsaveis", (string)null);
                 });
 
             modelBuilder.Entity("api.Models.Usuario", b =>
@@ -1567,6 +1932,48 @@ namespace api.Migrations
                     b.Navigation("Planejamento");
                 });
 
+            modelBuilder.Entity("api.Models.EstudoDeCaso", b =>
+                {
+                    b.HasOne("api.Models.Aluno", "Aluno")
+                        .WithMany()
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_estudos_caso_alunos_alunoid");
+
+                    b.HasOne("api.Models.Professor", "Professor")
+                        .WithMany()
+                        .HasForeignKey("ProfessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_estudos_caso_professores_professorid");
+
+                    b.Navigation("Aluno");
+
+                    b.Navigation("Professor");
+                });
+
+            modelBuilder.Entity("api.Models.EstudoDeCasoItemEixo", b =>
+                {
+                    b.HasOne("api.Models.EstudoDeCasoEixoCatalogo", "CatalogoEixo")
+                        .WithMany("Itens")
+                        .HasForeignKey("EixoCatalogoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_estudo_caso_itens_eixo_estudo_caso_eixos_catalogo_eixocatal~");
+
+                    b.HasOne("api.Models.EstudoDeCaso", "EstudoDeCaso")
+                        .WithMany("ItensEixo")
+                        .HasForeignKey("EstudoDeCasoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_estudo_caso_itens_eixo_estudos_caso_estudodecasoid");
+
+                    b.Navigation("CatalogoEixo");
+
+                    b.Navigation("EstudoDeCaso");
+                });
+
             modelBuilder.Entity("api.Models.HabilidadesXPlanejamento", b =>
                 {
                     b.HasOne("api.Models.Habilidade", "Habilidade")
@@ -1609,7 +2016,92 @@ namespace api.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_planejamentos_professores_idprofessor");
 
+                    b.HasOne("api.Models.PaeeObjetivoCatalogo", "ObjetivoCurtoCatalogo")
+                        .WithMany()
+                        .HasForeignKey("ObjetivoCurtoCatalogoId")
+                        .HasConstraintName("fk_planejamentos_paee_objetivos_catalogo_objetivocurtocatalogo~");
+
+                    b.HasOne("api.Models.PaeeObjetivoCatalogo", "ObjetivoLongoCatalogo")
+                        .WithMany()
+                        .HasForeignKey("ObjetivoLongoCatalogoId")
+                        .HasConstraintName("fk_planejamentos_paee_objetivos_catalogo_objetivolongocatalogo~");
+
+                    b.HasOne("api.Models.PaeeObjetivoCatalogo", "ObjetivoMedioCatalogo")
+                        .WithMany()
+                        .HasForeignKey("ObjetivoMedioCatalogoId")
+                        .HasConstraintName("fk_planejamentos_paee_objetivos_catalogo_objetivomediocatalogo~");
+
+                    b.Navigation("ObjetivoCurtoCatalogo");
+
+                    b.Navigation("ObjetivoLongoCatalogo");
+
+                    b.Navigation("ObjetivoMedioCatalogo");
+
                     b.Navigation("Professor");
+                });
+
+            modelBuilder.Entity("api.Models.PlanejamentoEncontro", b =>
+                {
+                    b.HasOne("api.Models.Estrategias", "Estrategia")
+                        .WithMany()
+                        .HasForeignKey("EstrategiaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_planejamento_encontros_estrategias_estrategiaid");
+
+                    b.HasOne("api.Models.Habilidade", "Habilidade")
+                        .WithMany()
+                        .HasForeignKey("HabilidadeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_planejamento_encontros_habilidades_habilidadeid");
+
+                    b.HasOne("api.Models.Planejamento", "Planejamento")
+                        .WithMany("Encontros")
+                        .HasForeignKey("PlanejamentoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_planejamento_encontros_planejamentos_planejamentoid");
+
+                    b.Navigation("Estrategia");
+
+                    b.Navigation("Habilidade");
+
+                    b.Navigation("Planejamento");
+                });
+
+            modelBuilder.Entity("api.Models.RelatoAtendimento", b =>
+                {
+                    b.HasOne("api.Models.Aluno", "Aluno")
+                        .WithMany()
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_relatos_atendimento_alunos_alunoid");
+
+                    b.HasOne("api.Models.Estrategias", "Estrategia")
+                        .WithMany()
+                        .HasForeignKey("EstrategiaId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_relatos_atendimento_estrategias_estrategiaid");
+
+                    b.HasOne("api.Models.Habilidade", "Habilidade")
+                        .WithMany()
+                        .HasForeignKey("HabilidadeId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_relatos_atendimento_habilidades_habilidadeid");
+
+                    b.HasOne("api.Models.Planejamento", "Planejamento")
+                        .WithMany()
+                        .HasForeignKey("PlanejamentoId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_relatos_atendimento_planejamentos_planejamentoid");
+
+                    b.Navigation("Aluno");
+
+                    b.Navigation("Estrategia");
+
+                    b.Navigation("Habilidade");
+
+                    b.Navigation("Planejamento");
                 });
 
             modelBuilder.Entity("api.Models.Usuario", b =>
@@ -1661,6 +2153,16 @@ namespace api.Migrations
                     b.Navigation("EstrategiasXPlanejamentos");
                 });
 
+            modelBuilder.Entity("api.Models.EstudoDeCaso", b =>
+                {
+                    b.Navigation("ItensEixo");
+                });
+
+            modelBuilder.Entity("api.Models.EstudoDeCasoEixoCatalogo", b =>
+                {
+                    b.Navigation("Itens");
+                });
+
             modelBuilder.Entity("api.Models.Habilidade", b =>
                 {
                     b.Navigation("HabilidadesXPlanejamentos");
@@ -1671,6 +2173,8 @@ namespace api.Migrations
                     b.Navigation("AlunosXPlanejamentos");
 
                     b.Navigation("AvaliacaoXPlanejamentos");
+
+                    b.Navigation("Encontros");
 
                     b.Navigation("EstrategiasXPlanejamentos");
 

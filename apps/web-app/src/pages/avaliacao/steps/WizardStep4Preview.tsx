@@ -7,7 +7,7 @@ import {
 } from '@/pages/avaliacao/avaliacaoAreaConstants'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, ArrowLeft, CalendarBlank, Buildings, Users, Rows, DownloadSimple } from '@phosphor-icons/react'
+import { CheckCircle, ArrowLeft, CalendarBlank, Buildings, Users, Rows, DownloadSimple, ChartBar } from '@phosphor-icons/react'
 import { useAvaliacaoWizardStore } from '@/stores/avaliacaoWizardStore'
 import { atualizarAvaliacaoDiagnostica, criarAvaliacaoDiagnostica, gerarPdfBlob } from '@/services/avaliacaoDiagnosticaService'
 import { buscarAlunos } from '@/services/alunoService'
@@ -16,8 +16,9 @@ import { buscarBlocosComAtividades } from '@/services/blocosService'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { LoadingScreen } from '@/components/common/LoadingScreen'
+import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import dayjs from 'dayjs'
 
 export function WizardStep4Preview() {
@@ -81,18 +82,25 @@ export function WizardStep4Preview() {
             objetivo: wizardData.objetivo,
             concluida: false,
           }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['avaliacoes-diagnosticas'] })
       success(
         isEditing ? 'Avaliação atualizada!' : 'Avaliação criada!',
         isEditing
           ? 'A avaliação diagnóstica foi atualizada com sucesso.'
-          : 'A avaliação diagnóstica foi criada com sucesso.'
+          : 'Avaliação criada. Você pode lançar o desempenho dos alunos agora.'
       )
       reset()
-      setTimeout(() => navigate('/avaliacoes'), 1000)
+      if (!isEditing && result.id > 0) {
+        navigate(`/avaliacoes/${result.id}/desempenho`, { replace: true })
+      } else {
+        setTimeout(() => navigate('/avaliacoes'), 800)
+      }
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   const pdfMutation = useMutation({
@@ -107,14 +115,17 @@ export function WizardStep4Preview() {
       link.click()
       window.URL.revokeObjectURL(url)
     },
-    onError: (err: Error) => showError('Erro', err.message),
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
   })
 
   return (
     <>
-    <LoadingScreen
+    <DocGeracaoLoadingScreen
       visible={createMutation.isPending}
-      message={isEditing ? 'Atualizando avaliação diagnóstica...' : 'Criando avaliação diagnóstica...'}
+      sections={['Identificação da avaliação', 'Alunos selecionados', 'Áreas e atividades', 'Configurações de aplicação']}
     />
     <div className="max-w-2xl">
         <div className="mb-6">
@@ -232,6 +243,18 @@ export function WizardStep4Preview() {
               Voltar
             </Button>
           <div className="flex items-center gap-2">
+            {(isEditing && avaliacaoId) || wizardData.id ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  navigate(`/avaliacoes/${avaliacaoId ?? wizardData.id}/desempenho`)
+                }
+              >
+                <ChartBar size={16} />
+                Lançar desempenho
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"

@@ -73,6 +73,23 @@ namespace api.DTOs.AvaliacaoDiagnostica
         public string? Observacao { get; set; }
     }
 
+    /// <summary>
+    /// Perfil de autonomia agregado por aluno (níveis discretos + texto para PAEE).
+    /// </summary>
+    public class AlunoPerfilAutonomiaResumoDTO
+    {
+        public int AlunoId { get; set; }
+        public string NomeCompleto { get; set; } = string.Empty;
+        /// <summary>Código estável: NaoAvaliado, PredominioDependencia, AutonomiaMediada, PredominioAutonomia.</summary>
+        public string NivelPerfilAutonomia { get; set; } = string.Empty;
+        public string RotuloExibicao { get; set; } = string.Empty;
+        public string SugestaoPaee { get; set; } = string.Empty;
+        /// <summary>Percentual interno usado no corte (atividades em Autonomia sobre avaliadas), ou null se não aplicável.</summary>
+        public double? PercentualAutonomiaCalculado { get; set; }
+        public string? HabilidadesFortes { get; set; }
+        public string? HabilidadesAReenforcar { get; set; }
+    }
+
     public class AvaliacaoDiagnosticaDetailDTO
     {
         public int Id { get; set; }
@@ -90,6 +107,11 @@ namespace api.DTOs.AvaliacaoDiagnostica
         public List<AvaliacaoDiagnosticaRegistroDesempenhoDTO> RegistrosDesempenho { get; set; } = new();
         public List<AvaliacaoDiagnosticaObservacaoAlunoDTO> ObservacoesAlunos { get; set; } = new();
         public List<BlocoComAtividadesDTO> BlocosComAtividades { get; set; } = new(); // usa o DTO que você já tem
+
+        /// <summary>
+        /// Uma entrada por aluno participante; nível derivado dos registros de desempenho (último por atividade).
+        /// </summary>
+        public List<AlunoPerfilAutonomiaResumoDTO> PerfisAutonomiaPorAluno { get; set; } = new();
     }
 
     // DTO para atualização (PUT) — mesmo formato aninhado

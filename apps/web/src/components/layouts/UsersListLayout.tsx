@@ -30,6 +30,17 @@ import { Star as StarIcon } from '@phosphor-icons/react';
 
 import { Usuario } from '../../types/userTypes';
 
+function getExpirationStatus(expirationDate?: string | null) {
+  if (!expirationDate) return { label: 'Nunca', chipColor: 'default' as const, formatted: null }
+  const exp = new Date(expirationDate)
+  const now = new Date()
+  const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  const formatted = exp.toLocaleDateString('pt-BR')
+  if (diffDays < 0) return { label: 'Expirado', chipColor: 'error' as const, formatted }
+  if (diffDays <= 30) return { label: `${formatted} (${diffDays}d)`, chipColor: 'warning' as const, formatted }
+  return { label: formatted, chipColor: 'default' as const, formatted }
+}
+
 interface Props {
   filteredUsuarios: Usuario[];
   loading: boolean;
@@ -159,6 +170,7 @@ export function UsersListLayout({
                 <TableCell>Usuário</TableCell>
                 <TableCell>Perfil</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Expira em</TableCell>
                 <TableCell>Embaixadora</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
@@ -205,6 +217,20 @@ export function UsersListLayout({
                       size="small"
                       color={user.ativo ? 'success' : 'error'}
                     />
+                  </TableCell>
+
+                  <TableCell>
+                    {(() => {
+                      const { label, chipColor } = getExpirationStatus(user.expirationDate)
+                      return (
+                        <Chip
+                          label={label}
+                          size="small"
+                          color={chipColor}
+                          variant={chipColor === 'default' ? 'outlined' : 'filled'}
+                        />
+                      )
+                    })()}
                   </TableCell>
 
                   <TableCell>

@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ClockCounterClockwise, FloppyDisk } from '@phosphor-icons/react'
+import { FloppyDisk, LightbulbFilament, CheckCircle } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
+import { InlineLoader } from '@/components/common/LoadingScreen'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { buscarAvaliacaoPorId, buscarHistoricoDesempenho, registrarDesempenhoBatch } from '@/services/avaliacaoDiagnosticaService'
+import { HistoryTimelinePanel, type HistoryTimelineEntry } from '@/components/lists'
+import { buscarAvaliacaoPorId, buscarHistoricoDesempenho, finalizarAvaliacao, registrarDesempenhoBatch } from '@/services/avaliacaoDiagnosticaService'
 import { buscarHabilidades } from '@/services/habilidadeService'
 import { useToast } from '@/hooks/useToast'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import type { NivelRealizacao, RegistrarDesempenhoBatchRequest } from '@/types/avaliacao-diagnostica'
 
 const NIVEL_OPTIONS: Array<{ value: NivelRealizacao; label: string }> = [
@@ -16,6 +19,15 @@ const NIVEL_OPTIONS: Array<{ value: NivelRealizacao; label: string }> = [
   { value: 'ComAjuda', label: 'Com ajuda' },
   { value: 'NaoRealizou', label: 'Não realizou' },
 ]
+
+const NIVEL_BADGE: Record<
+  string,
+  HistoryTimelineEntry['badge']
+> = {
+  Autonomia: { label: 'Autonomia', variant: 'success' },
+  ComAjuda: { label: 'Com ajuda', variant: 'amber' },
+  NaoRealizou: { label: 'Não realizou', variant: 'danger' },
+}
 
 const keyFor = (alunoId: number, atividadeId: number): string => `${alunoId}:${atividadeId}`
 
@@ -29,17 +41,19 @@ export default function AvaliacaoDesempenhoPage() {
   const [nivelMap, setNivelMap] = useState<Record<string, NivelRealizacao>>({})
   const [obsAlunoMap, setObsAlunoMap] = useState<Record<number, string>>({})
 
-  const { data: avaliacao, isLoading } = useQuery({
+  const { data: avaliacao, isLoading, isFetching: isRefreshingAvaliacao, refetch: refetchAvaliacao } = useQuery({
     queryKey: ['avaliacao-detalhada', avaliacaoId],
     queryFn: () => buscarAvaliacaoPorId(avaliacaoId),
     enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
   })
 
-  const { data: historico } = useQuery({
+  const { data: historico, isLoading: isLoadingHistorico, isFetching: isRefreshingHistorico, refetch: refetchHistorico } = useQuery({
     queryKey: ['avaliacao-desempenho-historico', avaliacaoId],
     queryFn: () => buscarHistoricoDesempenho(avaliacaoId),
     enabled: Number.isFinite(avaliacaoId) && avaliacaoId > 0,
   })
+
+  const isRefreshingDesempenho = isRefreshingAvaliacao || isRefreshingHistorico
 
   const { data: habilidades = [] } = useQuery({
     queryKey: ['habilidades'],
@@ -55,6 +69,13 @@ export default function AvaliacaoDesempenhoPage() {
     }
     return m
   }, [habilidades])
+
+  const perfisOrdenados = useMemo(() => {
+    const lista = avaliacao?.perfisAutonomiaPorAluno ?? []
+    return [...lista].sort((a, b) =>
+      (a.nomeCompleto || '').localeCompare(b.nomeCompleto || '', 'pt-BR', { sensitivity: 'base' })
+    )
+  }, [avaliacao?.perfisAutonomiaPorAluno])
 
   useEffect(() => {
     if (!avaliacao) return
@@ -98,6 +119,42 @@ export default function AvaliacaoDesempenhoPage() {
       )
   }, [avaliacao])
 
+  const historicoEntries = useMemo((): HistoryTimelineEntry[] => {
+    const alunoPorId = new Map(alunos.map((a) => [a.id, a.nome]))
+    const atividadePorId = new Map(atividades.map((a) => [a.atividadeId, a.atividadeTitulo]))
+    const entries: HistoryTimelineEntry[] = []
+
+    for (const item of historico?.itens ?? []) {
+      entries.push({
+        id: `item-${item.id}`,
+        kind: 'activity',
+        occurredAt: item.dataRegistro,
+        primary: alunoPorId.get(item.alunoId) ?? `Aluno #${item.alunoId}`,
+        secondary: atividadePorId.get(item.atividadeId) ?? `Atividade #${item.atividadeId}`,
+        badge:
+          NIVEL_BADGE[item.nivelRealizacao] ?? {
+            label: item.nivelRealizacao,
+            variant: 'muted',
+          },
+      })
+    }
+
+    for (const obs of historico?.observacoesAlunos ?? []) {
+      entries.push({
+        id: `obs-${obs.id}`,
+        kind: 'observation',
+        occurredAt: obs.dataRegistro,
+        primary: alunoPorId.get(obs.alunoId) ?? `Aluno #${obs.alunoId}`,
+        detail: obs.observacao,
+        badge: { label: 'Observação geral', variant: 'purple' },
+      })
+    }
+
+    return entries.sort(
+      (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    )
+  }, [historico, alunos, atividades])
+
   const salvarMutation = useMutation({
     mutationFn: async () => {
       const itens: RegistrarDesempenhoBatchRequest['itens'] = []
@@ -135,15 +192,28 @@ export default function AvaliacaoDesempenhoPage() {
         observacoesAlunos,
       })
     },
-    onSuccess: () => {
-      success('Desempenho salvo', 'Novo evento histórico registrado com sucesso.')
+    onSuccess: async () => {
+      success('Desempenho salvo', 'Perfil e sugestões PAEE atualizados.')
+      await Promise.all([refetchAvaliacao(), refetchHistorico()])
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes-diagnosticas'] })
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      error('Falha ao salvar desempenho', formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const finalizarMutation = useMutation({
+    mutationFn: () => finalizarAvaliacao(avaliacaoId),
+    onSuccess: (data) => {
+      success('Avaliação finalizada', data.mensagem)
       queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada', avaliacaoId] })
-      queryClient.invalidateQueries({ queryKey: ['avaliacao-desempenho-historico', avaliacaoId] })
-      queryClient.invalidateQueries({ queryKey: ['avaliacao-detalhada'] })
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes-diagnosticas'] })
       navigate('/avaliacoes')
     },
-    onError: (err: Error) => {
-      error('Falha ao salvar desempenho', err.message)
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      error('Falha ao finalizar', formatFriendlyErrorBody(fb))
     },
   })
 
@@ -152,7 +222,7 @@ export default function AvaliacaoDesempenhoPage() {
   }
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Carregando avaliação...</p>
+    return <InlineLoader message="Carregando avaliação..." />
   }
 
   if (!avaliacao) {
@@ -166,19 +236,81 @@ export default function AvaliacaoDesempenhoPage() {
         description={`${avaliacao.titulo}${avaliacao.concluida ? ' (concluída)' : ''}`}
         backTo="/avaliacoes"
         action={(
-          <Button
-            onClick={() => salvarMutation.mutate()}
-            loading={salvarMutation.isPending}
-          >
-            <FloppyDisk size={16} />
-            Salvar lançamentos
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => salvarMutation.mutate()}
+              loading={salvarMutation.isPending}
+              disabled={finalizarMutation.isPending}
+            >
+              <FloppyDisk size={16} />
+              Salvar lançamentos
+            </Button>
+            <Button
+              type="button"
+              onClick={() => finalizarMutation.mutate()}
+              loading={finalizarMutation.isPending}
+              disabled={avaliacao.concluida || salvarMutation.isPending}
+            >
+              <CheckCircle size={16} weight="bold" />
+              Finalizar avaliação
+            </Button>
+          </div>
         )}
       />
 
       <p className="text-sm text-muted-foreground">
         Você pode continuar lançando e editando desempenho mesmo após concluir a avaliação.
       </p>
+
+      {(perfisOrdenados.length > 0 || isRefreshingDesempenho) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              Perfil de autonomia e sugestões PAEE
+              {isRefreshingDesempenho && (
+                <span className="text-xs font-normal text-muted-foreground">Atualizando…</span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Visão em níveis discretos (Autonomia, Com ajuda, Não realizou) calculada a partir dos lançamentos por atividade.
+              Atualiza quando você salva.
+            </p>
+            <div className="space-y-3">
+              {perfisOrdenados.map((p) => (
+                  <div
+                    key={p.alunoId}
+                    className="rounded-lg border border-border bg-muted/35 px-3 py-3 space-y-2"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{p.nomeCompleto}</p>
+                    </div>
+                    <p className="text-sm text-foreground leading-snug">{p.rotuloExibicao}</p>
+                    <p className="text-xs text-muted-foreground flex gap-2 leading-snug">
+                      <LightbulbFilament size={16} className="shrink-0 text-amber-600 mt-0.5" aria-hidden />
+                      <span>{p.sugestaoPaee}</span>
+                    </p>
+                    {p.habilidadesAReenforcar?.trim() && (
+                      <p className="text-xs text-foreground leading-snug">
+                        <span className="font-semibold">Habilidades a reforçar: </span>
+                        {p.habilidadesAReenforcar}
+                      </p>
+                    )}
+                    {p.habilidadesFortes?.trim() && (
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        <span className="font-semibold text-foreground/80">Habilidades fortes: </span>
+                        {p.habilidadesFortes}
+                      </p>
+                    )}
+                  </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {alunos.length === 0 || atividades.length === 0 ? (
         <Card>
@@ -252,34 +384,14 @@ export default function AvaliacaoDesempenhoPage() {
         ))
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ClockCounterClockwise size={18} />
-            Histórico de lançamentos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(historico?.itens?.length ?? 0) === 0 && (historico?.observacoesAlunos?.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground">Ainda não há histórico para esta avaliação.</p>
-          ) : (
-            <>
-              {historico?.itens.slice(0, 20).map((item) => (
-                <div key={`hist-item-${item.id}`} className="text-sm text-foreground rounded-md bg-muted p-2">
-                  Aluno {item.alunoId} • Atividade {item.atividadeId} • {item.nivelRealizacao} •{' '}
-                  {new Date(item.dataRegistro).toLocaleString('pt-BR')}
-                </div>
-              ))}
-              {historico?.observacoesAlunos.slice(0, 10).map((item) => (
-                <div key={`hist-obs-${item.id}`} className="text-sm text-foreground rounded-md bg-muted p-2">
-                  Obs. geral aluno {item.alunoId} • {new Date(item.dataRegistro).toLocaleString('pt-BR')} •{' '}
-                  {item.observacao}
-                </div>
-              ))}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <HistoryTimelinePanel
+        title="Histórico de lançamentos"
+        entries={historicoEntries}
+        isLoading={isLoadingHistorico}
+        isRefreshing={isRefreshingHistorico}
+        maxItems={30}
+        emptyMessage="Ainda não há histórico para esta avaliação."
+      />
     </div>
   )
 }

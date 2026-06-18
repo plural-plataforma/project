@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace api.Models
@@ -51,6 +51,31 @@ namespace api.Models
 
         [MaxLength(1)]
         public string? Sexo { get; set; }
+
+        /// <summary>Data de nascimento do aluno (idade cronológica para análise pedagógica).</summary>
+        public DateOnly? DataNascimento { get; set; }
+
+        /// <summary>Quantas vezes por semana o aluno é atendido no AEE.</summary>
+        public int? FrequenciaSemanalAtendimento { get; set; }
+
+        /// <summary>JSON: lista de dias, ex.: ["Segunda","Quinta"].</summary>
+        [Column(TypeName = "text")]
+        public string? DiasSemanaAtendimentoJson { get; set; }
+
+        /// <summary>Duração de cada atendimento em minutos.</summary>
+        public int? DuracaoAtendimentoMinutos { get; set; }
+
+        public TipoAtendimentoAee? TipoAtendimentoAee { get; set; }
+
+        /// <summary>Perfil pedagógico unificado (primeiras informações sobre o aluno).</summary>
+        [Column(TypeName = "text")]
+        public string? PerfilPedagogico { get; set; }
+
+        [Column(TypeName = "text")]
+        public string? PerfilPedagogicoPotencialidades { get; set; }
+
+        [Column(TypeName = "text")]
+        public string? PerfilPedagogicoNecessidades { get; set; }
 
         [ForeignKey("IdProfessor")]
         public Professor Professor { get; set; }

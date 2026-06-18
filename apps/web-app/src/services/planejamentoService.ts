@@ -1,6 +1,6 @@
-import { type AxiosError } from 'axios'
 import { api } from '@/api/http'
-import type { Planejamento, PlanejamentoResponse } from '@/types/planejamento'
+import type { Planejamento, PlanejamentoResponse, PaeeEncontroEntrada, PaeeSugestaoDatas, PaeeObjetivoCatalogo } from '@/types/planejamento'
+import { getApiErrorMessageForUser } from '@/lib/apiFriendlyError'
 
 type ExcluirPlanejamentoResponse = { sucesso: boolean; mensagens?: string[] }
 
@@ -45,11 +45,53 @@ export const atualizarPlanejamento = async (payload: {
   dataInicio: string
   dataFim: string
   descicaoPlanejamento?: string
+  objetivoCurtoPrazo?: string | null
+  objetivoMedioPrazo?: string | null
+  objetivoLongoPrazo?: string | null
+  objetivoCurtoCatalogoId?: number | null
+  objetivoMedioCatalogoId?: number | null
+  objetivoLongoCatalogoId?: number | null
+  documentoDeclaradoAssinado?: boolean | null
+  assinaturaNomeResponsavel?: string | null
+  assinaturaCargo?: string | null
 }): Promise<void> => {
   const response = await api.patch<PlanejamentoResponse>('/Planejamento/atualizar', payload)
   if (!response.data.sucesso) {
     throw new Error(response.data.mensagens?.join(', ') || 'Falha ao atualizar planejamento')
   }
+}
+
+export const substituirEncontrosPlanejamento = async (
+  idPlanejamento: number,
+  encontros: PaeeEncontroEntrada[]
+): Promise<void> => {
+  const response = await api.put(`/Planejamento/${idPlanejamento}/encontros`, { encontros })
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao salvar encontros')
+  }
+}
+
+export const obterSugestaoDatasEncontros = async (idPlanejamento: number): Promise<string[]> => {
+  const response = await api.get<{
+    sucesso: boolean
+    mensagens?: string[]
+    objeto: PaeeSugestaoDatas | null
+  }>(`/Planejamento/${idPlanejamento}/sugestao-datas`)
+  if (!response.data.sucesso)
+    throw new Error(response.data.mensagens?.join(', ') || 'Não foi possível obter sugestão de datas')
+  return response.data.objeto?.datas ?? []
+}
+
+export const buscarObjetivosPaeeCatalogo = async (): Promise<PaeeObjetivoCatalogo[]> => {
+  const response = await api.get<{
+    sucesso: boolean
+    mensagens?: string[]
+    listaObjetos?: PaeeObjetivoCatalogo[]
+  }>('/Planejamento/objetivos-catalogo')
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao buscar catálogo de objetivos')
+  }
+  return response.data.listaObjetos ?? []
 }
 
 export const excluirPlanejamento = async (id: number): Promise<void> => {
@@ -58,10 +100,8 @@ export const excluirPlanejamento = async (id: number): Promise<void> => {
     if (response.data.sucesso) return
     throw new Error(response.data.mensagens?.join(', ') || 'Falha ao excluir planejamento')
   } catch (error) {
-    const axiosError = error as AxiosError<ExcluirPlanejamentoResponse>
-    const msg = axiosError.response?.data?.mensagens?.join(', ')
+    const msg = getApiErrorMessageForUser(error).trim()
     if (msg) throw new Error(msg)
-    if (error instanceof Error) throw error
     throw new Error('Falha ao excluir planejamento')
   }
 }

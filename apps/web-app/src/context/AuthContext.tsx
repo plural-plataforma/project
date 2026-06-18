@@ -8,7 +8,7 @@ import {
 } from 'react'
 import { api } from '@/api/http'
 import type { LoginCredentials, RegisterCredentials, AuthResponse } from '@/types/auth'
-import type { AxiosError } from 'axios'
+import { getApiErrorMessageForUser } from '@/lib/apiFriendlyError'
 
 interface AuthContextType {
   isLoggedIn: boolean
@@ -200,21 +200,9 @@ export async function authAdiarTrocaSenha(): Promise<{ success: boolean }> {
   }
 }
 
-/** Extrai mensagem de erro do Axios ou de erros genéricos. */
+/** Mensagem segura para exibir à usuária (sem stack trace técnico). */
 function getErrorMessage(error: unknown): string {
-  const axiosError = error as AxiosError<{ message?: string; detail?: string; title?: string; errors?: string[] }>
-  const data = axiosError.response?.data
-
-  if (data != null) {
-    if (typeof data === 'string') return data
-    if (data.message) return data.message
-    if (data.detail) return data.detail
-    if (data.title) return data.title
-    if (Array.isArray(data.errors) && data.errors.length > 0) return data.errors[0]
-  }
-
-  const msg = axiosError.message || (error instanceof Error ? error.message : null)
-  return msg || 'Erro desconhecido'
+  return getApiErrorMessageForUser(error)
 }
 
 export { getErrorMessage }

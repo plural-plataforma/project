@@ -16,6 +16,7 @@ namespace Data
         public DbSet<EscolaXProfessor> EscolasXProfessores { get; set; }
         public DbSet<Habilidade> Habilidades { get; set; }
         public DbSet<Planejamento> Planejamentos { get; set; }
+        public DbSet<PlanejamentoEncontro> PlanejamentoEncontros { get; set; }
         public DbSet<AlunosXPlanejamento> AlunosXPlanejamentos { get; set; }
         public DbSet<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
 
@@ -34,6 +35,11 @@ namespace Data
         public DbSet<DesempenhoAtividade> DesempenhosAtividades { get; set; }
         public DbSet<ObservacaoAlunoAvaliacaoHistorico> ObservacoesAlunosAvaliacaoHistorico { get; set; }
         public DbSet<DiagnosticoFinal> DiagnosticosFinais { get; set; }
+        public DbSet<EstudoDeCasoEixoCatalogo> EstudoCasoEixosCatalogo { get; set; }
+        public DbSet<EstudoDeCaso> EstudosCaso { get; set; }
+        public DbSet<EstudoDeCasoItemEixo> EstudoCasoItensEixo { get; set; }
+        public DbSet<RelatoAtendimento> RelatosAtendimento { get; set; }
+        public DbSet<PaeeObjetivoCatalogo> PaeeObjetivosCatalogo { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -144,6 +150,30 @@ namespace Data
                 .WithMany(a => a.AlunosXPlanejamentos)
                 .HasForeignKey(pa => pa.AlunoId);
 
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasOne(e => e.Planejamento)
+                .WithMany(p => p.Encontros)
+                .HasForeignKey(e => e.PlanejamentoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasOne(e => e.Habilidade)
+                .WithMany()
+                .HasForeignKey(e => e.HabilidadeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasOne(e => e.Estrategia)
+                .WithMany()
+                .HasForeignKey(e => e.EstrategiaId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            modelBuilder.Entity<PlanejamentoEncontro>()
+                .HasIndex(e => new { e.PlanejamentoId, e.DataEnc })
+                .HasDatabaseName("ix_planejamento_encontros_planejamentoid_dataenc");
+
             // Bloco ↔ Atividade (1:N)
             modelBuilder.Entity<Bloco>()
               .HasMany(b => b.Atividades)           // Um Bloco tem muitas Atividades
@@ -198,6 +228,77 @@ namespace Data
 
             modelBuilder.Entity<ObservacaoAlunoAvaliacaoHistorico>()
                 .HasIndex(o => new { o.AvaliacaoDiagnosticaId, o.AlunoId, o.DataRegistro });
+
+            modelBuilder.Entity<EstudoDeCasoEixoCatalogo>()
+                .HasIndex(e => e.Codigo)
+                .IsUnique();
+
+            modelBuilder.Entity<PaeeObjetivoCatalogo>()
+                .HasIndex(o => o.Codigo)
+                .IsUnique();
+
+            modelBuilder.Entity<EstudoDeCasoItemEixo>()
+                .HasIndex(i => new { i.EstudoDeCasoId, i.EixoCatalogoId })
+                .IsUnique();
+
+            modelBuilder.Entity<EstudoDeCaso>()
+                .HasOne(e => e.Aluno)
+                .WithMany()
+                .HasForeignKey(e => e.AlunoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EstudoDeCaso>()
+                .HasOne(e => e.Professor)
+                .WithMany()
+                .HasForeignKey(e => e.ProfessorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EstudoDeCasoItemEixo>()
+                .HasOne(i => i.EstudoDeCaso)
+                .WithMany(e => e.ItensEixo)
+                .HasForeignKey(i => i.EstudoDeCasoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EstudoDeCasoItemEixo>()
+                .HasOne(i => i.CatalogoEixo)
+                .WithMany(c => c.Itens)
+                .HasForeignKey(i => i.EixoCatalogoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RelatoAtendimento>()
+                .HasOne(r => r.Aluno)
+                .WithMany()
+                .HasForeignKey(r => r.AlunoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RelatoAtendimento>()
+                .HasOne(r => r.Planejamento)
+                .WithMany()
+                .HasForeignKey(r => r.PlanejamentoId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            modelBuilder.Entity<RelatoAtendimento>()
+                .HasOne(r => r.Habilidade)
+                .WithMany()
+                .HasForeignKey(r => r.HabilidadeId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            modelBuilder.Entity<RelatoAtendimento>()
+                .HasOne(r => r.Estrategia)
+                .WithMany()
+                .HasForeignKey(r => r.EstrategiaId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            modelBuilder.Entity<RelatoAtendimento>()
+                .Property(r => r.TipoOcorrencia)
+                .HasConversion<int>();
+
+            modelBuilder.Entity<RelatoAtendimento>()
+                .HasIndex(r => new { r.AlunoId, r.DataSessao })
+                .HasDatabaseName("ix_relatos_atendimento_alunoid_datasessao");
 
         }
 
