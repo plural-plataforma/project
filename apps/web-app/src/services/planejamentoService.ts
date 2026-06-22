@@ -120,6 +120,13 @@ export const vincularHabilidadePlano = async (idPlanejamento: number, idHabilida
   }
 }
 
+export const desvincularHabilidadePlano = async (idPlanejamento: number, idHabilidade: number) => {
+  const response = await api.post('/Planejamento/desvincularhabilidade', { idPlanejamento, idHabilidade })
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao desvincular habilidade')
+  }
+}
+
 export const vincularEstrategiaPlano = async (idPlanejamento: number, idEstrategia: number) => {
   const response = await api.post('/Planejamento/vincularestrategia', { idPlanejamento, idEstrategia })
   if (!response.data.sucesso) {

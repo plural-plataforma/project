@@ -1,3 +1,4 @@
+using api.Constants;
 using api.DTOs.AvaliacaoDiagnostica;
 using api.DTOs.Bloco; // Para BlocoComAtividadesDTO
 using api.DTOs.Atividade; // Para AtividadeBuscarDTO (ajuste se necessário)
@@ -1036,32 +1037,77 @@ namespace api.Services
 
         private static byte[] GerarPdfDiagnostico(AvaliacaoDiagnosticaDetailDTO dto, IReadOnlyDictionary<string, byte[]?> imagensPorUrl)
         {
+            var orderedBlocos = dto.BlocosComAtividades.OrderBy(b => b.Ordem).ToList();
+            var temResultadosDesempenho = dto.RegistrosDesempenho is { Count: > 0 };
+            var perfisComResultado = dto.PerfisAutonomiaPorAluno
+                .Where(p => !string.Equals(
+                    p.NivelPerfilAutonomia,
+                    NivelPerfilAutonomiaValores.NaoAvaliado,
+                    StringComparison.OrdinalIgnoreCase))
+                .OrderBy(p => p.NomeCompleto)
+                .ToList();
+
+            void ConfigurarPaginaPadrao(PageDescriptor page)
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(2.5f, Unit.Centimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+            }
+
+            void ConfigurarRodape(PageDescriptor page)
+            {
+                page.Footer()
+                    .AlignCenter()
+                    .PaddingVertical(0.8f, Unit.Centimetre)
+                    .Row(row =>
+                    {
+                        row.RelativeItem()
+                            .AlignLeft()
+                            .Text(text =>
+                            {
+                                text.Span($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm}")
+                                    .FontSize(9)
+                                    .FontColor(Colors.Grey.Medium);
+                            });
+
+                        row.RelativeItem()
+                            .AlignRight()
+                            .Text(text =>
+                            {
+                                text.Span("Página ")
+                                    .FontSize(9)
+                                    .FontColor(Colors.Grey.Medium);
+
+                                text.CurrentPageNumber()
+                                    .FontSize(9)
+                                    .FontColor(Colors.Grey.Medium);
+                            });
+                    });
+            }
+
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4);
-                    page.Margin(2.5f, Unit.Centimetre);
-                    page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+                    ConfigurarPaginaPadrao(page);
 
-                    // Cabeçalho
                     page.Header()
-                        .PaddingBottom(1, Unit.Centimetre)
-                        .Row(row =>
-                        {
-                            row.RelativeItem().AlignCenter().Text($"Avaliação Diagnóstica\n{dto.Titulo}")
-                                .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
-                        });
+                        .PaddingBottom(0.6f, Unit.Centimetre)
+                        .AlignCenter()
+                        .Text("Avaliação Diagnóstica — Plural")
+                        .SemiBold()
+                        .FontSize(18)
+                        .FontColor(Colors.Blue.Medium);
 
-                    // Conteúdo principal
                     page.Content()
-                        .PaddingVertical(0.8f, Unit.Centimetre)
+                        .PaddingVertical(0.6f, Unit.Centimetre)
                         .Column(col =>
                         {
                             col.Spacing(10);
 
-                            // Informações gerais
+                            col.Item().AlignCenter().Text(dto.Titulo).SemiBold().FontSize(16);
+
                             col.Item().Row(r =>
                             {
                                 r.RelativeItem().Text("Objetivo: ").SemiBold();
@@ -1074,16 +1120,144 @@ namespace api.Services
                                 r.RelativeItem(3).Text(dto.DataAplicacao.ToString("dd/MM/yyyy") ?? "—");
                             });
 
-                            if (dto.PerfisAutonomiaPorAluno.Count > 0)
+                            if (!string.IsNullOrWhiteSpace(dto.EscolaNome))
                             {
-                                col.Item().PaddingTop(18).Text("Perfil de autonomia por aluno")
-                                    .SemiBold().FontSize(14).FontColor(Colors.Grey.Darken2);
+                                col.Item().Row(r =>
+                                {
+                                    r.RelativeItem().Text("Escola: ").SemiBold();
+                                    r.RelativeItem(3).Text(dto.EscolaNome);
+                                });
+                            }
 
-                                col.Item().PaddingTop(6).Text(
+                            var alunosOrdenados = dto.AlunosParticipantes
+                                .OrderBy(a => a.Aluno?.NomeCompleto)
+                                .ToList();
+                            if (alunosOrdenados.Count > 0)
+                            {
+                                col.Item().PaddingTop(8).Text("Alunos").SemiBold().FontSize(12);
+                                foreach (var ap in alunosOrdenados)
+                                {
+                                    col.Item().Text($"• {ap.Aluno?.NomeCompleto ?? "—"}").FontSize(10);
+                                }
+                            }
+
+                            col.Item().PaddingTop(14).Text("Atividades para aplicação")
+                                .SemiBold().FontSize(13).FontColor(Colors.Grey.Darken2);
+
+                            col.Item().PaddingTop(4).Text(
+                                    "Cada atividade está em uma página seguinte, com imagem em destaque. Registre o desempenho na plataforma após aplicar com o(s) aluno(s).")
+                                .FontSize(9).Italic().FontColor(Colors.Grey.Medium);
+
+                            foreach (var bloco in orderedBlocos)
+                            {
+                                col.Item().PaddingTop(8).Text($"{bloco.Ordem} — {bloco.Titulo}")
+                                    .SemiBold().FontSize(11).FontColor(Colors.Blue.Darken1);
+
+                                foreach (var atv in bloco.Atividades)
+                                {
+                                    col.Item().PaddingLeft(12).Text($"• {atv.Titulo}").FontSize(10);
+                                }
+                            }
+                        });
+
+                    ConfigurarRodape(page);
+                });
+
+                foreach (var bloco in orderedBlocos)
+                {
+                    foreach (var atv in bloco.Atividades)
+                    {
+                        container.Page(page =>
+                        {
+                            ConfigurarPaginaPadrao(page);
+
+                            page.Header()
+                                .PaddingBottom(0.5f, Unit.Centimetre)
+                                .AlignCenter()
+                                .Column(header =>
+                                {
+                                    header.Item().Text("Avaliação Diagnóstica")
+                                        .SemiBold().FontSize(12).FontColor(Colors.Blue.Medium);
+                                    header.Item().Text(dto.Titulo).FontSize(10).FontColor(Colors.Grey.Darken1);
+                                });
+
+                            page.Content()
+                                .PaddingVertical(0.4f, Unit.Centimetre)
+                                .Column(col =>
+                                {
+                                    col.Spacing(8);
+
+                                    col.Item().Text($"{bloco.Ordem} — {bloco.Titulo}")
+                                        .SemiBold().FontSize(12).FontColor(Colors.Blue.Darken1);
+
+                                    if (!string.IsNullOrWhiteSpace(bloco.Observacao))
+                                    {
+                                        col.Item().Text($"Observação do eixo: {bloco.Observacao}")
+                                            .Italic().FontSize(10).FontColor(Colors.Grey.Medium);
+                                    }
+
+                                    col.Item().Text(atv.Titulo).SemiBold().FontSize(14);
+
+                                    if (!string.IsNullOrWhiteSpace(atv.ImagemUrl))
+                                    {
+                                        if (imagensPorUrl.TryGetValue(atv.ImagemUrl, out var imageBytes) &&
+                                            imageBytes != null && imageBytes.Length > 0)
+                                        {
+                                            col.Item()
+                                                .PaddingVertical(10)
+                                                .AlignCenter()
+                                                .MaxHeight(420)
+                                                .Image(imageBytes)
+                                                .FitArea()
+                                                .WithCompressionQuality(ImageCompressionQuality.Medium);
+                                        }
+                                        else
+                                        {
+                                            col.Item()
+                                                .PaddingTop(6)
+                                                .Text("(Imagem não disponível)")
+                                                .Italic()
+                                                .FontSize(10)
+                                                .FontColor(Colors.Red.Medium);
+                                        }
+                                    }
+
+                                    if (!string.IsNullOrWhiteSpace(atv.Enunciado))
+                                    {
+                                        col.Item().PaddingTop(8).Text(atv.Enunciado).FontSize(11);
+                                    }
+                                });
+
+                            ConfigurarRodape(page);
+                        });
+                    }
+                }
+
+                if (temResultadosDesempenho && perfisComResultado.Count > 0)
+                {
+                    container.Page(page =>
+                    {
+                        ConfigurarPaginaPadrao(page);
+
+                        page.Header()
+                            .PaddingBottom(0.6f, Unit.Centimetre)
+                            .AlignCenter()
+                            .Text("Resultados — Perfil de autonomia")
+                            .SemiBold()
+                            .FontSize(14)
+                            .FontColor(Colors.Blue.Medium);
+
+                        page.Content()
+                            .PaddingVertical(0.6f, Unit.Centimetre)
+                            .Column(col =>
+                            {
+                                col.Spacing(10);
+
+                                col.Item().Text(
                                         "Visão agregada a partir dos níveis registrados por atividade (Autonomia / Com ajuda / Não realizou). Sugestões apoiam o planejamento PAEE.")
                                     .FontSize(9).Italic().FontColor(Colors.Grey.Medium);
 
-                                foreach (var perfil in dto.PerfisAutonomiaPorAluno.OrderBy(p => p.NomeCompleto))
+                                foreach (var perfil in perfisComResultado)
                                 {
                                     col.Item().PaddingTop(10).Column(bloco =>
                                     {
@@ -1111,90 +1285,11 @@ namespace api.Services
                                         }
                                     });
                                 }
-                            }
+                            });
 
-                            col.Item().PaddingTop(20).Text("Atividades")
-                                .SemiBold().FontSize(15).FontColor(Colors.Grey.Darken2);
-
-                            foreach (var bloco in dto.BlocosComAtividades.OrderBy(b => b.Ordem))
-                            {
-                                col.Item().PaddingTop(16).Text($"{bloco.Ordem} — {bloco.Titulo}")
-                                    .SemiBold().FontSize(14).FontColor(Colors.Blue.Darken1);
-
-                                if (!string.IsNullOrWhiteSpace(bloco.Observacao))
-                                {
-                                    col.Item().PaddingTop(4).Text($"Observação: {bloco.Observacao}")
-                                        .Italic().FontSize(11).FontColor(Colors.Grey.Medium);
-                                }
-
-                                foreach (var atv in bloco.Atividades)
-                                {
-                                    col.Item().PaddingTop(12).PaddingLeft(10).Column(c =>
-                                    {
-                                        c.Item().Text($"• {atv.Titulo}")
-                                            .SemiBold().FontSize(12);
-
-                                        if (!string.IsNullOrWhiteSpace(atv.ImagemUrl))
-                                        {
-                                            if (imagensPorUrl.TryGetValue(atv.ImagemUrl, out var imageBytes) &&
-                                                imageBytes != null && imageBytes.Length > 0)
-                                            {
-                                                c.Item()
-                                                    .PaddingTop(8)
-                                                    .Width(300)
-                                                    .Image(imageBytes)
-                                                    .FitWidth()
-                                                    .WithCompressionQuality(ImageCompressionQuality.Medium);
-                                            }
-                                            else
-                                            {
-                                                c.Item()
-                                                    .PaddingTop(4)
-                                                    .Text($"(Imagem não disponível: {atv.ImagemUrl})")
-                                                    .Italic()
-                                                    .FontSize(10)
-                                                    .FontColor(Colors.Red.Medium);
-                                            }
-                                        }
-
-                                        if (!string.IsNullOrWhiteSpace(atv.Enunciado))
-                                        {
-                                            c.Item().PaddingTop(6).Text(atv.Enunciado)
-                                                .FontSize(11);
-                                        }
-                                    });
-                                }
-                            }
-                        });
-
-                    page.Footer()
-                        .AlignCenter()
-                        .PaddingVertical(0.8f, Unit.Centimetre)
-                        .Row(row =>
-                        {
-                            row.RelativeItem()
-                                .AlignLeft()
-                                .Text(text =>
-                                {
-                                    text.Span($"Gerado em {DateTime.Now:dd/MM/yyyy HH:mm}")
-                                        .FontSize(9)
-                                        .FontColor(Colors.Grey.Medium);
-                                });
-
-                            row.RelativeItem()
-                                .AlignRight()
-                                .Text(text =>
-                                {
-                                    text.Span("Página ")
-                                        .FontSize(9)
-                                        .FontColor(Colors.Grey.Medium);
-
-                                    text.CurrentPageNumber()
-                                        .FontSize(9)
-                                        .FontColor(Colors.Grey.Medium);
-                                });
-                        });
-                });
+                        ConfigurarRodape(page);
+                    });
+                }
             });
 
             return document.GeneratePdf();
