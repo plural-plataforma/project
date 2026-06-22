@@ -645,6 +645,50 @@ namespace api.Services
             return resposta;
         }
 
+        public async Task<ServiceResponse<bool>> DesvincularHabilidade(
+            PlanejamentoVincularHabilidadeDTO planejamentoVincularHabilidadeDTO,
+            Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+            var planejamento = await _contexto.Planejamentos
+                .FirstOrDefaultAsync(p =>
+                    p.ID == planejamentoVincularHabilidadeDTO.IdPlanejamento &&
+                    p.IdProfessor == usuario.ProfessorId);
+
+            if (planejamento == null)
+            {
+                resposta.SetFalha("Planejamento não encontrado.");
+                return resposta;
+            }
+
+            var vinculo = await _contexto.HabilidadesXPlanejamentos
+                .FirstOrDefaultAsync(x =>
+                    x.HabilidadeId == planejamentoVincularHabilidadeDTO.IdHabilidade &&
+                    x.PlanejamentoId == planejamentoVincularHabilidadeDTO.IdPlanejamento);
+
+            if (vinculo == null)
+            {
+                resposta.SetFalha("Esta habilidade não está vinculada a esse planejamento.");
+                return resposta;
+            }
+
+            _contexto.HabilidadesXPlanejamentos.Remove(vinculo);
+
+            var encontrosComHabilidade = await _contexto.PlanejamentoEncontros
+                .Where(e =>
+                    e.PlanejamentoId == planejamentoVincularHabilidadeDTO.IdPlanejamento &&
+                    e.HabilidadeId == planejamentoVincularHabilidadeDTO.IdHabilidade)
+                .ToListAsync();
+
+            foreach (var encontro in encontrosComHabilidade)
+                encontro.HabilidadeId = null;
+
+            await _contexto.SaveChangesAsync();
+            resposta.Sucesso = true;
+            resposta.AdicionaMensagem("Habilidade desvinculada com sucesso.");
+            return resposta;
+        }
+
         public async Task<ServiceResponse<bool>> VincularEstrategias(PlanejamentoVincularEstrategiaDTO planejamentoVincularEstrategiaDTO, Usuario usuario)
         {
             var planejamento = await _contexto.Planejamentos
