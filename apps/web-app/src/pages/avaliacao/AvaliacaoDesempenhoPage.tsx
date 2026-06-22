@@ -70,12 +70,19 @@ export default function AvaliacaoDesempenhoPage() {
     return m
   }, [habilidades])
 
-  const perfisOrdenados = useMemo(() => {
+  const perfisComResultado = useMemo(() => {
     const lista = avaliacao?.perfisAutonomiaPorAluno ?? []
-    return [...lista].sort((a, b) =>
-      (a.nomeCompleto || '').localeCompare(b.nomeCompleto || '', 'pt-BR', { sensitivity: 'base' })
-    )
+    return [...lista]
+      .filter((p) => p.nivelPerfilAutonomia !== 'NaoAvaliado')
+      .sort((a, b) =>
+        (a.nomeCompleto || '').localeCompare(b.nomeCompleto || '', 'pt-BR', { sensitivity: 'base' })
+      )
   }, [avaliacao?.perfisAutonomiaPorAluno])
+
+  const temLancamentosSalvos = useMemo(
+    () => (avaliacao?.registrosDesempenho?.length ?? 0) > 0,
+    [avaliacao?.registrosDesempenho]
+  )
 
   useEffect(() => {
     if (!avaliacao) return
@@ -261,10 +268,12 @@ export default function AvaliacaoDesempenhoPage() {
       />
 
       <p className="text-sm text-muted-foreground">
-        Você pode continuar lançando e editando desempenho mesmo após concluir a avaliação.
+        {temLancamentosSalvos
+          ? 'Você pode continuar lançando e editando desempenho mesmo após concluir a avaliação.'
+          : 'Aplique as atividades com o aluno (use o PDF ou Word da avaliação) e depois registre aqui o que ele conseguiu em cada atividade.'}
       </p>
 
-      {(perfisOrdenados.length > 0 || isRefreshingDesempenho) && (
+      {(perfisComResultado.length > 0 || (isRefreshingDesempenho && temLancamentosSalvos)) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -280,7 +289,7 @@ export default function AvaliacaoDesempenhoPage() {
               Atualiza quando você salva.
             </p>
             <div className="space-y-3">
-              {perfisOrdenados.map((p) => (
+              {perfisComResultado.map((p) => (
                   <div
                     key={p.alunoId}
                     className="rounded-lg border border-border bg-muted/35 px-3 py-3 space-y-2"

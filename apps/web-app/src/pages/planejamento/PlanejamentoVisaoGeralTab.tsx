@@ -1,4 +1,4 @@
-import { Users, Brain, Lightning, CheckSquare, Plus, CalendarBlank } from '@phosphor-icons/react'
+import { Users, Brain, Lightning, CheckSquare, Plus, CalendarBlank, X } from '@phosphor-icons/react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +24,8 @@ export interface PlanejamentoVisaoGeralTabProps {
   onSave: () => void
   onCancelEdit: () => void
   onOpenVincModal: (type: VincModalType) => void
+  onDesvincularHabilidade?: (habilidadeId: number) => void
+  desvinculandoHabilidadeId?: number | null
 }
 
 const formatDate = (d: string) => dayjs(d).format('DD/MM/YYYY')
@@ -43,6 +45,8 @@ export function PlanejamentoVisaoGeralTab({
   onSave,
   onCancelEdit,
   onOpenVincModal,
+  onDesvincularHabilidade,
+  desvinculandoHabilidadeId = null,
 }: PlanejamentoVisaoGeralTabProps) {
   return (
     <div className="space-y-4">
@@ -133,11 +137,27 @@ export function PlanejamentoVisaoGeralTab({
               <p className="text-sm text-muted-foreground">Nenhuma habilidade vinculada.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {sortByField(plan.habilidades, 'descricao').map((h) => (
-                  <Badge key={h.id} variant="default">
-                    {h.resumo || h.descricao || `Habilidade ${h.id}`}
-                  </Badge>
-                ))}
+                {sortByField(plan.habilidades, 'descricao').map((h) => {
+                  const label = h.resumo || h.descricao || `Habilidade ${h.id}`
+                  const removendo = desvinculandoHabilidadeId === h.id
+
+                  return (
+                    <Badge key={h.id} variant="default" className="gap-1 pr-1 max-w-full">
+                      <span className="truncate">{label}</span>
+                      {onDesvincularHabilidade && (
+                        <button
+                          type="button"
+                          aria-label={`Desmarcar habilidade ${label}`}
+                          disabled={removendo}
+                          onClick={() => onDesvincularHabilidade(h.id)}
+                          className="inline-flex shrink-0 rounded p-0.5 text-primary-foreground/80 hover:bg-primary-foreground/15 hover:text-primary-foreground disabled:opacity-50"
+                        >
+                          <X size={12} weight="bold" />
+                        </button>
+                      )}
+                    </Badge>
+                  )
+                })}
               </div>
             )}
           </CardContent>

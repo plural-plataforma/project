@@ -7,6 +7,7 @@ import {
   excluirPlanejamento,
   vincularAlunoPlano,
   vincularHabilidadePlano,
+  desvincularHabilidadePlano,
   vincularEstrategiaPlano,
   vincularAvaliacaoPlano,
   vincularAlunosPlanoLote,
@@ -205,6 +206,27 @@ describe('planejamentoService', () => {
       })
 
       await expect(vincularHabilidadePlano(1, 1)).rejects.toThrow('Habilidade inválida')
+    })
+  })
+
+  describe('desvincularHabilidadePlano', () => {
+    it('chama endpoint de desvincular com ids corretos', async () => {
+      vi.mocked(api.post).mockResolvedValue({ data: { sucesso: true } })
+
+      await desvincularHabilidadePlano(3, 7)
+
+      expect(api.post).toHaveBeenCalledWith('/Planejamento/desvincularhabilidade', {
+        idPlanejamento: 3,
+        idHabilidade: 7,
+      })
+    })
+
+    it('lança erro quando API retorna falha', async () => {
+      vi.mocked(api.post).mockResolvedValue({
+        data: { sucesso: false, mensagens: ['Habilidade não vinculada'] },
+      })
+
+      await expect(desvincularHabilidadePlano(1, 1)).rejects.toThrow('Habilidade não vinculada')
     })
   })
 

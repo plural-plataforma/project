@@ -7,7 +7,6 @@ import {
   Users,
   BookOpen,
   CheckCircle,
-  LockSimple,
   ArrowRight,
   Sparkle,
   SmileyWink,
@@ -49,7 +48,7 @@ import {
   formatMesReferencia,
 } from '@/lib/dashboardInsights'
 
-type JourneyStatus = 'done' | 'current' | 'pending'
+type JourneyStatus = 'done' | 'current' | 'available'
 
 interface JourneyStep {
   id: PedagogicalFlowStepId
@@ -60,7 +59,6 @@ interface JourneyStep {
   route: string
   status: JourneyStatus
   icon: Icon
-  disabledReason?: string
 }
 
 const FLOW_ICONS: Record<PedagogicalFlowStepId, Icon> = {
@@ -242,13 +240,9 @@ export default function DashboardPage() {
 
     return PEDAGOGICAL_FLOW_STEPS.map((step, index) => {
       const isDone = doneFlags[index]
-      const isCurrent = !isDone && (index === firstIncompleteIndex || firstIncompleteIndex === -1)
-      const isPending = !isDone && index > firstIncompleteIndex && firstIncompleteIndex !== -1
+      const isCurrent = !isDone && index === firstIncompleteIndex
 
-      let status: JourneyStatus = 'pending'
-      if (isDone) status = 'done'
-      else if (isCurrent) status = 'current'
-      else if (isPending) status = 'pending'
+      const status: JourneyStatus = isDone ? 'done' : isCurrent ? 'current' : 'available'
 
       return {
         id: step.id,
@@ -259,7 +253,6 @@ export default function DashboardPage() {
         route: step.route,
         status,
         icon: FLOW_ICONS[step.id],
-        disabledReason: status === 'pending' ? step.pendingReason : undefined,
       }
     })
   }, [completionByStep])
@@ -489,7 +482,7 @@ export default function DashboardPage() {
             <CardContent className="pt-0">
               {insights.recent.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma movimentação registrada ainda. Comece pela etapa atual da jornada.
+                  Nenhuma movimentação registrada ainda. Use o menu lateral ou os atalhos da jornada para começar.
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -562,10 +555,10 @@ interface JourneyStepCardProps {
 }
 
 function JourneyStepCard({ step, index, onNavigate }: JourneyStepCardProps) {
-  const { status, icon: Icon, title, description, ctaLabel, ctaDoneLabel, disabledReason } = step
+  const { status, icon: Icon, title, description, ctaLabel, ctaDoneLabel } = step
   const isDone = status === 'done'
   const isCurrent = status === 'current'
-  const isPending = status === 'pending'
+  const isAvailable = status === 'available'
 
   return (
     <motion.div
@@ -576,7 +569,7 @@ function JourneyStepCard({ step, index, onNavigate }: JourneyStepCardProps) {
         'rounded-xl border p-4 transition-all duration-200',
         isDone && 'border-success/30 bg-success-light/50',
         isCurrent && 'border-primary bg-card shadow-sm',
-        isPending && 'border-border bg-muted/20 opacity-70'
+        isAvailable && 'border-border bg-card'
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -586,7 +579,7 @@ function JourneyStepCard({ step, index, onNavigate }: JourneyStepCardProps) {
               'shrink-0 h-9 w-9 rounded-lg flex items-center justify-center',
               isDone && 'bg-success/10',
               isCurrent && 'bg-primary-light',
-              isPending && 'bg-muted'
+              isAvailable && 'bg-muted'
             )}
           >
             {isDone ? (
@@ -607,25 +600,17 @@ function JourneyStepCard({ step, index, onNavigate }: JourneyStepCardProps) {
                 variant={isDone ? 'success' : isCurrent ? 'default' : 'muted'}
                 className="text-[10px]"
               >
-                {isDone ? 'Concluído' : isCurrent ? 'Próxima ação' : 'Pendente'}
+                {isDone ? 'Concluído' : isCurrent ? 'Sugestão' : 'Disponível'}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
-            {isPending && disabledReason && (
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <LockSimple size={11} className="text-muted-foreground shrink-0" />
-                <span className="text-[11px] text-muted-foreground">{disabledReason}</span>
-              </div>
-            )}
           </div>
         </div>
 
-        {!isPending && (
-          <Button variant={isDone ? 'outline' : 'default'} size="sm" onClick={onNavigate} className="shrink-0 h-8 text-xs">
-            {isDone ? ctaDoneLabel : ctaLabel}
-            <ArrowRight size={12} />
-          </Button>
-        )}
+        <Button variant={isDone ? 'outline' : 'default'} size="sm" onClick={onNavigate} className="shrink-0 h-8 text-xs">
+          {isDone ? ctaDoneLabel : ctaLabel}
+          <ArrowRight size={12} />
+        </Button>
       </div>
     </motion.div>
   )
