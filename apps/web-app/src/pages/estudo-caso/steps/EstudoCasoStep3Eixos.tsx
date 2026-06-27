@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Rows } from '@phosphor-icons/react'
+import { Rows, Star } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { buscarEixosEstudoCasoCatalogo } from '@/services/estudoCasoService'
@@ -17,7 +17,9 @@ export function EstudoCasoStep3Eixos() {
   const eixosSelecionadosIds = useEstudoCasoWizardStore((s) => s.eixosSelecionadosIds)
   const catalogoEixoIds = useEstudoCasoWizardStore((s) => s.catalogoEixoIds)
   const anotacoesPorEixo = useEstudoCasoWizardStore((s) => s.anotacoesPorEixo)
+  const potencialidades = useEstudoCasoWizardStore((s) => s.potencialidades)
   const setAnotacaoEixo = useEstudoCasoWizardStore((s) => s.setAnotacaoEixo)
+  const setPotencialidades = useEstudoCasoWizardStore((s) => s.setPotencialidades)
   const setStep = useEstudoCasoWizardStore((s) => s.setStep)
 
   const salvarMutation = useSalvarGerarEstudoCaso()
@@ -93,6 +95,24 @@ export function EstudoCasoStep3Eixos() {
             ))}
           </div>
         )}
+
+        {/* Potencialidades */}
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Star size={16} weight="duotone" className="text-amber-500 shrink-0" />
+            <span className="text-sm font-semibold text-foreground">Potencialidades identificadas</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Registre pontos fortes, habilidades preservadas e recursos do(a) estudante. Essas informações aparecerão no documento.
+          </p>
+          <textarea
+            rows={3}
+            value={potencialidades}
+            onChange={(ev) => setPotencialidades(ev.target.value)}
+            placeholder="Ex.: boa comunicação oral; interesse em atividades concretas e visuais; vínculo positivo com colegas e professores…"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+        </div>
 
         <div className="flex justify-between pt-2">
           <Button type="button" variant="outline" onClick={voltar} disabled={salvarMutation.isPending}>

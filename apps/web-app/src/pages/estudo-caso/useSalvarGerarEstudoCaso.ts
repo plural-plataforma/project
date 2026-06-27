@@ -11,6 +11,7 @@ export function useSalvarGerarEstudoCaso() {
   const alunoId = useEstudoCasoWizardStore((s) => s.alunoId)
   const titulo = useEstudoCasoWizardStore((s) => s.titulo)
   const contextoSituacao = useEstudoCasoWizardStore((s) => s.contextoSituacao)
+  const potencialidades = useEstudoCasoWizardStore((s) => s.potencialidades)
   const eixosSelecionadosIds = useEstudoCasoWizardStore((s) => s.eixosSelecionadosIds)
   const anotacoesPorEixo = useEstudoCasoWizardStore((s) => s.anotacoesPorEixo)
   const setCasoSalvo = useEstudoCasoWizardStore((s) => s.setCasoSalvo)
@@ -26,6 +27,7 @@ export function useSalvarGerarEstudoCaso() {
         alunoId,
         titulo: titulo.trim(),
         contextoSituacao: contextoSituacao.trim(),
+        potencialidades: potencialidades.trim() || null,
         itensEixo,
       })
       return gerarTextoSimuladoEstudoCaso(criado.id)

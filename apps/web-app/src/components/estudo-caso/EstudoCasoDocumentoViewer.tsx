@@ -1,25 +1,17 @@
 import { useMemo } from 'react'
-import { CalendarBlank, ChalkboardTeacher, GraduationCap, User } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import {
   linhaEhPlaceholder,
   parseEstudoCasoDocumento,
   type LinhaEstudoCaso,
+  type SecaoEstudoCaso,
 } from '@/lib/parseEstudoCasoDocumento'
 
 interface EstudoCasoDocumentoViewerProps {
   texto: string
   className?: string
-  /** Altura máxima da área rolável das seções (Tailwind class). */
+  /** Altura máxima da área rolável do corpo do documento (Tailwind class). */
   scrollClassName?: string
-}
-
-const METADADO_ICONE: Record<string, typeof User> = {
-  Estudante: User,
-  'Ano/Série': GraduationCap,
-  Data: CalendarBlank,
-  Escola: ChalkboardTeacher,
-  'Professor(a) AEE': ChalkboardTeacher,
 }
 
 function LinhaDocumento({ linha }: { linha: LinhaEstudoCaso }) {
@@ -27,7 +19,7 @@ function LinhaDocumento({ linha }: { linha: LinhaEstudoCaso }) {
 
   if (linha.tipo === 'subsecao') {
     return (
-      <p className="text-xs font-semibold uppercase tracking-wide text-primary/80 mt-4 first:mt-0">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-foreground/50 mt-5 mb-1.5 first:mt-0">
         {linha.texto.replace(/:$/, '')}
       </p>
     )
@@ -36,15 +28,22 @@ function LinhaDocumento({ linha }: { linha: LinhaEstudoCaso }) {
   if (linha.tipo === 'bullet') {
     const conteudo = linha.texto.replace(/^•\s*/, '')
     return (
-      <div className="flex gap-2.5 text-sm leading-relaxed">
+      <div className="flex gap-2.5 leading-relaxed">
         <span
           className={cn(
-            'mt-2 h-1.5 w-1.5 shrink-0 rounded-full',
-            placeholder ? 'bg-amber' : 'bg-primary'
+            'mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full',
+            placeholder ? 'bg-amber-400' : 'bg-foreground/50'
           )}
           aria-hidden
         />
-        <p className={cn('text-foreground/90', placeholder && 'text-muted-foreground italic')}>{conteudo}</p>
+        <p
+          className={cn(
+            'text-[13px] text-foreground/85',
+            placeholder && 'italic text-muted-foreground'
+          )}
+        >
+          {conteudo}
+        </p>
       </div>
     )
   }
@@ -52,8 +51,9 @@ function LinhaDocumento({ linha }: { linha: LinhaEstudoCaso }) {
   return (
     <p
       className={cn(
-        'text-sm leading-relaxed text-foreground/90',
-        placeholder && 'rounded-md border border-dashed border-amber/50 bg-amber-light px-3 py-2 text-muted-foreground italic'
+        'text-[13px] leading-relaxed text-justify text-foreground/85',
+        placeholder &&
+          'rounded border border-dashed border-amber-300 bg-amber-50 px-2.5 py-1.5 italic text-muted-foreground'
       )}
     >
       {linha.texto}
@@ -61,76 +61,94 @@ function LinhaDocumento({ linha }: { linha: LinhaEstudoCaso }) {
   )
 }
 
+function SecaoDocumento({ secao }: { secao: SecaoEstudoCaso }) {
+  return (
+    <section>
+      <h3 className="flex items-baseline gap-2 border-b border-border pb-1.5 mb-3">
+        <span className="text-[13px] font-bold text-primary shrink-0">{secao.numero}.</span>
+        <span className="text-[13px] font-bold text-foreground">{secao.titulo}</span>
+      </h3>
+      <div className="space-y-1.5 pl-4">
+        {secao.linhas.map((linha, idx) => (
+          <LinhaDocumento
+            key={`${secao.numero}-${idx}-${linha.texto.slice(0, 20)}`}
+            linha={linha}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function EstudoCasoDocumentoViewer({
   texto,
   className,
-  scrollClassName = 'max-h-[420px]',
+  scrollClassName = 'max-h-[520px]',
 }: EstudoCasoDocumentoViewerProps) {
   const doc = useMemo(() => parseEstudoCasoDocumento(texto), [texto])
+
+  const metaEstudante = doc.metadados.find((m) => m.chave === 'Estudante')
+  const metaAno = doc.metadados.find((m) => m.chave === 'Ano/Série')
+  const metaData = doc.metadados.find((m) => m.chave === 'Data')
+  const metaEscola = doc.metadados.find((m) => m.chave === 'Escola')
+  const metaProfessor = doc.metadados.find((m) => m.chave === 'Professor(a) AEE')
 
   return (
     <article
       className={cn(
-        'overflow-hidden rounded-xl border border-border bg-card shadow-card',
+        'overflow-hidden rounded-xl border border-border bg-white shadow-md',
         className
       )}
     >
-      <header className="border-b-4 border-amber bg-primary px-5 py-5 text-primary-foreground sm:px-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/80">
+      {/* Cabeçalho do documento */}
+      <header className="border-b border-border px-8 py-6 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
           {doc.tituloDoc}
         </p>
-        <h2 className="mt-1.5 text-xl font-bold leading-snug text-primary-foreground sm:text-2xl">
-          {doc.subtitulo || 'Estudo de caso'}
-        </h2>
+        {doc.subtitulo && (
+          <h2 className="mt-1.5 text-base font-bold leading-snug text-foreground sm:text-lg">
+            {doc.subtitulo}
+          </h2>
+        )}
       </header>
 
+      {/* Metadados — estilo ficha de documento */}
       {doc.metadados.length > 0 && (
-        <div className="grid gap-2 border-b border-border bg-muted/25 px-4 py-3 sm:grid-cols-2 sm:px-5">
-          {doc.metadados.map((item) => {
-            const Icone = METADADO_ICONE[item.chave] ?? User
-            const valor = item.valor || '—'
-            return (
-              <div
-                key={item.chave}
-                className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-background/80 px-3 py-2"
-              >
-                <Icone size={16} weight="duotone" className="mt-0.5 shrink-0 text-primary" aria-hidden />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {item.chave}
-                  </p>
-                  <p className="text-sm font-medium text-foreground truncate" title={valor}>
-                    {valor}
-                  </p>
-                </div>
-              </div>
-            )
-          })}
+        <div className="border-b border-border bg-muted/20 px-8 py-3 space-y-0.5">
+          {(metaEstudante || metaAno || metaData) && (
+            <p className="text-[12px] text-foreground/70">
+              {[
+                metaEstudante && `Estudante: ${metaEstudante.valor}`,
+                metaAno && `Ano/Série: ${metaAno.valor}`,
+                metaData && `Data: ${metaData.valor}`,
+              ]
+                .filter(Boolean)
+                .join('   |   ')}
+            </p>
+          )}
+          {(metaEscola || metaProfessor) && (
+            <p className="text-[12px] text-foreground/70">
+              {[
+                metaEscola && `Escola: ${metaEscola.valor}`,
+                metaProfessor && `Professor(a) AEE: ${metaProfessor.valor}`,
+              ]
+                .filter(Boolean)
+                .join('   |   ')}
+            </p>
+          )}
         </div>
       )}
 
-      <div className={cn('space-y-5 overflow-y-auto px-4 py-5 sm:px-5', scrollClassName)}>
+      {/* Corpo do documento */}
+      <div className={cn('overflow-y-auto px-8 py-6 space-y-6', scrollClassName)}>
         {doc.secoes.map((secao) => (
-          <section
-            key={`${secao.numero}-${secao.titulo}`}
-            className="rounded-lg border border-border/70 bg-background/50 p-4 shadow-sm"
-          >
-            <div className="mb-3 flex items-start gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-                {secao.numero}
-              </span>
-              <h3 className="pt-1 text-base font-semibold leading-snug text-foreground">{secao.titulo}</h3>
-            </div>
-            <div className="space-y-2 pl-0 sm:pl-11">
-              {secao.linhas.map((linha, idx) => (
-                <LinhaDocumento key={`${secao.numero}-${idx}-${linha.texto.slice(0, 24)}`} linha={linha} />
-              ))}
-            </div>
-          </section>
+          <SecaoDocumento key={`${secao.numero}-${secao.titulo}`} secao={secao} />
         ))}
 
         {doc.secoes.length === 0 && (
-          <p className="text-sm text-muted-foreground">Não foi possível estruturar o documento para visualização.</p>
+          <p className="text-sm text-muted-foreground">
+            Não foi possível estruturar o documento para visualização.
+          </p>
         )}
       </div>
     </article>

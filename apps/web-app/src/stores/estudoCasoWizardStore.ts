@@ -16,6 +16,7 @@ interface EstudoCasoWizardState {
   alunoNome: string | null
   titulo: string
   contextoSituacao: string
+  potencialidades: string
   /** ids dos eixos selecionados */
   eixosSelecionadosIds: number[]
   /** anotações opcionais por id de eixo */
@@ -29,6 +30,7 @@ interface EstudoCasoWizardState {
   selecionarAluno: (id: number | null, nomeCompleto?: string | null) => void
   setTitulo: (t: string) => void
   setContexto: (c: string) => void
+  setPotencialidades: (p: string) => void
   toggleEixo: (eixoId: number) => void
   setAnotacaoEixo: (eixoId: number, texto: string) => void
   setCasoSalvo: (id: number, texto: string | null) => void
@@ -42,6 +44,7 @@ const initial = {
   alunoNome: null as string | null,
   titulo: '',
   contextoSituacao: '',
+  potencialidades: '',
   eixosSelecionadosIds: [] as number[],
   anotacoesPorEixo: {} as Record<number, string>,
   casoIdSalvo: null as number | null,
@@ -60,6 +63,7 @@ export const useEstudoCasoWizardStore = create<EstudoCasoWizardState>((set, get)
     }),
   setTitulo: (t) => set({ titulo: t }),
   setContexto: (c) => set({ contextoSituacao: c }),
+  setPotencialidades: (p) => set({ potencialidades: p }),
   toggleEixo: (eixoId) => {
     const cur = get().eixosSelecionadosIds
     if (cur.includes(eixoId)) {
