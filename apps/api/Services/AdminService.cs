@@ -187,6 +187,8 @@ namespace api.Services
         }
 
         public async Task<ServiceResponse<PaginatedResult<UsuarioListDTO>>> ListarTodosParaAdminAsync(
+            int pagina = 1,
+            int tamanhoPagina = 50,
             bool? ativo = null,
             bool? isEmbaixadora = null,
             string? search = null,
@@ -201,78 +203,85 @@ namespace api.Services
                     .AsNoTracking()
                     .Where(p => p.Usuario != null);
 
-                // Aplicação dos filtros (exatamente como antes)
                 if (ativo.HasValue)
-                {
-                    query = query.Where(p => p.Usuario.IsActive == ativo.Value);
-                }
+                    query = query.Where(p => p.Usuario!.IsActive == ativo.Value);
 
                 if (isEmbaixadora.HasValue)
-                {
-                    query = query.Where(p => p.Usuario.IsEmbaixadora == isEmbaixadora.Value);
-                }
+                    query = query.Where(p => p.Usuario!.IsEmbaixadora == isEmbaixadora.Value);
 
                 if (!string.IsNullOrWhiteSpace(nivelEnsino))
-                {
                     query = query.Where(p => p.NivelEnsino != null && p.NivelEnsino.Contains(nivelEnsino.Trim()));
-                }
 
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    var termo = search.Trim().ToLowerInvariant();
+                    var termo = search.Trim().ToLower();
                     query = query.Where(p =>
-                        (p.NomeCompleto != null && EF.Functions.Like(p.NomeCompleto.ToLower(), $"%{termo}%")) ||
-                        (p.Usuario.Email != null && EF.Functions.Like(p.Usuario.Email.ToLower(), $"%{termo}%")) ||
+                        (p.NomeCompleto != null && EF.Functions.ILike(p.NomeCompleto, $"%{termo}%")) ||
+                        (p.Usuario!.Email != null && EF.Functions.ILike(p.Usuario.Email, $"%{termo}%")) ||
                         (p.Telefone != null && p.Telefone.Contains(termo))
                     );
                 }
 
-                // Busca TODOS os registros de uma vez
+                var totalItens = await query.CountAsync();
+
+                var paginaSegura = Math.Max(1, pagina);
+                var tamanhoSeguro = Math.Clamp(tamanhoPagina, 1, 200);
+                var totalPaginas = (int)Math.Ceiling(totalItens / (double)tamanhoSeguro);
+
                 var professores = await query
                     .OrderByDescending(p => p.Usuario!.ExpirationDate ?? DateTime.MinValue)
                     .ThenBy(p => p.NomeCompleto ?? string.Empty)
+                    .Skip((paginaSegura - 1) * tamanhoSeguro)
+                    .Take(tamanhoSeguro)
                     .ToListAsync();
 
-                var total = professores.Count;
+                // Resolve roles de todos os usuários da página em 2 queries (evita N+1)
+                var userIds = professores
+                    .Where(p => p.Usuario != null)
+                    .Select(p => p.Usuario!.Id)
+                    .ToList();
 
-                // Enriquecimento com roles
-                var itens = new List<UsuarioListDTO>();
+                var rolesPorUserId = await _contexto.UserRoles
+                    .Where(ur => userIds.Contains(ur.UserId))
+                    .Join(_contexto.Roles,
+                          ur => ur.RoleId,
+                          r => r.Id,
+                          (ur, r) => new { ur.UserId, RoleName = r.Name! })
+                    .GroupBy(x => x.UserId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(x => x.RoleName).ToList());
 
-                foreach (var p in professores)
+                var agora = DateTimeOffset.UtcNow;
+                var itens = professores.Select(p =>
                 {
-                    var usuario = p.Usuario!;
-                    var roles = await _usuario.GetRolesAsync(usuario);
-
-                    itens.Add(new UsuarioListDTO
+                    var u = p.Usuario!;
+                    rolesPorUserId.TryGetValue(u.Id, out var roles);
+                    return new UsuarioListDTO
                     {
                         idUsuario = p.ID,
                         NomeCompleto = p.NomeCompleto,
-                        Email = usuario.Email,
+                        Email = u.Email,
                         Telefone = p.Telefone,
-                        Ativo = usuario.IsActive,
-                        IsEmbaixadora = usuario.IsEmbaixadora,
-                        PossuiLockout = usuario.LockoutEnd.HasValue && usuario.LockoutEnd > DateTimeOffset.UtcNow,
-                        StatusConta = usuario.LockoutEnd.HasValue && usuario.LockoutEnd > DateTimeOffset.UtcNow
+                        Ativo = u.IsActive,
+                        IsEmbaixadora = u.IsEmbaixadora,
+                        PossuiLockout = u.LockoutEnd.HasValue && u.LockoutEnd > agora,
+                        StatusConta = u.LockoutEnd.HasValue && u.LockoutEnd > agora
                             ? "Bloqueada"
-                            : (usuario.ExpirationDate.HasValue && usuario.ExpirationDate < DateTime.UtcNow
+                            : (u.ExpirationDate.HasValue && u.ExpirationDate < DateTime.UtcNow
                                 ? "Expirada"
                                 : "Ativa"),
-                        ExpirationDate = usuario.ExpirationDate,
-                        Roles = roles.ToList()
-                    });
-                }
+                        ExpirationDate = u.ExpirationDate,
+                        Roles = roles ?? new List<string>(),
+                    };
+                }).ToList();
 
-                // Retorna como se fosse uma única "página" com tudo
-                var resultado = new PaginatedResult<UsuarioListDTO>
+                resposta.AdicionaObjeto(new PaginatedResult<UsuarioListDTO>
                 {
                     Itens = itens,
-                    PaginaAtual = 1,
-                    TamanhoPagina = total,      // indica que trouxe tudo
-                    TotalItens = total,
-                    TotalPaginas = 1
-                };
-
-                resposta.AdicionaObjeto(resultado);
+                    PaginaAtual = paginaSegura,
+                    TamanhoPagina = tamanhoSeguro,
+                    TotalItens = totalItens,
+                    TotalPaginas = totalPaginas,
+                });
                 resposta.Sucesso = true;
                 return resposta;
             }

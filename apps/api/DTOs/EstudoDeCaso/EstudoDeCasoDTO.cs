@@ -20,6 +20,7 @@ public class EstudoDeCasoCadastroDTO
     public int AlunoId { get; set; }
     public string Titulo { get; set; } = string.Empty;
     public string ContextoSituacao { get; set; } = string.Empty;
+    public string? Potencialidades { get; set; }
     public List<EstudoDeCasoItemEixoDTO> ItensEixo { get; set; } = new();
 }
 
@@ -28,6 +29,7 @@ public class EstudoDeCasoAtualizacaoDTO
 {
     public string Titulo { get; set; } = string.Empty;
     public string ContextoSituacao { get; set; } = string.Empty;
+    public string? Potencialidades { get; set; }
     public List<EstudoDeCasoItemEixoDTO> ItensEixo { get; set; } = new();
 }
 
@@ -44,6 +46,7 @@ public class EstudoDeCasoDetalheDTO
     public string AlunoNomeCompleto { get; set; } = string.Empty;
     public string Titulo { get; set; } = string.Empty;
     public string ContextoSituacao { get; set; } = string.Empty;
+    public string? Potencialidades { get; set; }
     public string? TextoSimulado { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

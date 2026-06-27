@@ -15,12 +15,14 @@ export interface EstudoCasoCadastroRequest {
   alunoId: number
   titulo: string
   contextoSituacao: string
+  potencialidades?: string | null
   itensEixo: EstudoCasoItemEixoPayload[]
 }
 
 export interface EstudoCasoAtualizacaoRequest {
   titulo: string
   contextoSituacao: string
+  potencialidades?: string | null
   itensEixo: EstudoCasoItemEixoPayload[]
 }
 
@@ -35,6 +37,7 @@ export interface EstudoCasoDetalhe {
   alunoNomeCompleto: string
   titulo: string
   contextoSituacao: string
+  potencialidades?: string | null
   textoSimulado?: string | null
   createdAt: string
   updatedAt: string

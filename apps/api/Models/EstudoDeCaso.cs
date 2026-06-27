@@ -23,6 +23,10 @@ public class EstudoDeCaso
     [Column(TypeName = "text")]
     public string ContextoSituacao { get; set; } = string.Empty;
 
+    /// <summary>Pontos fortes e habilidades preservadas registrados pelo professor.</summary>
+    [Column(TypeName = "text")]
+    public string? Potencialidades { get; set; }
+
     /// <summary>Rascunho gerado automaticamente (simulação — revisão humana obrigatória).</summary>
     [Column(TypeName = "text")]
     public string? TextoSimulado { get; set; }

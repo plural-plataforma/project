@@ -1,5 +1,4 @@
 // components/layouts/UsersListLayout.tsx
-import { useState } from 'react';
 import {
   Box,
   Paper,
@@ -45,6 +44,13 @@ interface Props {
   filteredUsuarios: Usuario[];
   loading: boolean;
   error: string | null;
+  /** Total de itens no servidor (para o contador de paginação). */
+  totalCount: number;
+  /** Página atual (0-indexed, padrão MUI). */
+  page: number;
+  rowsPerPage: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
   onCadastrar?: (email: string, nome: string) => void;
   onExportar?: () => void;
   onVerPerfil: (user: Usuario) => void;
@@ -56,29 +62,18 @@ export function UsersListLayout({
   filteredUsuarios,
   loading,
   error,
+  totalCount,
+  page,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
   onCadastrar,
   onExportar,
   onVerPerfil,
   onMaisAcoes,
   onNovoUsuarioClick,
 }: Props) {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  // Cálculo dos itens exibidos (paginação local)
-  const displayedUsuarios = filteredUsuarios.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
+  const displayedUsuarios = filteredUsuarios;
 
   return (
     <Paper
@@ -270,7 +265,7 @@ export function UsersListLayout({
             </TableBody>
           </Table>
 
-          {/* Paginação local */}
+          {/* Paginação server-side */}
           <Box
             sx={{
               p: 3,
@@ -286,19 +281,19 @@ export function UsersListLayout({
               Mostrando{' '}
               <strong>
                 {page * rowsPerPage + 1} a{' '}
-                {Math.min((page + 1) * rowsPerPage, filteredUsuarios.length)}
+                {Math.min((page + 1) * rowsPerPage, totalCount)}
               </strong>{' '}
-              de <strong>{filteredUsuarios.length}</strong> usuários
+              de <strong>{totalCount}</strong> usuários
             </Typography>
 
             <TablePagination
-              rowsPerPageOptions={[10, 20, 50]}
+              rowsPerPageOptions={[25, 50, 100]}
               component="div"
-              count={filteredUsuarios.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
+              onPageChange={(_e, newPage) => onPageChange(newPage)}
+              onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
               labelRowsPerPage="Linhas por página:"
               sx={{
                 '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
