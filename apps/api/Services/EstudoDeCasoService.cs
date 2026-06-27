@@ -218,6 +218,7 @@ public class EstudoDeCasoService
                 ProfessorId = pid,
                 Titulo = dto.Titulo.Trim(),
                 ContextoSituacao = dto.ContextoSituacao.Trim(),
+                Potencialidades = string.IsNullOrWhiteSpace(dto.Potencialidades) ? null : dto.Potencialidades.Trim(),
                 TextoSimulado = null,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -301,6 +302,7 @@ public class EstudoDeCasoService
             var now = DateTime.UtcNow;
             caso.Titulo = dto.Titulo.Trim();
             caso.ContextoSituacao = dto.ContextoSituacao.Trim();
+            caso.Potencialidades = string.IsNullOrWhiteSpace(dto.Potencialidades) ? null : dto.Potencialidades.Trim();
             caso.TextoSimulado = null;
             caso.UpdatedAt = now;
 
@@ -444,6 +446,7 @@ public class EstudoDeCasoService
             AlunoNomeCompleto = entity.Aluno?.NomeCompleto ?? "",
             Titulo = entity.Titulo,
             ContextoSituacao = entity.ContextoSituacao,
+            Potencialidades = entity.Potencialidades,
             TextoSimulado = entity.TextoSimulado,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
@@ -534,8 +537,20 @@ public class EstudoDeCasoService
         }
         sb.AppendLine();
         sb.AppendLine("Potencialidades identificadas:");
-        sb.AppendLine("• [Completar com pontos fortes e habilidades preservadas do(a) estudante]");
-        sb.AppendLine("• [Exemplo: boa comunicação oral; interesse em atividades concretas e visuais; vínculo positivo com colegas e professores]");
+        if (!string.IsNullOrWhiteSpace(entity.Potencialidades))
+        {
+            foreach (var linha in entity.Potencialidades.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var l = linha.Trim();
+                if (!string.IsNullOrEmpty(l))
+                    sb.AppendLine(l.StartsWith('•') ? l : $"• {l}");
+            }
+        }
+        else
+        {
+            sb.AppendLine("• [Completar com pontos fortes e habilidades preservadas do(a) estudante]");
+            sb.AppendLine("• [Exemplo: boa comunicação oral; interesse em atividades concretas e visuais; vínculo positivo com colegas e professores]");
+        }
         sb.AppendLine();
 
         // 3. Avaliação pedagógica e funcional
@@ -588,10 +603,28 @@ public class EstudoDeCasoService
         sb.AppendLine("5. Planejamento das ações do AEE");
         sb.AppendLine();
         sb.AppendLine("Objetivos do AEE:");
+        var objetivosPorCodigo = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["COMUNICACAO"]    = "Ampliar as habilidades de comunicação e linguagem, favorecendo a expressão oral, escrita e o uso de recursos alternativos quando necessário;",
+            ["COGNICAO"]       = "Estimular processos cognitivos como atenção, memória, raciocínio e estratégias de aprendizagem;",
+            ["SOCIOEMOCIONAL"] = "Fortalecer a regulação afetiva e as habilidades socioemocionais, promovendo interação e sentimento de pertencimento;",
+            ["AUTONOMIA"]      = "Promover o desenvolvimento da autonomia, independência funcional e organização nas atividades de vida diária;",
+            ["FAMILIA_ESCOLA"] = "Fortalecer a articulação entre família, escola e comunidade, alinhando metas e estratégias de apoio ao(à) estudante;",
+            ["CURRICULO"]      = "Favorecer o acesso ao currículo com adaptações razoáveis, garantindo a participação e o aprendizado significativo;",
+            ["SAUDE_BEMESTAR"] = "Identificar e acompanhar aspectos de saúde e bem-estar que impactem a participação e o desempenho escolar;",
+            ["SENSORIAL"]      = "Estimular a integração sensorial e a percepção, considerando os aspectos auditivos, visuais, vestibulares e táteis no contexto escolar;",
+            ["MOTRICIDADE"]    = "Aprimorar a coordenação motora fina e grossa, o esquema corporal e a grafomotricidade;",
+            ["TRANSICAO_VIDA"] = "Apoiar o planejamento da transição escolar e o desenvolvimento do projeto de vida do(a) estudante;",
+            ["ACESSIBILIDADE"] = "Identificar e reduzir barreiras de acessibilidade no ambiente escolar, promovendo condições físicas, pedagógicas e atitudinais inclusivas;",
+        };
         foreach (var item in eixosOrdenados)
         {
+            var codigo = item.CatalogoEixo?.Codigo ?? "";
             var rotulo = (item.CatalogoEixo?.Rotulo ?? $"Eixo #{item.EixoCatalogoId}").ToLower();
-            sb.AppendLine($"• Desenvolver habilidades relacionadas a {rotulo};");
+            var objetivo = objetivosPorCodigo.TryGetValue(codigo, out var textoObj)
+                ? textoObj
+                : $"Desenvolver habilidades relacionadas a {rotulo};";
+            sb.AppendLine($"• {objetivo}");
         }
         sb.AppendLine();
         sb.AppendLine("Estratégias:");

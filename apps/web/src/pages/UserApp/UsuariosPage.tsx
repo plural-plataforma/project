@@ -1,5 +1,5 @@
 // pages/Usuarios.tsx
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Box,
   Snackbar,
@@ -21,6 +21,9 @@ import { fetchUsuariosAdmin, PaginatedUsuarios } from '../../services/adminServi
 import { registerUser } from '../../services/authService';
 import NewUserDialog from '../../components/dialogs/NewUserDialog';
 
+const DEBOUNCE_MS = 400;
+const TAMANHO_PAGINA_PADRAO = 50;
+
 export default function UsuariosPage() {
   const theme = useTheme();
 
@@ -28,10 +31,21 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Paginação server-side (MUI usa 0-indexed, API usa 1-indexed)
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(TAMANHO_PAGINA_PADRAO);
+  const [totalItens, setTotalItens] = useState(0);
+
+  // Filtros — search é debounced antes de ir ao servidor
   const [search, setSearch] = useState('');
+  const [searchAtivo, setSearchAtivo] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [filtroStatusCadastro, setFiltroStatusCadastro] = useState<
     'todos' | 'cadastrado' | 'Inativo'
   >('todos');
+
+  // Filtro de expiração aplicado localmente (cálculo de dias não vai ao servidor)
   const [filtroExpiracao, setFiltroExpiracao] = useState<FiltroExpiracao>('todos');
 
   const [snackOpen, setSnackOpen] = useState(false);
@@ -45,7 +59,29 @@ export default function UsuariosPage() {
 
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-  // Função de carregamento extraída para poder chamar várias vezes
+  // Converte o filtro de status da UI para o parâmetro booleano da API
+  const ativoParam: boolean | null =
+    filtroStatusCadastro === 'cadastrado' ? true :
+    filtroStatusCadastro === 'Inativo' ? false :
+    null;
+
+  // Debounce do campo de busca — evita chamada a cada tecla
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchAtivo(search);
+      setPage(0); // volta para a primeira página ao buscar
+    }, DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [search]);
+
+  // Volta para a primeira página ao trocar o filtro de status
+  useEffect(() => {
+    setPage(0);
+  }, [filtroStatusCadastro]);
+
   const loadUsuarios = useCallback(async () => {
     if (!token) {
       setError('Sessão expirada. Faça login novamente.');
@@ -57,76 +93,53 @@ export default function UsuariosPage() {
     setError(null);
 
     try {
-      const params: any = {
-        // tente 5000, 9999 ou deixe vazio — depende do backend
-        // tamanhoPagina: 5000,
-      };
-
-      const data: PaginatedUsuarios = await fetchUsuariosAdmin(params, token);
+      const data: PaginatedUsuarios = await fetchUsuariosAdmin(
+        {
+          pagina: page + 1, // API é 1-indexed
+          tamanhoPagina: rowsPerPage,
+          search: searchAtivo || undefined,
+          ativo: ativoParam ?? undefined,
+        },
+        token
+      );
       setUsuarios(data.itens || []);
+      setTotalItens(data.totalItens || 0);
     } catch (err: any) {
       setError(err.message || 'Não foi possível carregar a lista de usuários.');
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, page, rowsPerPage, searchAtivo, ativoParam]);
 
-  // Carrega inicialmente
   useEffect(() => {
     loadUsuarios();
   }, [loadUsuarios]);
 
-  // Filtro local
+  // Filtro de expiração — aplicado localmente na página atual
+  const now = new Date();
   const filteredUsuarios = useMemo(() => {
-    const term = search.toLowerCase().trim();
-    const now = new Date()
-
+    if (filtroExpiracao === 'todos') return usuarios;
     return usuarios.filter((user) => {
-      const matchesSearch =
-        !term ||
-        (user.nomeCompleto?.toLowerCase().includes(term) ?? false) ||
-        (user.email?.toLowerCase().includes(term) ?? false);
-
-      const matchesStatus =
-        filtroStatusCadastro === 'todos' ||
-        (filtroStatusCadastro === 'cadastrado' && user.ativo === true) ||
-        (filtroStatusCadastro === 'Inativo' && user.ativo === false);
-
-      let matchesExpiracao = true
-      if (filtroExpiracao !== 'todos') {
-        if (!user.expirationDate) {
-          matchesExpiracao = false
-        } else {
-          const exp = new Date(user.expirationDate)
-          const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          if (filtroExpiracao === 'expirado') matchesExpiracao = diffDays < 0
-          else {
-            const dias = Number(filtroExpiracao)
-            matchesExpiracao = diffDays >= 0 && diffDays <= dias
-          }
-        }
-      }
-
-      return matchesSearch && matchesStatus && matchesExpiracao;
+      if (!user.expirationDate) return false;
+      const exp = new Date(user.expirationDate);
+      const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (filtroExpiracao === 'expirado') return diffDays < 0;
+      return diffDays >= 0 && diffDays <= Number(filtroExpiracao);
     });
-  }, [usuarios, search, filtroStatusCadastro, filtroExpiracao]);
+  }, [usuarios, filtroExpiracao]);
 
-  // Estatísticas
-  const totalUsuarios = usuarios.length;
+  // Stats baseados na página atual
+  const totalUsuarios = totalItens;
   const usuariosAtivos = usuarios.filter((u) => u.ativo).length;
-  const percentualAtivos =
-    totalUsuarios > 0 ? Math.round((usuariosAtivos / totalUsuarios) * 1000) / 10 : 0;
-
-  const now = new Date()
   const expirandoEm60 = usuarios.filter((u) => {
-    if (!u.expirationDate) return false
-    const diff = Math.ceil((new Date(u.expirationDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return diff >= 0 && diff <= 60
-  }).length
+    if (!u.expirationDate) return false;
+    const diff = Math.ceil((new Date(u.expirationDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diff >= 0 && diff <= 60;
+  }).length;
   const expirados = usuarios.filter((u) => {
-    if (!u.expirationDate) return false
-    return new Date(u.expirationDate) < now
-  }).length
+    if (!u.expirationDate) return false;
+    return new Date(u.expirationDate) < now;
+  }).length;
 
   const statsCards: StatCardData[] = [
     {
@@ -138,9 +151,9 @@ export default function UsuariosPage() {
       corIcone: '#2563EB',
     },
     {
-      titulo: 'Usuários Ativos',
+      titulo: 'Usuários Ativos (página)',
       valor: usuariosAtivos.toLocaleString(),
-      variacao: `${percentualAtivos}% do total`,
+      variacao: `${usuarios.length > 0 ? Math.round((usuariosAtivos / usuarios.length) * 100) : 0}% desta página`,
       icone: <UserCheck size={32} weight="duotone" />,
       corFundoIcone: '#DCFCE7',
       corIcone: '#16A34A',
@@ -174,7 +187,7 @@ export default function UsuariosPage() {
 
       setSnackMessage(`Professor ${nome} cadastrado com sucesso! Senha inicial: Plural@2025.`);
       setSnackSeverity('success');
-      await loadUsuarios(); // ← recarrega a lista
+      await loadUsuarios();
     } catch (err: any) {
       setSnackMessage(err.message || 'Erro ao cadastrar professor.');
       setSnackSeverity('error');
@@ -239,6 +252,11 @@ export default function UsuariosPage() {
           filteredUsuarios={filteredUsuarios}
           loading={loading}
           error={error}
+          totalCount={filtroExpiracao === 'todos' ? totalItens : filteredUsuarios.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={(newPage) => setPage(newPage)}
+          onRowsPerPageChange={(newSize) => { setRowsPerPage(newSize); setPage(0); }}
           onVerPerfil={handleVerPerfil}
           onNovoUsuarioClick={() => setOpenNewUserModal(true)}
         />
@@ -251,7 +269,7 @@ export default function UsuariosPage() {
           setSnackMessage('Novo professor cadastrado com sucesso!');
           setSnackSeverity('success');
           setSnackOpen(true);
-          await loadUsuarios(); // ← recarrega após criar
+          await loadUsuarios();
         }}
         onError={(msg) => {
           setSnackMessage(msg);
@@ -270,7 +288,7 @@ export default function UsuariosPage() {
             setSnackMessage('Perfil atualizado com sucesso!');
             setSnackSeverity('success');
             setSnackOpen(true);
-            await loadUsuarios(); // ← recarrega após editar
+            await loadUsuarios();
           }}
         />
       </Modal>

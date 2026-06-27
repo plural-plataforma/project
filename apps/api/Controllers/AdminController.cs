@@ -39,16 +39,15 @@ namespace api.Controllers
         [HttpGet("usuarios/listar")]
         public async Task<IActionResult> ListarParaAdmin(
             [FromQuery] int pagina = 1,
-            [FromQuery] int tamanhoPagina = 20,
+            [FromQuery] int tamanhoPagina = 50,
             [FromQuery] bool? ativo = null,
             [FromQuery] bool? isEmbaixadora = null,
             [FromQuery] string? search = null,
             [FromQuery] string? nivelEnsino = null)
         {
-            // Chama o serviço com exatamente os mesmos parâmetros
             var resposta = await _adminService.ListarTodosParaAdminAsync(
-              // pagina: pagina,
-              // tamanhoPagina: tamanhoPagina,
+                pagina: pagina,
+                tamanhoPagina: tamanhoPagina,
                 ativo: ativo,
                 isEmbaixadora: isEmbaixadora,
                 search: search,
