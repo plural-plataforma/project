@@ -16,6 +16,43 @@ import ErrorState from '../../components/common/ErrorState'
 
 const URL_REGEX = /^https?:\/\/.+/i
 
+function normalizeWhatsappUrl(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+function isValidWhatsappUrl(value: string): boolean {
+  const normalized = normalizeWhatsappUrl(value)
+  if (!URL_REGEX.test(normalized)) return false
+
+  try {
+    const url = new URL(normalized)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function validateLinks(data: LinksWhatsApp): string | null {
+  const errors: string[] = []
+
+  if (!data.morganaWhatsappUrl.trim()) {
+    errors.push('O link do grupo da Morgana é obrigatório.')
+  } else if (!isValidWhatsappUrl(data.morganaWhatsappUrl)) {
+    errors.push('Informe uma URL válida para o link da Morgana (ex.: https://chat.whatsapp.com/...).')
+  }
+
+  if (!data.pluralWhatsappUrl.trim()) {
+    errors.push('O link do grupo da Plural é obrigatório.')
+  } else if (!isValidWhatsappUrl(data.pluralWhatsappUrl)) {
+    errors.push('Informe uma URL válida para o link da Plural (ex.: https://chat.whatsapp.com/...).')
+  }
+
+  return errors.length > 0 ? errors.join(' ') : null
+}
+
 export default function ConfiguracoesGerais() {
   const queryClient = useQueryClient()
 
@@ -38,7 +75,10 @@ export default function ConfiguracoesGerais() {
 
   useEffect(() => {
     if (links) {
-      setFormData(links)
+      setFormData({
+        morganaWhatsappUrl: links.morganaWhatsappUrl ?? '',
+        pluralWhatsappUrl: links.pluralWhatsappUrl ?? '',
+      })
     }
   }, [links])
 
@@ -54,19 +94,16 @@ export default function ConfiguracoesGerais() {
   }
 
   const handleSave = () => {
-    if (!URL_REGEX.test(formData.morganaWhatsappUrl.trim())) {
-      setValidationError('Informe uma URL válida para o link da Morgana (começando com http:// ou https://).')
-      return
-    }
-    if (!URL_REGEX.test(formData.pluralWhatsappUrl.trim())) {
-      setValidationError('Informe uma URL válida para o link da Plural (começando com http:// ou https://).')
+    const validationMessage = validateLinks(formData)
+    if (validationMessage) {
+      setValidationError(validationMessage)
       return
     }
 
     setValidationError(null)
     updateMutation.mutate({
-      morganaWhatsappUrl: formData.morganaWhatsappUrl.trim(),
-      pluralWhatsappUrl: formData.pluralWhatsappUrl.trim(),
+      morganaWhatsappUrl: normalizeWhatsappUrl(formData.morganaWhatsappUrl),
+      pluralWhatsappUrl: normalizeWhatsappUrl(formData.pluralWhatsappUrl),
     })
   }
 
