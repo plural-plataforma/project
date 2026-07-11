@@ -86,13 +86,6 @@ export default function ProfileUserAppEdit({
     setError(null);
     setSuccess(false);
 
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    if (!token) {
-      setError('Sessão expirada. Faça login novamente.');
-      setSaving(false);
-      return;
-    }
-
     // Preparar roles delta (só se for admin e houver mudança)
     let rolesAdicionar: string[] = [];
     let rolesRemover: string[] = [];
@@ -127,7 +120,7 @@ export default function ProfileUserAppEdit({
     // payload.rolesRemover  = rolesRemover;
 
     try {
-      await updateUserProfile(payload, token);
+      await updateUserProfile(payload);
 
       setSuccess(true);
       if (onSuccess) onSuccess();

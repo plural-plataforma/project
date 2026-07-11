@@ -39,12 +39,8 @@ function InfoCard({
   return (
     <Card
       sx={{
-        border: '1px solid rgba(39, 102, 120, 0.42)',
-        background: '#FFF',
-        borderRadius: '12px',
-        overflow: 'hidden',
         height: '100%',
-        // Sem sombra, sem hover, sem transição
+        // Sem sombra, sem hover, sem transição — override já vem do MuiCard do tema
       }}
     >
       {/* Cabeçalho: título + ícone na mesma linha */}
@@ -62,7 +58,6 @@ function InfoCard({
           variant="subtitle2"
           color="text.secondary"
           sx={{
-            fontWeight: 600,
             letterSpacing: '0.4px',
             textTransform: 'uppercase',
           }}
@@ -72,7 +67,7 @@ function InfoCard({
 
         <Box
           sx={{
-            bgcolor: corFundoIcone ?? 'rgba(39,102,120,0.08)',
+            bgcolor: corFundoIcone ?? theme.palette.primary.light,
             borderRadius: '8px',
             width: 48,
             height: 48,
@@ -84,7 +79,7 @@ function InfoCard({
           <Avatar
             sx={{
               bgcolor: 'transparent',
-              color: corIcone ?? '#276678',
+              color: corIcone ?? theme.palette.primary.main,
               width: 32,
               height: 32,
             }}
@@ -99,8 +94,8 @@ function InfoCard({
           variant="h4"
           component="div"
           fontWeight="bold"
+          color="primary.main"
           sx={{
-            color: '#276678',
             mb: 0.5,
             lineHeight: 1.1,
           }}

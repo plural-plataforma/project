@@ -1,33 +1,26 @@
 // src/services/userProfileService.ts
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { api } from '../api/http';
 
 interface UpdateProfilePayload {
-  idUsuario:       number;
-  acao?:            'A' | 'I' | string;              
+  idUsuario:       number
+  acao?:            'A' | 'I' | string;
   nome?:           string;
   email?:          string;
   telefone?:       string;
-  isActive:        boolean;                
+  isActive:        boolean;
   isEmbaixadora?:  boolean;
-  expirationDate?: string | null;           
-  rolesAdicionar?: string[];              
+  expirationDate?: string | null;
+  rolesAdicionar?: string[];
   rolesRemover?:   string[];
 }
 
-export const updateUserProfile = async (payload: UpdateProfilePayload, token: string) => {
+/**
+ * Atualiza o perfil de um usuário administrado.
+ * O token é injetado automaticamente pelo interceptor do client `api`.
+ */
+export const updateUserProfile = async (payload: UpdateProfilePayload) => {
   try {
-    const response = await axios.patch(
-      `${API_URL}/admin/usuarios/atualizar`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    const response = await api.patch('/admin/usuarios/atualizar', payload);
     return response.data;
   } catch (error: any) {
     throw new Error(

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -16,13 +17,11 @@ import {
   IconButton,
   Tooltip,
   Pagination,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
-  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,120 +32,80 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import blocosService from '../../services/blocosService';
-import { Bloco } from '../../types/blocos';
+import LoadingState from '../../components/common/LoadingState';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 
 interface ListaBlocosProps {
   search: string;
   statusFilter: 'todos' | 'ativos' | 'inativos';
-  onTotalChange?: (total: number) => void;
 }
 
 const ROWS_PER_PAGE = 10;
 
-export default function ListaBlocos({ search, statusFilter, onTotalChange }: ListaBlocosProps) {
-  const navigate = useNavigate();
+export function blocosQueryKey(search: string, statusFilter: string) {
+  return ['blocos', { search, statusFilter }] as const;
+}
 
-  const [blocos, setBlocos] = useState<Bloco[]>([]); // lista completa
+export default function ListaBlocos({ search, statusFilter }: ListaBlocosProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedBlocoId, setSelectedBlocoId] = useState<number | null>(null);
 
-  // Busca TODOS os blocos filtrados (sem paginação no backend)
-  const loadBlocos = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const ativo = statusFilter === 'todos' ? undefined : statusFilter === 'ativos' ? true : false;
 
-    try {
-      const ativo =
-        statusFilter === 'todos' ? undefined :
-          statusFilter === 'ativos' ? true : false;
+  const {
+    data: blocos = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: blocosQueryKey(search, statusFilter),
+    queryFn: () => blocosService.getBlocosCompleto({ busca: search.trim() || undefined, status: ativo }),
+  });
 
-      const data = await blocosService.getBlocosCompleto({
-        busca: search.trim() || undefined,
-        status: ativo,
-      });
+  const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar os blocos.';
 
-      setBlocos(data);
-      onTotalChange?.(data.length);
-    } catch (err: any) {
-      setError('Não foi possível carregar os blocos. Tente novamente.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, statusFilter, onTotalChange]);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => blocosService.deleteBloco(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blocos'] });
+      setOpenDeleteDialog(false);
+      setSelectedBlocoId(null);
+    },
+  });
 
-  useEffect(() => {
-    loadBlocos();
-    setPage(1); // reseta página ao mudar filtro/busca
-  }, [loadBlocos]);
-
-  // Paginação local (slice)
+  // Paginação local (a API não pagina a lista completa filtrada)
   const paginatedBlocos = useMemo(() => {
     const start = (page - 1) * ROWS_PER_PAGE;
     return blocos.slice(start, start + ROWS_PER_PAGE);
   }, [blocos, page]);
 
-  const totalPages = Math.ceil(blocos.length / ROWS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(blocos.length / ROWS_PER_PAGE));
 
-  const handleView = useCallback((id: number) => {
-    navigate(`/blocos/${id}`);
-  }, [navigate]);
-
-  const handleEdit = useCallback((id: number) => {
-    navigate(`/blocos/${id}/editar`);
-  }, [navigate]);
+  const handleView = useCallback((id: number) => navigate(`/blocos/${id}`), [navigate]);
+  const handleEdit = useCallback((id: number) => navigate(`/blocos/${id}/editar`), [navigate]);
 
   const handleDeleteClick = useCallback((id: number) => {
     setSelectedBlocoId(id);
     setOpenDeleteDialog(true);
   }, []);
 
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!selectedBlocoId) return;
-
-    setDeleteLoading(true);
-
-    try {
-      await blocosService.deleteBloco(selectedBlocoId);
-      await loadBlocos(); // atualiza lista
-    } catch (err: any) {
-      setError(err.message || 'Não foi possível excluir o bloco.');
-    } finally {
-      setDeleteLoading(false);
-      setOpenDeleteDialog(false);
-      setSelectedBlocoId(null);
-    }
-  }, [selectedBlocoId, loadBlocos]);
-
-  const handleNovoBloco = () => {
-    navigate('/blocos/novo');
-  };
-
-  const handleExportar = () => {
-    console.log('Exportar lista de blocos');
-  };
+  const handleNovoBloco = () => navigate('/blocos/novo');
+  const handleExportar = () => console.log('Exportar lista de blocos');
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        border: '1px solid rgba(39, 102, 120, 0.42)',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <Paper elevation={0} sx={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Cabeçalho */}
       <Box
         sx={{
           p: 3,
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -155,7 +114,7 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
         }}
       >
         <Box>
-          <Typography variant="h5" fontWeight={600} color="#276678">
+          <Typography variant="h5" color="primary.main">
             Lista de Blocos
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -164,61 +123,30 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<ExportIcon />}
-            onClick={handleExportar}
-            sx={{
-              borderColor: 'rgba(39, 102, 120, 0.42)',
-              color: '#276678',
-            }}
-          >
+          <Button variant="outlined" startIcon={<ExportIcon />} onClick={handleExportar}>
             Exportar
           </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleNovoBloco}
-            sx={{ bgcolor: '#276678' }}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleNovoBloco}>
             Novo Bloco
           </Button>
         </Box>
       </Box>
 
-      {/* Loading e erro */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
+      {isLoading && <LoadingState rows={5} />}
 
-      {error && (
-        <Alert severity="error" sx={{ m: 3 }}>
-          {error}
-        </Alert>
-      )}
+      {isError && <ErrorState message={errorMessage} onRetry={() => refetch()} />}
 
-      {!loading && !error && (
+      {!isLoading && !isError && (
         <>
           <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
             <Table sx={{ minWidth: 650 }}>
               <TableHead>
-                <TableRow sx={{ bgcolor: '#f9fafb' }}>
-                  <TableCell sx={{ pl: 4, fontWeight: 600, color: '#276678' }}>
-                    Nome do Bloco
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#276678' }}>
-                    Ordem
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#276678' }}>
-                    Atividades
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#276678' }}>
-                    Status
-                  </TableCell>
-                  <TableCell align="right" sx={{ pr: 4, fontWeight: 600, color: '#276678' }}>
+                <TableRow>
+                  <TableCell sx={{ pl: 4 }}>Nome do Bloco</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Ordem</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Atividades</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right" sx={{ pr: 4 }}>
                     Ações
                   </TableCell>
                 </TableRow>
@@ -229,19 +157,15 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
                   <TableRow
                     key={bloco.id}
                     hover
-                    sx={{
-                      cursor: 'pointer',
-                      '&:last-child td, &:last-child th': { border: 0 },
-                      height: 73,
-                    }}
+                    sx={{ cursor: 'pointer', '&:last-child td, &:last-child th': { border: 0 }, height: 73 }}
                   >
                     <TableCell sx={{ pl: 4 }}>
-                      <Typography variant="body1" fontWeight={600} color="#276678">
+                      <Typography variant="body1" fontWeight={600} color="primary.main">
                         {bloco.titulo}
                       </Typography>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       <Box
                         sx={{
                           bgcolor: '#f3f4f6',
@@ -258,61 +182,57 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
                       </Box>
                     </TableCell>
 
-                    <TableCell>
-                      {/* Quantidade de atividades (se vier no DTO) */}
-                      {bloco.quantidadeAtividades || '—'} atividades
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      {bloco.quantidadeAtividades ?? '—'} atividades
                     </TableCell>
 
                     <TableCell>
                       <Chip
                         label={bloco.status ? 'Ativo' : 'Inativo'}
                         size="small"
-                        sx={{
-                          bgcolor: bloco.status ? '#dcfce7' : '#fee2e2',
-                          color: bloco.status ? '#15803d' : '#b91c1c',
-                        }}
+                        color={bloco.status ? 'success' : 'default'}
                       />
                     </TableCell>
 
                     <TableCell align="right" sx={{ pr: 4 }}>
                       <Tooltip title="Visualizar">
                         <IconButton size="small" onClick={() => handleView(bloco.id)}>
-                          <VisibilityIcon fontSize="small" sx={{ color: '#276678' }} />
+                          <VisibilityIcon fontSize="small" color="primary" />
                         </IconButton>
                       </Tooltip>
 
                       <Tooltip title="Editar">
                         <IconButton size="small" onClick={() => handleEdit(bloco.id)}>
-                          <EditIcon fontSize="small" sx={{ color: '#276678' }} />
+                          <EditIcon fontSize="small" color="primary" />
                         </IconButton>
                       </Tooltip>
 
                       <Tooltip title="Excluir">
                         <IconButton size="small" onClick={() => handleDeleteClick(bloco.id)}>
-                          <DeleteIcon fontSize="small" sx={{ color: '#d32f2f' }} />
+                          <DeleteIcon fontSize="small" color="error" />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
-
-                {paginatedBlocos.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
-                      <Typography color="text.secondary">Nenhum bloco encontrado</Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </TableContainer>
+
+          {blocos.length === 0 && (
+            <EmptyState
+              title="Nenhum bloco encontrado"
+              description="Ajuste os filtros de busca ou cadastre um novo bloco de avaliação."
+            />
+          )}
 
           {/* Paginação local */}
           {blocos.length > 0 && (
             <Box
               sx={{
                 p: 2,
-                borderTop: '1px solid #e5e7eb',
+                borderTop: '1px solid',
+                borderColor: 'divider',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -329,10 +249,6 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
                 page={page}
                 onChange={(_, value) => setPage(value)}
                 color="primary"
-                sx={{
-                  '& .MuiPaginationItem-root': { borderRadius: '8px' },
-                  '& .Mui-selected': { bgcolor: '#276678 !important', color: 'white' },
-                }}
               />
             </Box>
           )}
@@ -346,18 +262,23 @@ export default function ListaBlocos({ search, statusFilter, onTotalChange }: Lis
           <DialogContentText>
             Tem certeza que deseja excluir este bloco? Esta ação não pode ser desfeita.
           </DialogContentText>
+          {deleteMutation.isError && (
+            <Typography color="error" variant="body2" sx={{ mt: 2 }}>
+              {(deleteMutation.error as Error).message || 'Não foi possível excluir o bloco.'}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleteLoading}>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleteMutation.isPending}>
             Cancelar
           </Button>
           <Button
-            onClick={handleDeleteConfirm}
+            onClick={() => selectedBlocoId && deleteMutation.mutate(selectedBlocoId)}
             color="error"
             variant="contained"
-            disabled={deleteLoading}
+            disabled={deleteMutation.isPending}
           >
-            {deleteLoading ? 'Excluindo...' : 'Excluir'}
+            {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
           </Button>
         </DialogActions>
       </Dialog>

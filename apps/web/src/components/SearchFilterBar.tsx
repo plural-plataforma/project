@@ -62,7 +62,7 @@ export default function SearchFilterBar<TStatus extends string>({
         alignItems: 'center',
         px: { xs: 2, md: 4 },
         paddingTop: 3,
-        bgcolor: 'grey.50',
+        bgcolor: 'background.default',
       }}
     >
       <Box
@@ -73,10 +73,11 @@ export default function SearchFilterBar<TStatus extends string>({
           width: '100%',
           maxWidth: '100%',
           flexWrap: 'wrap',
-          bgcolor: '#FFFFFF',
+          bgcolor: 'background.paper',
           p: 2,
-          borderRadius: '12px',
-          border: '1px solid rgba(39, 102, 120, 0.42)',
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}
       >
@@ -87,25 +88,17 @@ export default function SearchFilterBar<TStatus extends string>({
           onChange={handleSearchChange}
           fullWidth
           sx={{
-            maxWidth: { xs: '100%', md: '85%'},
-            '& .MuiOutlinedInput-root': {
-              height: 50,
-              borderRadius: '8px',
-              backgroundColor: '#fff',
-              '& fieldset': { borderColor: 'rgba(39, 102, 120, 0.42)' },
-              '&:hover fieldset, &.Mui-focused fieldset': {
-                borderColor: 'rgba(39, 102, 120, 0.42)',
-              },
-            },
+            maxWidth: { xs: '100%', md: '85%' },
+            '& .MuiOutlinedInput-root': { height: 50 },
             '& .MuiInputBase-input': {
-              color: '#276678',
+              color: 'primary.main',
               pl: 5,
             },
           }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ color: '#9CA3AF', fontSize: 20 }} />
+                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
               </InputAdornment>
             ),
           }}
@@ -120,15 +113,7 @@ export default function SearchFilterBar<TStatus extends string>({
             IconComponent={KeyboardArrowDownIcon}
             sx={{
               height: 50,
-              borderRadius: '8px',
-              backgroundColor: '#fff',
-              color: '#276678',
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(39, 102, 120, 0.42)',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline, &.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(39, 102, 120, 0.42)',
-              },
+              color: 'primary.main',
             }}
           >
             {statusOptions.map((option) => (
@@ -149,16 +134,12 @@ export default function SearchFilterBar<TStatus extends string>({
               IconComponent={KeyboardArrowDownIcon}
               sx={{
                 height: 50,
-                borderRadius: '8px',
-                backgroundColor: expirationFilter && expirationFilter !== 'todos' ? '#fff3e0' : '#fff',
-                color: expirationFilter && expirationFilter !== 'todos' ? '#e65100' : '#276678',
+                backgroundColor: expirationFilter && expirationFilter !== 'todos' ? 'warning.light' : undefined,
+                color: expirationFilter && expirationFilter !== 'todos' ? 'warning.dark' : 'primary.main',
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: expirationFilter && expirationFilter !== 'todos'
-                    ? 'rgba(230, 81, 0, 0.5)'
-                    : 'rgba(39, 102, 120, 0.42)',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline, &.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'rgba(39, 102, 120, 0.42)',
+                    ? 'warning.main'
+                    : undefined,
                 },
               }}
             >

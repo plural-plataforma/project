@@ -18,10 +18,10 @@ namespace api.Services
         }
 
         // Listagem com paginação e filtros
-        public async Task<ServiceResponse<List<AtividadeBuscarDTO>>> GetAtividades(
-    string? busca = null, int? blocoId = null, string? nivel = null, string? etapa = null, bool? ativo = null)
+        public async Task<ServiceResponse<AtividadesPaginadasDTO>> GetAtividades(
+    string? busca = null, int? blocoId = null, string? nivel = null, string? etapa = null, bool? ativo = null, int page = 1, int pageSize = 10)
         {
-            var resposta = new ServiceResponse<List<AtividadeBuscarDTO>>();
+            var resposta = new ServiceResponse<AtividadesPaginadasDTO>();
             try
             {
                 var query = _contexto.Atividades
@@ -43,8 +43,15 @@ namespace api.Services
                 if (ativo.HasValue)
                     query = query.Where(a => a.Ativo == ativo.Value);
 
+                var total = await query.CountAsync();
+
+                var paginaSegura = Math.Max(1, page);
+                var tamanhoSeguro = Math.Clamp(pageSize, 1, 1000);
+
                 var atividades = await query
                     .OrderBy(a => a.Titulo)
+                    .Skip((paginaSegura - 1) * tamanhoSeguro)
+                    .Take(tamanhoSeguro)
                     .Select(a => new AtividadeBuscarDTO
                     {
                         Id = a.Id,
@@ -56,11 +63,19 @@ namespace api.Services
                         EtapaMax = a.EtapaMax,
                         ImagemUrl = a.ImagemUrl,
                         Ativo = a.Ativo,
+                        CreatedAt = a.CreatedAt,
+                        UpdatedAt = a.UpdatedAt,
                         HabilidadeIds = a.Habilidades.Select(h => h.Id).ToList()
                     })
                     .ToListAsync();
 
-                resposta.AdicionaObjeto(atividades);
+                resposta.AdicionaObjeto(new AtividadesPaginadasDTO
+                {
+                    Itens = atividades,
+                    Total = total,
+                    Page = paginaSegura,
+                    PageSize = tamanhoSeguro,
+                });
                 resposta.Sucesso = true;
                 return resposta;
             }
@@ -91,6 +106,8 @@ namespace api.Services
                         EtapaMax = a.EtapaMax,
                         ImagemUrl = a.ImagemUrl,
                         Ativo = a.Ativo,
+                        CreatedAt = a.CreatedAt,
+                        UpdatedAt = a.UpdatedAt,
                         HabilidadeIds = a.Habilidades.Select(h => h.Id).ToList()
                     })
                     .FirstOrDefaultAsync();

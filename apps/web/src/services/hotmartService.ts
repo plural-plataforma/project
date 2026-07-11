@@ -1,76 +1,59 @@
-// src/services/hotmartService.ts
-import axios from 'axios';
+import { api } from '../api/http';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://dev-api.runasp.net/api';
-
-const getAuthToken = () => {
-    return localStorage.getItem('token') || sessionStorage.getItem('token');
-};
-
-export interface HotmartSale {
-    transaction: string;
-    buyerName: string;
-    buyerEmail?: string;
-    jaCadastradoComoProfessor?: boolean;
-    professorId: number;
-    nivelEnsino: string;
-    ativo: boolean;
-    roles: string[];
-    telefone: number;
-    perfil: string;
-    isEmbaixadora: boolean;
-    // Adicione outros campos que a API retorna, se souber
+export interface VendaHotmart {
+  transaction: string;
+  status: string;
+  productId: number;
+  productName: string;
+  buyerEmail: string;
+  buyerName: string;
+  totalValue: number;
+  createdDate: string;
+  jaCadastradoComoProfessor: boolean;
+  statusCadastro: string;
+  nomeCompleto: string | null;
+  telefone: string | null;
+  nivelEnsino: string | null;
+  professorId: number | null;
+  ativo: boolean | null;
+  isEmbaixadora: boolean | null;
+  roles: string[] | null;
 }
 
-interface FetchParams {
-    productId?: number | string;
-    from?: string;          // formato: DD/MM/YYYY
-    to?: string;            // formato: DD/MM/YYYY
-    transactionStatus?: string;  // ex: 'APPROVED', ' ' (espaço para todos?), etc.
+export interface VendasHotmartResumo {
+  total: number;
+  cadastrados: number;
+  naoCadastrados: number;
+  data: VendaHotmart[];
 }
 
-export const fetchHotmartSales = async (params: FetchParams = {}): Promise<HotmartSale[]> => {
-    const token = getAuthToken();
-
-    if (!token) {
-        throw new Error('Sessão expirada. Faça login novamente.');
-    }
-
+/**
+ * Consulta vendas na Hotmart cruzadas com o cadastro de professores na
+ * plataforma. Endpoint: GET /api/vendas/hotmart.
+ */
+export const hotmartService = {
+  getVendasComStatusCadastro: async (params: {
+    productId?: number;
+    transactionStatus?: string;
+    from?: Date;
+    to?: Date;
+  } = {}): Promise<VendasHotmartResumo> => {
     try {
-        // Monta query params
-        const queryParams = new URLSearchParams();
-
-        if (params.productId) {
-            queryParams.append('productId', params.productId.toString());
-        } else {
-            queryParams.append('productId', '6420317'); // fallback fixo
-        }
-        if (params.from) {
-            queryParams.append('from', params.from);
-        }
-        if (params.to) {
-            queryParams.append('to', params.to);
-        }
-        if (params.transactionStatus !== undefined) {
-            queryParams.append('transactionStatus', params.transactionStatus);
-        }
-
-        const response = await axios.get<{ data: HotmartSale[] }>(
-            `${API_URL}/vendas/hotmart?${queryParams.toString()}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: '*/*',
-                },
-            }
-        );
-
-        return response.data.data || []; // Ajuste conforme a estrutura real (response.data.data)
-    } catch (error) {
-        console.error('Erro ao buscar vendas Hotmart:', error);
-        if (axios.isAxiosError(error) && error.response) {
-            throw new Error(error.response.data?.message || 'Falha ao carregar vendas da Hotmart.');
-        }
-        throw error;
+      const response = await api.get('/vendas/hotmart', {
+        params: {
+          productId: params.productId,
+          transactionStatus: params.transactionStatus,
+          from: params.from?.toISOString(),
+          to: params.to?.toISOString(),
+        },
+      });
+      return response.data as VendasHotmartResumo;
+    } catch (error: unknown) {
+      console.error('Erro ao buscar vendas Hotmart:', error);
+      const err = error as { response?: { data?: { detalhe?: string; erro?: string } } };
+      throw new Error(err.response?.data?.detalhe || err.response?.data?.erro || 'Não foi possível carregar as vendas.');
     }
+  },
 };
+
+export default hotmartService;

@@ -1,9 +1,8 @@
 // pages/SkillsNew.tsx
 import { useState } from 'react'
-import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
-
-const API_URL = import.meta.env.VITE_API_URL
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import habilidadesService from '../../services/habilidadesService'
 
 import {
   Box,
@@ -31,6 +30,7 @@ interface HabilidadeForm {
 
 export default function SkillsNew() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const [formData, setFormData] = useState<HabilidadeForm>({
     tipo: '',
@@ -40,74 +40,49 @@ export default function SkillsNew() {
     ativo: true
   })
 
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
-  const handleSave = async () => {
-    // Validação básica no frontend
-    if (!formData.descricao.trim()) {
-      setError('A descrição é obrigatória.')
-      return
-    }
-    if (formData.tipo === '') {
-      setError('O tipo da habilidade é obrigatório.')
-      return
-    }
-    if (formData.idNivelEnsino === '') {
-      setError('O nível de ensino é obrigatório.')
-      return
-    }
-
-    setSaving(true)
-    setError(null)
-    setSuccess(false)
-
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-    if (!token) {
-      setError('Token não encontrado. Faça login novamente.')
-      setSaving(false)
-      return
-    }
-
-    const payload = {
-      id: 0,                           // conforme exemplo da API
-      idNivelEnsino: String(formData.idNivelEnsino),
-      tipo: String(formData.tipo),
-      descricao: formData.descricao.trim(),
-      resumo: formData.resumo.trim()
-      // ativo NÃO está sendo enviado, pois não aparece no schema
-    }
-
-    try {
-      await axios.post(`${API_URL}/Habilidade/cadastro`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      setSuccess(true)
+  const createMutation = useMutation({
+    mutationFn: habilidadesService.createHabilidade,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['habilidades'] })
       setTimeout(() => {
         navigate('/skills')
       }, 1800)
-    } catch (err: any) {
-      console.error('Erro ao criar habilidade:', err)
-      const mensagemErro =
-        err.response?.data?.mensagem ||
-        err.response?.data?.title ||
-        err.response?.data?.detail ||
-        err.message ||
-        'Erro ao cadastrar a habilidade. Verifique os dados e tente novamente.'
-      setError(mensagemErro)
-    } finally {
-      setSaving(false)
+    },
+  })
+
+  const handleSave = () => {
+    // Validação básica no frontend
+    if (!formData.descricao.trim()) {
+      setValidationError('A descrição é obrigatória.')
+      return
     }
+    if (formData.tipo === '') {
+      setValidationError('O tipo da habilidade é obrigatório.')
+      return
+    }
+    if (formData.idNivelEnsino === '') {
+      setValidationError('O nível de ensino é obrigatório.')
+      return
+    }
+
+    setValidationError(null)
+    createMutation.mutate({
+      tipo: Number(formData.tipo),
+      idNivelEnsino: Number(formData.idNivelEnsino),
+      descricao: formData.descricao.trim(),
+      resumo: formData.resumo.trim(),
+    })
   }
 
-  const handleChange = (field: keyof HabilidadeForm, value: any) => {
+  const handleChange = (field: keyof HabilidadeForm, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
+
+  const error = validationError || (createMutation.isError ? (createMutation.error as Error).message : null)
+  const saving = createMutation.isPending
+  const success = createMutation.isSuccess
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -127,7 +102,7 @@ export default function SkillsNew() {
             >
               Voltar
             </Button>
-            <Typography variant="h5" fontWeight="bold" color="#276678">
+            <Typography variant="h5" fontWeight="bold" color="primary.main">
               Nova Habilidade
             </Typography>
           </Box>
@@ -235,7 +210,6 @@ export default function SkillsNew() {
                     size="large"
                     onClick={handleSave}
                     disabled={saving}
-                    sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5c' } }}
                   >
                     {saving ? <CircularProgress size={24} color="inherit" /> : 'Cadastrar Habilidade'}
                   </Button>

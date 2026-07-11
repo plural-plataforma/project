@@ -5,6 +5,7 @@ import {
   Typography,
   Button,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -15,19 +16,19 @@ import {
   IconButton,
   TablePagination,
   Stack,
-  CircularProgress,
-  Alert,
   Tooltip,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
   Add as AddIcon,
-  MoreVert as MoreVertIcon,
   Edit as EditIcon,
 } from '@mui/icons-material';
 import { Star as StarIcon } from '@phosphor-icons/react';
 
-import { Usuario } from '../../types/userTypes';
+import type { Usuario } from '../../types/userTypes';
+import LoadingState from '../common/LoadingState';
+import ErrorState from '../common/ErrorState';
+import EmptyState from '../common/EmptyState';
 
 function getExpirationStatus(expirationDate?: string | null) {
   if (!expirationDate) return { label: 'Nunca', chipColor: 'default' as const, formatted: null }
@@ -51,7 +52,6 @@ interface Props {
   rowsPerPage: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
-  onCadastrar?: (email: string, nome: string) => void;
   onExportar?: () => void;
   onVerPerfil: (user: Usuario) => void;
   onMaisAcoes?: (user: Usuario) => void;
@@ -67,7 +67,6 @@ export function UsersListLayout({
   rowsPerPage,
   onPageChange,
   onRowsPerPageChange,
-  onCadastrar,
   onExportar,
   onVerPerfil,
   onMaisAcoes,
@@ -76,21 +75,13 @@ export function UsersListLayout({
   const displayedUsuarios = filteredUsuarios;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid rgba(39, 102, 120, 0.42)',
-        overflow: 'hidden',
-        bgcolor: '#fff',
-        mt: 4,
-      }}
-    >
+    <Paper elevation={0} sx={{ overflow: 'hidden', mt: 4 }}>
       {/* Cabeçalho */}
       <Box
         sx={{
           p: 3,
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -99,12 +90,7 @@ export function UsersListLayout({
         }}
       >
         <Box>
-          <Typography
-            variant="h6"
-            fontWeight={600}
-            color="#276678"
-            sx={{ letterSpacing: '-0.5px' }}
-          >
+          <Typography variant="h6" color="primary.main" sx={{ letterSpacing: '-0.5px' }}>
             Lista de Usuários
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -113,29 +99,11 @@ export function UsersListLayout({
         </Box>
 
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={onExportar}
-            sx={{
-              borderColor: 'rgba(39, 102, 120, 0.42)',
-              color: '#276678',
-              textTransform: 'none',
-            }}
-          >
+          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={onExportar}>
             Exportar
           </Button>
 
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={onNovoUsuarioClick}
-            sx={{
-              bgcolor: '#276678',
-              '&:hover': { bgcolor: '#1e4d5c' },
-              textTransform: 'none',
-            }}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={onNovoUsuarioClick}>
             Novo Usuário
           </Button>
         </Stack>
@@ -143,127 +111,121 @@ export function UsersListLayout({
 
       {/* Conteúdo */}
       {loading ? (
-        <Box sx={{ py: 10, textAlign: 'center' }}>
-          <CircularProgress />
-        </Box>
+        <LoadingState rows={6} />
       ) : error ? (
-        <Alert severity="error" sx={{ m: 4 }}>
-          {error}
-        </Alert>
+        <ErrorState message={error} />
       ) : filteredUsuarios.length === 0 ? (
-        <Alert severity="info" sx={{ m: 4 }}>
-          Nenhum usuário encontrado com os filtros aplicados.
-        </Alert>
+        <EmptyState
+          title="Nenhum usuário encontrado"
+          description="Ajuste os filtros de busca ou cadastre um novo usuário."
+        />
       ) : (
         <>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#f9fafb' }}>
-                <TableCell padding="checkbox">
-                  <Checkbox color="primary" />
-                </TableCell>
-                <TableCell>Usuário</TableCell>
-                <TableCell>Perfil</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Expira em</TableCell>
-                <TableCell>Embaixadora</TableCell>
-                <TableCell align="right">Ações</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {displayedUsuarios.map((user) => (
-                <TableRow key={user.idUsuario} hover>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
                   <TableCell padding="checkbox">
                     <Checkbox color="primary" />
                   </TableCell>
-
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: '#276678' }}>
-                        {user.nomeCompleto?.[0] || '?'}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2" fontWeight={600}>
-                          {user.nomeCompleto}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {user.email || '—'}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-
-                  <TableCell>
-                    <Chip
-                      label={user.perfil || 'Professor'}
-                      size="small"
-                      sx={{
-                        bgcolor: '#dbeafe',
-                        color: '#1d4ed8',
-                        fontWeight: 600,
-                      }}
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <Chip
-                      label={user.ativo ? 'Ativo' : 'Inativo'}
-                      size="small"
-                      color={user.ativo ? 'success' : 'error'}
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    {(() => {
-                      const { label, chipColor } = getExpirationStatus(user.expirationDate)
-                      return (
-                        <Chip
-                          label={label}
-                          size="small"
-                          color={chipColor}
-                          variant={chipColor === 'default' ? 'outlined' : 'filled'}
-                        />
-                      )
-                    })()}
-                  </TableCell>
-
-                  <TableCell>
-                    {user.isEmbaixadora ? (
-                      <Chip
-                        label="Embaixadora"
-                        size="small"
-                        color="secondary"
-                        icon={<StarIcon fontSize="small" />}
-                      />
-                    ) : (
-                      '—'
-                    )}
-                  </TableCell>
-
-                  <TableCell align="right">
-                    
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Tooltip title="Editar">
-                      <IconButton
-                        size="small"
-                        onClick={() => onVerPerfil(user)}
-                        sx={{ color: '#276678' }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      </Tooltip>
-                      {onMaisAcoes && (
-                        <IconButton size="small" onClick={() => onMaisAcoes(user)}>
-                          <EditIcon />
-                        </IconButton>
-                      )}
-                    </Stack>
-                  </TableCell>
+                  <TableCell>Usuário</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Perfil</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Expira em</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Embaixadora</TableCell>
+                  <TableCell align="right">Ações</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+
+              <TableBody>
+                {displayedUsuarios.map((user) => (
+                  <TableRow key={user.idUsuario} hover>
+                    <TableCell padding="checkbox">
+                      <Checkbox color="primary" />
+                    </TableCell>
+
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                          {user.nomeCompleto?.[0] || '?'}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" fontWeight={600} noWrap>
+                            {user.nomeCompleto}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap>
+                            {user.email || '—'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                      <Chip
+                        label={user.perfil || 'Professor'}
+                        size="small"
+                        sx={{ bgcolor: '#dbeafe', color: '#1d4ed8' }}
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <Chip
+                        label={user.ativo ? 'Ativo' : 'Inativo'}
+                        size="small"
+                        color={user.ativo ? 'success' : 'error'}
+                      />
+                    </TableCell>
+
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      {(() => {
+                        const { label, chipColor } = getExpirationStatus(user.expirationDate)
+                        return (
+                          <Chip
+                            label={label}
+                            size="small"
+                            color={chipColor}
+                            variant={chipColor === 'default' ? 'outlined' : 'filled'}
+                          />
+                        )
+                      })()}
+                    </TableCell>
+
+                    <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
+                      {user.isEmbaixadora ? (
+                        <Chip
+                          label="Embaixadora"
+                          size="small"
+                          color="secondary"
+                          icon={<StarIcon fontSize="small" />}
+                        />
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Tooltip title="Editar">
+                          <IconButton
+                            size="small"
+                            onClick={() => onVerPerfil(user)}
+                            sx={{ color: 'primary.main' }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        {onMaisAcoes && (
+                          <IconButton size="small" onClick={() => onMaisAcoes(user)}>
+                            <EditIcon />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
           {/* Paginação server-side */}
           <Box
@@ -272,12 +234,13 @@ export function UsersListLayout({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              borderTop: '1px solid rgba(39, 102, 120, 0.42)',
+              borderTop: '1px solid',
+              borderColor: 'divider',
               flexWrap: 'wrap',
               gap: 2,
             }}
           >
-            <Typography variant="body2" color="#276678">
+            <Typography variant="body2" color="primary.main">
               Mostrando{' '}
               <strong>
                 {page * rowsPerPage + 1} a{' '}
@@ -297,7 +260,7 @@ export function UsersListLayout({
               labelRowsPerPage="Linhas por página:"
               sx={{
                 '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
-                  color: '#276678',
+                  color: 'primary.main',
                 },
               }}
             />

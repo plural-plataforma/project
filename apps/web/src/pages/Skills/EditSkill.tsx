@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import habilidadesService from '../../services/habilidadesService';
 
 import {
   Box,
@@ -19,6 +18,8 @@ import {
   Grid
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import LoadingState from '../../components/common/LoadingState';
+import ErrorState from '../../components/common/ErrorState';
 
 interface Habilidade {
   id: number;
@@ -33,149 +34,99 @@ export default function SkillsEdit() {
   const { id } = useParams<{ id: string }>();
   const { state } = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<Partial<Habilidade>>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Prioridade 1: dados enviados via state (mais rápido, sem requisição).
+  // Prioridade 2: busca pelo ID (fallback, ex.: acesso direto pela URL).
+  const hasStateData = state && state.id != null;
+
+  const {
+    data: fetchedHabilidade,
+    isLoading,
+    isError,
+    error: fetchError,
+  } = useQuery({
+    queryKey: ['habilidade', id],
+    queryFn: () => habilidadesService.getHabilidadeById(Number(id)),
+    enabled: !hasStateData && !!id,
+  });
 
   useEffect(() => {
-    const loadHabilidade = async () => {
-      // Prioridade 1: Usa dados enviados via state (mais rápido, sem requisição)
-      if (state && state.id != null) {
-        setFormData({
-          id: Number(state.id),
-          tipo: Number(state.tipo),
-          descricao: state.descricao || '',
-          resumo: state.resumo || '',
-          ativo: !!state.ativo,
-          idNivelEnsino: Number(state.idNivelEnsino)
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Prioridade 2: Busca pelo ID (fallback)
-      if (!id) {
-        setError("ID da habilidade não encontrado na URL.");
-        setLoading(false);
-        return;
-      }
-
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (!token) {
-        setError('Token não encontrado. Faça login novamente.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await axios.get(`${API_URL}/Habilidade/buscar/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const habilidade = response.data?.objeto || response.data;
-
-        if (!habilidade?.id) {
-          throw new Error("Habilidade não encontrada");
-        }
-
-        setFormData({
-          id: Number(habilidade.id),
-          tipo: Number(habilidade.tipo),
-          descricao: habilidade.descricao || '',
-          resumo: habilidade.resumo || '',
-          ativo: !!habilidade.ativo,
-          idNivelEnsino: Number(habilidade.idNivelEnsino)
-        });
-      } catch (err: any) {
-        console.error('Erro ao carregar habilidade:', err);
-        setError(
-          err.response?.data?.mensagem ||
-          err.response?.data?.title ||
-          'Não foi possível carregar os dados da habilidade. Tente novamente.'
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadHabilidade();
-  }, [id, state]);
-
-  const handleSave = async () => {
-    if (!formData.id) {
-      setError('ID da habilidade não encontrado.');
-      return;
-    }
-
-    if (!formData.descricao?.trim()) {
-      setError('A descrição é obrigatória.');
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
-
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    if (!token) {
-      setError('Token não encontrado. Faça login novamente.');
-      setSaving(false);
-      return;
-    }
-
-    const payload = {
-      id: formData.id,
-      idNivelEnsino: String(formData.idNivelEnsino),
-      tipo: String(formData.tipo),
-      descricao: formData.descricao.trim(),
-      resumo: (formData.resumo || '').trim(),
-      ativo: !!formData.ativo
-    };
-
-    try {
-      await axios.patch(`${API_URL}/Habilidade/atualizar`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+    if (hasStateData) {
+      setFormData({
+        id: Number(state.id),
+        tipo: Number(state.tipo),
+        descricao: state.descricao || '',
+        resumo: state.resumo || '',
+        ativo: !!state.ativo,
+        idNivelEnsino: Number(state.idNivelEnsino),
       });
+    } else if (fetchedHabilidade) {
+      setFormData({
+        id: Number(fetchedHabilidade.id),
+        tipo: Number(fetchedHabilidade.tipo),
+        descricao: fetchedHabilidade.descricao || '',
+        resumo: fetchedHabilidade.resumo || '',
+        ativo: !!fetchedHabilidade.ativo,
+        idNivelEnsino: Number(fetchedHabilidade.idNivelEnsino),
+      });
+    }
+  }, [hasStateData, state, fetchedHabilidade]);
 
-      setSuccess(true);
+  const updateMutation = useMutation({
+    mutationFn: ({ id, ...data }: Habilidade) => habilidadesService.updateHabilidade(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['habilidades'] });
+      queryClient.invalidateQueries({ queryKey: ['habilidade', id] });
       setTimeout(() => {
         navigate('/skills');
       }, 1500);
-    } catch (err: any) {
-      console.error('Erro ao atualizar habilidade:', err);
-      const mensagemErro =
-        err.response?.data?.mensagem ||
-        err.response?.data?.title ||
-        (err.response?.data?.errors ) ||
-        'Erro ao salvar. Verifique os dados e tente novamente.';
-      setError(mensagemErro);
-    } finally {
-      setSaving(false);
+    },
+  });
+
+  const handleSave = () => {
+    if (!formData.id) {
+      setValidationError('ID da habilidade não encontrado.');
+      return;
     }
+    if (!formData.descricao?.trim()) {
+      setValidationError('A descrição é obrigatória.');
+      return;
+    }
+
+    setValidationError(null);
+    updateMutation.mutate({
+      id: formData.id,
+      idNivelEnsino: Number(formData.idNivelEnsino),
+      tipo: Number(formData.tipo),
+      descricao: formData.descricao.trim(),
+      resumo: (formData.resumo || '').trim(),
+      ativo: !!formData.ativo,
+    });
   };
 
-  const handleChange = (field: keyof Habilidade, value: any) => {
+  const handleChange = (field: keyof Habilidade, value: string | number | boolean | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const loadError = isError ? (fetchError instanceof Error ? fetchError.message : 'Não foi possível carregar os dados da habilidade.') : null;
+  const saveError = validationError || (updateMutation.isError ? (updateMutation.error as Error).message : null);
+  const error = loadError || saveError;
+  const saving = updateMutation.isPending;
+  const success = updateMutation.isSuccess;
+  const loading = !hasStateData && isLoading;
+
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <LoadingState variant="inline" />;
   }
 
-  if (error && !formData.id) {
+  if (loadError && !formData.id) {
     return (
       <Box sx={{ p: 4 }}>
-        <Alert severity="error">{error}</Alert>
+        <ErrorState message={loadError} />
         <Button
           variant="outlined"
           startIcon={<ArrowBackIcon />}
@@ -206,7 +157,7 @@ export default function SkillsEdit() {
             >
               Voltar
             </Button>
-            <Typography variant="h5" fontWeight="bold" color="#276678">
+            <Typography variant="h5" fontWeight="bold" color="primary.main">
               Editar Habilidade {formData.id ? `#${formData.id}` : ''}
             </Typography>
           </Box>
@@ -330,10 +281,6 @@ export default function SkillsEdit() {
                     size="large"
                     onClick={handleSave}
                     disabled={saving}
-                    sx={{
-                      bgcolor: '#276678',
-                      '&:hover': { bgcolor: '#1e4d5c' }
-                    }}
                   >
                     {saving ? (
                       <CircularProgress size={24} color="inherit" />

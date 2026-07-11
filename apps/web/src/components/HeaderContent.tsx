@@ -1,78 +1,94 @@
-import { Box, Typography, InputBase, alpha, IconButton } from '@mui/material'
+import { Box, Typography, InputBase, IconButton, useTheme } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import NotificationsIcon from '@mui/icons-material/Notifications'
+import MenuIcon from '@mui/icons-material/Menu'
 import { useLocation } from 'react-router-dom'
 
-const pageInfo: Record<string, { title: string; description: string }> = {
-  '/dashboard': {
-    title: 'Dashboard Administrativo',
-    description: 'Gerencie sua plataforma Plural'
-  },
-  '/usuarios': {
-    title: 'Gerenciamento de Usuários',
-    description: 'Gerencie todos os usuários da plataforma Plural'
-  },
-  '/skills': {
-    title: 'Gerenciamento de Habilidades',
-    description: 'Gerencie e monitore todas as habilidades cadastradas'
-  },
-  '/blocos': {
-    title: 'Gerenciamento de Blocos de Atividades',
-    description: 'Gerencie todos os blocos de atividades do sistema'
-  },
-  '/atividades': {
-    title: 'Gerenciamento do Banco de Atividades',
-    description: 'Gerencie todos os bancos de atividades do sistema'
-  }
+interface PageInfoEntry {
+  prefix: string
+  title: string
+  description: string
 }
 
-export default function HeaderContent() {
-  const location = useLocation()
+// Ordem importa: prefixos mais específicos primeiro (ex.: '/skills/new' antes de '/skills')
+const pageInfoList: PageInfoEntry[] = [
+  { prefix: '/dashboard', title: 'Dashboard Administrativo', description: 'Gerencie sua plataforma Plural' },
+  { prefix: '/usuarios', title: 'Gerenciamento de Usuários', description: 'Gerencie todos os usuários da plataforma Plural' },
+  { prefix: '/skills', title: 'Gerenciamento de Habilidades', description: 'Gerencie e monitore todas as habilidades cadastradas' },
+  { prefix: '/blocos', title: 'Gerenciamento de Blocos de Avaliação', description: 'Gerencie todos os blocos de avaliação do sistema' },
+  { prefix: '/atividades', title: 'Gerenciamento do Banco de Atividades', description: 'Gerencie todas as atividades do sistema' },
+  { prefix: '/configuracoes', title: 'Configurações', description: 'Configurações gerais da plataforma' },
+  { prefix: '/change-password', title: 'Alterar Senha', description: 'Atualize sua senha de acesso' },
+]
 
-  const currentPage = pageInfo[location.pathname] || {
-    title: 'Plural Plataforma',
-    description: 'Gerencie sua plataforma educacional'
-  }
+const DEFAULT_PAGE_INFO = {
+  title: 'Plural Plataforma',
+  description: 'Gerencie sua plataforma educacional',
+}
+
+function getPageInfo(pathname: string) {
+  const match = pageInfoList.find(
+    (page) => pathname === page.prefix || pathname.startsWith(`${page.prefix}/`)
+  )
+  return match ?? DEFAULT_PAGE_INFO
+}
+
+interface HeaderContentProps {
+  onMenuClick?: () => void
+  showMenuButton?: boolean
+}
+
+export default function HeaderContent({ onMenuClick, showMenuButton }: HeaderContentProps) {
+  const location = useLocation()
+  const theme = useTheme()
+  const currentPage = getPageInfo(location.pathname)
 
   return (
     <Box
       sx={{
         width: '100%',
-        borderBottom: '0 solid #E5E7EB'
+        borderBottom: '0 solid',
+        borderColor: 'divider',
       }}
     >
-      {/* Container interno */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
-          //maxWidth: 1184,
           mx: 'auto',
-          px: '32px',     // ✅ padding lateral do Figma
-          py: '16px',     // ✅ padding vertical do Figma
-          gap: '16px'
+          px: '32px',
+          py: '16px',
+          gap: '16px',
         }}
       >
+        {showMenuButton && (
+          <IconButton onClick={onMenuClick} sx={{ color: 'primary.main' }} aria-label="Abrir menu">
+            <MenuIcon />
+          </IconButton>
+        )}
+
         {/* Esquerda */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
             sx={{
-              color: '#276678',
+              color: theme.palette.primary.main,
               fontSize: 20,
               fontWeight: 700,
-              lineHeight: '24px'
+              lineHeight: '24px',
             }}
+            noWrap
           >
             {currentPage.title}
           </Typography>
 
           <Typography
             sx={{
-              color: '#6B7280',
+              color: 'text.secondary',
               fontWeight: 400,
               fontSize: 14,
-              lineHeight: '20px'
+              lineHeight: '20px',
             }}
+            noWrap
           >
             {currentPage.description}
           </Typography>
@@ -84,11 +100,11 @@ export default function HeaderContent() {
             display: 'flex',
             alignItems: 'center',
             gap: '16px',
-            flexShrink: 0
+            flexShrink: 0,
           }}
         >
-          {/* Busca */}
-          <Box sx={{ position: 'relative', width: 320 }}>
+          {/* Busca — oculta em telas pequenas para dar espaço ao título */}
+          <Box sx={{ position: 'relative', width: 320, display: { xs: 'none', sm: 'block' } }}>
             <InputBase
               placeholder="Buscar..."
               fullWidth
@@ -96,10 +112,11 @@ export default function HeaderContent() {
                 height: 40,
                 pl: 5,
                 pr: 2,
-                border: '1px solid #2766786B',
+                border: '1px solid',
+                borderColor: 'divider',
                 borderRadius: '8px',
                 fontSize: 14,
-                bgcolor: '#FFF'
+                bgcolor: '#FFF',
               }}
               startAdornment={
                 <SearchIcon
@@ -109,16 +126,15 @@ export default function HeaderContent() {
                     top: '50%',
                     transform: 'translateY(-50%)',
                     fontSize: 20,
-                    color: '#64748B'
+                    color: 'text.secondary',
                   }}
                 />
               }
             />
           </Box>
 
-          {/* Sino */}
           <IconButton>
-            <NotificationsIcon sx={{ color: '#9CA3AF' }} />
+            <NotificationsIcon sx={{ color: 'text.secondary' }} />
           </IconButton>
         </Box>
       </Box>

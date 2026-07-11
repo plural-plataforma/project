@@ -1,25 +1,28 @@
 // pages/SkillsList.tsx
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
+import habilidadesService from '../../services/habilidadesService';
 import {
   Box,
   Paper,
   Typography,
   Button,
   Stack,
-  CircularProgress,
-  Alert,
   TablePagination,
   Tooltip,
 } from '@mui/material';
 import { Download as DownloadIcon, Add as AddIcon, Edit } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
-import StatsGrid, { StatCardData } from '../../components/StatsGrid';
+import StatsGrid, { type StatCardData } from '../../components/StatsGrid';
 import SearchFilterBar from '../../components/SearchFilterBar';
+import LoadingState from '../../components/common/LoadingState';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 
 import {
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -28,10 +31,7 @@ import {
   Chip,
   IconButton,
 } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { PersonIcon } from '@phosphor-icons/react';
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 interface Habilidade {
   id: number;
@@ -45,43 +45,27 @@ interface Habilidade {
 export default function SkillsList() {
   const navigate = useNavigate();
 
-  const [habilidades, setHabilidades] = useState<Habilidade[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Filtros
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'ativo' | 'inativo'>('todos');
 
-  // Paginação
+  // Paginação (client-side: o endpoint de habilidades não pagina no servidor)
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  useEffect(() => {
-    const fetchHabilidades = async () => {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (!token) {
-        setError('Token não encontrado. Faça login novamente.');
-        setLoading(false);
-        return;
-      }
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['habilidades'],
+    queryFn: () => habilidadesService.getAllHabilidades(),
+  });
 
-      try {
-        const response = await axios.get(`${API_URL}/Habilidade/buscar`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = response.data?.objeto || [];
-        setHabilidades(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Erro ao carregar habilidades:', err);
-        setError('Erro ao carregar as habilidades.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHabilidades();
-  }, []);
+  const habilidades = (data ?? []) as unknown as Habilidade[];
+  const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar as habilidades.';
 
   // Filtragem completa (sempre parte da lista completa)
   const filteredHabilidades = habilidades.filter((h) => {
@@ -179,19 +163,13 @@ export default function SkillsList() {
         />
       </Box>
       {/* Lista de Habilidades */}
-      <Paper
-        sx={{
-          mt: 4,
-          borderRadius: '12px',
-          border: '1px solid rgba(39, 102, 120, 0.42)',
-          overflow: 'hidden',
-        }}
-      >
+      <Paper sx={{ mt: 4, overflow: 'hidden' }}>
         {/* Cabeçalho */}
         <Box
           sx={{
             p: 3,
-            borderBottom: '1px solid #e5e7eb',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -200,7 +178,7 @@ export default function SkillsList() {
           }}
         >
           <Box>
-            <Typography variant="h6" fontWeight={600} color="#276678">
+            <Typography variant="h6" color="primary.main">
               Lista de Habilidades
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -209,25 +187,12 @@ export default function SkillsList() {
           </Box>
 
           <Stack direction="row" spacing={2}>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              sx={{
-                borderColor: 'rgba(39,102,120,0.42)',
-                color: '#276678',
-                textTransform: 'none',
-              }}
-            >
+            <Button variant="outlined" startIcon={<DownloadIcon />}>
               Exportar
             </Button>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              sx={{
-                bgcolor: '#276678',
-                '&:hover': { bgcolor: '#1e4d5c' },
-                textTransform: 'none',
-              }}
               onClick={() => navigate('/skills/new')}
             >
               Nova Habilidade
@@ -236,82 +201,83 @@ export default function SkillsList() {
         </Box>
 
         {/* Tabela */}
-        {loading ? (
-          <Box sx={{ py: 10, textAlign: 'center' }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ m: 4 }}>
-            {error}
-          </Alert>
+        {isLoading ? (
+          <LoadingState rows={6} />
+        ) : isError ? (
+          <ErrorState message={errorMessage} onRetry={() => refetch()} />
         ) : filteredHabilidades.length === 0 ? (
-          <Alert severity="info" sx={{ m: 4 }}>
-            Nenhuma habilidade encontrada com os filtros aplicados.
-          </Alert>
+          <EmptyState
+            title="Nenhuma habilidade encontrada"
+            description="Ajuste os filtros de busca ou cadastre uma nova habilidade."
+          />
         ) : (
           <>
-            <Table>
-              <TableHead sx={{ bgcolor: '#f9fafb' }}>
-                <TableRow>
-                  <TableCell padding="checkbox">
-                    <Checkbox />
-                  </TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Descrição / Resumo</TableCell>
-                  <TableCell>Ativo</TableCell>
-                  <TableCell>Nível Ensino</TableCell>
-                  <TableCell align="right">Ações</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {paginatedHabilidades.map((hab) => (
-                  <TableRow key={hab.id} hover>
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
                     <TableCell padding="checkbox">
                       <Checkbox />
                     </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getTipoLabel(hab.tipo)}
-                        size="small"
-                        sx={{ bgcolor: '#dbeafe', color: '#1d4ed8' }}
-                      />
-                    </TableCell>
-                    <TableCell>{hab.id}</TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2" fontWeight={500}>
-                          {hab.descricao}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {hab.resumo}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={hab.ativo ? 'Sim' : 'Não'}
-                        size="small"
-                        color={hab.ativo ? 'success' : 'error'}
-                      />
-                    </TableCell>
-                    <TableCell>{getNivelEnsinoLabel(hab.idNivelEnsino)}</TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="Editar">
-                      <IconButton
-                        size="small"
-                        onClick={() => navigate(`/skills/edit/${hab.id}`, { state: hab })}
-                        sx={{ color: '#276678' }}
-                      >
-                         <Edit fontSize="small" />
-                      </IconButton>
-                      </Tooltip>
-                    </TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>ID</TableCell>
+                    <TableCell>Descrição / Resumo</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Ativo</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Nível Ensino</TableCell>
+                    <TableCell align="right">Ações</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+
+                <TableBody>
+                  {paginatedHabilidades.map((hab) => (
+                    <TableRow key={hab.id} hover>
+                      <TableCell padding="checkbox">
+                        <Checkbox />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getTipoLabel(hab.tipo)}
+                          size="small"
+                          sx={{ bgcolor: '#dbeafe', color: '#1d4ed8' }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{hab.id}</TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2" fontWeight={500}>
+                            {hab.descricao}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {hab.resumo}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        <Chip
+                          label={hab.ativo ? 'Sim' : 'Não'}
+                          size="small"
+                          color={hab.ativo ? 'success' : 'error'}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        {getNivelEnsinoLabel(hab.idNivelEnsino)}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="Editar">
+                          <IconButton
+                            size="small"
+                            onClick={() => navigate(`/skills/edit/${hab.id}`, { state: hab })}
+                            sx={{ color: 'primary.main' }}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
             {/* Paginação */}
             <Box
@@ -320,12 +286,13 @@ export default function SkillsList() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderTop: '1px solid rgba(39,102,120,0.42)',
+                borderTop: '1px solid',
+                borderColor: 'divider',
                 flexWrap: 'wrap',
                 gap: 2,
               }}
             >
-              <Typography variant="body2" color="#276678">
+              <Typography variant="body2" color="primary.main">
                 Mostrando{' '}
                 <strong>
                   {page * rowsPerPage + 1} a{' '}

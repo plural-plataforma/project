@@ -11,6 +11,8 @@
         public string? EtapaMax { get; set; }
         public string? ImagemUrl { get; set; }
         public bool Ativo { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public List<int> HabilidadeIds { get; set; } = new List<int>(); // IDs das habilidades associadas
     }
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -16,8 +17,6 @@ import {
   Tooltip,
   Pagination,
   Button,
-  CircularProgress,
-  Alert,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -30,9 +29,10 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import atividadesService from '../../services/atividadesService';
-import { Atividade, AtividadeResponse } from '../../types/atividades'; // ajuste o import conforme seu tipo
 import blocosService from '../../services/blocosService';
-import { Bloco } from '../../types/blocos';
+import LoadingState from '../../components/common/LoadingState';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 
 interface ListaAtividadesProps {
   search: string;
@@ -41,108 +41,80 @@ interface ListaAtividadesProps {
 
 const ROWS_PER_PAGE = 10;
 
+export function atividadesQueryKey(search: string, statusFilter: string, page: number) {
+  return ['atividades', { search, statusFilter, page }] as const;
+}
+
 export default function ListaAtividades({ search, statusFilter }: ListaAtividadesProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [atividades, setAtividades] = useState<Atividade[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [blocosMap, setBlocosMap] = useState<Map<number, string>>(new Map());
 
-  const fetchAtividades = async () => {
-    setLoading(true);
-    setError(null);
+  const ativo = statusFilter === 'todos' ? undefined : statusFilter === 'ativo';
 
-    try {
-      const params = {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: atividadesQueryKey(search, statusFilter, page),
+    queryFn: () =>
+      atividadesService.getAtividadesPaginado({
         busca: search.trim() || undefined,
-        ativo: statusFilter === 'todos' ? undefined : statusFilter === 'ativo',
+        ativo,
         page,
         pageSize: ROWS_PER_PAGE,
-      };
+      }),
+  });
 
-      const lista: Atividade[] = await atividadesService.getAtividades(params);
-      setAtividades(lista);
-      setTotalPages(Math.ceil(lista.length / ROWS_PER_PAGE) || 1);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar as atividades.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const atividades = data?.itens ?? [];
 
-  useEffect(() => {
-  const fetchBlocoTitulo = async (blocoId: number) => {
-    if (!blocoId || blocosMap.has(blocoId)) return; // já buscado
+  // Nomes dos blocos para exibição na tabela (mapa carregado uma única vez e cacheado)
+  const { data: blocosAtivos = [] } = useQuery({
+    queryKey: ['blocos-ativos'],
+    queryFn: () => blocosService.getAllBlocosAtivos(),
+  });
 
-    try {
-      const bloco: Bloco = await blocosService.getBlocoById(blocoId);
-      setBlocosMap(prev => new Map(prev).set(bloco.id, bloco.titulo));
-    } catch (err) {
-      console.error(`Erro ao buscar bloco ${blocoId}:`, err);
-      setBlocosMap(prev => new Map(prev).set(blocoId, 'Sem bloco'));
-    }
-  };
+  const blocosMap = useMemo(
+    () => new Map(blocosAtivos.map((b) => [b.id, b.titulo])),
+    [blocosAtivos]
+  );
 
-  atividades.forEach(a => fetchBlocoTitulo(a.blocoId));
-}, [atividades, blocosMap]);
+  const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar as atividades.';
 
+  // Agora o backend pagina de verdade e retorna o total real de itens.
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / ROWS_PER_PAGE));
 
-  useEffect(() => {
-    fetchAtividades();
-  }, [page, search, statusFilter]);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => atividadesService.deleteAtividade(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['atividades'] });
+    },
+  });
 
-  const handleNovaAtividade = () => {
-    navigate('/atividades/novo');
-  };
+  const handleNovaAtividade = () => navigate('/atividades/novo');
+  const handleExportar = () => console.log('Exportar lista (implemente CSV/Excel real)');
+  const handleVisualizar = (id: number) => navigate(`/atividades/${id}`);
+  const handleEditar = (id: number) => navigate(`/atividades/${id}/editar`);
 
-  const handleExportar = () => {
-    console.log('Exportar lista (implemente CSV/Excel real)');
-  };
-
-  const handleVisualizar = (id: number) => {
-    navigate(`/atividades/${id}`);
-  };
-
-  const handleEditar = (id: number) => {
-    navigate(`/atividades/${id}/editar`);
-  };
-
-  const handleExcluir = async (id: number) => {
+  const handleExcluir = (id: number) => {
     if (!window.confirm('Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita.')) {
       return;
     }
-
-    try {
-      setLoading(true);
-      await atividadesService.deleteAtividade(id);
-      alert('Atividade desativada com sucesso. Ela some da lista quando o filtro é "Ativo".');
-      fetchAtividades(); // recarrega a lista
-    } catch (err: any) {
-      alert(err.message || 'Erro ao excluir a atividade. Tente novamente.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    deleteMutation.mutate(id);
   };
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        border: '1px solid rgba(39,102,120,0.42)',
-        borderRadius: '12px',
-        overflow: 'hidden',
-      }}
-    >
+    <Paper elevation={0} sx={{ overflow: 'hidden' }}>
       {/* Cabeçalho + botões */}
       <Box
         sx={{
           p: 3,
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -151,7 +123,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
         }}
       >
         <Box>
-          <Typography variant="h5" fontWeight={600} color="#276678">
+          <Typography variant="h5" color="primary.main">
             Lista de Atividades
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -160,61 +132,37 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<ExportIcon />}
-            onClick={handleExportar}
-            sx={{
-              borderColor: 'rgba(39,102,120,0.42)',
-              color: '#276678',
-              borderRadius: '8px',
-            }}
-          >
+          <Button variant="outlined" startIcon={<ExportIcon />} onClick={handleExportar}>
             Exportar
           </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleNovaAtividade}
-            sx={{
-              bgcolor: '#276678',
-              '&:hover': { bgcolor: '#1e4d5a' },
-              borderRadius: '8px',
-            }}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleNovaAtividade}>
             Nova Atividade
           </Button>
         </Box>
       </Box>
 
-      {/* Loading e erro */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
+      {isLoading && <LoadingState rows={5} />}
 
-      {error && (
-        <Alert severity="error" sx={{ m: 3 }}>
-          {error}
-        </Alert>
-      )}
+      {isError && <ErrorState message={errorMessage} onRetry={() => refetch()} />}
 
-      {!loading && !error && (
+      {!isLoading && !isError && (
         <>
+          {deleteMutation.isError && (
+            <Box sx={{ px: 3, pt: 2 }}>
+              <ErrorState message={(deleteMutation.error as Error).message || 'Não foi possível excluir a atividade.'} />
+            </Box>
+          )}
+
           <TableContainer>
             <Table>
-              <TableHead sx={{ bgcolor: '#f9fafb' }}>
+              <TableHead>
                 <TableRow>
-                  <TableCell sx={{ pl: 4, fontWeight: 600, color: '#276678' }}>
-                    Nome da Atividade
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#276678' }}>Bloco</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#276678' }}>Nível</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#276678' }}>Status</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: '#276678' }}>Imagem</TableCell>
-                  <TableCell align="right" sx={{ pr: 4, fontWeight: 600, color: '#276678' }}>
+                  <TableCell sx={{ pl: 4 }}>Nome da Atividade</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Bloco</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Nível</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="center" sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Imagem</TableCell>
+                  <TableCell align="right" sx={{ pr: 4 }}>
                     Ações
                   </TableCell>
                 </TableRow>
@@ -228,18 +176,12 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                     sx={{ height: 73, '&:last-child td': { border: 0 } }}
                   >
                     <TableCell sx={{ pl: 4 }}>
-                      <Box>
-                        <Typography fontWeight={600} color="#276678">
-                          {atividade.titulo || 'Sem título'}
-                        </Typography>
-                        {/* Se tiver data de criação no model */}
-                        {/* <Typography variant="caption" color="text.secondary">
-                          Criado em {new Date(atividade.criadoEm).toLocaleDateString('pt-BR')}
-                        </Typography> */}
-                      </Box>
+                      <Typography fontWeight={600} color="primary.main">
+                        {atividade.titulo || 'Sem título'}
+                      </Typography>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       <Chip
                         label={blocosMap.get(atividade.blocoId) || 'Sem bloco'}
                         size="small"
@@ -247,7 +189,7 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                       <Chip
                         label={atividade.nivel}
                         size="small"
@@ -262,18 +204,14 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                       <Chip
                         label={atividade.ativo ? 'Ativo' : 'Inativo'}
                         size="small"
-                        sx={{
-                          bgcolor: atividade.ativo ? '#dcfce7' : '#fee2e2',
-                          color: atividade.ativo ? '#15803d' : '#b91c1c',
-                          fontWeight: 500,
-                        }}
+                        color={atividade.ativo ? 'success' : 'error'}
                       />
                     </TableCell>
 
-                    <TableCell align="center">
+                    <TableCell align="center" sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                       <Tooltip title={atividade.imagemUrl ? 'Com imagem' : 'Sem imagem'}>
                         {atividade.imagemUrl ? (
-                          <ImageIcon fontSize="small" sx={{ color: '#276678' }} />
+                          <ImageIcon fontSize="small" color="primary" />
                         ) : (
                           <HideImageIcon fontSize="small" sx={{ color: '#d1d5db' }} />
                         )}
@@ -283,66 +221,61 @@ export default function ListaAtividades({ search, statusFilter }: ListaAtividade
                     <TableCell align="right" sx={{ pr: 4 }}>
                       <Tooltip title="Visualizar">
                         <IconButton size="small" onClick={() => handleVisualizar(atividade.id)}>
-                          <VisibilityIcon fontSize="small" sx={{ color: '#276678' }} />
+                          <VisibilityIcon fontSize="small" color="primary" />
                         </IconButton>
                       </Tooltip>
 
                       <Tooltip title="Editar">
                         <IconButton size="small" onClick={() => handleEditar(atividade.id)}>
-                          <EditIcon fontSize="small" sx={{ color: '#276678' }} />
+                          <EditIcon fontSize="small" color="primary" />
                         </IconButton>
                       </Tooltip>
 
                       <Tooltip title="Excluir">
-                        <IconButton size="small" onClick={() => handleExcluir(atividade.id)}>
-                          <DeleteIcon fontSize="small" sx={{ color: '#d32f2f' }} />
+                        <IconButton size="small" onClick={() => handleExcluir(atividade.id)} disabled={deleteMutation.isPending}>
+                          <DeleteIcon fontSize="small" color="error" />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
-
-                {atividades.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                      <Typography variant="body1" color="text.secondary">
-                        Nenhuma atividade encontrada
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </TableContainer>
 
-          {/* Paginação */}
-          <Box
-            sx={{
-              p: 2,
-              borderTop: '1px solid #e5e7eb',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 2,
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              Mostrando <strong>{atividades.length}</strong> de <strong>{atividades.length}</strong> atividades
-              {/* Ajuste com total real quando o backend retornar */}
-            </Typography>
-
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-              sx={{
-                '& .MuiPaginationItem-root': { borderRadius: '8px' },
-                '& .Mui-selected': { bgcolor: '#276678 !important', color: 'white' },
-              }}
+          {atividades.length === 0 && (
+            <EmptyState
+              title="Nenhuma atividade encontrada"
+              description="Ajuste os filtros de busca ou cadastre uma nova atividade."
             />
-          </Box>
+          )}
+
+          {/* Paginação server-side */}
+          {atividades.length > 0 && (
+            <Box
+              sx={{
+                p: 2,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2,
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Mostrando <strong>{atividades.length}</strong> {page > 1 ? `(página ${page})` : ''} atividades
+              </Typography>
+
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
+          )}
         </>
       )}
     </Paper>
