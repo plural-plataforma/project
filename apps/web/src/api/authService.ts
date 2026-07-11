@@ -19,6 +19,33 @@ interface LoginApiResponse {
   };
 }
 
+export interface RegisterPayload {
+  email: string;
+  senha: string;
+  nomeCompleto: string;
+  aceitouTermos: boolean;
+  deveAlterarSenha: boolean;
+  expirationDate?: string;
+}
+
+/**
+ * Cadastra um novo usuário (professor). Usado pelo fluxo de admin
+ * (NewUserDialog) para criar acessos de professores.
+ */
+export const registerUser = async (payload: RegisterPayload): Promise<void> => {
+  try {
+    await api.post('/autenticacao/registro', payload);
+  } catch (error: any) {
+    console.error('Erro ao registrar usuário:', error);
+    const errData = error?.response?.data;
+    throw new Error(
+      errData?.mensagem ||
+      errData?.title ||
+      errData?.message ||
+      'Falha ao cadastrar usuário. Verifique se o e-mail já existe.'
+    );
+  }
+};
 
 export const authService = {
   login: async ({ email, password, rememberMe }: LoginCredentials) => {

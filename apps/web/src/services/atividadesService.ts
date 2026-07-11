@@ -1,6 +1,13 @@
 import api from '../api/http';
-import { AxiosResponse } from 'axios';
-import { Atividade, AtividadeCreateInput, AtividadeResponse } from '../types/atividades';
+import type { AxiosResponse } from 'axios';
+import type { Atividade, AtividadeCreateInput } from '../types/atividades';
+
+export interface AtividadesPaginadas {
+  itens: Atividade[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
 function apiErrorMessage(error: { response?: { data?: Record<string, unknown> } }, fallback: string): string {
   const d = error.response?.data;
@@ -66,10 +73,10 @@ export const atividadesService = {
   },
 
   /**
-   * Busca atividades com filtros e paginação
-   * GET /api/atividades
+   * Busca atividades com filtros e paginação real (page/pageSize aplicados no backend).
+   * GET /api/atividades — retorna { itens, total, page, pageSize } dentro de `objeto`.
    */
-  getAtividades: async (params: {
+  getAtividadesPaginado: async (params: {
     busca?: string;
     blocoId?: number;
     nivel?: string;
@@ -77,7 +84,7 @@ export const atividadesService = {
     ativo?: boolean;
     page?: number;
     pageSize?: number;
-  }): Promise<Atividade[]> => {
+  }): Promise<AtividadesPaginadas> => {
     try {
       const response = await api.get('/atividades', {
         params: {
@@ -91,30 +98,47 @@ export const atividadesService = {
         },
       });
 
-      const data = response.data;
+      const objeto = response.data?.objeto;
 
-      // Trata o formato real retornado pelo backend
-      if (data && Array.isArray(data.objeto)) {
-        return data.objeto;
+      // Formato atual: { itens, total, page, pageSize }
+      if (objeto && Array.isArray(objeto.itens)) {
+        return {
+          itens: objeto.itens,
+          total: objeto.total ?? objeto.itens.length,
+          page: objeto.page ?? params.page ?? 1,
+          pageSize: objeto.pageSize ?? params.pageSize ?? 10,
+        };
       }
 
-      // Fallback para 'listaObjetos' (caso mude no futuro)
-      if (data && Array.isArray(data.listaObjetos)) {
-        return data.listaObjetos;
+      // Fallback (formato antigo: objeto era array direto)
+      if (Array.isArray(objeto)) {
+        return { itens: objeto, total: objeto.length, page: params.page ?? 1, pageSize: params.pageSize ?? 10 };
       }
 
-      // Array direto (se algum endpoint retornar assim)
-      if (Array.isArray(data)) {
-        return data;
-      }
-
-      // Se nada bater, loga warning e retorna vazio
-      console.warn('Formato de resposta inesperado:', data);
-      return [];
+      console.warn('Formato de resposta inesperado:', response.data);
+      return { itens: [], total: 0, page: params.page ?? 1, pageSize: params.pageSize ?? 10 };
     } catch (error: any) {
       console.error('Erro ao buscar atividades:', error);
       throw new Error(error.response?.data?.mensagens?.join(', ') || 'Falha ao carregar atividades.');
     }
+  },
+
+  /**
+   * Busca atividades e retorna só a lista (sem total) — usado por telas que
+   * precisam de todas as atividades para calcular estatísticas (ex.: dashboards).
+   * Passe `pageSize` grande o suficiente para cobrir o volume esperado.
+   */
+  getAtividades: async (params: {
+    busca?: string;
+    blocoId?: number;
+    nivel?: string;
+    etapa?: string;
+    ativo?: boolean;
+    page?: number;
+    pageSize?: number;
+  }): Promise<Atividade[]> => {
+    const { itens } = await atividadesService.getAtividadesPaginado(params);
+    return itens;
   },
   // Outros métodos úteis (futuro)
 

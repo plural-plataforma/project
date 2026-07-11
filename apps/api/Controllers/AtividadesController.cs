@@ -18,7 +18,7 @@ namespace api.Controllers
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] string? busca, [FromQuery] int? blocoId, [FromQuery] string? nivel, [FromQuery] string? etapa, [FromQuery] bool? ativo, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var response = await _service.GetAtividades(busca, blocoId, nivel, etapa, ativo);
+            var response = await _service.GetAtividades(busca, blocoId, nivel, etapa, ativo, page, pageSize);
             return response.Sucesso ? Ok(response) : BadRequest(response);
         }
 

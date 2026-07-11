@@ -8,32 +8,32 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
   Typography,
   Avatar,
   IconButton,
   Paper,
   alpha,
-  Button
+  useTheme,
 } from '@mui/material'
 import {
-  Dashboard as DashboardIcon,
-  People as PeopleIcon,
-  School as SchoolIcon,
   Assessment as AssessmentIcon,
-  LibraryBooks as LibraryBooksIcon,
   Settings as SettingsIcon,
-  History as HistoryIcon,
-  MoreVert as MoreVertIcon
 } from '@mui/icons-material'
 import logoPlural from '../../../../packages/ui/assets/images/logo-plural-plataforma.png'
 import { ChartDonut, ClipboardText, SignOut, Star, UsersThree } from '@phosphor-icons/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 // Largura fixa do sidebar (padrão comum)
-const drawerWidth = 350
+export const drawerWidth = 350
 
-export default function Sidebar() {
+interface SidebarProps {
+  variant?: 'permanent' | 'temporary'
+  open?: boolean
+  onClose?: () => void
+}
+
+export default function Sidebar({ variant = 'permanent', open = true, onClose }: SidebarProps) {
+  const theme = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
   const [user, setUser] = useState<{
@@ -56,10 +56,16 @@ export default function Sidebar() {
 
   const sistemaGroup = [
     { text: 'Configurações', icon: <SettingsIcon />, path: '/configuracoes' },
-    { text: 'Logs de Sistema', icon: <HistoryIcon />, path: '/logs' }
   ]
 
-  const isActive = (path: string) => location.pathname === path
+  // Ativo também em sub-rotas (ex.: /skills/new, /blocos/:id) — não só na rota exata
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`)
+
+  const handleNavigate = (path: string) => {
+    navigate(path)
+    if (variant === 'temporary') onClose?.()
+  }
 
   useEffect(() => {
     const userString = localStorage.getItem('user')|| sessionStorage.getItem('user');
@@ -81,27 +87,46 @@ export default function Sidebar() {
   }
   
   const getInitials = (name?: string) => {
-  if (!name) return 'AP';
-  const parts = name.split(' ');
-  return parts.length > 1
-    ? `${parts[0][0]}${parts[1][0]}`
-    : parts[0][0];
-};
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-          bgcolor: 'white',
-          borderRight: '1px solid',
-          borderColor: 'grey.200'
-        }
-      }}
-    >
+    if (!name) return 'AP';
+    const parts = name.split(' ');
+    return parts.length > 1
+      ? `${parts[0][0]}${parts[1][0]}`
+      : parts[0][0];
+  };
+
+  const renderGroup = (items: { text: string; icon: ReactNode; path: string }[]) => (
+    <List>
+      {items.map(item => (
+        <ListItem key={item.text} disablePadding>
+          <ListItemButton
+            selected={isActive(item.path)}
+            onClick={() => handleNavigate(item.path)}
+            sx={{
+              borderRadius: 1.5,
+              mx: 1,
+              mb: 0.5,
+              color: 'primary.main',
+              '&.Mui-selected': {
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': { bgcolor: 'primary.dark' },
+              },
+            }}
+          >
+            <ListItemIcon
+              sx={{ color: isActive(item.path) ? 'primary.contrastText' : 'primary.main' }}
+            >
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.text} />
+          </ListItemButton>
+        </ListItem>
+      ))}
+    </List>
+  )
+
+  const drawerContent = (
+    <>
       {/* Logo / Título da plataforma */}
       <Box
         sx={{
@@ -113,139 +138,75 @@ export default function Sidebar() {
       >
         <Box
           component="img"
-          src={logoPlural} // ou logoPlural.src se precisar
+          src={logoPlural}
           alt="Plural Logo"
           sx={{ height: 40, width: 'auto' }}
         />
       </Box>
 
       <Box sx={{ overflowY: 'auto', flexGrow: 1, px: 1, py: 2 }}>
-        <List>
-          {menuItems.map(item => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                selected={isActive(item.path)}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  borderRadius: 1.5,
-                  mx: 1,
-                  mb: 0.5,
-                  color: '#276678',
-                  '&.Mui-selected': {
-                    '&.Mui-selected': {
-                      bgcolor: '#276678',
-                      color: '#FFFFFF'
-                    }
-                  }
-                }}
-              >
-                <ListItemIcon
-                  sx={{ color: isActive(item.path) ? '#ffffff' : '#276678' }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        {renderGroup(menuItems)}
 
-        {/* Grupo Cadastros */}
         <Typography
           variant="subtitle2"
-          color='#9CA3AF'
-          sx={{ px: 3, mb: 1, fontWeight: 600 }}
+          color="text.secondary"
+          sx={{ px: 3, mb: 1 }}
         >
           Cadastros
         </Typography>
+        {renderGroup(cadastrosGroup)}
 
-        <List>
-          {cadastrosGroup.map(item => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                selected={isActive(item.path)}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  borderRadius: 1.5,
-                  mx: 1,
-                  mb: 0.5,
-                  color: '#276678',
-                  '&.Mui-selected': {
-                    '&.Mui-selected': {
-                      bgcolor: '#276678',
-                      color: '#FFFFFF'
-                    }
-                  }
-                }}
-              >
-                <ListItemIcon
-                  sx={{ color: isActive(item.path) ? '#ffffff' : '#276678' }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-
-        {/* Grupo Sistema */}
         <Typography
           variant="subtitle2"
-          color='#9CA3AF'
-          gap='8px'
-          sx={{ px: 3, mb: 1, fontWeight: 600 }}
+          color="text.secondary"
+          sx={{ px: 3, mb: 1 }}
         >
           Sistema
         </Typography>
-
-        <List>
-          {sistemaGroup.map(item => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                selected={isActive(item.path)}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  borderRadius: 1.5,
-                  mx: 1,
-                  mb: 0.5,
-                  color: '#276678',
-                  '&.Mui-selected': {
-                    '&.Mui-selected': {
-                      bgcolor: '#276678',
-                      color: '#FFFFFF'
-                    }
-                  }
-                }}
-              >
-                <ListItemIcon
-                  sx={{ color: isActive(item.path) ? '#ffffff' : '#276678' }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        {renderGroup(sistemaGroup)}
       </Box>
 
       {/* Perfil do administrador no rodapé */}
-      <Paper elevation={0} sx={{ m: 1, p: 1 , borderRadius: 2, bgcolor: alpha('#276678', 0.1) }}>
+      <Paper elevation={0} sx={{ m: 1, p: 1, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ width: 48, height: 48, bgcolor: '#276678' }}>
+          <Avatar sx={{ width: 48, height: 48, bgcolor: 'primary.main' }}>
             {getInitials(user?.nome)}
           </Avatar>
 
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ color: '#276678' }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" fontWeight={600} color="primary.main" noWrap>
               {user?.nome || 'Admin Plural'}
             </Typography>
-            <Typography variant="body2" fontSize="0.85rem" color="#276678">
+            <Typography variant="body2" fontSize="0.85rem" color="primary.main" noWrap>
               {user?.email || 'admin@plural.com'}
             </Typography>
           </Box>
 
-          <IconButton onClick={handleLogout} sx={{ color: '#276678', marginLeft:5 }}>
+          <IconButton onClick={handleLogout} sx={{ color: 'primary.main', ml: 1 }}>
             <SignOut size={26} />
           </IconButton>
         </Box>
       </Paper>
+    </>
+  )
 
+  return (
+    <Drawer
+      variant={variant}
+      open={open}
+      onClose={onClose}
+      ModalProps={variant === 'temporary' ? { keepMounted: true } : undefined}
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          bgcolor: 'white',
+        },
+      }}
+    >
+      {drawerContent}
     </Drawer>
   )
 }

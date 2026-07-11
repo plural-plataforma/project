@@ -1,16 +1,22 @@
 // components/layouts/AdminLayout.tsx
-import { Box, AppBar, Toolbar } from '@mui/material';
+import { useState } from 'react';
+import { Box, AppBar, Toolbar, useMediaQuery, useTheme } from '@mui/material';
 import { Outlet } from 'react-router-dom';
-import Sidebar from '../Sidebar';
+import Sidebar, { drawerWidth } from '../Sidebar';
 import HeaderContent from '../HeaderContent';
 
-const drawerWidth = 350;
-
 export default function AdminLayout() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar fixa */}
-      <Sidebar />
+      <Sidebar
+        variant={isMobile ? 'temporary' : 'permanent'}
+        open={isMobile ? mobileOpen : true}
+        onClose={() => setMobileOpen(false)}
+      />
 
       {/* Área principal – cresce horizontal e verticalmente */}
       <Box
@@ -31,8 +37,8 @@ export default function AdminLayout() {
             ml: { xs: 0, md: `${drawerWidth}px` },
             bgcolor: 'white',
             borderBottom: '1px solid',
-            borderColor: 'grey.200',
-            zIndex: (theme) => theme.zIndex.drawer + 1,
+            borderColor: 'divider',
+            zIndex: (t) => t.zIndex.drawer + 1,
           }}
         >
           <Toolbar
@@ -42,7 +48,7 @@ export default function AdminLayout() {
               px: { xs: 2, lg: 3 },
             }}
           >
-            <HeaderContent />
+            <HeaderContent onMenuClick={() => setMobileOpen((prev) => !prev)} showMenuButton={isMobile} />
           </Toolbar>
         </AppBar>
 

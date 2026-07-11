@@ -40,6 +40,7 @@ namespace Data
         public DbSet<EstudoDeCasoItemEixo> EstudoCasoItensEixo { get; set; }
         public DbSet<RelatoAtendimento> RelatosAtendimento { get; set; }
         public DbSet<PaeeObjetivoCatalogo> PaeeObjetivosCatalogo { get; set; }
+        public DbSet<ConfiguracaoSite> ConfiguracoesSite { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

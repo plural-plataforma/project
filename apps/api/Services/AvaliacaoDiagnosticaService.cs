@@ -1,4 +1,4 @@
-using api.Constants;
+using api.DTOs.Admin;
 using api.DTOs.AvaliacaoDiagnostica;
 using api.DTOs.Bloco; // Para BlocoComAtividadesDTO
 using api.DTOs.Atividade; // Para AtividadeBuscarDTO (ajuste se necessário)
@@ -31,6 +31,61 @@ namespace api.Services
         {
             _contexto = contexto;
             _userManager = userManager;
+        }
+
+        // Resumo agregado para o dashboard do Admin — sem filtro por professor
+        // (diferente de GetAll/GetNaoConcluidas, que são escopados ao professor logado).
+        public async Task<ServiceResponse<ResumoPedagogicoDTO>> GetResumoPedagogicoAsync(DateTime? from, DateTime? to)
+        {
+            var resposta = new ServiceResponse<ResumoPedagogicoDTO>();
+            try
+            {
+                var avaliacoesQuery = _contexto.AvaliacoesDiagnosticas.AsQueryable();
+                var desempenhosQuery = _contexto.DesempenhosAtividades.AsQueryable();
+                var diagnosticosQuery = _contexto.DiagnosticosFinais.AsQueryable();
+
+                if (from.HasValue)
+                {
+                    avaliacoesQuery = avaliacoesQuery.Where(a => a.CreatedAt >= from.Value);
+                    desempenhosQuery = desempenhosQuery.Where(d => d.DataRegistro >= from.Value);
+                    diagnosticosQuery = diagnosticosQuery.Where(d => d.GeradoEm >= from.Value);
+                }
+
+                if (to.HasValue)
+                {
+                    avaliacoesQuery = avaliacoesQuery.Where(a => a.CreatedAt <= to.Value);
+                    desempenhosQuery = desempenhosQuery.Where(d => d.DataRegistro <= to.Value);
+                    diagnosticosQuery = diagnosticosQuery.Where(d => d.GeradoEm <= to.Value);
+                }
+
+                var avaliacoesCriadas = await avaliacoesQuery.CountAsync();
+                var avaliacoesConcluidas = await avaliacoesQuery.CountAsync(a => a.Concluida);
+
+                var desempenhosPorNivel = await desempenhosQuery
+                    .GroupBy(d => d.NivelRealizacao)
+                    .Select(g => new NivelRealizacaoContagemDTO { Nivel = g.Key, Quantidade = g.Count() })
+                    .ToListAsync();
+
+                var diagnosticosFinaisGerados = await diagnosticosQuery.CountAsync();
+
+                resposta.AdicionaObjeto(new ResumoPedagogicoDTO
+                {
+                    PeriodoInicio = from,
+                    PeriodoFim = to,
+                    AvaliacoesCriadas = avaliacoesCriadas,
+                    AvaliacoesConcluidas = avaliacoesConcluidas,
+                    DesempenhosRegistrados = desempenhosPorNivel.Sum(n => n.Quantidade),
+                    DesempenhosPorNivel = desempenhosPorNivel,
+                    DiagnosticosFinaisGerados = diagnosticosFinaisGerados,
+                });
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha("Erro ao gerar resumo pedagógico: " + ex.Message);
+                return resposta;
+            }
         }
 
         public async Task<ServiceResponse<List<AvaliacaoDiagnosticaBuscarDTO>>> GetAll(Usuario usuario)

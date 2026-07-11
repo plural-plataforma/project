@@ -1,40 +1,35 @@
-// pages/Usuarios.tsx
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+// pages/UserApp/UsuariosPage.tsx
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Snackbar,
   Alert,
-  CircularProgress,
   Modal,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 
 import SearchFilterBar, { type FiltroExpiracao } from '../../components/SearchFilterBar';
 import { UsersListLayout } from '../../components/layouts/UsersListLayout';
 import ProfileUserAppEdit from './ProfileUserApp';
-import { Usuario } from '../../types/userTypes';
-import StatsGrid, { StatCardData } from '../../components/StatsGrid';
+import type { Usuario } from '../../types/userTypes';
+import StatsGrid, { type StatCardData } from '../../components/StatsGrid';
+import LoadingState from '../../components/common/LoadingState';
+import ErrorState from '../../components/common/ErrorState';
 
 import { UsersThree, UserCheck, Warning } from '@phosphor-icons/react';
 
-import { fetchUsuariosAdmin, PaginatedUsuarios } from '../../services/adminService';
-import { registerUser } from '../../services/authService';
+import { fetchUsuariosAdmin } from '../../services/adminService';
 import NewUserDialog from '../../components/dialogs/NewUserDialog';
 
 const DEBOUNCE_MS = 400;
 const TAMANHO_PAGINA_PADRAO = 50;
 
 export default function UsuariosPage() {
-  const theme = useTheme();
-
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Paginação server-side (MUI usa 0-indexed, API usa 1-indexed)
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(TAMANHO_PAGINA_PADRAO);
-  const [totalItens, setTotalItens] = useState(0);
 
   // Filtros — search é debounced antes de ir ao servidor
   const [search, setSearch] = useState('');
@@ -56,8 +51,6 @@ export default function UsuariosPage() {
   const [openEditModal, setOpenEditModal] = useState(false);
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
   const [initialData, setInitialData] = useState<Partial<Usuario> | undefined>(undefined);
-
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
   // Converte o filtro de status da UI para o parâmetro booleano da API
   const ativoParam: boolean | null =
@@ -82,41 +75,34 @@ export default function UsuariosPage() {
     setPage(0);
   }, [filtroStatusCadastro]);
 
-  const loadUsuarios = useCallback(async () => {
-    if (!token) {
-      setError('Sessão expirada. Faça login novamente.');
-      setLoading(false);
-      return;
-    }
+  const usuariosQueryKey = ['usuarios', { page, rowsPerPage, searchAtivo, ativoParam }] as const;
 
-    setLoading(true);
-    setError(null);
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: usuariosQueryKey,
+    queryFn: () =>
+      fetchUsuariosAdmin({
+        pagina: page + 1, // API é 1-indexed
+        tamanhoPagina: rowsPerPage,
+        search: searchAtivo || undefined,
+        ativo: ativoParam ?? undefined,
+      }),
+    placeholderData: (previousData) => previousData,
+  });
 
-    try {
-      const data: PaginatedUsuarios = await fetchUsuariosAdmin(
-        {
-          pagina: page + 1, // API é 1-indexed
-          tamanhoPagina: rowsPerPage,
-          search: searchAtivo || undefined,
-          ativo: ativoParam ?? undefined,
-        },
-        token
-      );
-      setUsuarios(data.itens || []);
-      setTotalItens(data.totalItens || 0);
-    } catch (err: any) {
-      setError(err.message || 'Não foi possível carregar a lista de usuários.');
-    } finally {
-      setLoading(false);
-    }
-  }, [token, page, rowsPerPage, searchAtivo, ativoParam]);
+  const usuarios = data?.itens ?? [];
+  const totalItens = data?.totalItens ?? 0;
+  const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar a lista de usuários.';
 
-  useEffect(() => {
-    loadUsuarios();
-  }, [loadUsuarios]);
+  const invalidateUsuarios = () => queryClient.invalidateQueries({ queryKey: ['usuarios'] });
 
   // Filtro de expiração — aplicado localmente na página atual
-  const now = new Date();
+  const now = useMemo(() => new Date(), [data]);
   const filteredUsuarios = useMemo(() => {
     if (filtroExpiracao === 'todos') return usuarios;
     return usuarios.filter((user) => {
@@ -126,10 +112,9 @@ export default function UsuariosPage() {
       if (filtroExpiracao === 'expirado') return diffDays < 0;
       return diffDays >= 0 && diffDays <= Number(filtroExpiracao);
     });
-  }, [usuarios, filtroExpiracao]);
+  }, [usuarios, filtroExpiracao, now]);
 
   // Stats baseados na página atual
-  const totalUsuarios = totalItens;
   const usuariosAtivos = usuarios.filter((u) => u.ativo).length;
   const expirandoEm60 = usuarios.filter((u) => {
     if (!u.expirationDate) return false;
@@ -144,8 +129,7 @@ export default function UsuariosPage() {
   const statsCards: StatCardData[] = [
     {
       titulo: 'Total de Usuários',
-      valor: totalUsuarios.toLocaleString(),
-      variacao: '+12%',
+      valor: totalItens.toLocaleString(),
       icone: <UsersThree size={32} weight="duotone" />,
       corFundoIcone: '#DBEAFE',
       corIcone: '#2563EB',
@@ -167,34 +151,6 @@ export default function UsuariosPage() {
       corIcone: '#E65100',
     },
   ];
-
-  const handleCadastrarProfessor = async (email: string, nome: string) => {
-    if (!email?.trim() || !nome?.trim()) {
-      setSnackMessage('E-mail ou nome não informado.');
-      setSnackSeverity('error');
-      setSnackOpen(true);
-      return;
-    }
-
-    try {
-      await registerUser({
-        email: email.trim(),
-        senha: 'Plural@2025',
-        nomeCompleto: nome.trim(),
-        aceitouTermos: true,
-        deveAlterarSenha: true,
-      });
-
-      setSnackMessage(`Professor ${nome} cadastrado com sucesso! Senha inicial: Plural@2025.`);
-      setSnackSeverity('success');
-      await loadUsuarios();
-    } catch (err: any) {
-      setSnackMessage(err.message || 'Erro ao cadastrar professor.');
-      setSnackSeverity('error');
-    } finally {
-      setSnackOpen(true);
-    }
-  };
 
   const handleVerPerfil = (user: Usuario) => {
     setSelectedUsuario(user);
@@ -219,14 +175,10 @@ export default function UsuariosPage() {
     <Box sx={{ width: '100%', bgcolor: 'grey.50', minHeight: '100vh', pb: 8 }}>
       {/* Cards */}
       <Box sx={{ px: { xs: 2, md: 4 }, pt: 3 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
+        {isLoading ? (
+          <LoadingState variant="cards" rows={3} />
+        ) : isError ? (
+          <ErrorState message={errorMessage} onRetry={() => refetch()} />
         ) : (
           <StatsGrid cards={statsCards} spacing={3} />
         )}
@@ -250,8 +202,8 @@ export default function UsuariosPage() {
       <Box sx={{ px: { xs: 2, md: 4 } }}>
         <UsersListLayout
           filteredUsuarios={filteredUsuarios}
-          loading={loading}
-          error={error}
+          loading={isLoading}
+          error={isError ? errorMessage : null}
           totalCount={filtroExpiracao === 'todos' ? totalItens : filteredUsuarios.length}
           page={page}
           rowsPerPage={rowsPerPage}
@@ -269,7 +221,7 @@ export default function UsuariosPage() {
           setSnackMessage('Novo professor cadastrado com sucesso!');
           setSnackSeverity('success');
           setSnackOpen(true);
-          await loadUsuarios();
+          await invalidateUsuarios();
         }}
         onError={(msg) => {
           setSnackMessage(msg);
@@ -288,7 +240,7 @@ export default function UsuariosPage() {
             setSnackMessage('Perfil atualizado com sucesso!');
             setSnackSeverity('success');
             setSnackOpen(true);
-            await loadUsuarios();
+            await invalidateUsuarios();
           }}
         />
       </Modal>

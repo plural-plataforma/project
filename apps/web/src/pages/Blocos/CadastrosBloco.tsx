@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -22,170 +23,135 @@ import {
 import {
   ArrowBack as ArrowBackIcon,
   FormatBold as BoldIcon,
-  FormatItalic as ItalicIcon,
-  FormatUnderlined as UnderlineIcon,
-  FormatListBulleted as BulletListIcon,
-  FormatListNumbered as NumberedListIcon,
   Save as SaveIcon,
   Delete as DeleteIcon,
   Cancel as CancelIcon,
-  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import blocosService from '../../services/blocosService';
-import { BlocoCreateInput, Bloco } from '../../types/blocos';
-
-const NUMERO_INICIAL_ORDENS = 6;
+import type { BlocoCreateInput } from '../../types/blocos';
+import LoadingState from '../../components/common/LoadingState';
+import ErrorState from '../../components/common/ErrorState';
 
 export default function CadastroBloco() {
   const { id, action } = useParams<{ id?: string; action?: string }>();
   const blocoId = id ? Number(id) : undefined;
+  const queryClient = useQueryClient();
 
   // Detecção de modo - prioriza 'editar' explicitamente
   const isEditMode = action === 'editar' && !!blocoId;
   const isViewMode = !!blocoId && action !== 'editar';
-  const isCreateMode = !blocoId;
-
-  // Log temporário para debug (remova depois de testar)
-  useEffect(() => {
-  }, [id, action]);
 
   const [titulo, setTitulo] = useState('');
   const [ordem, setOrdem] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [status, setStatus] = useState<'ativo' | 'inativo'>('ativo');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pageLoading, setPageLoading] = useState(!!blocoId);
-  const [ordensUsadas, setOrdensUsadas] = useState<number[]>([]);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
-  // Carrega dados se tiver ID (view ou edit)
-  useEffect(() => {
-    if (!blocoId) {
-      setPageLoading(false);
-      return;
-    }
+  // Carrega dados do bloco se tiver ID (view ou edit)
+  const {
+    data: blocoData,
+    isLoading: pageLoading,
+    isError: pageIsError,
+    error: pageError,
+  } = useQuery({
+    queryKey: ['bloco', blocoId],
+    queryFn: async () => {
+      const bloco = await blocosService.getBlocoById(blocoId!);
+      setTitulo(bloco.titulo || '');
+      setOrdem(bloco.ordem?.toString() || '');
+      setObservacoes(bloco.observacao || '');
+      setStatus(bloco.status ? 'ativo' : 'inativo');
+      return bloco;
+    },
+    enabled: !!blocoId,
+  });
 
-    const fetchBloco = async () => {
-      setPageLoading(true);
-      setError(null);
+  const updatedAt = blocoData?.updatedAt ?? null;
 
-      try {
-        const bloco: Bloco = await blocosService.getBlocoById(blocoId);
+  // Ordens já usadas por outros blocos ativos (para não duplicar)
+  const { data: blocosAtivos = [] } = useQuery({
+    queryKey: ['blocos-ativos'],
+    queryFn: () => blocosService.getAllBlocosAtivos(),
+  });
 
-        setTitulo(bloco.titulo || '');
-        setOrdem(bloco.ordem?.toString() || '');
-        setObservacoes(bloco.observacao || '');
-        setStatus(bloco.status ? 'ativo' : 'inativo');
-        setUpdatedAt(bloco.updatedAt);
-      } catch (err: any) {
-        console.error('Erro ao carregar bloco:', err);
-        setError(err.message || 'Não foi possível carregar os dados do bloco.');
-      } finally {
-        setPageLoading(false);
-      }
-    };
+  const ordensUsadas = blocosAtivos
+    .filter((b) => !blocoId || b.id !== blocoId)
+    .map((b) => b.ordem)
+    .filter(Boolean) as number[];
 
-    fetchBloco();
+  const invalidateBlocos = () => {
+    queryClient.invalidateQueries({ queryKey: ['blocos'] });
+    queryClient.invalidateQueries({ queryKey: ['blocos-ativos'] });
+  };
 
-  }, [blocoId]);
+  const saveMutation = useMutation({
+    mutationFn: (payload: BlocoCreateInput) =>
+      isEditMode && blocoId
+        ? blocosService.updateBloco(blocoId, payload)
+        : blocosService.createBloco(payload),
+    onSuccess: () => {
+      invalidateBlocos();
+      navigate('/blocos', { replace: true });
+    },
+  });
 
-  useEffect(() => {
-    const fetchOrdens = async () => {
-      try {
-        const blocos: Bloco[] = await blocosService.getAllBlocosAtivos();
-        // Pega todas as ordens, exceto a do bloco atual (se estiver editando)
-        const ordens = blocos
-          .filter(b => !blocoId || b.id !== blocoId)
-          .map(b => b.ordem)
-          .filter(Boolean) as number[];
-        setOrdensUsadas(ordens);
-      } catch (err) {
-        console.error('Erro ao carregar ordens existentes:', err);
-      }
-    };
-
-    fetchOrdens();
-  }, [])
+  const deleteMutation = useMutation({
+    mutationFn: () => blocosService.deleteBloco(blocoId!),
+    onSuccess: () => {
+      invalidateBlocos();
+      navigate('/blocos', { replace: true });
+    },
+  });
 
   const handleVoltar = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
-  const handleSalvar = useCallback(async () => {
+  const handleSalvar = useCallback(() => {
     if (isViewMode) return;
 
     if (!titulo.trim()) {
-      setError('O título é obrigatório');
+      setFormError('O título é obrigatório');
       return;
     }
     if (!ordem) {
-      setError('A ordem é obrigatória');
+      setFormError('A ordem é obrigatória');
       return;
     }
 
-    setError(null);
-    setLoading(true);
+    setFormError(null);
+    saveMutation.mutate({
+      titulo: titulo.trim(),
+      ordem: Number(ordem),
+      observacao: observacoes.trim() || null,
+      status: status === 'ativo',
+      icone: null,
+    });
+  }, [titulo, ordem, observacoes, status, isViewMode, saveMutation]);
 
-    try {
-      const payload: BlocoCreateInput = {
-        titulo: titulo.trim(),
-        ordem: Number(ordem),
-        observacao: observacoes.trim() || null,
-        status: status === 'ativo',
-        icone: null, // ajuste se tiver ícone/upload
-      };
-
-      if (isEditMode && blocoId) {
-        // Atualiza o bloco existente
-        const blocoAtualizado = await blocosService.updateBloco(blocoId, payload);
-        // Opcional: toast.success('Bloco atualizado!');
-      } else if (isCreateMode) {
-        const novoBloco = await blocosService.createBloco(payload);
-        // Opcional: toast.success('Bloco criado!');
-      }
-
-      navigate('/blocos', { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Erro ao salvar o bloco.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [titulo, ordem, observacoes, status, isCreateMode, isEditMode, blocoId, navigate, isViewMode]);
-  const handleExcluir = useCallback(async () => {
+  const handleExcluir = useCallback(() => {
     if (!blocoId || isViewMode) return;
-
     if (!window.confirm('Tem certeza que deseja excluir este bloco?')) return;
+    deleteMutation.mutate();
+  }, [blocoId, isViewMode, deleteMutation]);
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      await blocosService.deleteBloco(blocoId);
-      navigate('/blocos', { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Não foi possível excluir o bloco.');
-    } finally {
-      setLoading(false);
-    }
-  }, [blocoId, navigate, isViewMode]);
+  const loading = saveMutation.isPending || deleteMutation.isPending;
+  const error =
+    formError ||
+    (saveMutation.isError ? (saveMutation.error as Error).message : null) ||
+    (deleteMutation.isError ? (deleteMutation.error as Error).message : null);
 
   if (pageLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <LoadingState variant="inline" />;
   }
 
-  if (error && !titulo) {
+  if (pageIsError && !titulo) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Alert severity="error">{error}</Alert>
+        <ErrorState message={pageError instanceof Error ? pageError.message : 'Não foi possível carregar os dados do bloco.'} />
         <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate('/blocos')}>
           Voltar para lista
         </Button>
@@ -243,7 +209,7 @@ export default function CadastroBloco() {
             <IconButton onClick={handleVoltar} size="large">
               <ArrowBackIcon />
             </IconButton>
-            <Typography variant="h5" fontWeight={600} color="#276678">
+            <Typography variant="h5" fontWeight={600} color="primary.main">
               {isViewMode
                 ? 'Visualizar Bloco de Avaliação'
                 : isEditMode
@@ -265,7 +231,7 @@ export default function CadastroBloco() {
         <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 3, md: 4 }, display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box>
-              <Typography variant="h6" fontWeight={600} color="#276678">
+              <Typography variant="h6" fontWeight={600} color="primary.main">
                 Dados do Bloco
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -430,10 +396,10 @@ export default function CadastroBloco() {
 
                   <Button
                     variant="contained"
+                    color="secondary"
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                     onClick={handleSalvar}
                     disabled={loading}
-                    sx={{ bgcolor: '#ffbe33', '&:hover': { bgcolor: '#f5a623' } }}
                   >
                     {loading ? 'Salvando...' : isEditMode ? 'Atualizar Bloco' : 'Salvar Bloco'}
                   </Button>
