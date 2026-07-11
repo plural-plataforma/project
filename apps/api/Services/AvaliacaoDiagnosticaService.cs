@@ -3,6 +3,7 @@ using api.DTOs.AvaliacaoDiagnostica;
 using api.DTOs.Bloco; // Para BlocoComAtividadesDTO
 using api.DTOs.Atividade; // Para AtividadeBuscarDTO (ajuste se necessário)
 using api.DTOs.Desempenho;
+using api.Constants;
 using api.Helpers;
 using api.Models;
 using api.Responses;
