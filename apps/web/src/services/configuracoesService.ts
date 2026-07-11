@@ -24,6 +24,25 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   return data?.mensagem || data?.message || fallback
 }
 
+function normalizeLinksWhatsApp(data: Record<string, unknown> | LinksWhatsApp | undefined): LinksWhatsApp {
+  if (!data) {
+    return { morganaWhatsappUrl: '', pluralWhatsappUrl: '' }
+  }
+
+  return {
+    morganaWhatsappUrl: String(
+      (data as LinksWhatsApp).morganaWhatsappUrl
+        ?? (data as Record<string, unknown>).MorganaWhatsappUrl
+        ?? '',
+    ),
+    pluralWhatsappUrl: String(
+      (data as LinksWhatsApp).pluralWhatsappUrl
+        ?? (data as Record<string, unknown>).PluralWhatsappUrl
+        ?? '',
+    ),
+  }
+}
+
 export const configuracoesService = {
   /**
    * Busca os links atuais dos grupos de WhatsApp (Morgana e Plural)
@@ -32,7 +51,7 @@ export const configuracoesService = {
   getLinksWhatsApp: async (): Promise<LinksWhatsApp> => {
     try {
       const response = await api.get<ServiceResponse<LinksWhatsApp>>('/admin/configuracoes/whatsapp')
-      return response.data.objeto ?? { morganaWhatsappUrl: '', pluralWhatsappUrl: '' }
+      return normalizeLinksWhatsApp(response.data.objeto)
     } catch (error: unknown) {
       throw new Error(extractErrorMessage(error, 'Não foi possível carregar os links do WhatsApp.'))
     }
@@ -45,7 +64,7 @@ export const configuracoesService = {
   updateLinksWhatsApp: async (data: LinksWhatsApp): Promise<LinksWhatsApp> => {
     try {
       const response = await api.patch<ServiceResponse<LinksWhatsApp>>('/admin/configuracoes/whatsapp', data)
-      return response.data.objeto ?? data
+      return normalizeLinksWhatsApp(response.data.objeto ?? data)
     } catch (error: unknown) {
       throw new Error(extractErrorMessage(error, 'Erro ao salvar os links. Verifique os dados e tente novamente.'))
     }
