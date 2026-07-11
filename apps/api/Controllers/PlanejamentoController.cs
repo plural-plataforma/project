@@ -138,6 +138,25 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
         }
+
+        [HttpPost("desvincularhabilidade")]
+        public async Task<IActionResult> DesvincularHabilidade([FromBody] PlanejamentoVincularHabilidadeDTO planejamentoVincularHabilidadeDTO)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await _usuario.GetUserAsync(User);
+                var resposta = await _planejamentoService.DesvincularHabilidade(planejamentoVincularHabilidadeDTO, usuario);
+                if (resposta.Sucesso)
+                {
+                    return Ok(resposta);
+                }
+
+                return BadRequest(resposta);
+            }
+
+            return BadRequest(ModelState);
+        }
+
         [HttpPost("vincularestrategia")]
         public async Task<IActionResult> VincularEstrategias([FromBody] PlanejamentoVincularEstrategiaDTO planejamentoVincularEstrategiaDTO)
         {

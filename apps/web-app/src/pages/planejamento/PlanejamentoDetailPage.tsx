@@ -14,6 +14,7 @@ import {
   excluirPlanejamento,
   vincularAlunoPlano,
   vincularHabilidadePlano,
+  desvincularHabilidadePlano,
   vincularEstrategiaPlano,
   vincularAvaliacaoPlano,
   substituirEncontrosPlanejamento,
@@ -135,6 +136,23 @@ export default function PlanejamentoDetailPage() {
       else if (type === 'avaliacoes') await vincularAvaliacaoPlano(planId, itemId)
     },
     onSuccess: () => { success('Vinculado!'); invalidate() },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const desvincularHabilidadeMutation = useMutation({
+    mutationFn: (habilidadeId: number) => desvincularHabilidadePlano(Number(id), habilidadeId),
+    onSuccess: (_data, habilidadeId) => {
+      success('Habilidade desmarcada')
+      setEncLinhas((rows) =>
+        rows.map((row) =>
+          row.habilidadeId === habilidadeId ? { ...row, habilidadeId: null } : row,
+        ),
+      )
+      invalidate()
+    },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
@@ -442,6 +460,12 @@ export default function PlanejamentoDetailPage() {
             onSave={() => updateMutation.mutate()}
             onCancelEdit={() => setEditingInfo(false)}
             onOpenVincModal={openVincModal}
+            onDesvincularHabilidade={(habilidadeId) => desvincularHabilidadeMutation.mutate(habilidadeId)}
+            desvinculandoHabilidadeId={
+              desvincularHabilidadeMutation.isPending
+                ? desvincularHabilidadeMutation.variables ?? null
+                : null
+            }
           />
         </TabsContent>
 

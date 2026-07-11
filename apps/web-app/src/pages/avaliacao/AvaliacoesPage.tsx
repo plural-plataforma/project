@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, ClipboardText, CalendarBlank, Users, Warning, UserPlus } from '@phosphor-icons/react'
+import { Plus, ClipboardText, CalendarBlank, Users, Warning, UserPlus, ChartBar } from '@phosphor-icons/react'
 import { buscarAvaliacoesDiagnosticas, reivindicarAvaliacaoDiagnostica } from '@/services/avaliacaoDiagnosticaService'
 import { baixarAvaliacaoDiagnosticaPdf, baixarAvaliacaoDiagnosticaWord } from '@/lib/baixarAvaliacaoDiagnostica'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -98,6 +98,7 @@ export default function AvaliacoesPage() {
               <AvaliacaoCard
                 avaliacao={av}
                 onOpen={(id) => navigate(`/avaliacoes/editar/${id}/identificacao`)}
+                onDesempenho={(id) => navigate(`/avaliacoes/${id}/desempenho`)}
                 onReivindicar={av.professorId == null ? () => reivindicar(av.id) : undefined}
                 isReivindicando={isReivindicando}
               />
@@ -112,11 +113,13 @@ export default function AvaliacoesPage() {
 function AvaliacaoCard({
   avaliacao: av,
   onOpen,
+  onDesempenho,
   onReivindicar,
   isReivindicando,
 }: {
   avaliacao: AvaliacaoDiagnosticaResumo
   onOpen: (id: number) => void
+  onDesempenho: (id: number) => void
   onReivindicar?: () => void
   isReivindicando?: boolean
 }) {
@@ -161,6 +164,10 @@ function AvaliacaoCard({
           </Button>
         ) : (
           <>
+            <Button size="sm" variant="secondary" onClick={() => onDesempenho(av.id)}>
+              <ChartBar size={14} />
+              Registrar desempenho
+            </Button>
             <DownloadFormatMenu
               ariaLabel={`Baixar avaliação ${av.titulo}`}
               onPdf={async () => {

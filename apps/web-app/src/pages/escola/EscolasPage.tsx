@@ -194,7 +194,7 @@ export default function EscolasPage() {
             hasActiveFilters={!!search}
             filteredTitle="Nenhuma escola encontrada"
             defaultTitle="Nenhuma escola vinculada"
-            defaultDescription="Cadastre e vincule a primeira escola para desbloquear os demais módulos."
+            defaultDescription="Cadastre e vincule a escola onde você atua para organizar alunos e documentos."
             defaultAction={
               <Button onClick={openCreate}>
                 <Plus size={16} weight="bold" />
