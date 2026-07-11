@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Container } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { Box } from '@mui/material';
 import SearchFilterBar from '../../components/SearchFilterBar';
-import StatsGrid, { StatCardData } from '../../components/StatsGrid';
+import StatsGrid, { type StatCardData } from '../../components/StatsGrid';
 import ListaAtividades from './ListaAtividades';
-import { School, Book, CheckCircle } from '@mui/icons-material';
+import atividadesService from '../../services/atividadesService';
+import { Book, CheckCircle } from '@mui/icons-material';
 
-// Tipagem para filtro de status (igual ao de blocos)
 type StatusFilter = 'todos' | 'ativo' | 'inativo';
 
 const statusOptions = [
@@ -20,20 +21,36 @@ export default function DashboardAtividades() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
 
-  // Estatísticas mock (substitua por dados reais da API depois)
+  const ativo = statusFilter === 'todos' ? undefined : statusFilter === 'ativo';
+
+  // Busca uma amostra ampla para calcular estatísticas reais, já que o backend
+  // não expõe um endpoint de agregação dedicado (ver observações do plano).
+  const { data: atividades = [] } = useQuery({
+    queryKey: ['atividades-stats', { search, statusFilter }],
+    queryFn: () =>
+      atividadesService.getAtividades({
+        busca: search.trim() || undefined,
+        ativo,
+        page: 1,
+        pageSize: 1000,
+      }),
+  });
+
+  const totalAtividades = atividades.length;
+  const atividadesAtivas = atividades.filter((a) => a.ativo).length;
+
   const statCards: StatCardData[] = [
     {
-      titulo: 'Blocos Ativos',
-      valor: 21,
-      variacao: '87.5% do total',
-      icone: <School fontSize="large" />,
+      titulo: 'Atividades Ativas',
+      valor: atividadesAtivas,
+      variacao: totalAtividades > 0 ? `${((atividadesAtivas / totalAtividades) * 100).toFixed(1)}% do total` : '0%',
+      icone: <CheckCircle fontSize="large" />,
       corFundoIcone: 'rgba(39,102,120,0.08)',
       corIcone: '#276678',
     },
     {
       titulo: 'Total de Atividades',
-      valor: 342,
-      variacao: 'Média: 14.2 por bloco',
+      valor: totalAtividades,
       icone: <Book fontSize="large" />,
       corFundoIcone: 'rgba(39,102,120,0.08)',
       corIcone: '#276678',
@@ -58,7 +75,7 @@ export default function DashboardAtividades() {
       />
 
       {/* Lista de atividades */}
-      <Box sx={{ mt:  3, px: { xs: 2, md: 4 } }}>
+      <Box sx={{ mt: 3, px: { xs: 2, md: 4 } }}>
         <ListaAtividades search={search} statusFilter={statusFilter} />
       </Box>
     </Box>

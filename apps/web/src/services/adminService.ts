@@ -1,7 +1,5 @@
-import axios from 'axios';
+import { api } from '../api/http';
 import { Usuario } from '../types/userTypes';
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 interface FetchUsuariosParams {
   pagina?: number;
@@ -20,22 +18,17 @@ export interface PaginatedUsuarios {
   totalPaginas: number;
 }
 
-
+/**
+ * Busca a lista paginada de usuários (professores/admins).
+ * O token é injetado automaticamente pelo interceptor do client `api`.
+ */
 export const fetchUsuariosAdmin = async (
-  params: FetchUsuariosParams,
-  token: string
+  params: FetchUsuariosParams
 ): Promise<PaginatedUsuarios> => {
   try {
+    const response = await api.get('/admin/usuarios/listar', { params });
 
-    const response = await axios.get(`${API_URL}/admin/usuarios/listar`, {
-      params,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Possíveis estruturas comuns do seu backend:
+    // Possíveis estruturas comuns do backend:
     let result: PaginatedUsuarios;
 
     if (response.data?.objeto) {
@@ -52,7 +45,6 @@ export const fetchUsuariosAdmin = async (
       throw new Error('Formato de resposta da API inválido');
     }
 
-    // Garantia mínima: sempre retorna algo válido
     return {
       itens: result.itens || [],
       paginaAtual: result.paginaAtual || 1,

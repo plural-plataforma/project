@@ -4,6 +4,7 @@ export interface Habilidade {
   tipo?: string
   descricao?: string
   resumo?: string
+  ativo?: boolean
 }
 
 export interface HabilidadeResponse {

@@ -38,19 +38,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        // Aqui você pode tentar refresh token (se implementar)
-        // const newToken = await authService.refreshToken();
-        // localStorage.setItem('token', newToken);
-        // originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        // return api(originalRequest);
+      console.warn("Sessão expirada. Redirecionando para login...");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
 
-        console.warn("Sessão expirada. Redirecionando para login...");
-        // authService.logout(); // limpa storage e redireciona
-        // ou: window.location.href = '/login?session_expired=true';
-      } catch (refreshError) {
-        console.error("Falha ao renovar token:", refreshError);
-        // authService.logout();
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login?session_expired=true";
       }
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -33,18 +34,18 @@ import {
   FormatListNumbered as NumberedListIcon,
   Save as SaveIcon,
   Delete as DeleteIcon,
-  Cancel as CancelIcon,
   CheckCircle as CheckCircleIcon,
   AttachFile as AttachFileIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import atividadesService from '../../services/atividadesService';
-import { AtividadeCreateInput } from '../../types/atividades';
-import { Bloco } from '../../types/blocos';
+import type { AtividadeCreateInput } from '../../types/atividades';
 import blocosService from '../../services/blocosService';
 import { habilidadesService } from '../../services/habilidadesService';
-import { Habilidade } from '../../types/habilidade';
+import type { Habilidade } from '../../types/habilidade';
+import LoadingState from '../../components/common/LoadingState';
+import ErrorState from '../../components/common/ErrorState';
 
 interface HabilidadeSelecionada {
   id: number;
@@ -55,6 +56,7 @@ const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
 
 export default function CadastroDeAtividade() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
@@ -68,113 +70,72 @@ export default function CadastroDeAtividade() {
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [habilidadesSelecionadas, setHabilidadesSelecionadas] = useState<HabilidadeSelecionada[]>([]);
   const [status, setStatus] = useState<'ativo' | 'inativo'>('ativo');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const [blocos, setBlocos] = useState<Bloco[]>([]);
-  const [blocosLoading, setBlocosLoading] = useState(true);
   const [blocoId, setBlocoId] = useState<number | ''>('');
 
-  // Estados para habilidades
-  const [todasHabilidades, setTodasHabilidades] = useState<Habilidade[]>([]);
-  const [habilidadesFiltradas, setHabilidadesFiltradas] = useState<Habilidade[]>([]);
-  const [habilidadesLoading, setHabilidadesLoading] = useState(false);
   const [buscaHabilidade, setBuscaHabilidade] = useState('');
+  const [habilidadesFiltradas, setHabilidadesFiltradas] = useState<Habilidade[]>([]);
 
   const [imagemUrl, setImagemUrl] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
 
-  // Carregar dados da atividade em modo edição
+  // Blocos ativos (mesma queryKey usada em ListaAtividades — cache compartilhado)
+  const { data: blocos = [], isLoading: blocosLoading } = useQuery({
+    queryKey: ['blocos-ativos'],
+    queryFn: () => blocosService.getAllBlocosAtivos(),
+  });
+
+  // Todas as habilidades (mesma queryKey usada em SkillsList — cache compartilhado)
+  const { data: todasHabilidades = [], isLoading: habilidadesCarregando } = useQuery({
+    queryKey: ['habilidades'],
+    queryFn: () => habilidadesService.getAllHabilidades(),
+  });
+
+  // Dados da atividade em modo edição
+  const {
+    data: atividadeCarregada,
+    isLoading: atividadeLoading,
+    isError: atividadeIsError,
+    error: atividadeError,
+    refetch: refetchAtividade,
+  } = useQuery({
+    queryKey: ['atividade', id],
+    queryFn: () => atividadesService.getAtividadeById(Number(id)),
+    enabled: isEditMode,
+  });
+
+  // Popula o formulário quando a atividade (e as habilidades, para resolver os nomes) carregam
   useEffect(() => {
-    if (!isEditMode) return;
+    if (!atividadeCarregada) return;
 
-    const carregarAtividade = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    setTitulo(atividadeCarregada.titulo || '');
+    setEnunciado(atividadeCarregada.enunciado || '');
+    setBlocoId(atividadeCarregada.blocoId || '');
+    setNivel(atividadeCarregada.nivel as 'Facil' | 'Medio' | 'Dificil');
+    setEtapaMinima(atividadeCarregada.etapaMin || '1');
+    setEtapaMaxima(atividadeCarregada.etapaMax || '');
+    setStatus(atividadeCarregada.ativo ? 'ativo' : 'inativo');
 
-        const atividade = await atividadesService.getAtividadeById(Number(id));
+    if (atividadeCarregada.imagemUrl) {
+      setImagemPreview(atividadeCarregada.imagemUrl);
+      setImagemUrl(atividadeCarregada.imagemUrl);
+    }
 
+    if (Array.isArray(atividadeCarregada.habilidadeIds) && atividadeCarregada.habilidadeIds.length > 0) {
+      const detalhes = atividadeCarregada.habilidadeIds.map((habId: number) => {
+        const hab = todasHabilidades.find((h) => h.id === habId);
+        return {
+          id: habId,
+          descricao: hab?.descricao || `Habilidade ${habId} (não encontrada)`,
+        };
+      });
+      setHabilidadesSelecionadas(detalhes as HabilidadeSelecionada[]);
+    }
+  }, [atividadeCarregada, todasHabilidades]);
 
-        setTitulo(atividade.titulo || '');
-        setEnunciado(atividade.enunciado || '');
-        setBlocoId(atividade.blocoId || '');
-        setNivel(atividade.nivel as 'Facil' | 'Medio' | 'Dificil');
-        setEtapaMinima(atividade.etapaMin || '1');
-        setEtapaMaxima(atividade.etapaMax || '');
-        setStatus(atividade.ativo ? 'ativo' : 'inativo');
-
-        if (isEditMode && atividade?.imagemUrl) {
-          setImagemPreview(atividade.imagemUrl);
-          setImagemUrl(atividade.imagemUrl); 
-        }
-
-        // Preenche habilidades usando a lista já carregada (todasHabilidades)
-        if (Array.isArray(atividade.habilidadeIds) && atividade.habilidadeIds.length > 0) {
-          const detalhes = atividade.habilidadeIds.map((habId: number) => {
-            const hab = todasHabilidades.find(h => h.id === habId);
-            return {
-              id: habId,
-              descricao: hab?.descricao || `Habilidade ${habId} (não encontrada)`,
-            };
-          });
-
-          setHabilidadesSelecionadas(detalhes as HabilidadeSelecionada[]);
-        }
-
-      } catch (err: any) {
-        console.error('Erro ao carregar atividade para edição:', err);
-        setError(err.message || 'Não foi possível carregar os dados da atividade.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    carregarAtividade();
-  }, [id, isEditMode, todasHabilidades]);
-
-  // Carregar blocos ativos
-  useEffect(() => {
-    const fetchBlocos = async () => {
-      try {
-        setBlocosLoading(true);
-        const listaAtivos = await blocosService.getAllBlocosAtivos();
-        setBlocos(listaAtivos);
-
-        if (listaAtivos.length === 0) {
-          setError('Nenhum bloco ativo encontrado. Crie um bloco primeiro.');
-        }
-      } catch (err: any) {
-        setError(err.message || 'Não foi possível carregar os blocos ativos.');
-        console.error(err);
-      } finally {
-        setBlocosLoading(false);
-      }
-    };
-
-    fetchBlocos();
-  }, []);
-
-  // Carregar TODAS as habilidades uma única vez
-  useEffect(() => {
-    const carregarHabilidades = async () => {
-      try {
-        setHabilidadesLoading(true);
-        const lista = await habilidadesService.getAllHabilidades();
-        setTodasHabilidades(lista);
-        setHabilidadesFiltradas(lista);
-      } catch (err: any) {
-        setError('Não foi possível carregar as habilidades.');
-        console.error(err);
-      } finally {
-        setHabilidadesLoading(false);
-      }
-    };
-
-    carregarHabilidades();
-  }, []);
-
-  // Filtrar localmente + feedback de loading
+  // Filtro local de habilidades (debounced) — sobre a lista já carregada em cache
+  const [habilidadesLoading, setHabilidadesLoading] = useState(false);
   useEffect(() => {
     if (!buscaHabilidade.trim()) {
       setHabilidadesFiltradas([]);
@@ -200,53 +161,74 @@ export default function CadastroDeAtividade() {
     return () => clearTimeout(timer);
   }, [buscaHabilidade, todasHabilidades]);
 
-  const handleSalvar = async () => {
+  const invalidateAtividades = () => {
+    queryClient.invalidateQueries({ queryKey: ['atividades'] });
+    queryClient.invalidateQueries({ queryKey: ['atividades-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['atividade', id] });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: AtividadeCreateInput & { Id?: number }) =>
+      isEditMode
+        ? atividadesService.updateAtividade(Number(id), payload)
+        : atividadesService.createAtividade(payload),
+    onSuccess: () => {
+      invalidateAtividades();
+      navigate('/atividades', { replace: true });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => atividadesService.deleteAtividade(Number(id)),
+    onSuccess: () => {
+      invalidateAtividades();
+      navigate('/atividades', { replace: true });
+    },
+  });
+
+  const handleSalvar = () => {
     if (!titulo.trim() || habilidadesSelecionadas.length === 0 || !blocoId) {
-      setError('Preencha todos os campos obrigatórios');
+      setFormError('Preencha todos os campos obrigatórios');
       return;
     }
 
-    setError(null);
-    setLoading(true);
+    setFormError(null);
 
-    try {
-      const payload: AtividadeCreateInput & { Id?: number } = {
-        titulo: titulo.trim(),
-        enunciado: enunciado.trim() || undefined,
-        blocoId: Number(blocoId),
-        nivel: nivel,  // ← teste enviando direto ('Facil', 'Medio', 'Dificil')
-        etapaMin: etapaMinima,
-        etapaMax: etapaMaxima || undefined,
-        habilidadesIds: habilidadesSelecionadas.map((h) => h.id),
-        imagemUrl: imagemUrl || undefined, // só envia arquivo se nova imagem
-      };
+    const payload: AtividadeCreateInput & { Id?: number } = {
+      titulo: titulo.trim(),
+      enunciado: enunciado.trim() || undefined,
+      blocoId: Number(blocoId),
+      nivel,
+      etapaMin: etapaMinima,
+      etapaMax: etapaMaxima || undefined,
+      habilidadesIds: habilidadesSelecionadas.map((h) => h.id),
+      imagemUrl: imagemUrl || undefined, // só envia arquivo se nova imagem
+    };
 
-      if (isEditMode) {
-        payload.Id = Number(id);
-      }
-      let resultado;
-      if (isEditMode) {
-        resultado = await atividadesService.updateAtividade(Number(id), payload);
-      } else {
-        resultado = await atividadesService.createAtividade(payload);
-      }
-
-      navigate('/atividades', { replace: true });
-    } catch (err: any) {
-      setError(err.message || `Erro ao ${isEditMode ? 'atualizar' : 'salvar'} a atividade`);
-    } finally {
-      setLoading(false);
+    if (isEditMode) {
+      payload.Id = Number(id);
     }
+
+    saveMutation.mutate(payload);
   };
 
   const handleExcluir = () => {
+    if (!isEditMode) return;
     if (window.confirm('Tem certeza que deseja excluir esta atividade?')) {
-      navigate('/atividades');
+      deleteMutation.mutate();
     }
   };
   const handleVoltar = useCallback(() => {
     navigate(-1);
   }, [navigate]);
+
+  const pageLoading = isEditMode && atividadeLoading;
+  const saving = saveMutation.isPending || deleteMutation.isPending;
+  const error =
+    formError ||
+    (saveMutation.isError ? (saveMutation.error as Error).message : null) ||
+    (deleteMutation.isError ? (deleteMutation.error as Error).message : null) ||
+    (blocos.length === 0 && !blocosLoading ? 'Nenhum bloco ativo encontrado. Crie um bloco primeiro.' : null);
 
   // Função de upload
 const uploadToImage = async (file: File): Promise<string | null> => {
@@ -276,7 +258,7 @@ const uploadToImage = async (file: File): Promise<string | null> => {
     return uploadedUrl;
   } catch (err: any) {
     console.error('Erro ImgBB:', err);
-    setError(`Falha ao hospedar imagem: ${err.message}`);
+    setFormError(`Falha ao hospedar imagem: ${err.message}`);
     return null;
   }
 };
@@ -375,13 +357,14 @@ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
         {/* Main Content */}
         <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 3, md: 4 } }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-              <CircularProgress />
-              <Typography sx={{ ml: 2 }}>
-                {isEditMode ? 'Carregando dados da atividade...' : 'Carregando...'}
-              </Typography>
-            </Box>
+          {pageLoading ? (
+            <LoadingState variant="inline" />
+          ) : atividadeIsError ? (
+            <ErrorState
+              title="Não foi possível carregar a atividade"
+              message={atividadeError instanceof Error ? atividadeError.message : undefined}
+              onRetry={() => refetchAtividade()}
+            />
           ) : (
             <>
               <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -626,7 +609,7 @@ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                     sx={{ mt: 1 }}
                   />
 
-                  {habilidadesLoading ? (
+                  {(habilidadesLoading || habilidadesCarregando) ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                       <CircularProgress size={20} />
                       <Typography variant="body2">
@@ -725,7 +708,7 @@ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   color="error"
                   startIcon={<DeleteIcon />}
                   onClick={handleExcluir}
-                  disabled={loading}
+                  disabled={saving || !isEditMode}
                 >
                   Excluir
                 </Button>
@@ -734,19 +717,19 @@ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   <Button
                     variant="outlined"
                     onClick={handleVoltar}
-                    disabled={loading}
+                    disabled={saving}
                   >
                     Cancelar
                   </Button>
 
                   <Button
                     variant="contained"
-                    startIcon={(loading || imageUploading) ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                    startIcon={(saving || imageUploading) ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                     onClick={handleSalvar}
-                    disabled={loading || imageUploading || habilidadesSelecionadas.length === 0}
+                    disabled={saving || imageUploading || habilidadesSelecionadas.length === 0}
                     sx={{ bgcolor: '#ffbe33', '&:hover': { bgcolor: '#f5a623' } }}
                   >
-                    {imageUploading ? 'Enviando imagem...' : loading ? 'Salvando...' : isEditMode ? 'Atualizar Atividade' : 'Salvar Atividade'}
+                    {imageUploading ? 'Enviando imagem...' : saving ? 'Salvando...' : isEditMode ? 'Atualizar Atividade' : 'Salvar Atividade'}
                   </Button>
                 </Box>
               </Box>

@@ -14,7 +14,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { Eye, EyeSlash } from '@phosphor-icons/react';
-import { registerUser } from '../../services/authService'; // ajuste o caminho conforme sua estrutura
+import { registerUser } from '../../api/authService';
 
 interface NewUserDialogProps {
   open: boolean;

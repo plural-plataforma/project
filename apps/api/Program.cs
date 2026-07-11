@@ -35,6 +35,21 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .AllowCredentials(); 
     });
+
+    // Política separada (sem AllowCredentials) para endpoints públicos consumidos
+    // pelas landing pages — não usam cookies/sessão, só leitura de dados públicos.
+    options.AddPolicy("AllowPublicSites", policy =>
+    {
+        policy.WithOrigins(
+                "https://pluralplataforma.com",
+                "https://www.pluralplataforma.com",
+                "https://morganadacruz.com.br",
+                "https://www.morganadacruz.com.br",
+                "http://localhost:3000",
+                "http://localhost:3001")
+            .AllowAnyHeader()
+            .WithMethods("GET");
+    });
 });
 
 
@@ -161,6 +176,7 @@ builder.Services.AddScoped<EstudoDeCasoService>();
 builder.Services.AddScoped<RelatoAtendimentoService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
+builder.Services.AddScoped<ConfiguracaoSiteService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<HotmartWebhookService>();
 

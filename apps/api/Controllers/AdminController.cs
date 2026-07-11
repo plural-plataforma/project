@@ -1,4 +1,5 @@
 ﻿using api.DTOs.Admin;
+using api.DTOs.ConfiguracaoSite;
 using api.Responses;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,10 +13,17 @@ namespace api.Controllers
     public class AdminController : ControllerBase
     {
         private readonly AdminService _adminService;
+        private readonly AvaliacaoDiagnosticaService _avaliacaoDiagnosticaService;
+        private readonly ConfiguracaoSiteService _configuracaoSiteService;
 
-        public AdminController(AdminService adminService)
+        public AdminController(
+            AdminService adminService,
+            AvaliacaoDiagnosticaService avaliacaoDiagnosticaService,
+            ConfiguracaoSiteService configuracaoSiteService)
         {
             _adminService = adminService;
+            _avaliacaoDiagnosticaService = avaliacaoDiagnosticaService;
+            _configuracaoSiteService = configuracaoSiteService;
         }
 
         [HttpPatch("usuarios/atualizar")]
@@ -65,6 +73,45 @@ namespace api.Controllers
                 erro = "Falha ao listar professores",
                 detalhe = resposta.Mensagens.FirstOrDefault() ?? "Erro interno"
             });
+        }
+
+        /// <summary>
+        /// Resumo agregado de uso pedagógico (avaliações diagnósticas, desempenhos e
+        /// diagnósticos finais) sem filtro por professor — usado pelo Dashboard do Admin.
+        /// </summary>
+        [HttpGet("dashboard/resumo-pedagogico")]
+        public async Task<IActionResult> ResumoPedagogico([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+        {
+            var resposta = await _avaliacaoDiagnosticaService.GetResumoPedagogicoAsync(from, to);
+            return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+        }
+
+        /// <summary>
+        /// Retorna os links dos grupos de WhatsApp das landing pages (Morgana e Plural)
+        /// atualmente cadastrados, para exibição na tela de Configurações do admin.
+        /// </summary>
+        [HttpGet("configuracoes/whatsapp")]
+        public async Task<IActionResult> GetLinksWhatsApp()
+        {
+            var resposta = await _configuracaoSiteService.GetLinksWhatsAppAsync();
+            return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+        }
+
+        /// <summary>
+        /// Atualiza os links dos grupos de WhatsApp das landing pages (Morgana e Plural).
+        /// </summary>
+        [HttpPatch("configuracoes/whatsapp")]
+        public async Task<IActionResult> AtualizarLinksWhatsApp([FromBody] LinksWhatsAppDTO dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var atualizadoPor = User?.Identity?.Name;
+            var resposta = await _configuracaoSiteService.AtualizarLinksWhatsAppAsync(dto, atualizadoPor);
+
+            return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
         }
     }
 }
