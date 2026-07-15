@@ -442,6 +442,7 @@ namespace api.Services
             try
             {
                 var alunos = await _contexto.Alunos
+                    .AsNoTracking()
                     .Where(a => a.IdProfessor == usuario.ProfessorId)
                     .Select(a => new AlunoBuscarDTO
                     {
@@ -541,6 +542,7 @@ namespace api.Services
             try
             {
                 var aluno = await _contexto.Alunos
+                    .AsNoTracking()
                     .Where(a => a.IdProfessor == usuario.ProfessorId && a.Id == idAluno)
                     .Select(a => new AlunoBuscarDTO
                     {

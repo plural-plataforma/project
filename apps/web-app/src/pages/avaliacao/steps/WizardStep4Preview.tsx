@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle, ArrowLeft, CalendarBlank, Buildings, Users, Rows, DownloadSimple } from '@phosphor-icons/react'
 import { useAvaliacaoWizardStore } from '@/stores/avaliacaoWizardStore'
 import { atualizarAvaliacaoDiagnostica, criarAvaliacaoDiagnostica, gerarPdfBlob } from '@/services/avaliacaoDiagnosticaService'
+import { baixarAvaliacaoDiagnosticaWord } from '@/lib/baixarAvaliacaoDiagnostica'
 import { buscarAlunos } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
 import { buscarBlocosComAtividades } from '@/services/blocosService'
@@ -110,6 +111,18 @@ export function WizardStep4Preview() {
       link.download = `avaliacao-diagnostica-${idParaPdf}.pdf`
       link.click()
       window.URL.revokeObjectURL(url)
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const wordMutation = useMutation({
+    mutationFn: async () => {
+      const idParaWord = avaliacaoId ?? wizardData.id
+      if (!idParaWord) throw new Error('Salve a avaliação para gerar o Word.')
+      await baixarAvaliacaoDiagnosticaWord(idParaWord)
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -239,6 +252,17 @@ export function WizardStep4Preview() {
               Voltar
             </Button>
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => wordMutation.mutate()}
+              loading={wordMutation.isPending}
+              disabled={!isEditing || !avaliacaoId}
+              title={!isEditing ? 'Salve a avaliação para gerar o Word' : undefined}
+            >
+              <DownloadSimple size={16} />
+              Baixar Word
+            </Button>
             <Button
               type="button"
               variant="outline"
