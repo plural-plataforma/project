@@ -134,7 +134,9 @@ if (maxPoolSize < 1)
 connectionString = $"{connectionString.TrimEnd(';')};Maximum Pool Size={maxPoolSize}";
 
 // Registra DbContext
-builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+        npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 // Identity
 builder.Services.AddIdentity<Usuario, IdentityRole>()
