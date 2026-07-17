@@ -32,5 +32,16 @@ namespace api.Controllers
             var resposta = await _configuracaoSiteService.GetLinksWhatsAppAsync();
             return resposta.Sucesso ? Ok(resposta.Objeto) : BadRequest(resposta);
         }
+
+        /// <summary>
+        /// Retorna os links de venda (checkout Hotmart) mensal e anual da Plural
+        /// para uso público na própria LP.
+        /// </summary>
+        [HttpGet("configuracoes/checkout")]
+        public async Task<IActionResult> GetLinkCheckout()
+        {
+            var resposta = await _configuracaoSiteService.GetLinkCheckoutAsync();
+            return resposta.Sucesso ? Ok(resposta.Objeto) : BadRequest(resposta);
+        }
     }
 }

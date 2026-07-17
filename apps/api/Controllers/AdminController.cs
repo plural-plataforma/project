@@ -113,5 +113,33 @@ namespace api.Controllers
 
             return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
         }
+
+        /// <summary>
+        /// Retorna os links de venda (checkout Hotmart) mensal e anual da Plural
+        /// atualmente cadastrados, para exibição na tela de Configurações do admin.
+        /// </summary>
+        [HttpGet("configuracoes/checkout")]
+        public async Task<IActionResult> GetLinkCheckout()
+        {
+            var resposta = await _configuracaoSiteService.GetLinkCheckoutAsync();
+            return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+        }
+
+        /// <summary>
+        /// Atualiza os links de venda (checkout Hotmart) mensal e anual da Plural.
+        /// </summary>
+        [HttpPatch("configuracoes/checkout")]
+        public async Task<IActionResult> AtualizarLinkCheckout([FromBody] LinkCheckoutDTO dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var atualizadoPor = User?.Identity?.Name;
+            var resposta = await _configuracaoSiteService.AtualizarLinkCheckoutAsync(dto, atualizadoPor);
+
+            return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+        }
     }
 }
