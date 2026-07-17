@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Box, Tab, Tabs } from '@mui/material'
 import LinksGruposWhatsApp from './LinksGruposWhatsApp'
+import LinksHotmart from './LinksHotmart'
 
 export default function ConfiguracoesGerais() {
   const [activeTab, setActiveTab] = useState(0)
@@ -26,10 +27,12 @@ export default function ConfiguracoesGerais() {
             },
           }}
         >
-          <Tab label="Links de grupos" />
+          <Tab label="Links de WhatsApp" />
+          <Tab label="Links da Hotmart" />
         </Tabs>
 
         {activeTab === 0 && <LinksGruposWhatsApp />}
+        {activeTab === 1 && <LinksHotmart />}
       </Box>
     </Box>
   )
