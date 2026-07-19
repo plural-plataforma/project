@@ -431,7 +431,7 @@ export function EstudoCasoDetalheDialog({
                       loading={gerarMutation.isPending}
                       onClick={() => gerarMutation.mutate()}
                     >
-                      {detalhe.textoSimulado?.trim() ? 'Regenerar documento' : 'Gerar documento'}
+                      {detalhe.textoSimulado?.trim() ? 'Editar documento' : 'Gerar documento'}
                     </Button>
                   </div>
                 </div>

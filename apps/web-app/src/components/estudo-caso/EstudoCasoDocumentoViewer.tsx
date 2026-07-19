@@ -1,11 +1,19 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
+  converterSecaoParaTextoCorrido,
   linhaEhPlaceholder,
   parseEstudoCasoDocumento,
   type LinhaEstudoCaso,
   type SecaoEstudoCaso,
 } from '@/lib/parseEstudoCasoDocumento'
+
+const SECOES_COM_TOGGLE_FORMATO = [
+  'Levantamento das barreiras e potencialidades',
+  'Avaliação pedagógica e funcional',
+]
+
+type FormatoSecao = 'padrao' | 'texto'
 
 interface EstudoCasoDocumentoViewerProps {
   texto: string
@@ -61,15 +69,58 @@ function LinhaDocumento({ linha }: { linha: LinhaEstudoCaso }) {
   )
 }
 
+function ToggleFormatoSecao({
+  formato,
+  onChange,
+}: {
+  formato: FormatoSecao
+  onChange: (formato: FormatoSecao) => void
+}) {
+  return (
+    <div className="flex shrink-0 rounded-md border border-border p-0.5 text-[11px]">
+      {(
+        [
+          { valor: 'padrao', label: 'Padrão' },
+          { valor: 'texto', label: 'Texto corrido' },
+        ] as const
+      ).map((opcao) => (
+        <button
+          key={opcao.valor}
+          type="button"
+          onClick={() => onChange(opcao.valor)}
+          className={cn(
+            'rounded px-2 py-0.5 font-medium transition-colors',
+            formato === opcao.valor
+              ? 'bg-primary text-white'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {opcao.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function SecaoDocumento({ secao }: { secao: SecaoEstudoCaso }) {
+  const [formato, setFormato] = useState<FormatoSecao>('padrao')
+  const permiteToggle = SECOES_COM_TOGGLE_FORMATO.includes(secao.titulo)
+  const secaoExibida = useMemo(
+    () => (permiteToggle && formato === 'texto' ? converterSecaoParaTextoCorrido(secao) : secao),
+    [permiteToggle, formato, secao]
+  )
+
   return (
     <section>
-      <h3 className="flex items-baseline gap-2 border-b border-border pb-1.5 mb-3">
-        <span className="text-[13px] font-bold text-primary shrink-0">{secao.numero}.</span>
-        <span className="text-[13px] font-bold text-foreground">{secao.titulo}</span>
+      <h3 className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-1.5 mb-3">
+        <span>
+          <span className="text-[13px] font-bold text-primary shrink-0">{secao.numero}.</span>{' '}
+          <span className="text-[13px] font-bold text-foreground">{secao.titulo}</span>
+        </span>
+        {permiteToggle && <ToggleFormatoSecao formato={formato} onChange={setFormato} />}
       </h3>
       <div className="space-y-1.5 pl-4">
-        {secao.linhas.map((linha, idx) => (
+        {secaoExibida.linhas.map((linha, idx) => (
           <LinhaDocumento
             key={`${secao.numero}-${idx}-${linha.texto.slice(0, 20)}`}
             linha={linha}

@@ -134,3 +134,35 @@ export function parseEstudoCasoDocumento(texto: string): EstudoCasoDocumentoPars
 export function linhaEhPlaceholder(texto: string): boolean {
   return /\[Completar/i.test(texto)
 }
+
+function extrairConteudoBullet(texto: string): string {
+  return texto.replace(/^•\s*/, '')
+}
+
+export function converterSecaoParaTextoCorrido(secao: SecaoEstudoCaso): SecaoEstudoCaso {
+  const linhas: LinhaEstudoCaso[] = []
+  let grupoAtual: string[] = []
+
+  const flush = () => {
+    if (grupoAtual.length > 0) {
+      linhas.push({ tipo: 'corpo', texto: grupoAtual.join(' ') })
+      grupoAtual = []
+    }
+  }
+
+  for (const linha of secao.linhas) {
+    if (linha.tipo === 'bullet') {
+      grupoAtual.push(extrairConteudoBullet(linha.texto))
+      continue
+    }
+    if (linha.tipo === 'corpo') {
+      grupoAtual.push(linha.texto)
+      continue
+    }
+    flush()
+    linhas.push(linha)
+  }
+  flush()
+
+  return { ...secao, linhas }
+}
