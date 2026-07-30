@@ -181,6 +181,7 @@ builder.Services.AddScoped<AtividadeService>();
 builder.Services.AddScoped<ConfiguracaoSiteService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<HotmartWebhookService>();
+builder.Services.AddScoped<DocumentoBibliotecaService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

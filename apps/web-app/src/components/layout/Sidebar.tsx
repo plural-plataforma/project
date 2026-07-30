@@ -20,8 +20,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PEDAGOGICAL_FLOW_STEPS, DOCUMENTACAO_PEDAGOGICA_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
-import { Files } from '@phosphor-icons/react'
+import { PEDAGOGICAL_FLOW_STEPS, DOCUMENTACAO_PEDAGOGICA_NAV, BIBLIOTECA_MODELOS_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
+import { Files, BookBookmark } from '@phosphor-icons/react'
 
 const FLOW_ICONS: Record<PedagogicalFlowStepId, Icon> = {
   escola: Buildings,
@@ -45,6 +45,12 @@ const navItems = [
     icon: Files,
     label: DOCUMENTACAO_PEDAGOGICA_NAV.label,
     activePathPrefix: DOCUMENTACAO_PEDAGOGICA_NAV.activePathPrefix,
+  },
+  {
+    to: BIBLIOTECA_MODELOS_NAV.route,
+    icon: BookBookmark,
+    label: BIBLIOTECA_MODELOS_NAV.label,
+    activePathPrefix: BIBLIOTECA_MODELOS_NAV.activePathPrefix,
   },
 ]
 
