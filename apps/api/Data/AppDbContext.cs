@@ -42,6 +42,7 @@ namespace Data
         public DbSet<PaeeObjetivoCatalogo> PaeeObjetivosCatalogo { get; set; }
         public DbSet<ConfiguracaoSite> ConfiguracoesSite { get; set; }
         public DbSet<DocumentoBiblioteca> DocumentosBiblioteca { get; set; }
+        public DbSet<PromptSistemaIA> PromptsSistemaIA { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

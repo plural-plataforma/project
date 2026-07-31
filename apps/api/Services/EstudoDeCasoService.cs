@@ -2,6 +2,7 @@ using api.Constants;
 using api.DTOs.EstudoDeCaso;
 using api.Models;
 using api.Responses;
+using api.Services.IA;
 using Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,10 +11,14 @@ namespace api.Services;
 public class EstudoDeCasoService
 {
     private readonly AppDbContext _db;
+    private readonly PromptSistemaIAService _promptService;
+    private readonly IGeradorTextoIA _geradorTextoIA;
 
-    public EstudoDeCasoService(AppDbContext db)
+    public EstudoDeCasoService(AppDbContext db, PromptSistemaIAService promptService, IGeradorTextoIA geradorTextoIA)
     {
         _db = db;
+        _promptService = promptService;
+        _geradorTextoIA = geradorTextoIA;
     }
 
     public async Task<ServiceResponse<EstudoDeCasoEixoCatalogoDTO>> ListarEixosCatalogoAsync()
@@ -423,6 +428,76 @@ public class EstudoDeCasoService
         }
     }
 
+    public async Task<ServiceResponse<EstudoDeCasoDetalheDTO>> GerarTextoIAAsync(int id, Usuario usuario)
+    {
+        var r = new ServiceResponse<EstudoDeCasoDetalheDTO>();
+        var pid = usuario.ProfessorId ?? 0;
+        if (pid == 0)
+        {
+            r.SetFalha("Professor não vinculado ao usuário.");
+            return r;
+        }
+
+        try
+        {
+            var entity = await _db.EstudosCaso
+                .Include(c => c.Professor)
+                .Include(c => c.Aluno)
+                .ThenInclude(a => a.Escola)
+                .Include(c => c.ItensEixo)
+                .ThenInclude(i => i.CatalogoEixo)
+                .FirstOrDefaultAsync(c => c.Id == id && c.ProfessorId == pid);
+
+            if (entity == null)
+            {
+                r.SetFalha("Estudo de caso não encontrado.");
+                return r;
+            }
+
+            var diagnosticoRecente = await _db.DiagnosticosFinais
+                .AsNoTracking()
+                .Include(d => d.AvaliacaoDiagnostica)
+                .Where(d => d.AlunoId == entity.AlunoId)
+                .OrderByDescending(d => d.GeradoEm)
+                .FirstOrDefaultAsync();
+
+            var systemPrompt = await _promptService.BuscarConteudoAtivoAsync(TipoDocumentoIA.EstudoCaso);
+            if (string.IsNullOrWhiteSpace(systemPrompt))
+            {
+                r.SetFalha("Nenhum prompt de sistema cadastrado para Estudo de Caso. Peça à gestora para configurar em Prompts de IA.");
+                return r;
+            }
+
+            var promptUsuario = MontarPromptEstudoCaso(entity, diagnosticoRecente);
+
+            string textoGerado;
+            try
+            {
+                textoGerado = await _geradorTextoIA.GerarTextoAsync(systemPrompt, promptUsuario);
+            }
+            catch (InvalidOperationException ex)
+            {
+                r.SetFalha(ex.Message);
+                return r;
+            }
+
+            entity.TextoGeradoIA = textoGerado;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            var dto = MapearDetalhe(entity);
+            r.AdicionaObjeto(dto);
+            r.AdicionaMensagem("Texto gerado por IA. Revise antes de usar em documentos oficiais.");
+            r.Sucesso = true;
+            return r;
+        }
+        catch (Exception ex)
+        {
+            r.SetFalha($"Erro ao gerar texto via IA: {ex.Message}");
+            return r;
+        }
+    }
+
     private async Task<(bool Ok, string Erro)> ValidarTodosEixosDoCatalogoAsync(List<int> idsEixoDistintos)
     {
         var todosIds = await _db.EstudoCasoEixosCatalogo.AsNoTracking().Select(e => e.Id).ToListAsync();
@@ -448,6 +523,7 @@ public class EstudoDeCasoService
             ContextoSituacao = entity.ContextoSituacao,
             Potencialidades = entity.Potencialidades,
             TextoSimulado = entity.TextoSimulado,
+            TextoGeradoIA = entity.TextoGeradoIA,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
             ItensEixo = entity.ItensEixo
@@ -461,6 +537,53 @@ public class EstudoDeCasoService
                 })
                 .ToList(),
         };
+    }
+
+    private static string MontarPromptEstudoCaso(EstudoDeCaso entity, DiagnosticoFinal? diagnosticoRecente)
+    {
+        var nome = entity.Aluno?.NomeCompleto?.Trim() ?? "Aluno(a)";
+        var escola = entity.Aluno?.Escola?.NomeInstituicao?.Trim() ?? "não informado";
+        var professor = entity.Professor?.NomeCompleto?.Trim() ?? "não informado";
+        var anoSerie = entity.Aluno?.Ano?.Trim() ?? "não informado";
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Redija o texto do Estudo de Caso a partir destes dados (siga a estrutura de 4 etapas definida no system prompt):");
+        sb.AppendLine();
+        sb.AppendLine($"Estudante: {nome}");
+        sb.AppendLine($"Ano/Série: {anoSerie}");
+        sb.AppendLine($"Escola: {escola}");
+        sb.AppendLine($"Professor(a) do AEE: {professor}");
+        sb.AppendLine();
+        sb.AppendLine($"Título do estudo: {entity.Titulo.Trim()}");
+        sb.AppendLine($"Contexto/situação relatada: {entity.ContextoSituacao.Trim()}");
+
+        if (!string.IsNullOrWhiteSpace(entity.Potencialidades))
+            sb.AppendLine($"Potencialidades observadas: {entity.Potencialidades.Trim()}");
+
+        if (diagnosticoRecente != null)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Diagnóstico pedagógico mais recente (avaliação diagnóstica): perfil de autonomia = {diagnosticoRecente.NivelPerfilAutonomia}");
+            if (!string.IsNullOrWhiteSpace(diagnosticoRecente.Resumo))
+                sb.AppendLine($"Resumo do diagnóstico: {diagnosticoRecente.Resumo.Trim()}");
+        }
+        else
+        {
+            sb.AppendLine();
+            sb.AppendLine("Não há diagnóstico pedagógico registrado na plataforma até o momento.");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Barreiras e anotações por eixo (use estas informações reais, não invente novas):");
+        var eixosOrdenados = entity.ItensEixo.OrderBy(i => i.CatalogoEixo?.OrdemExibicao ?? 0).ToList();
+        foreach (var item in eixosOrdenados)
+        {
+            var rotulo = item.CatalogoEixo?.Rotulo ?? $"Eixo #{item.EixoCatalogoId}";
+            var anotacao = string.IsNullOrWhiteSpace(item.Anotacao) ? "(sem anotação registrada)" : item.Anotacao.Trim();
+            sb.AppendLine($"- {rotulo}: {anotacao}");
+        }
+
+        return sb.ToString();
     }
 
     private static string MontarTextoSimulado(EstudoDeCaso entity, DiagnosticoFinal? diagnosticoRecente)

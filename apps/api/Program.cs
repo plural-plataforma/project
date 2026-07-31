@@ -93,6 +93,19 @@ else
     throw new InvalidOperationException("Seção 'Hotmart' não encontrada no appsettings.json");
 }
 
+// Substituição para o bloco Gemini
+var geminiSection = builder.Configuration.GetSection("Gemini");
+if (geminiSection.Exists())
+{
+    geminiSection["ApiKey"] = geminiSection["ApiKey"]
+        ?.Replace("{GEMINI_API_KEY}", builder.Configuration["GEMINI_API_KEY"]
+            ?? throw new InvalidOperationException("GEMINI_API_KEY não encontrada no .env"));
+}
+else
+{
+    throw new InvalidOperationException("Seção 'Gemini' não encontrada no appsettings.json");
+}
+
 // JWT e webhook Hotmart continuam obrigatórios para subir a API
 var requiredEnvVars = new[] { "JWT_SECRET", "HOTTOK" };
 foreach (var varName in requiredEnvVars)
@@ -182,6 +195,8 @@ builder.Services.AddScoped<ConfiguracaoSiteService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<HotmartWebhookService>();
 builder.Services.AddScoped<DocumentoBibliotecaService>();
+builder.Services.AddScoped<PromptSistemaIAService>();
+builder.Services.AddHttpClient<api.Services.IA.IGeradorTextoIA, api.Services.IA.GeminiGeradorTextoIA>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
