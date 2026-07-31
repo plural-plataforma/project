@@ -482,6 +482,10 @@ public class EstudoDeCasoService
             }
 
             entity.TextoGeradoIA = textoGerado;
+            // Gerador mecânico (MontarTextoSimulado) temporariamente desativado do fluxo ativo —
+            // espelha o texto de IA em TextoSimulado pra manter badge "documento gerado",
+            // elegibilidade de criação de PAEE e download funcionando sem alterações.
+            entity.TextoSimulado = textoGerado;
             entity.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
 
