@@ -15,7 +15,7 @@ namespace api.Services.IA
             _httpClient = httpClient;
             _apiKey = configuration["Gemini:ApiKey"]
                 ?? throw new InvalidOperationException("Gemini:ApiKey não configurada em appsettings.");
-            _model = configuration["Gemini:Model"] ?? "gemini-2.0-flash";
+            _model = configuration["Gemini:Model"] ?? "gemini-3.6-flash";
         }
 
         public async Task<string> GerarTextoAsync(string systemPrompt, string prompt)
