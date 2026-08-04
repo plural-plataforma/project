@@ -95,6 +95,21 @@ namespace api.Controllers
             }
         }
 
+        [HttpPost("{id:int}/gerar-objetivos-ia")]
+        public async Task<IActionResult> GerarObjetivosIA(int id)
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            var resposta = await _planejamentoService.GerarObjetivosIAAsync(id, usuario);
+            if (!resposta.Sucesso)
+            {
+                return resposta.Mensagens.Any(m => m.Contains("não encontrado", StringComparison.OrdinalIgnoreCase))
+                    ? NotFound(resposta)
+                    : BadRequest(resposta);
+            }
+
+            return Ok(resposta);
+        }
+
         [HttpPost("vincularaluno")]
         public async Task<IActionResult> VincularAluno([FromBody] PlanejamentoVincularAlunoDTO planejamentoVincularAlunoDto)
         {
