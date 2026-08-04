@@ -12,6 +12,7 @@ public class DiagnosticoFinalDTO
     public string Recomendacoes { get; set; } = string.Empty;
     public string? HabilidadesFortes { get; set; }
     public string? HabilidadesAReenforcar { get; set; }
+    public string? TextoGeradoIA { get; set; }
     public DateTime GeradoEm { get; set; }
 }
 

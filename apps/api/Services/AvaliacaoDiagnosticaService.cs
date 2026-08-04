@@ -7,6 +7,7 @@ using api.Constants;
 using api.Helpers;
 using api.Models;
 using api.Responses;
+using api.Services.IA;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ namespace api.Services
     {
         private readonly AppDbContext _contexto;
         private readonly UserManager<Usuario> _userManager;
+        private readonly PromptSistemaIAService _promptService;
+        private readonly IGeradorTextoIA _geradorTextoIA;
         private static readonly HashSet<string> NiveisPermitidos = new(StringComparer.OrdinalIgnoreCase)
         {
             "Autonomia",
@@ -28,10 +31,16 @@ namespace api.Services
             "NaoAvaliado",
         };
 
-        public AvaliacaoDiagnosticaService(AppDbContext contexto, UserManager<Usuario> userManager)
+        public AvaliacaoDiagnosticaService(
+            AppDbContext contexto,
+            UserManager<Usuario> userManager,
+            PromptSistemaIAService promptService,
+            IGeradorTextoIA geradorTextoIA)
         {
             _contexto = contexto;
             _userManager = userManager;
+            _promptService = promptService;
+            _geradorTextoIA = geradorTextoIA;
         }
 
         // Resumo agregado para o dashboard do Admin — sem filtro por professor
@@ -456,7 +465,17 @@ namespace api.Services
                 .ToList();
         }
 
-        private async Task GerarOuAtualizarDiagnosticoFinalAsync(int avaliacaoId, int alunoId)
+        private sealed record EstatisticasDiagnostico(
+            int Total,
+            int CountAutonomia,
+            int CountComAjuda,
+            int CountNaoRealizou,
+            string Nivel,
+            string Fortes,
+            string Reforcar,
+            string? ObsGeral);
+
+        private async Task<EstatisticasDiagnostico> ObterEstatisticasDiagnosticoAsync(int avaliacaoId, int alunoId)
         {
             var vigentes = await ObterDesempenhosVigentesAsync(avaliacaoId, alunoId);
             var niveis = vigentes.Select(d => d.NivelRealizacao).ToList();
@@ -476,17 +495,29 @@ namespace api.Services
                 .Select(a => a.ObservacaoGeral)
                 .FirstOrDefaultAsync();
 
+            return new EstatisticasDiagnostico(
+                vigentes.Count, countAutonomia, countComAjuda, countNaoRealizou, nivel, fortes, reforcar, obsGeral);
+        }
+
+        private async Task GerarOuAtualizarDiagnosticoFinalAsync(int avaliacaoId, int alunoId)
+        {
+            var stats = await ObterEstatisticasDiagnosticoAsync(avaliacaoId, alunoId);
+
             var resumo = new System.Text.StringBuilder();
             resumo.Append(
-                $"Atividades avaliadas: {vigentes.Count}. Autonomia: {countAutonomia}; Com ajuda: {countComAjuda}; Não realizou: {countNaoRealizou}.");
-            if (!string.IsNullOrWhiteSpace(obsGeral))
-                resumo.Append(' ').Append(obsGeral.Trim());
+                $"Atividades avaliadas: {stats.Total}. Autonomia: {stats.CountAutonomia}; Com ajuda: {stats.CountComAjuda}; Não realizou: {stats.CountNaoRealizou}.");
+            if (!string.IsNullOrWhiteSpace(stats.ObsGeral))
+                resumo.Append(' ').Append(stats.ObsGeral.Trim());
 
-            var recomendacoes = PerfilAutonomiaHelper.SugestaoPaee(nivel);
-            if (!string.IsNullOrWhiteSpace(reforcar))
-                recomendacoes += $" Habilidades prioritárias para reforço: {reforcar}.";
-            if (!string.IsNullOrWhiteSpace(fortes))
-                recomendacoes += $" Habilidades com desempenho favorável: {fortes}.";
+            var recomendacoes = PerfilAutonomiaHelper.SugestaoPaee(stats.Nivel);
+            if (!string.IsNullOrWhiteSpace(stats.Reforcar))
+                recomendacoes += $" Habilidades prioritárias para reforço: {stats.Reforcar}.";
+            if (!string.IsNullOrWhiteSpace(stats.Fortes))
+                recomendacoes += $" Habilidades com desempenho favorável: {stats.Fortes}.";
+
+            var nivel = stats.Nivel;
+            var fortes = stats.Fortes;
+            var reforcar = stats.Reforcar;
 
             var existente = await _contexto.DiagnosticosFinais
                 .FirstOrDefaultAsync(d => d.AvaliacaoDiagnosticaId == avaliacaoId && d.AlunoId == alunoId);
@@ -517,6 +548,154 @@ namespace api.Services
             }
         }
 
+        public async Task<ServiceResponse<DiagnosticoFinalDTO>> GerarDiagnosticoFinalIAAsync(
+            int avaliacaoId,
+            int alunoId,
+            Usuario usuario)
+        {
+            var r = new ServiceResponse<DiagnosticoFinalDTO>();
+            try
+            {
+                var avaliacao = await _contexto.AvaliacoesDiagnosticas
+                    .Include(a => a.Escola)
+                    .Include(a => a.Professor)
+                    .FirstOrDefaultAsync(a =>
+                        a.Id == avaliacaoId && (a.ProfessorId == usuario.ProfessorId || a.ProfessorId == null));
+
+                if (avaliacao == null)
+                {
+                    r.SetFalha("Avaliação diagnóstica não encontrada.");
+                    return r;
+                }
+
+                var aluno = await _contexto.Alunos.AsNoTracking().FirstOrDefaultAsync(a => a.Id == alunoId);
+                if (aluno == null)
+                {
+                    r.SetFalha("Aluno não encontrado.");
+                    return r;
+                }
+
+                var stats = await ObterEstatisticasDiagnosticoAsync(avaliacaoId, alunoId);
+                if (stats.Total == 0)
+                {
+                    r.SetFalha("Registre o desempenho do aluno nesta avaliação antes de gerar o texto por IA.");
+                    return r;
+                }
+
+                var systemPrompt = await _promptService.BuscarConteudoAtivoAsync(TipoDocumentoIA.AvaliacaoDiagnostica);
+                if (string.IsNullOrWhiteSpace(systemPrompt))
+                {
+                    r.SetFalha("Nenhum prompt de sistema cadastrado para Avaliação Diagnóstica. Peça à gestora para configurar em Prompts de IA.");
+                    return r;
+                }
+
+                var promptUsuario = MontarPromptDiagnostico(avaliacao, aluno, stats);
+
+                string textoGerado;
+                try
+                {
+                    textoGerado = await _geradorTextoIA.GerarTextoAsync(systemPrompt, promptUsuario);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    r.SetFalha(ex.Message);
+                    return r;
+                }
+
+                var partes = System.Text.RegularExpressions.Regex
+                    .Split(textoGerado.Trim(), @"\r?\n\s*\r?\n")
+                    .Select(p => p.Trim())
+                    .Where(p => p.Length > 0)
+                    .ToList();
+
+                if (partes.Count != 4)
+                {
+                    r.SetFalha("A IA não retornou os 4 parágrafos esperados (resumo, recomendações, habilidades fortes e a reforçar). Tente gerar novamente.");
+                    return r;
+                }
+
+                var existente = await _contexto.DiagnosticosFinais
+                    .FirstOrDefaultAsync(d => d.AvaliacaoDiagnosticaId == avaliacaoId && d.AlunoId == alunoId);
+
+                var now = DateTime.UtcNow;
+                if (existente == null)
+                {
+                    existente = new DiagnosticoFinal
+                    {
+                        AvaliacaoDiagnosticaId = avaliacaoId,
+                        AlunoId = alunoId,
+                    };
+                    _contexto.DiagnosticosFinais.Add(existente);
+                }
+
+                existente.Resumo = partes[0];
+                existente.NivelPerfilAutonomia = stats.Nivel;
+                existente.Recomendacoes = partes[1];
+                existente.HabilidadesFortes = partes[2];
+                existente.HabilidadesAReenforcar = partes[3];
+                existente.TextoGeradoIA = textoGerado;
+                existente.GeradoEm = now;
+
+                await _contexto.SaveChangesAsync();
+
+                existente.Aluno = aluno;
+                r.AdicionaObjeto(MapearDiagnosticoFinalDto(existente));
+                r.AdicionaMensagem("Texto gerado por IA. Revise antes de usar em documentos oficiais.");
+                r.Sucesso = true;
+                return r;
+            }
+            catch (Exception ex)
+            {
+                r.SetFalha($"Erro ao gerar diagnóstico final via IA: {ex.Message}");
+                return r;
+            }
+        }
+
+        private static string MontarPromptDiagnostico(
+            AvaliacaoDiagnostica avaliacao,
+            Aluno aluno,
+            EstatisticasDiagnostico stats)
+        {
+            var nome = aluno.NomeCompleto?.Trim() ?? "Aluno(a)";
+            var anoSerie = aluno.Ano?.Trim() ?? "não informado";
+            var escola = avaliacao.Escola?.NomeInstituicao?.Trim() ?? "não informado";
+            var professor = avaliacao.Professor?.NomeCompleto?.Trim() ?? "não informado";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Redija a síntese da Avaliação Diagnóstica a partir destes dados (siga a estrutura de 4 parágrafos definida no system prompt):");
+            sb.AppendLine();
+            sb.AppendLine($"Estudante: {nome}");
+            sb.AppendLine($"Ano/Série: {anoSerie}");
+            sb.AppendLine($"Escola: {escola}");
+            sb.AppendLine($"Professor(a): {professor}");
+            sb.AppendLine();
+            sb.AppendLine($"Avaliação: {avaliacao.Titulo.Trim()}");
+            if (!string.IsNullOrWhiteSpace(avaliacao.Objetivo))
+                sb.AppendLine($"Objetivo da avaliação: {avaliacao.Objetivo.Trim()}");
+            sb.AppendLine();
+            sb.AppendLine($"Atividades avaliadas: {stats.Total}");
+            sb.AppendLine($"Autonomia: {stats.CountAutonomia}");
+            sb.AppendLine($"Com ajuda: {stats.CountComAjuda}");
+            sb.AppendLine($"Não realizou: {stats.CountNaoRealizou}");
+            sb.AppendLine($"Perfil de autonomia calculado: {PerfilAutonomiaHelper.RotuloPortugues(stats.Nivel)}");
+
+            if (!string.IsNullOrWhiteSpace(stats.ObsGeral))
+            {
+                sb.AppendLine();
+                sb.AppendLine($"Observação geral do professor: {stats.ObsGeral.Trim()}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine(string.IsNullOrWhiteSpace(stats.Fortes)
+                ? "Habilidades com desempenho autônomo: nenhuma registrada neste ciclo."
+                : $"Habilidades com desempenho autônomo: {stats.Fortes}");
+            sb.AppendLine(string.IsNullOrWhiteSpace(stats.Reforcar)
+                ? "Habilidades que ainda demandam apoio: nenhuma pendente registrada neste ciclo."
+                : $"Habilidades que ainda demandam apoio: {stats.Reforcar}");
+
+            return sb.ToString();
+        }
+
         private static DiagnosticoFinalDTO MapearDiagnosticoFinalDto(DiagnosticoFinal entity)
         {
             return new DiagnosticoFinalDTO
@@ -531,6 +710,7 @@ namespace api.Services
                 Recomendacoes = entity.Recomendacoes,
                 HabilidadesFortes = entity.HabilidadesFortes,
                 HabilidadesAReenforcar = entity.HabilidadesAReenforcar,
+                TextoGeradoIA = entity.TextoGeradoIA,
                 GeradoEm = entity.GeradoEm,
             };
         }
