@@ -86,6 +86,24 @@ public class RelatoAtendimentoController : ControllerBase
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
+    [HttpPost("{id:int}/gerar-texto-ia")]
+    public async Task<IActionResult> GerarTextoIA(int id)
+    {
+        var usuario = await _usuario.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.GerarTextoIAAsync(id, usuario);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrado", StringComparison.OrdinalIgnoreCase))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta);
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Excluir(int id)
     {

@@ -33,4 +33,6 @@ public class RelatoAtendimentoBuscarDTO
     public List<string> Avancos { get; set; } = [];
 
     public List<string> Dificuldades { get; set; } = [];
+
+    public string? TextoGeradoIA { get; set; }
 }
