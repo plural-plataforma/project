@@ -56,6 +56,7 @@ export default function Sidebar({ variant = 'permanent', open = true, onClose }:
 
   const documentosGroup = [
     { text: 'Biblioteca de Modelos', icon: <Files size={20} weight="fill" />, path: '/biblioteca-modelos' },
+    { text: 'Prompts de IA', icon: <SettingsIcon />, path: '/prompts-ia' },
   ]
 
   const sistemaGroup = [
