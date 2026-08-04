@@ -264,11 +264,11 @@ namespace api.Services
 
                 await _contexto.SaveChangesAsync();
 
-                var alunosAfetados = dto.Itens.Select(i => i.AlunoId).Distinct().ToList();
-                foreach (var alunoId in alunosAfetados)
-                    await GerarOuAtualizarDiagnosticoFinalAsync(dto.AvaliacaoDiagnosticaId, alunoId);
-
-                await _contexto.SaveChangesAsync();
+                // Gerador mecânico (GerarOuAtualizarDiagnosticoFinalAsync) temporariamente desativado
+                // deste fluxo — DiagnosticoFinal agora é gerado por IA, ao finalizar a avaliação
+                // (FinalizarAvaliacaoAsync), fora desta transação. Chamar IA aqui a cada salvamento
+                // parcial de desempenho seguraria a transação esperando rede e arriscaria desfazer
+                // desempenho válido por falha de IA.
                 await transacao.CommitAsync();
 
                 resposta.AdicionaObjeto(new { mensagem = "Desempenhos registrados com sucesso." });
@@ -433,15 +433,28 @@ namespace api.Services
                     return resposta;
                 }
 
+                var falhasIA = new List<string>();
                 foreach (var ap in avaliacao.AlunosParticipantes)
-                    await GerarOuAtualizarDiagnosticoFinalAsync(id, ap.AlunoId);
+                {
+                    var resultadoIA = await GerarDiagnosticoFinalIAAsync(id, ap.AlunoId, usuario);
+                    if (!resultadoIA.Sucesso)
+                        falhasIA.Add($"Aluno #{ap.AlunoId}: {string.Join(' ', resultadoIA.Mensagens)}");
+                }
 
                 avaliacao.Concluida = true;
                 avaliacao.UpdatedAt = DateTime.UtcNow;
                 await _contexto.SaveChangesAsync();
 
-                resposta.AdicionaObjeto(new { mensagem = "Avaliação finalizada e diagnósticos gerados." });
-                resposta.AdicionaMensagem("Avaliação finalizada com sucesso.");
+                if (falhasIA.Count > 0)
+                {
+                    resposta.AdicionaObjeto(new { mensagem = "Avaliação finalizada. Diagnóstico por IA não foi gerado para 1 ou mais alunos.", falhas = falhasIA });
+                    resposta.AdicionaMensagem("Avaliação finalizada, mas houve falha ao gerar diagnóstico por IA para 1 ou mais alunos. Use o endpoint de geração para tentar novamente.");
+                }
+                else
+                {
+                    resposta.AdicionaObjeto(new { mensagem = "Avaliação finalizada e diagnósticos gerados por IA." });
+                    resposta.AdicionaMensagem("Avaliação finalizada com sucesso.");
+                }
                 resposta.Sucesso = true;
                 return resposta;
             }
