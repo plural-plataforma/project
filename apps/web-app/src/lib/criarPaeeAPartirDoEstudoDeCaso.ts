@@ -1,8 +1,7 @@
 import dayjs from 'dayjs'
 import {
-  atualizarPlanejamento,
-  buscarObjetivosPaeeCatalogo,
   cadastrarPlanejamento,
+  gerarObjetivosPaeeIA,
   vincularAlunosPlanoLote,
   vincularHabilidadesPlanoLote,
 } from '@/services/planejamentoService'
@@ -94,31 +93,16 @@ export async function criarPaeeAPartirDoEstudoDeCaso(
     await vincularHabilidadesPlanoLote(plano.id, habIds)
   }
 
-  const catalogo = await buscarObjetivosPaeeCatalogo()
-  const curto = catalogo.find((c) => c.prazo === 'Curto')
-  const medio = catalogo.find((c) => c.prazo === 'Medio')
-  const longo = catalogo.find((c) => c.prazo === 'Longo')
-
-  let objCurto = curto?.textoModelo ?? ''
-  if (estudo.contextoSituacao.trim()) {
-    objCurto = objCurto
-      ? `${objCurto}\n\nContexto do estudo: ${estudo.contextoSituacao.trim().slice(0, 400)}`
-      : estudo.contextoSituacao.trim().slice(0, 600)
+  // Gerador mecânico (template do catálogo + recorte cru do contexto) temporariamente
+  // desativado — objetivos agora vêm da IA, com base no Estudo de Caso, habilidades e
+  // estratégias já vinculadas ao plano. Se a IA falhar, o PAEE é criado sem os objetivos
+  // preenchidos automaticamente; a professora pode gerar depois ou preencher manualmente
+  // na aba de objetivos do plano.
+  try {
+    await gerarObjetivosPaeeIA(plano.id)
+  } catch {
+    // Falha silenciosa aqui: a criação do PAEE não deve ser bloqueada por indisponibilidade da IA.
   }
-
-  await atualizarPlanejamento({
-    id: plano.id,
-    apelido: plano.apelido,
-    dataInicio: plano.dataInicio,
-    dataFim: plano.dataFim,
-    descicaoPlanejamento: plano.descicaoPlanejamento,
-    objetivoCurtoPrazo: objCurto || null,
-    objetivoMedioPrazo: medio?.textoModelo ?? null,
-    objetivoLongoPrazo: longo?.textoModelo ?? null,
-    objetivoCurtoCatalogoId: curto?.id ?? null,
-    objetivoMedioCatalogoId: medio?.id ?? null,
-    objetivoLongoCatalogoId: longo?.id ?? null,
-  })
 
   return { ...plano, apelido, dataInicio, dataFim }
 }

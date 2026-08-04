@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { ArrowClockwise } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buscarObjetivosPaeeCatalogo } from '@/services/planejamentoService'
@@ -19,6 +20,8 @@ export interface PlanejamentoObjetivosTabProps {
   onObjLongoCatalogoIdChange: (id: number | null) => void
   onSave: () => void
   saving: boolean
+  onGerarIA: () => void
+  gerandoIA: boolean
 }
 
 function catalogoPorPrazo(itens: PaeeObjetivoCatalogo[], prazo: 'Curto' | 'Medio' | 'Longo') {
@@ -102,6 +105,8 @@ export function PlanejamentoObjetivosTab({
   onObjLongoCatalogoIdChange,
   onSave,
   saving,
+  onGerarIA,
+  gerandoIA,
 }: PlanejamentoObjetivosTabProps) {
   const { data: catalogo = [], isLoading } = useQuery({
     queryKey: ['paee-objetivos-catalogo'],
@@ -115,8 +120,15 @@ export function PlanejamentoObjetivosTab({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Selecione um modelo do catálogo pedagógico e refine o texto conforme a necessidade do estudante.
+          Gere com IA a partir do Estudo de Caso e das habilidades/estratégias vinculadas, ou selecione um modelo do
+          catálogo pedagógico e refine o texto conforme a necessidade do estudante.
         </p>
+        <div>
+          <Button type="button" variant="outline" size="sm" loading={gerandoIA} onClick={onGerarIA}>
+            <ArrowClockwise size={14} />
+            Gerar com IA
+          </Button>
+        </div>
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando catálogo...</p>
         ) : (

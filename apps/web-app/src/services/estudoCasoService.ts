@@ -72,3 +72,11 @@ export const gerarTextoSimuladoEstudoCaso = async (id: number): Promise<EstudoCa
   )
   return unwrapObjeto(data)
 }
+
+export const gerarTextoIAEstudoCaso = async (id: number): Promise<EstudoCasoDetalhe> => {
+  const { data } = await api.post<ServiceResponse<EstudoCasoDetalhe>>(
+    `/EstudoDeCaso/${id}/gerar-texto-ia`,
+    {}
+  )
+  return unwrapObjeto(data)
+}

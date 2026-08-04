@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, DownloadSimple, FilePdf, PencilSimple, Trash, Lightning } from '@phosphor-icons/react'
+import { ArrowClockwise, Copy, DownloadSimple, FilePdf, PencilSimple, Trash, Lightning } from '@phosphor-icons/react'
 import { DocGeracaoAnimation } from '@/components/common/DocGeracaoAnimation'
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
   buscarEixosEstudoCasoCatalogo,
   buscarEstudoCasoPorId,
   excluirEstudoCaso,
-  gerarTextoSimuladoEstudoCaso,
+  gerarTextoIAEstudoCaso,
 } from '@/services/estudoCasoService'
 import { EstudoCasoExcluirDialog } from '@/pages/estudo-caso/EstudoCasoExcluirDialog'
 import { estudoCasoCatalogoEixosCompleto } from '@/stores/estudoCasoWizardStore'
@@ -31,7 +31,7 @@ import {
   estudoCasoEstaConcluidoAsync,
 } from '@/lib/criarPaeeAPartirDoEstudoDeCaso'
 import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
-import { EstudoCasoDocumentoViewer } from '@/components/estudo-caso/EstudoCasoDocumentoViewer'
+import { EstudoCasoTextoIAViewer } from '@/components/estudo-caso/EstudoCasoTextoIAViewer'
 
 interface EstudoCasoDetalheDialogProps {
   open: boolean
@@ -154,13 +154,13 @@ export function EstudoCasoDetalheDialog({
     },
   })
 
-  const gerarMutation = useMutation({
-    mutationFn: () => gerarTextoSimuladoEstudoCaso(estudoId!),
+  const gerarIAMutation = useMutation({
+    mutationFn: () => gerarTextoIAEstudoCaso(estudoId!),
     onSuccess: (d) => {
       qc.setQueryData(['estudo-caso', estudoId], d)
       qc.invalidateQueries({ queryKey: ['estudos-caso-aluno', d.alunoId] })
       qc.invalidateQueries({ queryKey: ['estudos-caso-lista'] })
-      success('Documento gerado', 'Texto atualizado.')
+      success('Documento gerado por IA', 'Revise o texto antes de usar em documentos oficiais.')
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -408,7 +408,7 @@ export function EstudoCasoDetalheDialog({
                     Documento
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {detalhe.textoSimulado?.trim() && !gerarMutation.isPending && (
+                    {detalhe.textoSimulado?.trim() && !gerarIAMutation.isPending && (
                       <>
                         <Button type="button" size="sm" variant="outline" onClick={exportarPdf}>
                           <FilePdf size={14} />
@@ -428,17 +428,18 @@ export function EstudoCasoDetalheDialog({
                       type="button"
                       size="sm"
                       variant="secondary"
-                      loading={gerarMutation.isPending}
-                      onClick={() => gerarMutation.mutate()}
+                      loading={gerarIAMutation.isPending}
+                      onClick={() => gerarIAMutation.mutate()}
                     >
-                      {detalhe.textoSimulado?.trim() ? 'Editar documento' : 'Gerar documento'}
+                      <ArrowClockwise size={14} />
+                      {detalhe.textoSimulado?.trim() ? 'Gerar novamente' : 'Gerar documento'}
                     </Button>
                   </div>
                 </div>
-                <DocGeracaoAnimation isGenerating={gerarMutation.isPending} minHeight="260px">
+                <DocGeracaoAnimation isGenerating={gerarIAMutation.isPending} minHeight="260px">
                   {detalhe.textoSimulado?.trim() ? (
-                    <EstudoCasoDocumentoViewer
-                      texto={detalhe.textoSimulado}
+                    <EstudoCasoTextoIAViewer
+                      texto={detalhe.textoGeradoIA ?? detalhe.textoSimulado}
                       scrollClassName="max-h-[min(52vh,520px)]"
                     />
                   ) : (

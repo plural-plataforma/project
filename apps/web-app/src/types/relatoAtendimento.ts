@@ -24,6 +24,7 @@ export interface RelatoAtendimento {
   observacoes?: string | null
   avancos: string[]
   dificuldades: string[]
+  textoGeradoIA?: string | null
 }
 
 export interface RelatoSugestoesMesResponse {

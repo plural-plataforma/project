@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  ArrowClockwise,
+  Eye,
   NotePencil,
   Plus,
   PencilSimple,
@@ -49,6 +51,7 @@ import {
   atualizarRelato,
   excluirRelato,
   relatorioConsolidadoRelatos,
+  gerarTextoIARelato,
 } from '@/services/relatoAtendimentoService'
 import { downloadRelatosConsolidadoDocx } from '@/lib/exportRelatosConsolidadoDocx'
 import type { RelatoAtendimento } from '@/types/relatoAtendimento'
@@ -76,6 +79,9 @@ export default function RelatosPage() {
 
   const [dlgOpen, setDlgOpen] = useState(false)
   const [editando, setEditando] = useState<RelatoAtendimento | null>(null)
+
+  const [viewOpen, setViewOpen] = useState(false)
+  const [visualizando, setVisualizando] = useState<RelatoAtendimento | null>(null)
 
   const [formAluno, setFormAluno] = useState<string>('')
   const [formPlano, setFormPlano] = useState<string>('none')
@@ -154,6 +160,11 @@ export default function RelatosPage() {
     setDlgOpen(true)
   }
 
+  function abrirVisualizar(r: RelatoAtendimento) {
+    setVisualizando(r)
+    setViewOpen(true)
+  }
+
   const salvarMutation = useMutation({
     mutationFn: async () => {
       const aid = Number(formAluno)
@@ -190,6 +201,19 @@ export default function RelatosPage() {
     onSuccess: () => {
       success(editando ? 'Relato atualizado.' : 'Relato registrado.')
       setDlgOpen(false)
+      void qc.invalidateQueries({ queryKey: ['relatos'] })
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const gerarIAMutation = useMutation({
+    mutationFn: () => gerarTextoIARelato(editando!.id),
+    onSuccess: (atualizado) => {
+      success('Texto gerado por IA', 'Revise antes de usar em documentos oficiais.')
+      setEditando(atualizado)
       void qc.invalidateQueries({ queryKey: ['relatos'] })
     },
     onError: (err: unknown) => {
@@ -327,6 +351,15 @@ export default function RelatosPage() {
                 }
                 actions={
                   <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      aria-label={`Visualizar relato ${r.id}`}
+                      onClick={() => abrirVisualizar(r)}
+                    >
+                      <Eye size={16} />
+                    </Button>
                     <Button variant="outline" size="sm" type="button" onClick={() => abrirEditar(r)}>
                       <PencilSimple size={14} />
                       Editar
@@ -459,6 +492,31 @@ export default function RelatosPage() {
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
+
+            {editando && (
+              <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-sm font-semibold">Relato gerado por IA</label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    loading={gerarIAMutation.isPending}
+                    onClick={() => gerarIAMutation.mutate()}
+                  >
+                    <ArrowClockwise size={14} />
+                    Gerar com IA
+                  </Button>
+                </div>
+                {editando.textoGeradoIA?.trim() ? (
+                  <p className="text-sm text-foreground whitespace-pre-line">{editando.textoGeradoIA}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Ainda não gerado. Revise antes de usar em documentos oficiais.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 pt-4">
@@ -467,6 +525,77 @@ export default function RelatosPage() {
             </Button>
             <Button type="button" loading={salvarMutation.isPending} onClick={() => salvarMutation.mutate()}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={viewOpen} onOpenChange={(o) => !o && setViewOpen(false)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye size={22} /> Relato de {visualizando?.alunoNome}
+            </DialogTitle>
+          </DialogHeader>
+
+          {visualizando && (
+            <div className="space-y-3 pt-2 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="font-semibold text-foreground">Data</p>
+                  <p className="text-muted-foreground">
+                    {new Date(`${visualizando.dataSessao}T12:00:00`).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">Presença</p>
+                  <p className="text-muted-foreground">{visualizando.presencaPresente ? 'Presente' : 'Ausente'}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">PAEE</p>
+                  <p className="text-muted-foreground">{visualizando.planejamentoApelido ?? 'Sem PAEE vinculado'}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">Habilidade</p>
+                  <p className="text-muted-foreground">{visualizando.habilidadeResumo ?? '—'}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">Estratégia</p>
+                  <p className="text-muted-foreground">{visualizando.estrategiaDescricao ?? '—'}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="font-semibold text-foreground mb-1">{DETALHES_ATENDIMENTO_LABEL}</p>
+                <p className="whitespace-pre-line text-muted-foreground">
+                  {montarDetalhesEdicao(visualizando) || '—'}
+                </p>
+              </div>
+
+              <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-3">
+                <p className="font-semibold text-foreground">Relato gerado por IA</p>
+                {visualizando.textoGeradoIA?.trim() ? (
+                  <p className="whitespace-pre-line">{visualizando.textoGeradoIA}</p>
+                ) : (
+                  <p className="text-muted-foreground">Ainda não gerado.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 pt-4">
+            <Button variant="outline" type="button" onClick={() => setViewOpen(false)}>
+              Fechar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (visualizando) abrirEditar(visualizando)
+                setViewOpen(false)
+              }}
+            >
+              <PencilSimple size={14} />
+              Editar
             </Button>
           </DialogFooter>
         </DialogContent>

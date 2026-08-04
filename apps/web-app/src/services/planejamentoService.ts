@@ -39,6 +39,14 @@ export const cadastrarPlanejamento = async (payload: {
   return novo
 }
 
+export const gerarObjetivosPaeeIA = async (idPlanejamento: number): Promise<Planejamento> => {
+  const response = await api.post<PlanejamentoResponse>(`/Planejamento/${idPlanejamento}/gerar-objetivos-ia`)
+  if (response.data.sucesso && response.data.objeto) {
+    return response.data.objeto as Planejamento
+  }
+  throw new Error(response.data.mensagens?.join(', ') || 'Falha ao gerar objetivos do PAEE por IA')
+}
+
 export const atualizarPlanejamento = async (payload: {
   id: number
   apelido: string

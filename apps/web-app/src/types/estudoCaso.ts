@@ -39,6 +39,7 @@ export interface EstudoCasoDetalhe {
   contextoSituacao: string
   potencialidades?: string | null
   textoSimulado?: string | null
+  textoGeradoIA?: string | null
   createdAt: string
   updatedAt: string
   itensEixo: EstudoCasoItemDetalhe[]
