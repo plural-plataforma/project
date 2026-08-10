@@ -90,6 +90,7 @@ export default function RelatosPage() {
   const [formHab, setFormHab] = useState<string>('none')
   const [formEst, setFormEst] = useState<string>('none')
   const [formObs, setFormObs] = useState('')
+  const [formTextoIA, setFormTextoIA] = useState('')
 
   const { data: alunos = [] } = useQuery({ queryKey: ['alunos'], queryFn: buscarAlunos })
   const { data: planejamentos = [] } = useQuery({ queryKey: ['planejamentos'], queryFn: buscarPlanejamento })
@@ -145,6 +146,7 @@ export default function RelatosPage() {
     setFormHab('none')
     setFormEst('none')
     setFormObs('')
+    setFormTextoIA('')
     setDlgOpen(true)
   }
 
@@ -157,6 +159,7 @@ export default function RelatosPage() {
     setFormHab(r.habilidadeId != null ? String(r.habilidadeId) : 'none')
     setFormEst(r.estrategiaId != null ? String(r.estrategiaId) : 'none')
     setFormObs(montarDetalhesEdicao(r))
+    setFormTextoIA(r.textoGeradoIA ?? '')
     setDlgOpen(true)
   }
 
@@ -194,7 +197,11 @@ export default function RelatosPage() {
       }
 
       if (editando) {
-        return atualizarRelato({ id: editando.id, ...payloadBase })
+        return atualizarRelato({
+          id: editando.id,
+          ...payloadBase,
+          textoGeradoIA: formTextoIA.trim() || null,
+        })
       }
       return cadastrarRelato(payloadBase)
     },
@@ -214,6 +221,7 @@ export default function RelatosPage() {
     onSuccess: (atualizado) => {
       success('Texto gerado por IA', 'Revise antes de usar em documentos oficiais.')
       setEditando(atualizado)
+      setFormTextoIA(atualizado.textoGeradoIA ?? '')
       void qc.invalidateQueries({ queryKey: ['relatos'] })
     },
     onError: (err: unknown) => {
@@ -508,8 +516,13 @@ export default function RelatosPage() {
                     Gerar com IA
                   </Button>
                 </div>
-                {editando.textoGeradoIA?.trim() ? (
-                  <p className="text-sm text-foreground whitespace-pre-line">{editando.textoGeradoIA}</p>
+                {editando.textoGeradoIA?.trim() || formTextoIA.trim() ? (
+                  <textarea
+                    rows={6}
+                    value={formTextoIA}
+                    onChange={(e) => setFormTextoIA(e.target.value)}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary/30"
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Ainda não gerado. Revise antes de usar em documentos oficiais.

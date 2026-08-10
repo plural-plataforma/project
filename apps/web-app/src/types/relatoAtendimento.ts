@@ -53,4 +53,5 @@ export interface RelatoCadastroPayload {
 
 export interface RelatoAtualizarPayload extends RelatoCadastroPayload {
   id: number
+  textoGeradoIA?: string | null
 }

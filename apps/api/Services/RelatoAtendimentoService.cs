@@ -264,6 +264,7 @@ public class RelatoAtendimentoService
             ent.Observacoes = dto.Observacoes?.Trim();
             ent.AvancosJson = SerializarLista(dto.Avancos);
             ent.DificuldadesJson = SerializarLista(dto.Dificuldades);
+            ent.TextoGeradoIA = dto.TextoGeradoIA?.Trim() is { Length: > 0 } texto ? texto : null;
 
             await _db.SaveChangesAsync();
 
