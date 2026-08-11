@@ -16,5 +16,7 @@ namespace api.Models
         public bool IsActive { get; set; } = true;
 
         public DateTime? ExpirationDate { get; set; }
+
+        public string? HotmartSubscriberCode { get; set; }
     }
 }

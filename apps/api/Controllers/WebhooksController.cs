@@ -1,4 +1,5 @@
-﻿using api.DTOs.Webhooks;
+using System.Text.Json;
+using api.DTOs.Webhooks;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +14,7 @@ namespace api.Controllers
         private readonly HotmartWebhookService _hotmartService;
         private readonly ILogger<WebhooksController> _logger;
         private readonly string _expectedHottok;
+        private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
         public WebhooksController(
             HotmartWebhookService hotmartService,
@@ -29,35 +31,53 @@ namespace api.Controllers
         _expectedHottok.Length > 10 ? _expectedHottok.Substring(0, 10) + "..." : _expectedHottok);
         }
 
+        // Aceita JsonElement bruto: o evento SUBSCRIPTION_CANCELLATION tem um formato de "data"
+        // diferente dos eventos de compra (PURCHASE_APPROVED etc), então o "event" precisa ser lido
+        // antes de decidir em qual DTO tipado desserializar.
         [HttpPost("hotmart")]
         [AllowAnonymous]
-        public async Task<IActionResult> HotmartWebhook([FromBody] HotmartWebhookV2Dto? payload)
+        public async Task<IActionResult> HotmartWebhook([FromBody] JsonElement payload)
         {
-            if (payload == null)
+            if (payload.ValueKind != JsonValueKind.Object)
             {
-                _logger.LogWarning("Payload nulo recebido no webhook Hotmart");
+                _logger.LogWarning("Payload inválido recebido no webhook Hotmart");
                 return BadRequest("Payload inválido");
             }
 
-            // Log para depuração imediata
-            _logger.LogInformation("Webhook recebido - Evento: {Event} | Version: {Version} | Hottok presente: {HasHottok}",
-                payload.Event, payload.Version, !string.IsNullOrEmpty(payload.Hottok));
+            var eventName = payload.TryGetProperty("event", out var eventEl) ? eventEl.GetString() : null;
+            var hottok = payload.TryGetProperty("hottok", out var hottokEl) ? hottokEl.GetString() : null;
 
-            // Validação de hottok (já está correta)
-            if (string.IsNullOrWhiteSpace(payload.Hottok) || payload.Hottok != _expectedHottok)
+            _logger.LogInformation("Webhook recebido - Evento: {Event} | Hottok presente: {HasHottok}",
+                eventName, !string.IsNullOrEmpty(hottok));
+
+            if (string.IsNullOrWhiteSpace(hottok) || hottok != _expectedHottok)
             {
-                _logger.LogWarning("hottok inválido: recebido '{Received}' | esperado '{Expected}'",
-                    payload.Hottok, _expectedHottok);
+                _logger.LogWarning("hottok inválido: recebido '{Received}' | esperado '{Expected}'", hottok, _expectedHottok);
                 return Unauthorized("Token de autenticação inválido");
             }
 
-            var success = await _hotmartService.ProcessPurchaseWebhookAsync(payload);
+            bool success;
+            switch (eventName)
+            {
+                case "SUBSCRIPTION_CANCELLATION":
+                    var cancelDto = payload.Deserialize<HotmartSubscriptionCancellationWebhookDto>(JsonOpts);
+                    success = cancelDto == null || await _hotmartService.ProcessCancellationWebhookAsync(cancelDto);
+                    break;
+                case "UPDATE_SUBSCRIPTION_CHARGE_DATE":
+                    var chargeDateDto = payload.Deserialize<HotmartChargeDateUpdateWebhookDto>(JsonOpts);
+                    success = chargeDateDto == null || await _hotmartService.ProcessChargeDateUpdateWebhookAsync(chargeDateDto);
+                    break;
+                default:
+                    var purchaseDto = payload.Deserialize<HotmartWebhookV2Dto>(JsonOpts);
+                    success = purchaseDto == null || await _hotmartService.ProcessPurchaseWebhookAsync(purchaseDto);
+                    break;
+            }
 
             return Ok(new
             {
                 received = true,
                 processed = success,
-                eventType = payload.Event
+                eventType = eventName
             });
         }
     }
