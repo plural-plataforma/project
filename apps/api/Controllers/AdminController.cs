@@ -15,15 +15,18 @@ namespace api.Controllers
         private readonly AdminService _adminService;
         private readonly AvaliacaoDiagnosticaService _avaliacaoDiagnosticaService;
         private readonly ConfiguracaoSiteService _configuracaoSiteService;
+        private readonly GeracaoIALogService _geracaoIALogService;
 
         public AdminController(
             AdminService adminService,
             AvaliacaoDiagnosticaService avaliacaoDiagnosticaService,
-            ConfiguracaoSiteService configuracaoSiteService)
+            ConfiguracaoSiteService configuracaoSiteService,
+            GeracaoIALogService geracaoIALogService)
         {
             _adminService = adminService;
             _avaliacaoDiagnosticaService = avaliacaoDiagnosticaService;
             _configuracaoSiteService = configuracaoSiteService;
+            _geracaoIALogService = geracaoIALogService;
         }
 
         [HttpPatch("usuarios/atualizar")]
@@ -83,6 +86,17 @@ namespace api.Controllers
         public async Task<IActionResult> ResumoPedagogico([FromQuery] DateTime? from, [FromQuery] DateTime? to)
         {
             var resposta = await _avaliacaoDiagnosticaService.GetResumoPedagogicoAsync(from, to);
+            return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+        }
+
+        /// <summary>
+        /// Uso dos geradores de texto por IA (Estudo de Caso, PAEE, Avaliação Diagnóstica,
+        /// Relato de Atendimento), agregado por professora e por tipo de documento.
+        /// </summary>
+        [HttpGet("dashboard/uso-ia")]
+        public async Task<IActionResult> UsoIA([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+        {
+            var resposta = await _geracaoIALogService.GetUsoIAAsync(from, to);
             return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
         }
 
