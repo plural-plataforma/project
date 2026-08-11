@@ -160,6 +160,8 @@ public class EstudoDeCasoService
             var entity = await _db.EstudosCaso
                 .AsNoTracking()
                 .Include(c => c.Aluno)
+                .ThenInclude(a => a.Escola)
+                .Include(c => c.Professor)
                 .Include(c => c.ItensEixo)
                 .ThenInclude(i => i.CatalogoEixo)
                 .FirstOrDefaultAsync(c => c.Id == id && c.ProfessorId == pid);
@@ -170,7 +172,8 @@ public class EstudoDeCasoService
                 return r;
             }
 
-            r.AdicionaObjeto(MapearDetalhe(entity));
+            var diagnosticoRecente = await BuscarDiagnosticoRecenteAsync(entity.AlunoId);
+            r.AdicionaObjeto(MapearDetalhe(entity, FormatarDiagnosticoRecenteResumo(diagnosticoRecente)));
             r.Sucesso = true;
             return r;
         }
@@ -250,11 +253,14 @@ public class EstudoDeCasoService
             var carregado = await _db.EstudosCaso
                 .AsNoTracking()
                 .Include(c => c.Aluno)
+                .ThenInclude(a => a.Escola)
+                .Include(c => c.Professor)
                 .Include(c => c.ItensEixo)
                 .ThenInclude(i => i.CatalogoEixo)
                 .FirstAsync(c => c.Id == caso.Id);
 
-            r.AdicionaObjeto(MapearDetalhe(carregado));
+            var diagnosticoRecenteCadastro = await BuscarDiagnosticoRecenteAsync(carregado.AlunoId);
+            r.AdicionaObjeto(MapearDetalhe(carregado, FormatarDiagnosticoRecenteResumo(diagnosticoRecenteCadastro)));
             r.AdicionaMensagem("Estudo de caso registrado com sucesso.");
             r.Sucesso = true;
             return r;
@@ -334,11 +340,14 @@ public class EstudoDeCasoService
             var carregado = await _db.EstudosCaso
                 .AsNoTracking()
                 .Include(c => c.Aluno)
+                .ThenInclude(a => a.Escola)
+                .Include(c => c.Professor)
                 .Include(c => c.ItensEixo)
                 .ThenInclude(i => i.CatalogoEixo)
                 .FirstAsync(c => c.Id == caso.Id);
 
-            r.AdicionaObjeto(MapearDetalhe(carregado));
+            var diagnosticoRecenteAtualizar = await BuscarDiagnosticoRecenteAsync(carregado.AlunoId);
+            r.AdicionaObjeto(MapearDetalhe(carregado, FormatarDiagnosticoRecenteResumo(diagnosticoRecenteAtualizar)));
             r.AdicionaMensagem("Estudo de caso atualizado. Gere novamente o documento se precisar.");
             r.Sucesso = true;
             return r;
@@ -421,7 +430,7 @@ public class EstudoDeCasoService
             entity.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
 
-            var dto = MapearDetalhe(entity);
+            var dto = MapearDetalhe(entity, FormatarDiagnosticoRecenteResumo(diagnosticoRecente));
             r.AdicionaObjeto(dto);
             r.AdicionaMensagem("Texto simulado gerado. Revise antes de usar em documentos oficiais.");
             r.Sucesso = true;
@@ -488,17 +497,25 @@ public class EstudoDeCasoService
                 return r;
             }
 
-            entity.TextoGeradoIA = textoGerado;
+            var (etapasOk, textoNormalizado) = NormalizarEtapasEstudoCaso(textoGerado);
+            if (!etapasOk)
+            {
+                await _geracaoLog.RegistrarAsync(pid, TipoDocumentoIA.EstudoCaso, id, entity.AlunoId, sucesso: false);
+                r.SetFalha("A IA não retornou as 4 etapas esperadas do Estudo de Caso. Tente gerar novamente.");
+                return r;
+            }
+
+            entity.TextoGeradoIA = textoNormalizado;
             // Gerador mecânico (MontarTextoSimulado) temporariamente desativado do fluxo ativo —
             // espelha o texto de IA em TextoSimulado pra manter badge "documento gerado",
             // elegibilidade de criação de PAEE e download funcionando sem alterações.
-            entity.TextoSimulado = textoGerado;
+            entity.TextoSimulado = textoNormalizado;
             entity.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
 
             await _geracaoLog.RegistrarAsync(pid, TipoDocumentoIA.EstudoCaso, id, entity.AlunoId, sucesso: true);
 
-            var dto = MapearDetalhe(entity);
+            var dto = MapearDetalhe(entity, FormatarDiagnosticoRecenteResumo(diagnosticoRecente));
             r.AdicionaObjeto(dto);
             r.AdicionaMensagem("Texto gerado por IA. Revise antes de usar em documentos oficiais.");
             r.Sucesso = true;
@@ -525,7 +542,30 @@ public class EstudoDeCasoService
         return (true, "");
     }
 
-    private static EstudoDeCasoDetalheDTO MapearDetalhe(EstudoDeCaso entity)
+    private async Task<DiagnosticoFinal?> BuscarDiagnosticoRecenteAsync(int alunoId)
+    {
+        return await _db.DiagnosticosFinais
+            .AsNoTracking()
+            .Include(d => d.AvaliacaoDiagnostica)
+            .Where(d => d.AlunoId == alunoId)
+            .OrderByDescending(d => d.GeradoEm)
+            .FirstOrDefaultAsync();
+    }
+
+    private static string FormatarDiagnosticoRecenteResumo(DiagnosticoFinal? diagnosticoRecente)
+    {
+        if (diagnosticoRecente == null)
+        {
+            return "Não há diagnóstico final registrado para este(a) aluno(a). O texto seguinte baseia-se apenas no estudo de caso e nos eixos selecionados.";
+        }
+
+        var perfil = RotuloNivelAutonomia(diagnosticoRecente.NivelPerfilAutonomia).ToLower();
+        var resumo = diagnosticoRecente.Resumo?.Trim();
+        var texto = $"Perfil de autonomia identificado na avaliação diagnóstica: {perfil}.";
+        return string.IsNullOrWhiteSpace(resumo) ? texto : $"{texto} {resumo}";
+    }
+
+    private static EstudoDeCasoDetalheDTO MapearDetalhe(EstudoDeCaso entity, string diagnosticoRecenteResumo)
     {
         return new EstudoDeCasoDetalheDTO
         {
@@ -539,6 +579,11 @@ public class EstudoDeCasoService
             TextoGeradoIA = entity.TextoGeradoIA,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
+            EscolaNomeInstituicao = entity.Aluno?.Escola?.NomeInstituicao,
+            ProfessorNomeCompleto = entity.Professor?.NomeCompleto,
+            AlunoDataNascimento = entity.Aluno?.DataNascimento,
+            AlunoAno = entity.Aluno?.Ano,
+            DiagnosticoRecenteResumo = diagnosticoRecenteResumo,
             ItensEixo = entity.ItensEixo
                 .OrderBy(i => i.CatalogoEixo?.OrdemExibicao ?? 0)
                 .Select(i => new EstudoDeCasoItemDetalheDTO
@@ -550,6 +595,71 @@ public class EstudoDeCasoService
                 })
                 .ToList(),
         };
+    }
+
+    // As 4 etapas obrigatórias do Estudo de Caso, na mesma ordem do system prompt — usado pra
+    // reconhecer e remover títulos que a IA às vezes escreve como linha própria dentro de cada
+    // etapa, normalizando sempre para exatamente 4 parágrafos de prosa, sem cabeçalho embutido.
+    // Viewer e exportadores (docx/pdf) no web-app dependem desse formato pra aplicar o estilo
+    // de seção corretamente.
+    private static readonly string[] EtapasEstudoCaso =
+    {
+        "Identificação inicial das demandas e barreiras",
+        "Análise das barreiras e do contexto escolar",
+        "Identificação das potencialidades e demandas de apoio",
+        "Definição de estratégias e recursos para eliminação de barreiras",
+    };
+
+    private static string NormalizarRotuloEtapa(string texto) =>
+        System.Text.RegularExpressions.Regex.Replace(texto.Trim(), @"^[\d.\-)\s]+", "").TrimEnd('.', ':').Trim();
+
+    private static (bool Ok, string? Texto) NormalizarEtapasEstudoCaso(string textoGerado)
+    {
+        var paragrafos = System.Text.RegularExpressions.Regex
+            .Split(textoGerado.Trim(), @"\r?\n\s*\r?\n")
+            .Select(p => p.Trim())
+            .Where(p => p.Length > 0)
+            .ToList();
+
+        // Caminho feliz: a IA já retornou exatamente 4 parágrafos de prosa, sem título embutido.
+        if (paragrafos.Count == EtapasEstudoCaso.Length)
+        {
+            return (true, string.Join("\n\n", paragrafos));
+        }
+
+        // Fallback: a IA escreveu o nome de cada etapa como linha própria (título embutido),
+        // quebrando a contagem simples. Localiza as 4 etapas como âncoras linha a linha e
+        // extrai só o corpo de cada uma, descartando a linha de título repetida.
+        var linhas = textoGerado.Trim().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        var indices = new List<int>();
+        var proximaEtapa = 0;
+
+        for (var i = 0; i < linhas.Length && proximaEtapa < EtapasEstudoCaso.Length; i++)
+        {
+            if (NormalizarRotuloEtapa(linhas[i]).Equals(EtapasEstudoCaso[proximaEtapa], StringComparison.OrdinalIgnoreCase))
+            {
+                indices.Add(i);
+                proximaEtapa++;
+            }
+        }
+
+        if (indices.Count != EtapasEstudoCaso.Length)
+        {
+            return (false, null);
+        }
+
+        var corpos = indices.Select((inicio, idx) =>
+        {
+            var fim = idx + 1 < indices.Count ? indices[idx + 1] : linhas.Length;
+            return string.Join(" ", linhas.Skip(inicio + 1).Take(fim - inicio - 1).Select(l => l.Trim()).Where(l => l.Length > 0));
+        }).ToList();
+
+        if (corpos.Any(c => c.Length == 0))
+        {
+            return (false, null);
+        }
+
+        return (true, string.Join("\n\n", corpos));
     }
 
     private static string MontarPromptEstudoCaso(EstudoDeCaso entity, DiagnosticoFinal? diagnosticoRecente)

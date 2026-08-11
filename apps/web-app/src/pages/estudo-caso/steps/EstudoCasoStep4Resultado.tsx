@@ -5,8 +5,7 @@ import { ArrowClockwise, CheckCircle, DownloadSimple, FilePdf, ListChecks } from
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/useToast'
 import { EstudoCasoTextoIAViewer } from '@/components/estudo-caso/EstudoCasoTextoIAViewer'
-import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
-import { downloadEstudoCasoPdf } from '@/lib/exportEstudoCasoPdf'
+import { baixarEstudoCasoWord, baixarEstudoCasoPdf } from '@/lib/baixarEstudoCaso'
 import { gerarTextoIAEstudoCaso } from '@/services/estudoCasoService'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import {
@@ -19,7 +18,6 @@ export function EstudoCasoStep4Resultado() {
   const navigate = useNavigate()
   const { success, error: showError } = useToast()
   const alunoId = useEstudoCasoWizardStore((s) => s.alunoId)
-  const titulo = useEstudoCasoWizardStore((s) => s.titulo)
   const casoIdSalvo = useEstudoCasoWizardStore((s) => s.casoIdSalvo)
   const textoSimulado = useEstudoCasoWizardStore((s) => s.textoSimulado)
   const textoGeradoIA = useEstudoCasoWizardStore((s) => s.textoGeradoIA)
@@ -59,13 +57,9 @@ export function EstudoCasoStep4Resultado() {
   }
 
   async function baixarWord() {
-    if (!textoSimulado?.trim()) return
+    if (!casoIdSalvo || !textoSimulado?.trim()) return
     try {
-      await downloadEstudoCasoDocx({
-        tituloEstudo: titulo.trim() || 'Estudo de caso',
-        alunoNome: alunoNome?.trim() || 'Aluno(a)',
-        textoCompleto: textoSimulado,
-      })
+      await baixarEstudoCasoWord(casoIdSalvo)
       success('Documento gerado', 'Arquivo .docx baixado — revise antes de uso oficial.')
     } catch {
       showError('Download', 'Não foi possível baixar o arquivo Word.')
@@ -73,13 +67,9 @@ export function EstudoCasoStep4Resultado() {
   }
 
   async function baixarPdf() {
-    if (!textoSimulado?.trim()) return
+    if (!casoIdSalvo || !textoSimulado?.trim()) return
     try {
-      downloadEstudoCasoPdf({
-        tituloEstudo: titulo.trim() || 'Estudo de caso',
-        alunoNome: alunoNome?.trim() || 'Aluno(a)',
-        textoCompleto: textoSimulado,
-      })
+      await baixarEstudoCasoPdf(casoIdSalvo)
       success('PDF gerado', 'Arquivo baixado — revise antes de uso oficial.')
     } catch {
       showError('Download PDF', 'Não foi possível baixar o arquivo.')
@@ -118,6 +108,7 @@ export function EstudoCasoStep4Resultado() {
           >
             <EstudoCasoTextoIAViewer
               texto={textoGeradoIA ?? textoSimulado ?? ''}
+              alunoNome={alunoNome ?? undefined}
               scrollClassName="max-h-[480px]"
             />
           </motion.div>
