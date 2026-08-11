@@ -197,6 +197,7 @@ builder.Services.AddScoped<HotmartWebhookService>();
 builder.Services.AddHostedService<HotmartReconciliacaoAssinaturasJob>();
 builder.Services.AddScoped<DocumentoBibliotecaService>();
 builder.Services.AddScoped<PromptSistemaIAService>();
+builder.Services.AddScoped<GeracaoIALogService>();
 builder.Services.AddHttpClient<api.Services.IA.IGeradorTextoIA, api.Services.IA.GeminiGeradorTextoIA>();
 
 builder.Services.AddControllers();

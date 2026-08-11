@@ -19,17 +19,20 @@ namespace api.Services
         private readonly UserManager<Usuario> _usuario;
         private readonly PromptSistemaIAService _promptService;
         private readonly IGeradorTextoIA _geradorTextoIA;
+        private readonly GeracaoIALogService _geracaoLog;
 
         public PlanejamentoService(
             AppDbContext contexto,
             UserManager<Usuario> usuario,
             PromptSistemaIAService promptService,
-            IGeradorTextoIA geradorTextoIA)
+            IGeradorTextoIA geradorTextoIA,
+            GeracaoIALogService geracaoLog)
         {
             _contexto = contexto;
             _usuario = usuario;
             _promptService = promptService;
             _geradorTextoIA = geradorTextoIA;
+            _geracaoLog = geracaoLog;
         }
 
         /// <returns>Mensagem de erro ou null quando não há conflito.</returns>
@@ -411,6 +414,7 @@ namespace api.Services
                 }
                 catch (InvalidOperationException ex)
                 {
+                    await _geracaoLog.RegistrarAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.PAEE, planejamentoId, aluno.Id, sucesso: false);
                     r.SetFalha(ex.Message);
                     return r;
                 }
@@ -423,6 +427,7 @@ namespace api.Services
 
                 if (partes.Count != 3)
                 {
+                    await _geracaoLog.RegistrarAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.PAEE, planejamentoId, aluno.Id, sucesso: false);
                     r.SetFalha("A IA não retornou os 3 parágrafos esperados (objetivo de curto, médio e longo prazo). Tente gerar novamente.");
                     return r;
                 }
@@ -435,6 +440,8 @@ namespace api.Services
                 planejamento.ObjetivoLongoCatalogoId = null;
 
                 await _contexto.SaveChangesAsync();
+
+                await _geracaoLog.RegistrarAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.PAEE, planejamentoId, aluno.Id, sucesso: true);
 
                 var atualizado = await Buscar(planejamentoId, usuario);
                 atualizado.AdicionaMensagem("Objetivos gerados por IA. Revise antes de usar em documentos oficiais.");

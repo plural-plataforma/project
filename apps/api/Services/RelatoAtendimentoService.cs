@@ -19,12 +19,18 @@ public class RelatoAtendimentoService
     private readonly AppDbContext _db;
     private readonly PromptSistemaIAService _promptService;
     private readonly IGeradorTextoIA _geradorTextoIA;
+    private readonly GeracaoIALogService _geracaoLog;
 
-    public RelatoAtendimentoService(AppDbContext db, PromptSistemaIAService promptService, IGeradorTextoIA geradorTextoIA)
+    public RelatoAtendimentoService(
+        AppDbContext db,
+        PromptSistemaIAService promptService,
+        IGeradorTextoIA geradorTextoIA,
+        GeracaoIALogService geracaoLog)
     {
         _db = db;
         _promptService = promptService;
         _geradorTextoIA = geradorTextoIA;
+        _geracaoLog = geracaoLog;
     }
 
     private static string SerializarLista(IReadOnlyCollection<string>? itens)
@@ -316,12 +322,15 @@ public class RelatoAtendimentoService
             }
             catch (InvalidOperationException ex)
             {
+                await _geracaoLog.RegistrarAsync(professorId, TipoDocumentoIA.RelatoAtendimento, id, ent.AlunoId, sucesso: false);
                 r.SetFalha(ex.Message);
                 return r;
             }
 
             ent.TextoGeradoIA = textoGerado.Trim();
             await _db.SaveChangesAsync();
+
+            await _geracaoLog.RegistrarAsync(professorId, TipoDocumentoIA.RelatoAtendimento, id, ent.AlunoId, sucesso: true);
 
             r.AdicionaObjeto(MapToBuscarDto(ent));
             r.AdicionaMensagem("Texto gerado por IA. Revise antes de usar em documentos oficiais.");
