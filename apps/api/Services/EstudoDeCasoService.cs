@@ -13,12 +13,18 @@ public class EstudoDeCasoService
     private readonly AppDbContext _db;
     private readonly PromptSistemaIAService _promptService;
     private readonly IGeradorTextoIA _geradorTextoIA;
+    private readonly GeracaoIALogService _geracaoLog;
 
-    public EstudoDeCasoService(AppDbContext db, PromptSistemaIAService promptService, IGeradorTextoIA geradorTextoIA)
+    public EstudoDeCasoService(
+        AppDbContext db,
+        PromptSistemaIAService promptService,
+        IGeradorTextoIA geradorTextoIA,
+        GeracaoIALogService geracaoLog)
     {
         _db = db;
         _promptService = promptService;
         _geradorTextoIA = geradorTextoIA;
+        _geracaoLog = geracaoLog;
     }
 
     public async Task<ServiceResponse<EstudoDeCasoEixoCatalogoDTO>> ListarEixosCatalogoAsync()
@@ -477,6 +483,7 @@ public class EstudoDeCasoService
             }
             catch (InvalidOperationException ex)
             {
+                await _geracaoLog.RegistrarAsync(pid, TipoDocumentoIA.EstudoCaso, id, entity.AlunoId, sucesso: false);
                 r.SetFalha(ex.Message);
                 return r;
             }
@@ -488,6 +495,8 @@ public class EstudoDeCasoService
             entity.TextoSimulado = textoGerado;
             entity.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
+
+            await _geracaoLog.RegistrarAsync(pid, TipoDocumentoIA.EstudoCaso, id, entity.AlunoId, sucesso: true);
 
             var dto = MapearDetalhe(entity);
             r.AdicionaObjeto(dto);

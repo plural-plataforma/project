@@ -1,7 +1,8 @@
-﻿using api.DTOs.Autenticacao;
+using api.DTOs.Autenticacao;
 using api.DTOs.Webhooks;
 using api.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace api.Services
@@ -12,6 +13,9 @@ namespace api.Services
         private readonly ILogger<HotmartWebhookService> _logger;
         private readonly string _expectedProductId;
         private readonly UserManager<Usuario> _usuario;
+
+        private static readonly string[] EventosLiberamAcesso = { "PURCHASE_APPROVED" };
+        private static readonly string[] EventosCortamAcesso = { "PURCHASE_REFUNDED", "PURCHASE_CHARGEBACK" };
 
         public HotmartWebhookService(
             AutenticacaoService autenticacaoService,
@@ -25,28 +29,29 @@ namespace api.Services
             _usuario = usuario;
         }
 
+        private static DateTime? ConverterEpocaMs(long? epocaMs)
+        {
+            if (!epocaMs.HasValue || epocaMs.Value <= 0) return null;
+            return DateTimeOffset.FromUnixTimeMilliseconds(epocaMs.Value).UtcDateTime;
+        }
+
+        private async Task<Usuario?> EncontrarUsuarioAsync(string? subscriberCode, string? email)
+        {
+            var usuario = !string.IsNullOrWhiteSpace(subscriberCode)
+                ? await _usuario.Users.FirstOrDefaultAsync(u => u.HotmartSubscriberCode == subscriberCode)
+                : null;
+            usuario ??= !string.IsNullOrWhiteSpace(email) ? await _usuario.FindByEmailAsync(email.Trim()) : null;
+            return usuario;
+        }
+
         public async Task<bool> ProcessPurchaseWebhookAsync(HotmartWebhookV2Dto payload)
         {
             _logger.LogDebug("Processando webhook - Evento recebido: '{Event}' | Tem Data? {HasData}",
-        payload?.Event, payload?.Data != null);
-
-            var validEvents = new[] { "PURCHASE_APPROVED" };
+                payload?.Event, payload?.Data != null);
 
             if (payload == null || string.IsNullOrWhiteSpace(payload.Event))
             {
                 _logger.LogWarning("Webhook ignorado: payload ou event nulo/vazio");
-                return true;
-            }
-
-            if (!validEvents.Contains(payload.Event))
-            {
-                _logger.LogInformation("Webhook ignorado: evento '{Event}' não está na lista válida", payload.Event);
-                return true;
-            }
-
-            if (payload == null || !validEvents.Contains(payload.Event ?? ""))
-            {
-                _logger.LogInformation("Webhook ignorado: evento inválido ou ausente ({Event})", payload?.Event);
                 return true;
             }
 
@@ -67,19 +72,36 @@ namespace api.Services
             }
 
             var buyer = data.Buyer;
+            var subscriberCode = data.Subscription?.Subscriber?.Code;
+
+            if (EventosCortamAcesso.Contains(payload.Event))
+            {
+                return await CortarAcessoAsync(payload.Event, buyer?.Email, subscriberCode);
+            }
+
+            if (!EventosLiberamAcesso.Contains(payload.Event))
+            {
+                _logger.LogInformation("Webhook ignorado: evento '{Event}' não está na lista tratada", payload.Event);
+                return true;
+            }
+
             if (buyer == null || string.IsNullOrWhiteSpace(buyer.Email))
             {
                 _logger.LogWarning("Buyer ou email ausente no webhook (evento: {Event})", payload.Event);
                 return true;
             }
 
-            // Idempotência
             var emailTrim = buyer.Email.Trim();
-            var existingUser = await _usuario.FindByEmailAsync(emailTrim);
+
+            // data_next_charge = data da próxima cobrança = vencimento real do acesso já pago.
+            // warranty_date (garantia/reembolso) só entra como fallback se a Hotmart não mandar recorrência.
+            var expiracao = ConverterEpocaMs(data.Purchase?.DateNextCharge) ?? data.Product?.WarrantyDate;
+
+            var existingUser = await EncontrarUsuarioAsync(subscriberCode, emailTrim);
+
             if (existingUser != null)
             {
-                _logger.LogInformation("Usuário já cadastrado via Hotmart: {Email} (evento: {Event})", emailTrim, payload.Event);
-                return true;
+                return await RenovarAcessoAsync(existingUser, payload.Event, expiracao, subscriberCode);
             }
 
             var senhaAleatoria = "Plural@2025"; // ← considere gerar aleatória em produção
@@ -98,7 +120,7 @@ namespace api.Services
                 Senha = senhaAleatoria,
                 AceitouTermos = true,
                 DeveAlterarSenha = true,
-                ExpirationDate = data.Product?.WarrantyDate   // data de garantia do produto
+                ExpirationDate = expiracao,
             };
 
             try
@@ -107,6 +129,16 @@ namespace api.Services
 
                 if (result.Succeeded)
                 {
+                    if (!string.IsNullOrWhiteSpace(subscriberCode))
+                    {
+                        var criado = await _usuario.FindByEmailAsync(emailTrim);
+                        if (criado != null)
+                        {
+                            criado.HotmartSubscriberCode = subscriberCode;
+                            await _usuario.UpdateAsync(criado);
+                        }
+                    }
+
                     _logger.LogInformation(
                         "Cadastro automático Hotmart concluído | Evento: {Event} | Email: {Email} | Nome: {Nome} | Expiração: {Exp}",
                         payload.Event,
@@ -131,6 +163,138 @@ namespace api.Services
                     payload.Event, registroDto.Email);
                 return false;
             }
+        }
+
+        public async Task<bool> ProcessCancellationWebhookAsync(HotmartSubscriptionCancellationWebhookDto payload)
+        {
+            if (payload?.Data == null)
+            {
+                _logger.LogWarning("Webhook de cancelamento ignorado: payload ou data nulo");
+                return true;
+            }
+
+            var data = payload.Data;
+
+            if (data.Product?.Id.ToString() != _expectedProductId)
+            {
+                _logger.LogInformation("Cancelamento ignorado: produto ID {ProductId} ≠ esperado {Expected}",
+                    data.Product?.Id, _expectedProductId);
+                return true;
+            }
+
+            var subscriberCode = data.Subscriber?.Code;
+            var email = data.Subscriber?.Email;
+
+            var usuario = await EncontrarUsuarioAsync(subscriberCode, email);
+            if (usuario == null)
+            {
+                _logger.LogInformation("Cancelamento Hotmart ignorado: usuário não encontrado (código {Codigo}, e-mail {Email})",
+                    subscriberCode, email);
+                return true;
+            }
+
+            // Acesso continua válido até o fim do período já pago — Hotmart não cobra mais depois disso.
+            usuario.ExpirationDate = ConverterEpocaMs(data.DateNextCharge) ?? usuario.ExpirationDate;
+
+            var result = await _usuario.UpdateAsync(usuario);
+            if (!result.Succeeded)
+            {
+                _logger.LogError("Falha ao aplicar cancelamento Hotmart para {Email}: {Errors}",
+                    usuario.Email, string.Join(" | ", result.Errors.Select(e => e.Description)));
+                return false;
+            }
+
+            _logger.LogInformation("Assinatura cancelada via Hotmart | Email: {Email} | Acesso válido até: {Exp}",
+                usuario.Email, usuario.ExpirationDate?.ToString("yyyy-MM-dd") ?? "sem expiração");
+            return true;
+        }
+
+        public async Task<bool> ProcessChargeDateUpdateWebhookAsync(HotmartChargeDateUpdateWebhookDto payload)
+        {
+            var data = payload?.Data;
+            var subscription = data?.Subscription;
+
+            if (data == null || subscription == null)
+            {
+                _logger.LogWarning("Webhook de troca de data de cobrança ignorado: payload ou data nulo");
+                return true;
+            }
+
+            if (subscription.Product?.Id.ToString() != _expectedProductId)
+            {
+                _logger.LogInformation("Troca de data de cobrança ignorada: produto ID {ProductId} ≠ esperado {Expected}",
+                    subscription.Product?.Id, _expectedProductId);
+                return true;
+            }
+
+            var subscriberCode = data.Subscriber?.Code;
+            var email = data.Subscriber?.Email;
+
+            var usuario = await EncontrarUsuarioAsync(subscriberCode, email);
+            if (usuario == null)
+            {
+                _logger.LogInformation("Troca de data de cobrança ignorada: usuário não encontrado (código {Codigo}, e-mail {Email})",
+                    subscriberCode, email);
+                return true;
+            }
+
+            // date_next_charge aqui já vem como DateTime (string ISO no payload), diferente dos outros eventos.
+            if (subscription.DateNextCharge.HasValue)
+            {
+                usuario.ExpirationDate = subscription.DateNextCharge.Value;
+                await _usuario.UpdateAsync(usuario);
+
+                _logger.LogInformation(
+                    "Data de cobrança alterada via Hotmart | Email: {Email} | Dia antigo: {Antigo} | Dia novo: {Novo} | Nova expiração: {Exp}",
+                    usuario.Email, subscription.OldChargeDay, subscription.NewChargeDay, usuario.ExpirationDate);
+            }
+
+            return true;
+        }
+
+        private async Task<bool> RenovarAcessoAsync(Usuario usuario, string evento, DateTime? expiracao, string? subscriberCode)
+        {
+            usuario.ExpirationDate = expiracao ?? usuario.ExpirationDate;
+            usuario.IsActive = true;
+            if (!string.IsNullOrWhiteSpace(subscriberCode) && usuario.HotmartSubscriberCode != subscriberCode)
+            {
+                usuario.HotmartSubscriberCode = subscriberCode;
+            }
+
+            var result = await _usuario.UpdateAsync(usuario);
+            if (!result.Succeeded)
+            {
+                _logger.LogError("Falha ao renovar acesso via webhook {Event} para {Email}: {Errors}",
+                    evento, usuario.Email, string.Join(" | ", result.Errors.Select(e => e.Description)));
+                return false;
+            }
+
+            _logger.LogInformation("Acesso renovado via Hotmart | Evento: {Event} | Email: {Email} | Nova expiração: {Exp}",
+                evento, usuario.Email, usuario.ExpirationDate?.ToString("yyyy-MM-dd") ?? "sem expiração");
+            return true;
+        }
+
+        private async Task<bool> CortarAcessoAsync(string evento, string? email, string? subscriberCode)
+        {
+            var usuario = await EncontrarUsuarioAsync(subscriberCode, email);
+            if (usuario == null)
+            {
+                _logger.LogInformation("Evento {Event} ignorado: usuário não encontrado (código {Codigo}, e-mail {Email})",
+                    evento, subscriberCode, email);
+                return true;
+            }
+
+            usuario.IsActive = false;
+            var result = await _usuario.UpdateAsync(usuario);
+            if (!result.Succeeded)
+            {
+                _logger.LogError("Falha ao cortar acesso via webhook {Event} para {Email}: {Errors}",
+                    evento, usuario.Email, string.Join(" | ", result.Errors.Select(e => e.Description)));
+                return false;
+            }
+
+            _logger.LogWarning("Acesso cortado via Hotmart | Evento: {Event} | Email: {Email}", evento, usuario.Email);
+            return true;
         }
     }
 }

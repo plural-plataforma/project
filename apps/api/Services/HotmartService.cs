@@ -188,6 +188,90 @@ public class HotmartService
         return vendasTotais;
     }
 
+    public async Task<List<SubscriptionItem>> GetAssinaturasAsync(string productId, params string[] status)
+    {
+        var token = await GetTokenAsync();
+
+        var assinaturas = new List<SubscriptionItem>();
+        string? nextPageToken = null;
+
+        do
+        {
+            var queryParams = new List<string> { $"product_id={Uri.EscapeDataString(productId)}", "max_results=100" };
+            foreach (var s in status)
+                queryParams.Add($"status={Uri.EscapeDataString(s)}");
+
+            if (!string.IsNullOrEmpty(nextPageToken))
+                queryParams.Add($"page_token={nextPageToken}");
+
+            var url = $"{_apiUrl}/subscriptions?{string.Join("&", queryParams)}";
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await _httpClient.GetAsync(url);
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                throw new HttpRequestException("Timeout ao consultar assinaturas na API Hotmart", ex);
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            _logger.LogInformation("Hotmart API (assinaturas) → {Status} | {Url}", response.StatusCode, url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Erro Hotmart API (assinaturas): {Status} - {Content}", response.StatusCode, content);
+                throw new HttpRequestException($"Erro na API Hotmart (assinaturas): {response.StatusCode} - {content}");
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+                break;
+
+            var json = JsonSerializer.Deserialize<JsonElement>(content);
+
+            if (!json.TryGetProperty("items", out var itemsArray) || itemsArray.GetArrayLength() == 0)
+                break;
+
+            foreach (var item in itemsArray.EnumerateArray())
+            {
+                try
+                {
+                    assinaturas.Add(new SubscriptionItem
+                    {
+                        SubscriberCode = item.TryGetProperty("subscriber_code", out var codeEl) ? codeEl.GetString() ?? "" : "",
+                        Status = item.TryGetProperty("status", out var statusEl) ? statusEl.GetString() ?? "" : "",
+                        DateNextChargeRaw = item.TryGetProperty("date_next_charge", out var dncEl) && dncEl.ValueKind == JsonValueKind.Number
+                            ? dncEl.GetInt64()
+                            : null,
+                        SubscriberEmail = item.TryGetProperty("subscriber", out var subEl) && subEl.TryGetProperty("email", out var emailEl)
+                            ? emailEl.GetString()
+                            : null,
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Erro ao processar item individual de assinatura Hotmart");
+                    // Continua processando os outros itens
+                }
+            }
+
+            nextPageToken = json.TryGetProperty("page_info", out var pageInfo)
+                ? pageInfo.TryGetProperty("next_page_token", out var tokenEl) && tokenEl.ValueKind != JsonValueKind.Null
+                    ? tokenEl.GetString()
+                    : null
+                : null;
+
+        } while (!string.IsNullOrEmpty(nextPageToken));
+
+        _logger.LogInformation("Total de assinaturas obtidas: {Count}", assinaturas.Count);
+
+        return assinaturas;
+    }
+
     public class SaleItem
     {
         public string Transaction { get; set; } = "";
@@ -198,5 +282,18 @@ public class HotmartService
         public string BuyerName { get; set; } = "";
         public decimal TotalValue { get; set; }
         public DateTime CreatedDate { get; set; }
+    }
+
+    public class SubscriptionItem
+    {
+        public string SubscriberCode { get; set; } = "";
+        public string Status { get; set; } = "";
+
+        // A doc oficial da Hotmart descreve este campo como milissegundos, mas o exemplo de
+        // resposta mostra um valor de 10 dígitos (segundos). Guardamos o valor cru aqui e a
+        // conversão fica no job de reconciliação, com heurística de magnitude documentada lá.
+        public long? DateNextChargeRaw { get; set; }
+
+        public string? SubscriberEmail { get; set; }
     }
 }

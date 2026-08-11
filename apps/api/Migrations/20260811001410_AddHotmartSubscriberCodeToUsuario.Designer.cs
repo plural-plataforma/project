@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811001410_AddHotmartSubscriberCodeToUsuario")]
+    partial class AddHotmartSubscriberCodeToUsuario
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1071,45 +1074,6 @@ namespace api.Migrations
                         .IsUnique();
 
                     b.ToTable("estudo_caso_itens_eixo");
-                });
-
-            modelBuilder.Entity("api.Models.GeracaoIALog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AlunoId")
-                        .HasColumnType("integer")
-                        .HasColumnName("alunoid");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criadoem");
-
-                    b.Property<int>("DocumentoId")
-                        .HasColumnType("integer")
-                        .HasColumnName("documentoid");
-
-                    b.Property<int>("ProfessorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("professorid");
-
-                    b.Property<bool>("Sucesso")
-                        .HasColumnType("boolean")
-                        .HasColumnName("sucesso");
-
-                    b.Property<int>("TipoDocumento")
-                        .HasColumnType("integer")
-                        .HasColumnName("tipodocumento");
-
-                    b.HasKey("Id")
-                        .HasName("pk_geracao_ia_log");
-
-                    b.ToTable("geracao_ia_log");
                 });
 
             modelBuilder.Entity("api.Models.Habilidade", b =>

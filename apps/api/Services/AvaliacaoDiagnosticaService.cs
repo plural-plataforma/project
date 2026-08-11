@@ -23,6 +23,7 @@ namespace api.Services
         private readonly UserManager<Usuario> _userManager;
         private readonly PromptSistemaIAService _promptService;
         private readonly IGeradorTextoIA _geradorTextoIA;
+        private readonly GeracaoIALogService _geracaoLog;
         private static readonly HashSet<string> NiveisPermitidos = new(StringComparer.OrdinalIgnoreCase)
         {
             "Autonomia",
@@ -35,12 +36,14 @@ namespace api.Services
             AppDbContext contexto,
             UserManager<Usuario> userManager,
             PromptSistemaIAService promptService,
-            IGeradorTextoIA geradorTextoIA)
+            IGeradorTextoIA geradorTextoIA,
+            GeracaoIALogService geracaoLog)
         {
             _contexto = contexto;
             _userManager = userManager;
             _promptService = promptService;
             _geradorTextoIA = geradorTextoIA;
+            _geracaoLog = geracaoLog;
         }
 
         // Resumo agregado para o dashboard do Admin — sem filtro por professor
@@ -611,6 +614,7 @@ namespace api.Services
                 }
                 catch (InvalidOperationException ex)
                 {
+                    await _geracaoLog.RegistrarAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.AvaliacaoDiagnostica, avaliacaoId, alunoId, sucesso: false);
                     r.SetFalha(ex.Message);
                     return r;
                 }
@@ -623,6 +627,7 @@ namespace api.Services
 
                 if (partes.Count != 4)
                 {
+                    await _geracaoLog.RegistrarAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.AvaliacaoDiagnostica, avaliacaoId, alunoId, sucesso: false);
                     r.SetFalha("A IA não retornou os 4 parágrafos esperados (resumo, recomendações, habilidades fortes e a reforçar). Tente gerar novamente.");
                     return r;
                 }
@@ -650,6 +655,8 @@ namespace api.Services
                 existente.GeradoEm = now;
 
                 await _contexto.SaveChangesAsync();
+
+                await _geracaoLog.RegistrarAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.AvaliacaoDiagnostica, avaliacaoId, alunoId, sucesso: true);
 
                 existente.Aluno = aluno;
                 r.AdicionaObjeto(MapearDiagnosticoFinalDto(existente));

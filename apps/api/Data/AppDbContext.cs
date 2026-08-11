@@ -43,6 +43,7 @@ namespace Data
         public DbSet<ConfiguracaoSite> ConfiguracoesSite { get; set; }
         public DbSet<DocumentoBiblioteca> DocumentosBiblioteca { get; set; }
         public DbSet<PromptSistemaIA> PromptsSistemaIA { get; set; }
+        public DbSet<GeracaoIALog> GeracoesIALog { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
