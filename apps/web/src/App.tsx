@@ -26,6 +26,8 @@ const CadastroBloco = lazy(() => import('./pages/Blocos/CadastrosBloco'))
 const DashboardAtividades = lazy(() => import('./pages/Atividades/DashboardAtividades'))
 const CadastroDeAtividade = lazy(() => import('./pages/Atividades/CadastroDeAtividade'))
 const ConfiguracoesGerais = lazy(() => import('./pages/Configuracoes/ConfiguracoesGerais'))
+const BibliotecaModelos = lazy(() => import('./pages/Documentos/BibliotecaModelos'))
+const PromptsIA = lazy(() => import('./pages/Documentos/PromptsIA'))
 
 function PageFallback() {
   return (
@@ -71,6 +73,8 @@ function App() {
                 <Route path="/atividades/:id/:action?" element={<CadastroDeAtividade />} />
 
                 <Route path="/configuracoes" element={<ConfiguracoesGerais />} />
+                <Route path="/biblioteca-modelos" element={<BibliotecaModelos />} />
+                <Route path="/prompts-ia" element={<PromptsIA />} />
 
                 {/* Rotas do usuário */}
                 <Route path="/change-password" element={<ChangePassword />} />

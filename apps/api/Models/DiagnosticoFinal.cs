@@ -36,6 +36,9 @@ namespace api.Models
         [Column(TypeName = "text")]
         public string? HabilidadesAReenforcar { get; set; }
 
+        [Column(TypeName = "text")]
+        public string? TextoGeradoIA { get; set; }
+
         public DateTime GeradoEm { get; set; } = DateTime.UtcNow;
     }
 }

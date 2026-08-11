@@ -122,8 +122,8 @@ export default function ProfileUserAppEdit({
     try {
       await updateUserProfile(payload);
 
+      if (onSuccess) await onSuccess();
       setSuccess(true);
-      if (onSuccess) onSuccess();
 
       setTimeout(() => onClose(), 1800);
     } catch (err: any) {

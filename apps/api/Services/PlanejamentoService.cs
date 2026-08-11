@@ -3,8 +3,10 @@ using api.DTOs.Estrategia;
 using api.DTOs.Habilidade;
 using api.DTOs.Avaliacao;
 using api.DTOs.Planejamento;
+using api.Helpers;
 using api.Models;
 using api.Responses;
+using api.Services.IA;
 using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +17,19 @@ namespace api.Services
     {
         private readonly AppDbContext _contexto;
         private readonly UserManager<Usuario> _usuario;
+        private readonly PromptSistemaIAService _promptService;
+        private readonly IGeradorTextoIA _geradorTextoIA;
 
-        public PlanejamentoService(AppDbContext contexto, UserManager<Usuario> usuario)
+        public PlanejamentoService(
+            AppDbContext contexto,
+            UserManager<Usuario> usuario,
+            PromptSistemaIAService promptService,
+            IGeradorTextoIA geradorTextoIA)
         {
             _contexto = contexto;
             _usuario = usuario;
+            _promptService = promptService;
+            _geradorTextoIA = geradorTextoIA;
         }
 
         /// <returns>Mensagem de erro ou null quando não há conflito.</returns>
@@ -352,6 +362,151 @@ namespace api.Services
                 resposta.SetFalha("Erro ao buscar planejamento.");
                 return resposta;
             }
+        }
+
+        public async Task<ServiceResponse<PlanejamentoBuscarDTO>> GerarObjetivosIAAsync(int planejamentoId, Usuario usuario)
+        {
+            var r = new ServiceResponse<PlanejamentoBuscarDTO>();
+            try
+            {
+                var planejamento = await _contexto.Planejamentos
+                    .Include(p => p.AlunosXPlanejamentos).ThenInclude(ax => ax.Aluno)
+                    .Include(p => p.HabilidadesXPlanejamentos).ThenInclude(hx => hx.Habilidade)
+                    .Include(p => p.EstrategiasXPlanejamentos).ThenInclude(ex => ex.Estrategia)
+                    .FirstOrDefaultAsync(p => p.ID == planejamentoId && p.IdProfessor == usuario.ProfessorId);
+
+                if (planejamento == null)
+                {
+                    r.SetFalha("Planejamento não encontrado.");
+                    return r;
+                }
+
+                var aluno = planejamento.AlunosXPlanejamentos.Select(ax => ax.Aluno).FirstOrDefault();
+                if (aluno == null)
+                {
+                    r.SetFalha("Vincule um aluno ao PAEE antes de gerar objetivos por IA.");
+                    return r;
+                }
+
+                var estudoCaso = await _contexto.EstudosCaso
+                    .AsNoTracking()
+                    .Include(e => e.ItensEixo).ThenInclude(i => i.CatalogoEixo)
+                    .Where(e => e.AlunoId == aluno.Id)
+                    .OrderByDescending(e => e.UpdatedAt)
+                    .FirstOrDefaultAsync();
+
+                var systemPrompt = await _promptService.BuscarConteudoAtivoAsync(TipoDocumentoIA.PAEE);
+                if (string.IsNullOrWhiteSpace(systemPrompt))
+                {
+                    r.SetFalha("Nenhum prompt de sistema cadastrado para PAEE. Peça à gestora para configurar em Prompts de IA.");
+                    return r;
+                }
+
+                var promptUsuario = MontarPromptObjetivosPaee(planejamento, aluno, estudoCaso);
+
+                string textoGerado;
+                try
+                {
+                    textoGerado = await _geradorTextoIA.GerarTextoAsync(systemPrompt, promptUsuario);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    r.SetFalha(ex.Message);
+                    return r;
+                }
+
+                var partes = System.Text.RegularExpressions.Regex
+                    .Split(textoGerado.Trim(), @"\r?\n\s*\r?\n")
+                    .Select(p => p.Trim())
+                    .Where(p => p.Length > 0)
+                    .ToList();
+
+                if (partes.Count != 3)
+                {
+                    r.SetFalha("A IA não retornou os 3 parágrafos esperados (objetivo de curto, médio e longo prazo). Tente gerar novamente.");
+                    return r;
+                }
+
+                planejamento.ObjetivoCurtoPrazo = partes[0];
+                planejamento.ObjetivoMedioPrazo = partes[1];
+                planejamento.ObjetivoLongoPrazo = partes[2];
+                planejamento.ObjetivoCurtoCatalogoId = null;
+                planejamento.ObjetivoMedioCatalogoId = null;
+                planejamento.ObjetivoLongoCatalogoId = null;
+
+                await _contexto.SaveChangesAsync();
+
+                var atualizado = await Buscar(planejamentoId, usuario);
+                atualizado.AdicionaMensagem("Objetivos gerados por IA. Revise antes de usar em documentos oficiais.");
+                return atualizado;
+            }
+            catch (Exception ex)
+            {
+                r.SetFalha($"Erro ao gerar objetivos do PAEE via IA: {ex.Message}");
+                return r;
+            }
+        }
+
+        private static string MontarPromptObjetivosPaee(Planejamento planejamento, Aluno aluno, EstudoDeCaso? estudoCaso)
+        {
+            var nome = aluno.NomeCompleto?.Trim() ?? "Aluno(a)";
+            var anoSerie = aluno.Ano?.Trim() ?? "não informado";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Redija os objetivos do PAEE a partir destes dados (siga a estrutura de 3 parágrafos definida no system prompt):");
+            sb.AppendLine();
+            sb.AppendLine($"Estudante: {nome}");
+            sb.AppendLine($"Ano/Série: {anoSerie}");
+            sb.AppendLine($"PAEE: {planejamento.Apelido}");
+            if (!string.IsNullOrWhiteSpace(planejamento.DescicaoPlanejamento))
+                sb.AppendLine($"Descrição do planejamento: {planejamento.DescicaoPlanejamento.Trim()}");
+
+            if (estudoCaso != null)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"Estudo de caso: {estudoCaso.Titulo.Trim()}");
+                var textoEstudo = (estudoCaso.TextoGeradoIA ?? estudoCaso.TextoSimulado)?.Trim();
+                if (!string.IsNullOrWhiteSpace(textoEstudo))
+                    sb.AppendLine($"Texto do estudo de caso: {textoEstudo}");
+
+                var eixosComAnotacao = estudoCaso.ItensEixo
+                    .Where(i => !string.IsNullOrWhiteSpace(i.Anotacao))
+                    .OrderBy(i => i.CatalogoEixo?.OrdemExibicao ?? 0)
+                    .ToList();
+                if (eixosComAnotacao.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("Barreiras e anotações por eixo (Estudo de Caso):");
+                    foreach (var item in eixosComAnotacao)
+                    {
+                        var rotulo = item.CatalogoEixo?.Rotulo ?? $"Eixo #{item.EixoCatalogoId}";
+                        sb.AppendLine($"- {rotulo}: {item.Anotacao!.Trim()}");
+                    }
+                }
+            }
+            else
+            {
+                sb.AppendLine();
+                sb.AppendLine("Não há Estudo de Caso registrado para este aluno até o momento.");
+            }
+
+            var habilidades = planejamento.HabilidadesXPlanejamentos
+                .Select(hx => SugestaoPaeePorHabilidadeHelper.FormatarRotuloHabilidade(hx.Habilidade))
+                .ToList();
+            sb.AppendLine();
+            sb.AppendLine(habilidades.Count > 0
+                ? $"Habilidades vinculadas a este PAEE: {string.Join("; ", habilidades)}"
+                : "Nenhuma habilidade vinculada a este PAEE até o momento.");
+
+            var estrategias = planejamento.EstrategiasXPlanejamentos
+                .Where(ex => !string.IsNullOrWhiteSpace(ex.Estrategia?.Descricao))
+                .Select(ex => ex.Estrategia.Descricao.Trim())
+                .ToList();
+            sb.AppendLine(estrategias.Count > 0
+                ? $"Estratégias vinculadas a este PAEE: {string.Join("; ", estrategias)}"
+                : "Nenhuma estratégia vinculada a este PAEE até o momento.");
+
+            return sb.ToString();
         }
 
         public async Task<ServiceResponse<bool>> SubstituirEncontros(

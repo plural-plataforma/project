@@ -753,6 +753,10 @@ namespace api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("resumo");
 
+                    b.Property<string>("TextoGeradoIA")
+                        .HasColumnType("text")
+                        .HasColumnName("textogeradoia");
+
                     b.HasKey("Id")
                         .HasName("pk_diagnosticos_finais");
 
@@ -763,6 +767,59 @@ namespace api.Migrations
                         .HasDatabaseName("ix_diagnosticos_finais_avaliacaodiagnosticaid");
 
                     b.ToTable("diagnosticos_finais");
+                });
+
+            modelBuilder.Entity("api.Models.DocumentoBiblioteca", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativo");
+
+                    b.Property<string>("Categoria")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("categoria");
+
+                    b.Property<byte[]>("ConteudoArquivo")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("conteudoarquivo");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdat");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome");
+
+                    b.Property<string>("NomeArquivoOriginal")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("nomearquivooriginal");
+
+                    b.Property<long>("TamanhoBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tamanhobytes");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedat");
+
+                    b.HasKey("Id")
+                        .HasName("pk_documento_biblioteca");
+
+                    b.ToTable("documento_biblioteca");
                 });
 
             modelBuilder.Entity("api.Models.Escola", b =>
@@ -914,6 +971,10 @@ namespace api.Migrations
                     b.Property<int>("ProfessorId")
                         .HasColumnType("integer")
                         .HasColumnName("professorid");
+
+                    b.Property<string>("TextoGeradoIA")
+                        .HasColumnType("text")
+                        .HasColumnName("textogeradoia");
 
                     b.Property<string>("TextoSimulado")
                         .HasColumnType("text")
@@ -1391,6 +1452,38 @@ namespace api.Migrations
                     b.ToTable("professores");
                 });
 
+            modelBuilder.Entity("api.Models.PromptSistemaIA", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Conteudo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("conteudo");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdat");
+
+                    b.Property<int>("TipoDocumento")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipodocumento");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedat");
+
+                    b.HasKey("Id")
+                        .HasName("pk_prompt_sistema_ia");
+
+                    b.ToTable("prompt_sistema_ia");
+                });
+
             modelBuilder.Entity("api.Models.RelatoAtendimento", b =>
                 {
                     b.Property<int>("Id")
@@ -1435,6 +1528,10 @@ namespace api.Migrations
                     b.Property<bool>("PresencaPresente")
                         .HasColumnType("boolean")
                         .HasColumnName("presencapresente");
+
+                    b.Property<string>("TextoGeradoIA")
+                        .HasColumnType("text")
+                        .HasColumnName("textogeradoia");
 
                     b.Property<int>("TipoOcorrencia")
                         .HasColumnType("integer")

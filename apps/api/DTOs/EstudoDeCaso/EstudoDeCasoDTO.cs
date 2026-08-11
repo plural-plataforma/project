@@ -48,6 +48,7 @@ public class EstudoDeCasoDetalheDTO
     public string ContextoSituacao { get; set; } = string.Empty;
     public string? Potencialidades { get; set; }
     public string? TextoSimulado { get; set; }
+    public string? TextoGeradoIA { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<EstudoDeCasoItemDetalheDTO> ItensEixo { get; set; } = new();

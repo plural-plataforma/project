@@ -91,3 +91,10 @@ export const DOCUMENTACAO_PEDAGOGICA_NAV = {
   route: '/documentacao-pedagogica',
   activePathPrefix: '/documentacao-pedagogica',
 } as const
+
+/** Menu extra: modelos de documento (.docx) disponibilizados pela gestora para download. */
+export const BIBLIOTECA_MODELOS_NAV = {
+  label: 'Biblioteca de Modelos',
+  route: '/biblioteca-modelos',
+  activePathPrefix: '/biblioteca-modelos',
+} as const

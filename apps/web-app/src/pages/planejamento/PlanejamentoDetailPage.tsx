@@ -11,6 +11,7 @@ import {
 import {
   buscarPlanejamentoPorId,
   atualizarPlanejamento,
+  gerarObjetivosPaeeIA,
   excluirPlanejamento,
   vincularAlunoPlano,
   vincularHabilidadePlano,
@@ -242,6 +243,18 @@ export default function PlanejamentoDetailPage() {
     },
     onSuccess: () => {
       success('Objetivos salvos!')
+      invalidate()
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const gerarObjetivosIAMutation = useMutation({
+    mutationFn: () => gerarObjetivosPaeeIA(Number(id)),
+    onSuccess: () => {
+      success('Objetivos gerados por IA', 'Revise o texto antes de usar em documentos oficiais.')
       invalidate()
     },
     onError: (err: unknown) => {
@@ -485,6 +498,8 @@ export default function PlanejamentoDetailPage() {
             onObjLongoCatalogoIdChange={setObjLongoCatalogoId}
             onSave={() => salvarObjetivosMutation.mutate()}
             saving={salvarObjetivosMutation.isPending}
+            onGerarIA={() => gerarObjetivosIAMutation.mutate()}
+            gerandoIA={gerarObjetivosIAMutation.isPending}
           />
         </TabsContent>
 

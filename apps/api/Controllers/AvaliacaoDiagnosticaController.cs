@@ -127,6 +127,24 @@ public class AvaliacaoDiagnosticaController : ControllerBase
         return Ok(resposta.Objeto);
     }
 
+    [HttpPost("diagnosticos-finais/{avaliacaoId}/{alunoId}/gerar-texto-ia")]
+    public async Task<IActionResult> GerarDiagnosticoFinalIA(int avaliacaoId, int alunoId)
+    {
+        var usuario = await _userManager.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.GerarDiagnosticoFinalIAAsync(avaliacaoId, alunoId, usuario);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrado", StringComparison.OrdinalIgnoreCase) || m.Contains("não encontrada", StringComparison.OrdinalIgnoreCase))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta);
+    }
+
     [HttpGet("{avaliacaoId}/sugestoes-paee/{alunoId}")]
     public async Task<IActionResult> BuscarSugestoesPaee(int avaliacaoId, int alunoId)
     {

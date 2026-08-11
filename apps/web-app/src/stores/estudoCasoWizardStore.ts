@@ -23,6 +23,8 @@ interface EstudoCasoWizardState {
   anotacoesPorEixo: Record<number, string>
   casoIdSalvo: number | null
   textoSimulado: string | null
+  /** Texto gerado por IA (beta) — paralelo ao textoSimulado, disponível quando o provedor de IA responde com sucesso. */
+  textoGeradoIA: string | null
   /** Ids do catálogo carregados na etapa Eixos (para validar “todos obrigatórios”). */
   catalogoEixoIds: number[]
   setStep: (s: EstudoCasoWizardStep) => void
@@ -34,6 +36,7 @@ interface EstudoCasoWizardState {
   toggleEixo: (eixoId: number) => void
   setAnotacaoEixo: (eixoId: number, texto: string) => void
   setCasoSalvo: (id: number, texto: string | null) => void
+  setTextoGeradoIA: (texto: string | null) => void
   setCatalogoEixoIds: (ids: number[]) => void
   reset: () => void
 }
@@ -49,6 +52,7 @@ const initial = {
   anotacoesPorEixo: {} as Record<number, string>,
   casoIdSalvo: null as number | null,
   textoSimulado: null as string | null,
+  textoGeradoIA: null as string | null,
   catalogoEixoIds: [] as number[],
 }
 
@@ -79,6 +83,7 @@ export const useEstudoCasoWizardStore = create<EstudoCasoWizardState>((set, get)
       anotacoesPorEixo: { ...state.anotacoesPorEixo, [eixoId]: texto },
     })),
   setCasoSalvo: (id, texto) => set({ casoIdSalvo: id, textoSimulado: texto }),
+  setTextoGeradoIA: (texto) => set({ textoGeradoIA: texto }),
   setCatalogoEixoIds: (ids) =>
     set({ catalogoEixoIds: [...ids], eixosSelecionadosIds: [...ids] }),
   reset: () => set({ ...initial }),

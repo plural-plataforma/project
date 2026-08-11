@@ -20,7 +20,7 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material'
 import logoPlural from '../../../../packages/ui/assets/images/logo-plural-plataforma.png'
-import { ChartDonut, ClipboardText, SignOut, Star, UsersThree } from '@phosphor-icons/react'
+import { ChartDonut, ClipboardText, Files, SignOut, Star, UsersThree } from '@phosphor-icons/react'
 import { useEffect, useState, type ReactNode } from 'react'
 
 // Largura fixa do sidebar (padrão comum)
@@ -52,6 +52,11 @@ export default function Sidebar({ variant = 'permanent', open = true, onClose }:
     {
       text: 'Banco de Atividades', icon: <ClipboardText size={20} weight="fill" />, path: '/atividades'
     }
+  ]
+
+  const documentosGroup = [
+    { text: 'Biblioteca de Modelos', icon: <Files size={20} weight="fill" />, path: '/biblioteca-modelos' },
+    { text: 'Prompts de IA', icon: <SettingsIcon />, path: '/prompts-ia' },
   ]
 
   const sistemaGroup = [
@@ -155,6 +160,15 @@ export default function Sidebar({ variant = 'permanent', open = true, onClose }:
           Cadastros
         </Typography>
         {renderGroup(cadastrosGroup)}
+
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ px: 3, mb: 1 }}
+        >
+          Documentos
+        </Typography>
+        {renderGroup(documentosGroup)}
 
         <Typography
           variant="subtitle2"

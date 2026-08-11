@@ -2,6 +2,7 @@ using System.Text.Json;
 using api.DTOs.RelatoAtendimento;
 using api.Models;
 using api.Responses;
+using api.Services.IA;
 using Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,10 +17,14 @@ public class RelatoAtendimentoService
     };
 
     private readonly AppDbContext _db;
+    private readonly PromptSistemaIAService _promptService;
+    private readonly IGeradorTextoIA _geradorTextoIA;
 
-    public RelatoAtendimentoService(AppDbContext db)
+    public RelatoAtendimentoService(AppDbContext db, PromptSistemaIAService promptService, IGeradorTextoIA geradorTextoIA)
     {
         _db = db;
+        _promptService = promptService;
+        _geradorTextoIA = geradorTextoIA;
     }
 
     private static string SerializarLista(IReadOnlyCollection<string>? itens)
@@ -60,6 +65,7 @@ public class RelatoAtendimentoService
             Observacoes = r.Observacoes,
             Avancos = DeserializarLista(r.AvancosJson),
             Dificuldades = DeserializarLista(r.DificuldadesJson),
+            TextoGeradoIA = r.TextoGeradoIA,
         };
 
     /// <returns>Mensagem de erro ou null se válido.</returns>
@@ -258,6 +264,7 @@ public class RelatoAtendimentoService
             ent.Observacoes = dto.Observacoes?.Trim();
             ent.AvancosJson = SerializarLista(dto.Avancos);
             ent.DificuldadesJson = SerializarLista(dto.Dificuldades);
+            ent.TextoGeradoIA = dto.TextoGeradoIA?.Trim() is { Length: > 0 } texto ? texto : null;
 
             await _db.SaveChangesAsync();
 
@@ -272,6 +279,98 @@ public class RelatoAtendimentoService
             resposta.SetFalha(ex.Message);
             return resposta;
         }
+    }
+
+    public async Task<ServiceResponse<RelatoAtendimentoBuscarDTO>> GerarTextoIAAsync(int id, Usuario usuario)
+    {
+        var r = new ServiceResponse<RelatoAtendimentoBuscarDTO>();
+        var professorId = usuario.ProfessorId ?? 0;
+        if (professorId == 0)
+        {
+            r.SetFalha("Professor não identificado.");
+            return r;
+        }
+
+        try
+        {
+            var ent = await BaseQueryProfessor(professorId).FirstOrDefaultAsync(x => x.Id == id);
+            if (ent == null)
+            {
+                r.SetFalha("Relato não encontrado.");
+                return r;
+            }
+
+            var systemPrompt = await _promptService.BuscarConteudoAtivoAsync(TipoDocumentoIA.RelatoAtendimento);
+            if (string.IsNullOrWhiteSpace(systemPrompt))
+            {
+                r.SetFalha("Nenhum prompt de sistema cadastrado para Relato de Atendimento. Peça à gestora para configurar em Prompts de IA.");
+                return r;
+            }
+
+            var promptUsuario = MontarPromptRelato(ent);
+
+            string textoGerado;
+            try
+            {
+                textoGerado = await _geradorTextoIA.GerarTextoAsync(systemPrompt, promptUsuario);
+            }
+            catch (InvalidOperationException ex)
+            {
+                r.SetFalha(ex.Message);
+                return r;
+            }
+
+            ent.TextoGeradoIA = textoGerado.Trim();
+            await _db.SaveChangesAsync();
+
+            r.AdicionaObjeto(MapToBuscarDto(ent));
+            r.AdicionaMensagem("Texto gerado por IA. Revise antes de usar em documentos oficiais.");
+            return r;
+        }
+        catch (Exception ex)
+        {
+            r.SetFalha($"Erro ao gerar texto do relato via IA: {ex.Message}");
+            return r;
+        }
+    }
+
+    private static string MontarPromptRelato(RelatoAtendimento r)
+    {
+        var nome = r.Aluno?.NomeCompleto?.Trim() ?? "Aluno(a)";
+        var dataTxt = r.DataSessao.ToString("dd/MM/yyyy");
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Redija o relato desta sessão de atendimento a partir destes dados (siga o formato definido no system prompt):");
+        sb.AppendLine();
+        sb.AppendLine($"Estudante: {nome}");
+        sb.AppendLine($"Data da sessão: {dataTxt}");
+        sb.AppendLine($"Presença: {(r.PresencaPresente ? "presente" : "ausente")}");
+        sb.AppendLine($"Ocorrência: {r.TipoOcorrencia}");
+
+        if (r.Planejamento != null)
+            sb.AppendLine($"PAEE vinculado: {r.Planejamento.Apelido}");
+
+        var habilidade = r.Habilidade != null ? (r.Habilidade.Resumo ?? r.Habilidade.Descricao) : null;
+        if (!string.IsNullOrWhiteSpace(habilidade))
+            sb.AppendLine($"Habilidade trabalhada: {habilidade}");
+
+        if (!string.IsNullOrWhiteSpace(r.Estrategia?.Descricao))
+            sb.AppendLine($"Estratégia utilizada: {r.Estrategia.Descricao.Trim()}");
+
+        if (!string.IsNullOrWhiteSpace(r.Observacoes))
+            sb.AppendLine($"Observações da professora: {r.Observacoes.Trim()}");
+
+        var avancos = DeserializarLista(r.AvancosJson);
+        sb.AppendLine(avancos.Count > 0
+            ? $"Avanços observados: {string.Join("; ", avancos)}"
+            : "Nenhum avanço registrado nesta sessão.");
+
+        var dificuldades = DeserializarLista(r.DificuldadesJson);
+        sb.AppendLine(dificuldades.Count > 0
+            ? $"Dificuldades observadas: {string.Join("; ", dificuldades)}"
+            : "Nenhuma dificuldade registrada nesta sessão.");
+
+        return sb.ToString();
     }
 
     public async Task<ServiceResponse<bool>> Excluir(int id, Usuario usuario)

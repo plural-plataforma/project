@@ -1,10 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { cadastrarEstudoCaso, gerarTextoSimuladoEstudoCaso } from '@/services/estudoCasoService'
+import { cadastrarEstudoCaso, gerarTextoIAEstudoCaso } from '@/services/estudoCasoService'
 import { useEstudoCasoWizardStore } from '@/stores/estudoCasoWizardStore'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 
-/** Cadastra o estudo de caso e gera o texto simulado (fluxo pós-etapa Eixos). */
+/**
+ * Cadastra o estudo de caso e gera o texto via IA (fluxo pós-etapa Eixos).
+ * Gerador mecânico antigo desativado temporariamente — ver EstudoDeCasoService.GerarTextoIAAsync,
+ * que espelha o resultado da IA em TextoSimulado pra manter o restante do app funcionando.
+ */
 export function useSalvarGerarEstudoCaso() {
   const qc = useQueryClient()
   const { success, error: showError } = useToast()
@@ -15,6 +19,7 @@ export function useSalvarGerarEstudoCaso() {
   const eixosSelecionadosIds = useEstudoCasoWizardStore((s) => s.eixosSelecionadosIds)
   const anotacoesPorEixo = useEstudoCasoWizardStore((s) => s.anotacoesPorEixo)
   const setCasoSalvo = useEstudoCasoWizardStore((s) => s.setCasoSalvo)
+  const setTextoGeradoIA = useEstudoCasoWizardStore((s) => s.setTextoGeradoIA)
 
   return useMutation({
     mutationFn: async () => {
@@ -30,10 +35,11 @@ export function useSalvarGerarEstudoCaso() {
         potencialidades: potencialidades.trim() || null,
         itensEixo,
       })
-      return gerarTextoSimuladoEstudoCaso(criado.id)
+      return gerarTextoIAEstudoCaso(criado.id)
     },
     onSuccess: (detalhe) => {
       setCasoSalvo(detalhe.id, detalhe.textoSimulado ?? null)
+      setTextoGeradoIA(detalhe.textoGeradoIA ?? null)
       const nomeApi = detalhe.alunoNomeCompleto?.trim()
       if (nomeApi) useEstudoCasoWizardStore.setState({ alunoNome: nomeApi })
       success('Estudo de caso gerado', 'Documento pronto para revisão e download.')

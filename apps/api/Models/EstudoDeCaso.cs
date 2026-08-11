@@ -31,6 +31,10 @@ public class EstudoDeCaso
     [Column(TypeName = "text")]
     public string? TextoSimulado { get; set; }
 
+    /// <summary>Texto gerado por IA (Gemini/Claude) — paralelo ao TextoSimulado, revisão humana obrigatória.</summary>
+    [Column(TypeName = "text")]
+    public string? TextoGeradoIA { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

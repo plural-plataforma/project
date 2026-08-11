@@ -10,6 +10,7 @@ import {
   SignOut,
   List,
   X,
+  Compass,
 } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
@@ -20,8 +21,10 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PEDAGOGICAL_FLOW_STEPS, DOCUMENTACAO_PEDAGOGICA_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
-import { Files } from '@phosphor-icons/react'
+import { PEDAGOGICAL_FLOW_STEPS, DOCUMENTACAO_PEDAGOGICA_NAV, BIBLIOTECA_MODELOS_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
+import { Files, BookBookmark } from '@phosphor-icons/react'
+import { useTourStore } from '@/stores/tourStore'
+import { startProductTour } from '@/lib/productTour'
 
 const FLOW_ICONS: Record<PedagogicalFlowStepId, Icon> = {
   escola: Buildings,
@@ -46,6 +49,12 @@ const navItems = [
     label: DOCUMENTACAO_PEDAGOGICA_NAV.label,
     activePathPrefix: DOCUMENTACAO_PEDAGOGICA_NAV.activePathPrefix,
   },
+  {
+    to: BIBLIOTECA_MODELOS_NAV.route,
+    icon: BookBookmark,
+    label: BIBLIOTECA_MODELOS_NAV.label,
+    activePathPrefix: BIBLIOTECA_MODELOS_NAV.activePathPrefix,
+  },
 ]
 
 function isNavItemActive(pathname: string, to: string, activePathPrefix?: string): boolean {
@@ -62,7 +71,13 @@ export function Sidebar({ professorNome }: SidebarProps) {
   const { signOut, logoutLoading } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const setHasSeenTour = useTourStore((state) => state.setHasSeenTour)
   useTheme()
+
+  const handleStartTour = () => {
+    setMobileOpen(false)
+    startProductTour(() => setHasSeenTour(true))
+  }
 
   const initials = professorNome
     ? professorNome.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
@@ -73,12 +88,13 @@ export function Sidebar({ professorNome }: SidebarProps) {
     navigate('/login', { replace: true })
   }
 
-  const NavContent = () => {
+  const NavContent = ({ withTourAnchors = false }: { withTourAnchors?: boolean }) => {
     const { pathname } = useLocation()
 
     return (
     <nav className="flex flex-col h-full">
       <NavLink
+        id={withTourAnchors ? 'tour-sidebar-brand' : undefined}
         to="/dashboard"
         className="flex items-center gap-2.5 px-4 py-4 border-b border-border hover:bg-primary-light transition-colors duration-150"
         aria-label="Ir para o dashboard"
@@ -90,7 +106,7 @@ export function Sidebar({ professorNome }: SidebarProps) {
         </div>
       </NavLink>
 
-      <div className="flex-1 py-4 px-3 space-y-1">
+      <div id={withTourAnchors ? 'tour-sidebar-nav' : undefined} className="flex-1 py-4 px-3 space-y-1">
         {navItems.map(({ to, icon: Icon, label, activePathPrefix }) => {
           const active = isNavItemActive(pathname, to, activePathPrefix)
           return (
@@ -123,7 +139,7 @@ export function Sidebar({ professorNome }: SidebarProps) {
         })}
       </div>
 
-      <div className="border-t border-border p-3 space-y-1">
+      <div id={withTourAnchors ? 'tour-sidebar-profile' : undefined} className="border-t border-border p-3 space-y-1">
         <NavLink
           to="/perfil"
           onClick={() => setMobileOpen(false)}
@@ -146,6 +162,16 @@ export function Sidebar({ professorNome }: SidebarProps) {
           <span className="text-xs text-muted-foreground font-medium">Tema</span>
           <ThemeToggle />
         </div>
+
+        {withTourAnchors && (
+          <button
+            onClick={handleStartTour}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted-foreground hover:bg-primary-light hover:text-primary transition-all duration-150 w-full cursor-pointer"
+          >
+            <Compass size={20} />
+            Fazer tour
+          </button>
+        )}
 
         <button
           onClick={handleSignOut}
@@ -171,7 +197,7 @@ export function Sidebar({ professorNome }: SidebarProps) {
   return (
     <>
       <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-border bg-card h-screen sticky top-0">
-        <NavContent />
+        <NavContent withTourAnchors />
       </aside>
 
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 bg-card border-b border-border">

@@ -5,6 +5,7 @@ import {
   Paragraph,
   Table,
   TableCell,
+  TableLayoutType,
   TableRow,
   TextRun,
   WidthType,
@@ -29,15 +30,17 @@ export async function downloadRelatosConsolidadoDocx(params: ExportRelatosConsol
   const header = ['Data', 'Aluno', 'Presença', 'PAEE', 'Detalhes do atendimento']
   const rows = ord.map((r) => {
     const dh = new Date(`${r.dataSessao}T12:00:00`).toLocaleDateString('pt-BR')
-    const detalhes = [
-      r.observacoes?.trim(),
-      r.avancos?.length ? `Avanços: ${r.avancos.join('; ')}` : '',
-      r.dificuldades?.length ? `Dificuldades: ${r.dificuldades.join('; ')}` : '',
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim()
+    const detalhes = r.textoGeradoIA?.trim()
+      ? r.textoGeradoIA.trim().replace(/\s+/g, ' ')
+      : [
+          r.observacoes?.trim(),
+          r.avancos?.length ? `Avanços: ${r.avancos.join('; ')}` : '',
+          r.dificuldades?.length ? `Dificuldades: ${r.dificuldades.join('; ')}` : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim()
     return [
       dh,
       r.alunoNome,
@@ -47,11 +50,17 @@ export async function downloadRelatosConsolidadoDocx(params: ExportRelatosConsol
     ]
   })
 
+  // Larguras proporcionais por coluna (soma 10000 DXA = largura da tabela).
+  // "Detalhes do atendimento" recebe a maior parte — passou a conter parágrafo
+  // corrido de IA, não mais um texto curto concatenado.
+  const colunaLarguras = [1300, 1800, 1100, 1600, 4200]
+
   const tableRows = [
     new TableRow({
       children: header.map(
-        (cell) =>
+        (cell, i) =>
           new TableCell({
+            width: { size: colunaLarguras[i], type: WidthType.DXA },
             children: [new Paragraph({ children: [new TextRun({ text: cell, bold: true, size: 18 })] })],
           }),
       ),
@@ -60,9 +69,9 @@ export async function downloadRelatosConsolidadoDocx(params: ExportRelatosConsol
       (cols) =>
         new TableRow({
           children: cols.map(
-            (text) =>
+            (text, i) =>
               new TableCell({
-                width: { size: 2000, type: WidthType.DXA },
+                width: { size: colunaLarguras[i], type: WidthType.DXA },
                 children: [
                   new Paragraph({
                     children: [new TextRun({ text: text.length ? text : ' ', size: 18 })],
@@ -118,6 +127,8 @@ export async function downloadRelatosConsolidadoDocx(params: ExportRelatosConsol
             : [
                 new Table({
                   width: { size: 10000, type: WidthType.DXA },
+                  columnWidths: colunaLarguras,
+                  layout: TableLayoutType.FIXED,
                   rows: tableRows,
                 }),
                 new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: ' ', size: 8 })] }),

@@ -25,6 +25,7 @@ const EstudoCasoWizardPage = lazy(() => import('@/pages/estudo-caso/EstudoCasoWi
 const EstudosCasoPage = lazy(() => import('@/pages/estudo-caso/EstudosCasoPage'))
 const RelatosPage = lazy(() => import('@/pages/relatos/RelatosPage'))
 const DocumentacaoPedagogicaPage = lazy(() => import('@/pages/documentacao/DocumentacaoPedagogicaPage'))
+const BibliotecaModelosPage = lazy(() => import('@/pages/biblioteca-modelos/BibliotecaModelosPage'))
 const PerfilPage = lazy(() => import('@/pages/professor/PerfilPage'))
 
 function PageLoader() {
@@ -162,6 +163,14 @@ export function AppRouter() {
               element={
                 <Suspense fallback={<PageLoader />}>
                   <DocumentacaoPedagogicaPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/biblioteca-modelos"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <BibliotecaModelosPage />
                 </Suspense>
               }
             />

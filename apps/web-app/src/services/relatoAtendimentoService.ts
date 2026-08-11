@@ -64,6 +64,17 @@ export const atualizarRelato = async (payload: RelatoAtualizarPayload): Promise<
   return response.data.objeto
 }
 
+export const gerarTextoIARelato = async (id: number): Promise<RelatoAtendimento> => {
+  interface GerarIAResponse extends RelatoListaResponse {
+    objeto?: RelatoAtendimento
+  }
+  const response = await api.post<GerarIAResponse>(`/RelatoAtendimento/${id}/gerar-texto-ia`)
+  if (!response.data.sucesso || !response.data.objeto) {
+    throw new Error(response.data.mensagens?.join(', ') ?? 'Falha ao gerar texto do relato por IA')
+  }
+  return response.data.objeto
+}
+
 export const excluirRelato = async (id: number): Promise<void> => {
   const response = await api.delete<{ sucesso: boolean; mensagens: string[] }>(`/RelatoAtendimento/${id}`)
   if (!response.data.sucesso)

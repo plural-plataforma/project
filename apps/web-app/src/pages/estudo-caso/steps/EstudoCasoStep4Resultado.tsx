@@ -1,11 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, DownloadSimple, FilePdf, ListChecks } from '@phosphor-icons/react'
+import { useMutation } from '@tanstack/react-query'
+import { ArrowClockwise, CheckCircle, DownloadSimple, FilePdf, ListChecks } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/useToast'
-import { EstudoCasoDocumentoViewer } from '@/components/estudo-caso/EstudoCasoDocumentoViewer'
+import { EstudoCasoTextoIAViewer } from '@/components/estudo-caso/EstudoCasoTextoIAViewer'
 import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
 import { downloadEstudoCasoPdf } from '@/lib/exportEstudoCasoPdf'
+import { gerarTextoIAEstudoCaso } from '@/services/estudoCasoService'
+import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import {
   useEstudoCasoWizardStore,
   estudoCasoStepIndex,
@@ -19,9 +22,26 @@ export function EstudoCasoStep4Resultado() {
   const titulo = useEstudoCasoWizardStore((s) => s.titulo)
   const casoIdSalvo = useEstudoCasoWizardStore((s) => s.casoIdSalvo)
   const textoSimulado = useEstudoCasoWizardStore((s) => s.textoSimulado)
+  const textoGeradoIA = useEstudoCasoWizardStore((s) => s.textoGeradoIA)
+  const setTextoGeradoIA = useEstudoCasoWizardStore((s) => s.setTextoGeradoIA)
   const alunoNome = useEstudoCasoWizardStore((s) => s.alunoNome)
   const setStep = useEstudoCasoWizardStore((s) => s.setStep)
   const reset = useEstudoCasoWizardStore((s) => s.reset)
+
+  const setCasoSalvo = useEstudoCasoWizardStore((s) => s.setCasoSalvo)
+
+  const gerarIAMutation = useMutation({
+    mutationFn: () => gerarTextoIAEstudoCaso(casoIdSalvo!),
+    onSuccess: (d) => {
+      setCasoSalvo(d.id, d.textoSimulado ?? null)
+      setTextoGeradoIA(d.textoGeradoIA ?? null)
+      success('Documento gerado por IA', 'Revise o texto antes de usar em documentos oficiais.')
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
 
   function voltar() {
     setStep('eixos')
@@ -96,8 +116,25 @@ export function EstudoCasoStep4Resultado() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
           >
-            <EstudoCasoDocumentoViewer texto={textoSimulado} scrollClassName="max-h-[480px]" />
+            <EstudoCasoTextoIAViewer
+              texto={textoGeradoIA ?? textoSimulado ?? ''}
+              scrollClassName="max-h-[480px]"
+            />
           </motion.div>
+
+          <div className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              loading={gerarIAMutation.isPending}
+              onClick={() => gerarIAMutation.mutate()}
+            >
+              <ArrowClockwise size={14} />
+              Gerar novamente
+            </Button>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={baixarPdf}>

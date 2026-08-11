@@ -24,6 +24,7 @@ export interface RelatoAtendimento {
   observacoes?: string | null
   avancos: string[]
   dificuldades: string[]
+  textoGeradoIA?: string | null
 }
 
 export interface RelatoSugestoesMesResponse {
@@ -52,4 +53,5 @@ export interface RelatoCadastroPayload {
 
 export interface RelatoAtualizarPayload extends RelatoCadastroPayload {
   id: number
+  textoGeradoIA?: string | null
 }

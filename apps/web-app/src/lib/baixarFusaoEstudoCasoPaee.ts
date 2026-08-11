@@ -3,7 +3,7 @@ import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
 import { baixarEstudoCasoWord } from '@/lib/baixarEstudoCaso'
 import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
 import { buscarPlanejamentoPorId } from '@/services/planejamentoService'
-import { buscarEstudoCasoPorId, gerarTextoSimuladoEstudoCaso } from '@/services/estudoCasoService'
+import { buscarEstudoCasoPorId, gerarTextoIAEstudoCaso } from '@/services/estudoCasoService'
 import type { Planejamento } from '@/types/planejamento'
 
 function slugArquivoPart(texto: string): string {
@@ -18,7 +18,7 @@ export async function baixarFusaoEstudoCasoPaee(params: {
 }): Promise<void> {
   let detalhe = await buscarEstudoCasoPorId(params.estudoId)
   if (!detalhe.textoSimulado?.trim()) {
-    detalhe = await gerarTextoSimuladoEstudoCaso(params.estudoId)
+    detalhe = await gerarTextoIAEstudoCaso(params.estudoId)
   }
   const textoEstudo = sanitizarTextoEstudoCaso(detalhe.textoSimulado?.trim() ?? '')
   if (!textoEstudo) throw new Error('Estudo de caso sem texto para download.')

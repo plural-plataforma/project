@@ -48,4 +48,7 @@ public class RelatoAtendimento
     /// <summary>JSON array de strings.</summary>
     [Column(TypeName = "text")]
     public string DificuldadesJson { get; set; } = "[]";
+
+    [Column(TypeName = "text")]
+    public string? TextoGeradoIA { get; set; }
 }

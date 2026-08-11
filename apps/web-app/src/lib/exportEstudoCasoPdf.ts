@@ -11,36 +11,16 @@ function slugArquivoPart(texto: string): string {
   return texto.replace(/[^a-zA-Z0-9À-ÿ]+/g, '_').replace(/^_|_$/g, '').slice(0, 80) || 'estudo_caso'
 }
 
-type TipoLinha =
-  | 'aviso'
-  | 'titulo-doc'
-  | 'corpo-subtitulo'
-  | 'metadados'
-  | 'secao'
-  | 'subsecao'
-  | 'bullet'
-  | 'divisor'
-  | 'vazio'
-  | 'corpo'
-
-function classificarLinha(line: string, proximaESubtitulo: boolean): TipoLinha {
-  const t = line.trim()
-  if (!t) return 'vazio'
-  if (t.startsWith('***')) return 'aviso'
-  if (t.startsWith('ESTUDO DE CASO')) return 'titulo-doc'
-  if (t === '---') return 'divisor'
-  if (/^\d+\.\s/.test(t)) return 'secao'
-  if (
-    /^(Barreiras observadas|Potencialidades identificadas|Objetivos do AEE|Estratégias|Recursos|Encaminhamentos):/.test(
-      t
-    )
-  )
-    return 'subsecao'
-  if (t.startsWith('•')) return 'bullet'
-  if (t.startsWith('Estudante:') || t.startsWith('Escola:')) return 'metadados'
-  if (proximaESubtitulo) return 'corpo-subtitulo'
-  return 'corpo'
-}
+/**
+ * As 4 etapas obrigatórias do Estudo de Caso, na ordem definida no system prompt
+ * de geração por IA (mesma lista usada em EstudoCasoTextoIAViewer e exportEstudoCasoDocx).
+ */
+const ETAPAS_ESTUDO_CASO = [
+  'Identificação inicial das demandas e barreiras',
+  'Análise das barreiras e do contexto escolar',
+  'Identificação das potencialidades e demandas de apoio',
+  'Definição de estratégias e recursos para eliminação de barreiras',
+]
 
 const AZUL: [number, number, number] = [29, 53, 87]
 const CINZA: [number, number, number] = [100, 100, 100]
@@ -80,123 +60,64 @@ export function downloadEstudoCasoPdf(params: ExportEstudoCasoPdfParams): void {
     return linhasQuebradas.length
   }
 
-  const linhas = sanitizarTextoEstudoCaso(params.textoCompleto).split(/\r?\n/)
-  let proximaESubtitulo = false
+  // Cabeçalho
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...AZUL)
+  escreverTexto('ESTUDO DE CASO — AEE', pageW / 2, y, { align: 'center', maxWidth: maxW })
+  novaLinha(8)
 
-  for (const linha of linhas) {
-    const tipo = classificarLinha(linha, proximaESubtitulo)
-    const t = linha.trim()
+  doc.setFontSize(12)
+  escreverTexto(params.tituloEstudo, pageW / 2, y, { align: 'center', maxWidth: maxW })
+  novaLinha(8)
+  doc.setTextColor(...PRETO)
 
-    // Atualiza flag de subtítulo
-    if (tipo === 'titulo-doc') {
-      proximaESubtitulo = true
-    } else if (tipo === 'corpo-subtitulo') {
-      proximaESubtitulo = false
-    } else if (tipo !== 'vazio') {
-      proximaESubtitulo = false
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'italic')
+  doc.setTextColor(...CINZA)
+  const nEstudante = escreverTexto(`Estudante: ${params.alunoNome}`, marginL, y, { maxWidth: maxW })
+  novaLinha(nEstudante * 4.5 + 2)
+
+  doc.setFontSize(7.5)
+  doc.setTextColor(...VERMELHO)
+  const nAviso = escreverTexto(
+    'Documento gerado por Inteligência Artificial (beta) — revise antes de uso oficial.',
+    marginL,
+    y,
+    { maxWidth: maxW }
+  )
+  novaLinha(nAviso * 4 + 6)
+  doc.setTextColor(...PRETO)
+
+  // Corpo — parágrafos gerados por IA (separados por linha em branco)
+  const paragrafosTexto = sanitizarTextoEstudoCaso(params.textoCompleto)
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  const mapeiaEtapas = paragrafosTexto.length === ETAPAS_ESTUDO_CASO.length
+
+  paragrafosTexto.forEach((paragrafo, idx) => {
+    if (mapeiaEtapas) {
+      if (y > pageH - marginB - 30) {
+        doc.addPage()
+        y = marginT
+      } else {
+        novaLinha(4)
+      }
+      doc.setFontSize(11.5)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...AZUL)
+      const nTitulo = escreverTexto(`${idx + 1}. ${ETAPAS_ESTUDO_CASO[idx]}`, marginL, y, { maxWidth: maxW })
+      novaLinha(nTitulo * 6 + 3)
+      doc.setTextColor(...PRETO)
     }
 
-    switch (tipo) {
-      case 'vazio':
-        novaLinha(2.5)
-        break
-
-      case 'aviso': {
-        doc.setFontSize(7.5)
-        doc.setFont('helvetica', 'italic')
-        doc.setTextColor(...VERMELHO)
-        const n = escreverTexto(t, marginL, y, { maxWidth: maxW })
-        novaLinha(n * 4 + 3)
-        doc.setTextColor(...PRETO)
-        break
-      }
-
-      case 'titulo-doc': {
-        doc.setFontSize(14)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...AZUL)
-        escreverTexto(t, pageW / 2, y, { align: 'center', maxWidth: maxW })
-        novaLinha(8)
-        doc.setTextColor(...PRETO)
-        break
-      }
-
-      case 'corpo-subtitulo': {
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...AZUL)
-        escreverTexto(t, pageW / 2, y, { align: 'center', maxWidth: maxW })
-        novaLinha(8)
-        doc.setTextColor(...PRETO)
-        break
-      }
-
-      case 'metadados': {
-        doc.setFontSize(8.5)
-        doc.setFont('helvetica', 'italic')
-        doc.setTextColor(...CINZA)
-        const n = escreverTexto(t, marginL, y, { maxWidth: maxW })
-        novaLinha(n * 4.5 + 2)
-        doc.setTextColor(...PRETO)
-        break
-      }
-
-      case 'secao': {
-        // Garante espaço mínimo antes de iniciar nova seção
-        if (y > pageH - marginB - 30) {
-          doc.addPage()
-          y = marginT
-        } else {
-          novaLinha(4)
-        }
-        doc.setFontSize(11.5)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...AZUL)
-        const n = escreverTexto(t, marginL, y, { maxWidth: maxW })
-        novaLinha(n * 6 + 3)
-        doc.setTextColor(...PRETO)
-        break
-      }
-
-      case 'subsecao': {
-        novaLinha(2)
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...PRETO)
-        const n = escreverTexto(t, marginL, y, { maxWidth: maxW })
-        novaLinha(n * 5.5 + 2)
-        break
-      }
-
-      case 'bullet': {
-        doc.setFontSize(9.5)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(...PRETO)
-        const n = escreverTexto(t, marginL + 3, y, { maxWidth: maxW - 3 })
-        novaLinha(n * 5 + 2)
-        break
-      }
-
-      case 'divisor': {
-        novaLinha(2)
-        doc.setDrawColor(200, 200, 200)
-        doc.setLineWidth(0.3)
-        doc.line(marginL, y, pageW - marginR, y)
-        novaLinha(5)
-        break
-      }
-
-      default: {
-        // 'corpo'
-        doc.setFontSize(9.5)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(...PRETO)
-        const n = escreverTexto(t, marginL, y, { maxWidth: maxW })
-        novaLinha(n * 5 + 2)
-        break
-      }
-    }
-  }
+    doc.setFontSize(9.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...PRETO)
+    const nCorpo = escreverTexto(paragrafo, marginL, y, { maxWidth: maxW })
+    novaLinha(nCorpo * 5 + 6)
+  })
 
   doc.save(`EstudoCaso_${slugArquivoPart(params.tituloEstudo)}.pdf`)
 }

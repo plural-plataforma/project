@@ -1,6 +1,5 @@
 import {
   AlignmentType,
-  BorderStyle,
   Document,
   Packer,
   Paragraph,
@@ -20,221 +19,103 @@ function slugArquivoPart(texto: string): string {
 }
 
 /**
- * Classifica uma linha do texto gerado pelo backend para aplicar a formatação correta.
- * O backend gera texto com marcadores semânticos que seguem o template AEE.
+ * As 4 etapas obrigatórias do Estudo de Caso, na ordem definida no system prompt
+ * de geração por IA (ver PromptSistemaIA, tipo EstudoCaso — mesma lista usada em
+ * EstudoCasoTextoIAViewer). O texto gerado é prosa corrida, um parágrafo por etapa.
  */
-function classificarLinha(
-  line: string
-): 'aviso' | 'titulo-doc' | 'subtitulo' | 'metadados' | 'secao' | 'subsecao' | 'bullet' | 'divisor' | 'vazio' | 'corpo' {
-  const t = line.trim()
-  if (!t) return 'vazio'
-  if (t.startsWith('***')) return 'aviso'
-  if (t.startsWith('ESTUDO DE CASO')) return 'titulo-doc'
-  if (t === '---') return 'divisor'
-  if (/^\d+\.\s/.test(t)) return 'secao'
-  if (
-    /^(Barreiras observadas|Potencialidades identificadas|Objetivos do AEE|Estratégias|Recursos|Encaminhamentos):/.test(
-      t
-    )
-  )
-    return 'subsecao'
-  if (t.startsWith('•')) return 'bullet'
-  if (t.startsWith('Estudante:') || t.startsWith('Escola:')) return 'metadados'
-  // Linha imediatamente após o cabeçalho "ESTUDO DE CASO" — é o título do estudo
-  return 'corpo'
-}
+const ETAPAS_ESTUDO_CASO = [
+  'Identificação inicial das demandas e barreiras',
+  'Análise das barreiras e do contexto escolar',
+  'Identificação das potencialidades e demandas de apoio',
+  'Definição de estratégias e recursos para eliminação de barreiras',
+]
 
 const COR_AZUL = '1D3557'
 const COR_CINZA = '666666'
 const COR_AVISO = 'AA0000'
 const FONTE_PADRAO = 'Calibri'
 
-/** Converte `textoCompleto` gerado pelo backend em lista de Paragraphs do docx. */
-function textoParaParagrafos(textoCompleto: string): Paragraph[] {
-  const linhas = textoCompleto.split(/\r?\n/)
-  const paragrafos: Paragraph[] = []
+/** Converte o texto gerado por IA (prosa corrida, parágrafos separados por linha em branco) em Paragraphs do docx. */
+function textoParaParagrafos(textoCompleto: string, alunoNome: string, tituloEstudo: string): Paragraph[] {
+  const paragrafosTexto = textoCompleto
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  const mapeiaEtapas = paragrafosTexto.length === ETAPAS_ESTUDO_CASO.length
 
-  // Detecta se a linha logo após "ESTUDO DE CASO" é o subtítulo do estudo
-  let proximaESubtitulo = false
+  const paragrafos: Paragraph[] = [
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'ESTUDO DE CASO — AEE', bold: true, size: 28, color: COR_AZUL, font: FONTE_PADRAO }),
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 80 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: tituloEstudo, bold: true, size: 24, color: COR_AZUL, font: FONTE_PADRAO }),
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 120 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: `Estudante: ${alunoNome}`, italics: true, size: 18, color: COR_CINZA, font: FONTE_PADRAO }),
+      ],
+      spacing: { after: 60 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Documento gerado por Inteligência Artificial (beta) — revise antes de uso oficial.',
+          italics: true,
+          color: COR_AVISO,
+          size: 16,
+          font: FONTE_PADRAO,
+        }),
+      ],
+      spacing: { after: 240 },
+    }),
+  ]
 
-  for (const linha of linhas) {
-    const tipo = classificarLinha(linha)
-    const t = linha.trim()
-
-    switch (tipo) {
-      case 'vazio':
-        paragrafos.push(new Paragraph({ spacing: { after: 80 } }))
-        proximaESubtitulo = false
-        break
-
-      case 'aviso':
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                italics: true,
-                color: COR_AVISO,
-                size: 16,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            spacing: { after: 160 },
-          })
-        )
-        proximaESubtitulo = false
-        break
-
-      case 'titulo-doc':
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                bold: true,
-                size: 28,
-                color: COR_AZUL,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 80 },
-          })
-        )
-        proximaESubtitulo = true
-        break
-
-      case 'subtitulo':
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                bold: true,
-                size: 24,
-                color: COR_AZUL,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 120 },
-          })
-        )
-        proximaESubtitulo = false
-        break
-
-      case 'metadados':
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                italics: true,
-                size: 18,
-                color: COR_CINZA,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            spacing: { after: 60 },
-          })
-        )
-        break
-
-      case 'secao':
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                bold: true,
-                size: 24,
-                color: COR_AZUL,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            spacing: { before: 320, after: 120 },
-          })
-        )
-        proximaESubtitulo = false
-        break
-
-      case 'subsecao':
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                bold: true,
-                size: 22,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            spacing: { before: 160, after: 60 },
-          })
-        )
-        break
-
-      case 'bullet':
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                size: 22,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            indent: { left: convertInchesToTwip(0.25) },
-            spacing: { after: 60 },
-          })
-        )
-        break
-
-      case 'divisor':
-        paragrafos.push(
-          new Paragraph({
-            border: {
-              bottom: {
-                style: BorderStyle.SINGLE,
-                size: 4,
-                color: 'CCCCCC',
-                space: 4,
-              },
-            },
-            spacing: { after: 120 },
-          })
-        )
-        break
-
-      default: {
-        // 'corpo' ou subtítulo do estudo (linha após "ESTUDO DE CASO")
-        const eSubtitulo = proximaESubtitulo && tipo === 'corpo'
-        if (eSubtitulo) proximaESubtitulo = false
-        paragrafos.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: t,
-                bold: eSubtitulo,
-                size: eSubtitulo ? 24 : 22,
-                color: eSubtitulo ? COR_AZUL : undefined,
-                font: FONTE_PADRAO,
-              }),
-            ],
-            alignment: eSubtitulo ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
-            spacing: { after: eSubtitulo ? 80 : 100 },
-          })
-        )
-      }
+  paragrafosTexto.forEach((paragrafo, idx) => {
+    if (mapeiaEtapas) {
+      paragrafos.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `${idx + 1}. ${ETAPAS_ESTUDO_CASO[idx]}`,
+              bold: true,
+              size: 24,
+              color: COR_AZUL,
+              font: FONTE_PADRAO,
+            }),
+          ],
+          spacing: { before: 320, after: 120 },
+        })
+      )
     }
-  }
+
+    paragrafos.push(
+      new Paragraph({
+        children: [new TextRun({ text: paragrafo, size: 22, font: FONTE_PADRAO })],
+        alignment: AlignmentType.JUSTIFIED,
+        indent: { left: convertInchesToTwip(0.15) },
+        spacing: { after: 200 },
+      })
+    )
+  })
 
   return paragrafos
 }
 
 /** Gera um .docx formatado conforme o template AEE definitivo. */
 export async function downloadEstudoCasoDocx(params: ExportEstudoCasoDocxParams): Promise<void> {
-  const children = textoParaParagrafos(sanitizarTextoEstudoCaso(params.textoCompleto))
+  const children = textoParaParagrafos(
+    sanitizarTextoEstudoCaso(params.textoCompleto),
+    params.alunoNome,
+    params.tituloEstudo
+  )
 
   const doc = new Document({
     creator: 'Plural Plataforma',

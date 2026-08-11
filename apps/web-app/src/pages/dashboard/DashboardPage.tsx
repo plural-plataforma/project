@@ -38,6 +38,8 @@ import {
   type PedagogicalFlowStepId,
 } from '@/config/pedagogicalFlow'
 import { DashboardChartsPanel } from './DashboardChartsPanel'
+import { useTourStore } from '@/stores/tourStore'
+import { startProductTour } from '@/lib/productTour'
 import {
   computeDashboardInsights,
   contextoEscolas,
@@ -136,6 +138,8 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const previousCompletionRef = useRef<Record<PedagogicalFlowStepId, boolean> | null>(null)
   const [journeyFeedback, setJourneyFeedback] = useState<string | null>(null)
+  const hasSeenTour = useTourStore((state) => state.hasSeenTour)
+  const setHasSeenTour = useTourStore((state) => state.setHasSeenTour)
 
   const { data: professorData, isLoading: loadingProf } = useQuery({
     queryKey: ['professor'],
@@ -234,6 +238,17 @@ export default function DashboardPage() {
     previousCompletionRef.current = completionByStep
   }, [completionByStep, isLoading])
 
+  useEffect(() => {
+    if (isLoading || hasSeenTour) return
+    if (window.innerWidth < 768) return
+
+    const timer = setTimeout(() => {
+      startProductTour(() => setHasSeenTour(true))
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [isLoading, hasSeenTour, setHasSeenTour])
+
   const journeySteps = useMemo<JourneyStep[]>(() => {
     const doneFlags = PEDAGOGICAL_FLOW_STEPS.map((s) => completionByStep[s.id])
     const firstIncompleteIndex = doneFlags.findIndex((done) => !done)
@@ -307,6 +322,7 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
+        id="tour-hero"
         className="relative overflow-hidden rounded-2xl bg-primary p-6 md:p-8"
       >
         <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/5" />
@@ -368,6 +384,7 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
+        id="tour-metrics"
         className="grid grid-cols-2 lg:grid-cols-4 gap-3"
       >
         {insights.metrics.map((metric) => (
@@ -413,7 +430,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <Card>
+          <Card id="tour-journey">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <ChartPieSlice size={18} className="text-primary" weight="duotone" />
@@ -435,7 +452,7 @@ export default function DashboardPage() {
 
         {/* Sidebar: insights + atividade */}
         <div className="space-y-4">
-          <Card>
+          <Card id="tour-insights">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <Lightning size={18} className="text-amber" weight="fill" />
@@ -472,7 +489,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card id="tour-recent">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <ClockCounterClockwise size={18} className="text-primary" weight="duotone" />
