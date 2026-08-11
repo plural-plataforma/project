@@ -184,6 +184,7 @@ export function EstudoCasoDetalheDialog({
     if (!detalhe || !texto) return
     try {
       await downloadEstudoCasoDocx({
+        ...detalhe,
         tituloEstudo: detalhe.titulo,
         alunoNome: detalhe.alunoNomeCompleto || 'Aluno(a)',
         textoCompleto: texto,
@@ -199,6 +200,7 @@ export function EstudoCasoDetalheDialog({
     if (!detalhe || !texto) return
     try {
       downloadEstudoCasoPdf({
+        ...detalhe,
         tituloEstudo: detalhe.titulo,
         alunoNome: detalhe.alunoNomeCompleto || 'Aluno(a)',
         textoCompleto: texto,
@@ -440,6 +442,16 @@ export function EstudoCasoDetalheDialog({
                   {detalhe.textoSimulado?.trim() ? (
                     <EstudoCasoTextoIAViewer
                       texto={detalhe.textoGeradoIA ?? detalhe.textoSimulado}
+                      alunoNome={detalhe.alunoNomeCompleto || 'Aluno(a)'}
+                      metadados={{
+                        escolaNomeInstituicao: detalhe.escolaNomeInstituicao,
+                        professorNomeCompleto: detalhe.professorNomeCompleto,
+                        alunoDataNascimento: detalhe.alunoDataNascimento,
+                        alunoAno: detalhe.alunoAno,
+                        updatedAt: detalhe.updatedAt,
+                        diagnosticoRecenteResumo: detalhe.diagnosticoRecenteResumo,
+                        contextoSituacao: detalhe.contextoSituacao,
+                      }}
                       scrollClassName="max-h-[min(52vh,520px)]"
                     />
                   ) : (

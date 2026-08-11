@@ -43,6 +43,11 @@ export interface EstudoCasoDetalhe {
   createdAt: string
   updatedAt: string
   itensEixo: EstudoCasoItemDetalhe[]
+  escolaNomeInstituicao?: string | null
+  professorNomeCompleto?: string | null
+  alunoDataNascimento?: string | null
+  alunoAno?: string | null
+  diagnosticoRecenteResumo?: string
 }
 
 export interface EstudoCasoListaItem {

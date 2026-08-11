@@ -1,7 +1,8 @@
 import { jsPDF } from 'jspdf'
 import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
+import { montarSecoesIdentificacao, type EstudoCasoMetadadosInput } from '@/lib/estudoCasoMetadados'
 
-export interface ExportEstudoCasoPdfParams {
+export interface ExportEstudoCasoPdfParams extends EstudoCasoMetadadosInput {
   tituloEstudo: string
   alunoNome: string
   textoCompleto: string
@@ -24,7 +25,6 @@ const ETAPAS_ESTUDO_CASO = [
 
 const AZUL: [number, number, number] = [29, 53, 87]
 const CINZA: [number, number, number] = [100, 100, 100]
-const VERMELHO: [number, number, number] = [170, 0, 0]
 const PRETO: [number, number, number] = [30, 30, 30]
 
 /** PDF formatado conforme o template AEE definitivo, com quebra de página automática. */
@@ -47,6 +47,15 @@ export function downloadEstudoCasoPdf(params: ExportEstudoCasoPdfParams): void {
     }
   }
 
+  function garantirEspaco(minimo: number) {
+    if (y > pageH - marginB - minimo) {
+      doc.addPage()
+      y = marginT
+    } else {
+      novaLinha(4)
+    }
+  }
+
   function escreverTexto(
     text: string,
     x: number,
@@ -58,6 +67,24 @@ export function downloadEstudoCasoPdf(params: ExportEstudoCasoPdfParams): void {
     if (opts?.align) opcoes.align = opts.align
     doc.text(linhasQuebradas, x, yPos, opcoes)
     return linhasQuebradas.length
+  }
+
+  function escreverTituloSecao(titulo: string) {
+    garantirEspaco(30)
+    doc.setFontSize(11.5)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...AZUL)
+    const n = escreverTexto(titulo, marginL, y, { maxWidth: maxW })
+    novaLinha(n * 6 + 3)
+    doc.setTextColor(...PRETO)
+  }
+
+  function escreverParagrafoCorpo(texto: string) {
+    doc.setFontSize(9.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...PRETO)
+    const n = escreverTexto(texto, marginL, y, { maxWidth: maxW })
+    novaLinha(n * 5 + 6)
   }
 
   // Cabeçalho
@@ -76,18 +103,27 @@ export function downloadEstudoCasoPdf(params: ExportEstudoCasoPdfParams): void {
   doc.setFont('helvetica', 'italic')
   doc.setTextColor(...CINZA)
   const nEstudante = escreverTexto(`Estudante: ${params.alunoNome}`, marginL, y, { maxWidth: maxW })
-  novaLinha(nEstudante * 4.5 + 2)
-
-  doc.setFontSize(7.5)
-  doc.setTextColor(...VERMELHO)
-  const nAviso = escreverTexto(
-    'Documento gerado por Inteligência Artificial (beta) — revise antes de uso oficial.',
-    marginL,
-    y,
-    { maxWidth: maxW }
-  )
-  novaLinha(nAviso * 4 + 6)
+  novaLinha(nEstudante * 4.5 + 6)
+  doc.setFont('helvetica', 'normal')
   doc.setTextColor(...PRETO)
+
+  // Identificação institucional/cadastro + recorte de diagnóstico + contexto relatado
+  for (const secao of montarSecoesIdentificacao(params)) {
+    escreverTituloSecao(secao.titulo)
+
+    if (secao.campos) {
+      for (const campo of secao.campos) {
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...PRETO)
+        const n = escreverTexto(`${campo.label}: ${campo.valor}`, marginL, y, { maxWidth: maxW })
+        novaLinha(n * 4.6 + 2)
+      }
+      novaLinha(2)
+    } else if (secao.texto) {
+      escreverParagrafoCorpo(secao.texto)
+    }
+  }
 
   // Corpo — parágrafos gerados por IA (separados por linha em branco)
   const paragrafosTexto = sanitizarTextoEstudoCaso(params.textoCompleto)
@@ -98,25 +134,9 @@ export function downloadEstudoCasoPdf(params: ExportEstudoCasoPdfParams): void {
 
   paragrafosTexto.forEach((paragrafo, idx) => {
     if (mapeiaEtapas) {
-      if (y > pageH - marginB - 30) {
-        doc.addPage()
-        y = marginT
-      } else {
-        novaLinha(4)
-      }
-      doc.setFontSize(11.5)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(...AZUL)
-      const nTitulo = escreverTexto(`${idx + 1}. ${ETAPAS_ESTUDO_CASO[idx]}`, marginL, y, { maxWidth: maxW })
-      novaLinha(nTitulo * 6 + 3)
-      doc.setTextColor(...PRETO)
+      escreverTituloSecao(`${idx + 1}. ${ETAPAS_ESTUDO_CASO[idx]}`)
     }
-
-    doc.setFontSize(9.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...PRETO)
-    const nCorpo = escreverTexto(paragrafo, marginL, y, { maxWidth: maxW })
-    novaLinha(nCorpo * 5 + 6)
+    escreverParagrafoCorpo(paragrafo)
   })
 
   doc.save(`EstudoCaso_${slugArquivoPart(params.tituloEstudo)}.pdf`)

@@ -2,39 +2,34 @@ import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
 import { downloadEstudoCasoPdf } from '@/lib/exportEstudoCasoPdf'
 import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
 import { buscarEstudoCasoPorId, gerarTextoIAEstudoCaso } from '@/services/estudoCasoService'
+import type { EstudoCasoDetalhe } from '@/types/estudoCaso'
 
-async function obterTextoEstudo(estudoId: number): Promise<{
-  titulo: string
-  alunoNome: string
-  texto: string
-}> {
+async function obterDetalheParaExport(estudoId: number): Promise<{ detalhe: EstudoCasoDetalhe; texto: string }> {
   let detalhe = await buscarEstudoCasoPorId(estudoId)
   if (!detalhe.textoSimulado?.trim()) {
     detalhe = await gerarTextoIAEstudoCaso(estudoId)
   }
   const texto = sanitizarTextoEstudoCaso(detalhe.textoSimulado?.trim() ?? '')
   if (!texto) throw new Error('Não há texto disponível para download.')
-  return {
-    titulo: detalhe.titulo.trim() || 'Estudo de caso',
-    alunoNome: detalhe.alunoNomeCompleto?.trim() || 'Aluno(a)',
-    texto,
-  }
+  return { detalhe, texto }
 }
 
 export async function baixarEstudoCasoWord(estudoId: number): Promise<void> {
-  const { titulo, alunoNome, texto } = await obterTextoEstudo(estudoId)
+  const { detalhe, texto } = await obterDetalheParaExport(estudoId)
   await downloadEstudoCasoDocx({
-    tituloEstudo: titulo,
-    alunoNome,
+    ...detalhe,
+    tituloEstudo: detalhe.titulo.trim() || 'Estudo de caso',
+    alunoNome: detalhe.alunoNomeCompleto?.trim() || 'Aluno(a)',
     textoCompleto: texto,
   })
 }
 
 export async function baixarEstudoCasoPdf(estudoId: number): Promise<void> {
-  const { titulo, alunoNome, texto } = await obterTextoEstudo(estudoId)
+  const { detalhe, texto } = await obterDetalheParaExport(estudoId)
   downloadEstudoCasoPdf({
-    tituloEstudo: titulo,
-    alunoNome,
+    ...detalhe,
+    tituloEstudo: detalhe.titulo.trim() || 'Estudo de caso',
+    alunoNome: detalhe.alunoNomeCompleto?.trim() || 'Aluno(a)',
     textoCompleto: texto,
   })
 }

@@ -52,6 +52,14 @@ public class EstudoDeCasoDetalheDTO
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<EstudoDeCasoItemDetalheDTO> ItensEixo { get; set; } = new();
+
+    // Dados institucionais/cadastro pra seção de identificação do documento exportado
+    // (Word/PDF) — vêm do cadastro do aluno/professor, não são digitados no Estudo de Caso.
+    public string? EscolaNomeInstituicao { get; set; }
+    public string? ProfessorNomeCompleto { get; set; }
+    public DateOnly? AlunoDataNascimento { get; set; }
+    public string? AlunoAno { get; set; }
+    public string DiagnosticoRecenteResumo { get; set; } = string.Empty;
 }
 
 public class EstudoDeCasoListaItemDTO

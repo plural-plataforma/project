@@ -7,8 +7,9 @@ import {
   convertInchesToTwip,
 } from 'docx'
 import { sanitizarTextoEstudoCaso } from '@/lib/sanitizarTextoEstudoCaso'
+import { montarSecoesIdentificacao, type EstudoCasoMetadadosInput } from '@/lib/estudoCasoMetadados'
 
-export interface ExportEstudoCasoDocxParams {
+export interface ExportEstudoCasoDocxParams extends EstudoCasoMetadadosInput {
   tituloEstudo: string
   alunoNome: string
   textoCompleto: string
@@ -32,11 +33,36 @@ const ETAPAS_ESTUDO_CASO = [
 
 const COR_AZUL = '1D3557'
 const COR_CINZA = '666666'
-const COR_AVISO = 'AA0000'
 const FONTE_PADRAO = 'Calibri'
 
+function paragrafoTituloSecao(titulo: string): Paragraph {
+  return new Paragraph({
+    children: [new TextRun({ text: titulo, bold: true, size: 24, color: COR_AZUL, font: FONTE_PADRAO })],
+    spacing: { before: 320, after: 120 },
+  })
+}
+
+function paragrafoCampo(label: string, valor: string): Paragraph {
+  return new Paragraph({
+    children: [
+      new TextRun({ text: `${label}: `, bold: true, size: 18, font: FONTE_PADRAO }),
+      new TextRun({ text: valor, size: 18, font: FONTE_PADRAO }),
+    ],
+    spacing: { after: 40 },
+  })
+}
+
+function paragrafoCorpo(texto: string): Paragraph {
+  return new Paragraph({
+    children: [new TextRun({ text: texto, size: 22, font: FONTE_PADRAO })],
+    alignment: AlignmentType.JUSTIFIED,
+    indent: { left: convertInchesToTwip(0.15) },
+    spacing: { after: 200 },
+  })
+}
+
 /** Converte o texto gerado por IA (prosa corrida, parágrafos separados por linha em branco) em Paragraphs do docx. */
-function textoParaParagrafos(textoCompleto: string, alunoNome: string, tituloEstudo: string): Paragraph[] {
+function textoParaParagrafos(params: ExportEstudoCasoDocxParams, textoCompleto: string): Paragraph[] {
   const paragrafosTexto = textoCompleto
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -53,57 +79,39 @@ function textoParaParagrafos(textoCompleto: string, alunoNome: string, tituloEst
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: tituloEstudo, bold: true, size: 24, color: COR_AZUL, font: FONTE_PADRAO }),
+        new TextRun({ text: params.tituloEstudo, bold: true, size: 24, color: COR_AZUL, font: FONTE_PADRAO }),
       ],
       alignment: AlignmentType.CENTER,
       spacing: { after: 120 },
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: `Estudante: ${alunoNome}`, italics: true, size: 18, color: COR_CINZA, font: FONTE_PADRAO }),
-      ],
-      spacing: { after: 60 },
-    }),
-    new Paragraph({
-      children: [
         new TextRun({
-          text: 'Documento gerado por Inteligência Artificial (beta) — revise antes de uso oficial.',
+          text: `Estudante: ${params.alunoNome}`,
           italics: true,
-          color: COR_AVISO,
-          size: 16,
+          size: 18,
+          color: COR_CINZA,
           font: FONTE_PADRAO,
         }),
       ],
-      spacing: { after: 240 },
+      spacing: { after: 200 },
     }),
   ]
 
+  for (const secao of montarSecoesIdentificacao(params)) {
+    paragrafos.push(paragrafoTituloSecao(secao.titulo))
+    if (secao.campos) {
+      secao.campos.forEach((campo) => paragrafos.push(paragrafoCampo(campo.label, campo.valor)))
+    } else if (secao.texto) {
+      paragrafos.push(paragrafoCorpo(secao.texto))
+    }
+  }
+
   paragrafosTexto.forEach((paragrafo, idx) => {
     if (mapeiaEtapas) {
-      paragrafos.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `${idx + 1}. ${ETAPAS_ESTUDO_CASO[idx]}`,
-              bold: true,
-              size: 24,
-              color: COR_AZUL,
-              font: FONTE_PADRAO,
-            }),
-          ],
-          spacing: { before: 320, after: 120 },
-        })
-      )
+      paragrafos.push(paragrafoTituloSecao(`${idx + 1}. ${ETAPAS_ESTUDO_CASO[idx]}`))
     }
-
-    paragrafos.push(
-      new Paragraph({
-        children: [new TextRun({ text: paragrafo, size: 22, font: FONTE_PADRAO })],
-        alignment: AlignmentType.JUSTIFIED,
-        indent: { left: convertInchesToTwip(0.15) },
-        spacing: { after: 200 },
-      })
-    )
+    paragrafos.push(paragrafoCorpo(paragrafo))
   })
 
   return paragrafos
@@ -111,11 +119,7 @@ function textoParaParagrafos(textoCompleto: string, alunoNome: string, tituloEst
 
 /** Gera um .docx formatado conforme o template AEE definitivo. */
 export async function downloadEstudoCasoDocx(params: ExportEstudoCasoDocxParams): Promise<void> {
-  const children = textoParaParagrafos(
-    sanitizarTextoEstudoCaso(params.textoCompleto),
-    params.alunoNome,
-    params.tituloEstudo
-  )
+  const children = textoParaParagrafos(params, sanitizarTextoEstudoCaso(params.textoCompleto))
 
   const doc = new Document({
     creator: 'Plural Plataforma',
