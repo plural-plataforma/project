@@ -8,10 +8,8 @@ import {
   MenuItem,
   FormControl,
   SelectChangeEvent,
-  Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 export type FiltroExpiracao = 'todos' | 'expirado' | '30' | '60' | '90'
@@ -27,9 +25,9 @@ const EXPIRACAO_OPTIONS: Array<{ value: FiltroExpiracao; label: string }> = [
 interface SearchFilterBarProps<TStatus extends string> {
   search: string;
   setSearch: (value: string) => void;
-  statusFilter: TStatus;
-  setStatusFilter: (value: TStatus) => void;
-  statusOptions: Array<{ value: TStatus; label: string }>;
+  statusFilter?: TStatus;
+  setStatusFilter?: (value: TStatus) => void;
+  statusOptions?: Array<{ value: TStatus; label: string }>;
   placeholder?: string;
   expirationFilter?: FiltroExpiracao;
   setExpirationFilter?: (value: FiltroExpiracao) => void;
@@ -50,18 +48,27 @@ export default function SearchFilterBar<TStatus extends string>({
   };
 
   const handleStatusChange = (e: SelectChangeEvent<string>) => {
-    setStatusFilter(e.target.value as TStatus);
+    setStatusFilter?.(e.target.value as TStatus);
   };
+
+  const inputSx = {
+    height: 44,
+    borderRadius: '10px',
+    fontSize: 14,
+    bgcolor: 'background.paper',
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main', borderWidth: '1.5px' },
+  } as const;
 
   return (
     <Box
       sx={{
         width: '100%',
-        height: '100%',
         display: 'flex',
         alignItems: 'center',
         px: { xs: 2, md: 4 },
-        paddingTop: 3,
+        pt: 3,
         bgcolor: 'background.default',
       }}
     >
@@ -69,16 +76,9 @@ export default function SearchFilterBar<TStatus extends string>({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: { xs: 2, md: 3 },
+          gap: 1.5,
           width: '100%',
-          maxWidth: '100%',
           flexWrap: 'wrap',
-          bgcolor: 'background.paper',
-          p: 2,
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}
       >
         {/* Campo de busca */}
@@ -88,58 +88,54 @@ export default function SearchFilterBar<TStatus extends string>({
           onChange={handleSearchChange}
           fullWidth
           sx={{
-            maxWidth: { xs: '100%', md: '85%' },
-            '& .MuiOutlinedInput-root': { height: 50 },
-            '& .MuiInputBase-input': {
-              color: 'primary.main',
-              pl: 5,
-            },
+            maxWidth: { xs: '100%', md: 380 },
+            '& .MuiOutlinedInput-root': inputSx,
+            '& .MuiInputBase-input': { color: 'text.primary' },
           }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
               </InputAdornment>
             ),
           }}
         />
 
         {/* Filtro de Status */}
-        <FormControl sx={{ minWidth: 200 }}>
-          <Select
-            value={statusFilter}
-            onChange={handleStatusChange}
-            displayEmpty
-            IconComponent={KeyboardArrowDownIcon}
-            sx={{
-              height: 50,
-              color: 'primary.main',
-            }}
-          >
-            {statusOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {statusOptions && statusFilter !== undefined && (
+          <FormControl sx={{ minWidth: 160 }}>
+            <Select
+              value={statusFilter}
+              onChange={handleStatusChange}
+              displayEmpty
+              IconComponent={KeyboardArrowDownIcon}
+              sx={{ ...inputSx, color: 'text.primary' }}
+            >
+              {statusOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
         {/* Filtro de Expiração */}
         {setExpirationFilter && (
-          <FormControl sx={{ minWidth: 200 }}>
+          <FormControl sx={{ minWidth: 180 }}>
             <Select
               value={expirationFilter ?? 'todos'}
               onChange={(e) => setExpirationFilter(e.target.value as FiltroExpiracao)}
               displayEmpty
               IconComponent={KeyboardArrowDownIcon}
               sx={{
-                height: 50,
-                backgroundColor: expirationFilter && expirationFilter !== 'todos' ? 'warning.light' : undefined,
-                color: expirationFilter && expirationFilter !== 'todos' ? 'warning.dark' : 'primary.main',
+                ...inputSx,
+                bgcolor: expirationFilter && expirationFilter !== 'todos' ? 'warning.light' : inputSx.bgcolor,
+                color: expirationFilter && expirationFilter !== 'todos' ? 'warning.dark' : 'text.primary',
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: expirationFilter && expirationFilter !== 'todos'
                     ? 'warning.main'
-                    : undefined,
+                    : 'divider',
                 },
               }}
             >
@@ -151,28 +147,6 @@ export default function SearchFilterBar<TStatus extends string>({
             </Select>
           </FormControl>
         )}
-
-        {/* Botão de filtros avançados (mantido como placeholder) 
-        <Button
-          variant="outlined"
-          startIcon={<FilterListIcon sx={{ color: '#276678' }} />}
-          sx={{
-            height: 50,
-            borderRadius: '8px',
-            borderColor: 'rgba(39, 102, 120, 0.42)',
-            color: '#276678',
-            textTransform: 'none',
-            fontWeight: 500,
-            px: 3,
-            '&:hover': {
-              borderColor: 'rgba(39, 102, 120, 0.42)',
-              backgroundColor: 'rgba(39, 102, 120, 0.04)',
-            },
-          }}
-          onClick={() => alert('Filtros avançados ainda não implementados')}
-        >
-          Filtros
-        </Button>*/}
       </Box>
     </Box>
   );

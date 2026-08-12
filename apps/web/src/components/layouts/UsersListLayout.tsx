@@ -1,4 +1,5 @@
 // components/layouts/UsersListLayout.tsx
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Paper,
@@ -10,6 +11,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  TableSortLabel,
   Checkbox,
   Avatar,
   Chip,
@@ -22,6 +24,9 @@ import {
   Download as DownloadIcon,
   Add as AddIcon,
   Edit as EditIcon,
+  ContentCopy as ContentCopyIcon,
+  ViewComfy as ViewComfyIcon,
+  ViewCompact as ViewCompactIcon,
 } from '@mui/icons-material';
 import { Star as StarIcon } from '@phosphor-icons/react';
 
@@ -41,6 +46,36 @@ function getExpirationStatus(expirationDate?: string | null) {
   return { label: formatted, chipColor: 'default' as const, formatted }
 }
 
+/**
+ * StatusConta vem pronto do backend ("Ativa"/"Bloqueada"/"Expirada"), mas não
+ * cobre o caso Usuario.IsActive=false — por isso o cruzamento com `ativo` aqui.
+ */
+function getStatusContaInfo(user: Usuario) {
+  if (user.possuiLockout || user.statusConta === 'Bloqueada') {
+    return { label: 'Bloqueada', color: 'error' as const }
+  }
+  if (user.statusConta === 'Expirada') {
+    return { label: 'Expirada', color: 'warning' as const }
+  }
+  if (!user.ativo) {
+    return { label: 'Inativo', color: 'default' as const }
+  }
+  return { label: 'Ativa', color: 'success' as const }
+}
+
+function formatDataCadastro(dataCadastro?: string | null) {
+  if (!dataCadastro) return '—'
+  return new Date(dataCadastro).toLocaleDateString('pt-BR')
+}
+
+const AVATAR_COLORS = ['#2563EB', '#16A34A', '#DB2777', '#9333EA', '#EA580C', '#0D9488', '#4F46E5', '#CA8A04']
+
+function corAvatarPorNome(nome: string) {
+  let hash = 0
+  for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
 interface Props {
   filteredUsuarios: Usuario[];
   loading: boolean;
@@ -52,7 +87,7 @@ interface Props {
   rowsPerPage: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
-  onExportar?: () => void;
+  onExportar?: (usuarios: Usuario[]) => void;
   onVerPerfil: (user: Usuario) => void;
   onMaisAcoes?: (user: Usuario) => void;
   onNovoUsuarioClick?: () => void;
@@ -72,7 +107,63 @@ export function UsersListLayout({
   onMaisAcoes,
   onNovoUsuarioClick,
 }: Props) {
-  const displayedUsuarios = filteredUsuarios;
+  const [densidade, setDensidade] = useState<'confortavel' | 'compacta'>('confortavel');
+  const compacta = densidade === 'compacta';
+
+  type CampoOrdenacao = 'nome' | 'expiracao' | 'cadastro';
+  const [ordenacao, setOrdenacao] = useState<{ campo: CampoOrdenacao; direcao: 'asc' | 'desc' } | null>(null);
+
+  const alternarOrdenacao = (campo: CampoOrdenacao) => {
+    setOrdenacao((prev) => {
+      if (prev?.campo !== campo) return { campo, direcao: 'asc' };
+      if (prev.direcao === 'asc') return { campo, direcao: 'desc' };
+      return null;
+    });
+  };
+
+  const displayedUsuarios = useMemo(() => {
+    if (!ordenacao) return filteredUsuarios;
+    const { campo, direcao } = ordenacao;
+    const sinal = direcao === 'asc' ? 1 : -1;
+
+    const valorOrdenavel = (u: Usuario) => {
+      if (campo === 'nome') return u.nomeCompleto?.toLowerCase() || '';
+      if (campo === 'expiracao') return u.expirationDate ? new Date(u.expirationDate).getTime() : -Infinity;
+      return u.dataCadastro ? new Date(u.dataCadastro).getTime() : -Infinity;
+    };
+
+    return [...filteredUsuarios].sort((a, b) => {
+      const va = valorOrdenavel(a);
+      const vb = valorOrdenavel(b);
+      if (va < vb) return -1 * sinal;
+      if (va > vb) return 1 * sinal;
+      return 0;
+    });
+  }, [filteredUsuarios, ordenacao]);
+
+  const [selecionados, setSelecionados] = useState<number[]>([]);
+
+  useEffect(() => {
+    setSelecionados([]);
+  }, [page, filteredUsuarios]);
+
+  const todosSelecionados =
+    displayedUsuarios.length > 0 && selecionados.length === displayedUsuarios.length;
+  const algunsSelecionados = selecionados.length > 0 && !todosSelecionados;
+
+  const toggleSelecionarTodos = () => {
+    setSelecionados(todosSelecionados ? [] : displayedUsuarios.map((u) => u.idUsuario));
+  };
+
+  const toggleSelecionarUm = (id: number) => {
+    setSelecionados((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const usuariosSelecionados = displayedUsuarios.filter((u) =>
+    selecionados.includes(u.idUsuario)
+  );
 
   return (
     <Paper elevation={0} sx={{ overflow: 'hidden', mt: 4 }}>
@@ -98,8 +189,33 @@ export function UsersListLayout({
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={2}>
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={onExportar}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Tooltip title={compacta ? 'Densidade confortável' : 'Densidade compacta'}>
+            <IconButton
+              size="small"
+              onClick={() => setDensidade(compacta ? 'confortavel' : 'compacta')}
+              sx={{ color: 'text.secondary' }}
+            >
+              {compacta ? <ViewComfyIcon /> : <ViewCompactIcon />}
+            </IconButton>
+          </Tooltip>
+
+          {selecionados.length > 0 && (
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<DownloadIcon />}
+              onClick={() => onExportar?.(usuariosSelecionados)}
+            >
+              Exportar selecionados ({selecionados.length})
+            </Button>
+          )}
+
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => onExportar?.(displayedUsuarios)}
+          >
             Exportar
           </Button>
 
@@ -121,17 +237,53 @@ export function UsersListLayout({
         />
       ) : (
         <>
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto', maxHeight: { md: '65vh' } }}>
+            <Table stickyHeader size={compacta ? 'small' : 'medium'}>
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox">
-                    <Checkbox color="primary" />
+                    <Checkbox
+                      color="primary"
+                      checked={todosSelecionados}
+                      indeterminate={algunsSelecionados}
+                      onChange={toggleSelecionarTodos}
+                    />
                   </TableCell>
-                  <TableCell>Usuário</TableCell>
+                  <TableCell sortDirection={ordenacao?.campo === 'nome' ? ordenacao.direcao : false}>
+                    <TableSortLabel
+                      active={ordenacao?.campo === 'nome'}
+                      direction={ordenacao?.campo === 'nome' ? ordenacao.direcao : 'asc'}
+                      onClick={() => alternarOrdenacao('nome')}
+                    >
+                      Usuário
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Perfil</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Expira em</TableCell>
+                  <TableCell
+                    sx={{ display: { xs: 'none', md: 'table-cell' } }}
+                    sortDirection={ordenacao?.campo === 'expiracao' ? ordenacao.direcao : false}
+                  >
+                    <TableSortLabel
+                      active={ordenacao?.campo === 'expiracao'}
+                      direction={ordenacao?.campo === 'expiracao' ? ordenacao.direcao : 'asc'}
+                      onClick={() => alternarOrdenacao('expiracao')}
+                    >
+                      Expira em
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell
+                    sx={{ display: { xs: 'none', xl: 'table-cell' } }}
+                    sortDirection={ordenacao?.campo === 'cadastro' ? ordenacao.direcao : false}
+                  >
+                    <TableSortLabel
+                      active={ordenacao?.campo === 'cadastro'}
+                      direction={ordenacao?.campo === 'cadastro' ? ordenacao.direcao : 'asc'}
+                      onClick={() => alternarOrdenacao('cadastro')}
+                    >
+                      Cadastrado em
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Embaixadora</TableCell>
                   <TableCell align="right">Ações</TableCell>
                 </TableRow>
@@ -139,41 +291,66 @@ export function UsersListLayout({
 
               <TableBody>
                 {displayedUsuarios.map((user) => (
-                  <TableRow key={user.idUsuario} hover>
+                  <TableRow key={user.idUsuario} hover selected={selecionados.includes(user.idUsuario)}>
                     <TableCell padding="checkbox">
-                      <Checkbox color="primary" />
+                      <Checkbox
+                        color="primary"
+                        checked={selecionados.includes(user.idUsuario)}
+                        onChange={() => toggleSelecionarUm(user.idUsuario)}
+                      />
                     </TableCell>
 
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <Box
+                        className="linha-usuario"
+                        sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+                      >
+                        <Avatar sx={{ bgcolor: corAvatarPorNome(user.nomeCompleto || '?') }}>
                           {user.nomeCompleto?.[0] || '?'}
                         </Avatar>
                         <Box sx={{ minWidth: 0 }}>
                           <Typography variant="body2" fontWeight={600} noWrap>
                             {user.nomeCompleto}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" noWrap>
-                            {user.email || '—'}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {user.email || '—'}
+                            </Typography>
+                            {user.email && (
+                              <Tooltip title="Copiar e-mail">
+                                <IconButton
+                                  size="small"
+                                  className="botao-copiar-email"
+                                  sx={{
+                                    p: 0.25,
+                                    opacity: 0,
+                                    transition: 'opacity 0.15s',
+                                    '.linha-usuario:hover &': { opacity: 1 },
+                                  }}
+                                  onClick={() => navigator.clipboard.writeText(user.email)}
+                                >
+                                  <ContentCopyIcon sx={{ fontSize: 14 }} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
                         </Box>
                       </Box>
                     </TableCell>
 
                     <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       <Chip
-                        label={user.perfil || 'Professor'}
+                        label={user.roles?.[0] || user.perfil || 'Professor'}
                         size="small"
                         sx={{ bgcolor: '#dbeafe', color: '#1d4ed8' }}
                       />
                     </TableCell>
 
                     <TableCell>
-                      <Chip
-                        label={user.ativo ? 'Ativo' : 'Inativo'}
-                        size="small"
-                        color={user.ativo ? 'success' : 'error'}
-                      />
+                      {(() => {
+                        const { label, color } = getStatusContaInfo(user)
+                        return <Chip label={label} size="small" color={color} />
+                      })()}
                     </TableCell>
 
                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
@@ -188,6 +365,12 @@ export function UsersListLayout({
                           />
                         )
                       })()}
+                    </TableCell>
+
+                    <TableCell sx={{ display: { xs: 'none', xl: 'table-cell' } }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {formatDataCadastro(user.dataCadastro)}
+                      </Typography>
                     </TableCell>
 
                     <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>

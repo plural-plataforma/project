@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from '@phosphor-icons/react';
+import { X, ArrowUp, ArrowDown } from '@phosphor-icons/react';
 
 import {
   Box,
@@ -15,10 +15,9 @@ import {
   Grid,
   FormControlLabel,
   Checkbox,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  Drawer,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 
 import { updateUserProfile } from '../../services/userProfileService'; // ajuste o caminho conforme sua estrutura
@@ -31,6 +30,10 @@ interface EditProfileModalProps {
   userId: number;
   initialData?: Partial<Usuario>;
   onSuccess?: () => void;  // ← adicionado aqui (opcional)
+  onProximo?: () => void;
+  onAnterior?: () => void;
+  temProximo?: boolean;
+  temAnterior?: boolean;
 }
 
 export default function ProfileUserAppEdit({
@@ -38,7 +41,11 @@ export default function ProfileUserAppEdit({
   onClose,
   userId,
   initialData,
-  onSuccess
+  onSuccess,
+  onProximo,
+  onAnterior,
+  temProximo = false,
+  temAnterior = false,
 }: EditProfileModalProps) {
   const [formData, setFormData] = useState<Partial<Usuario>>(initialData || {});
   const [loading, setLoading] = useState(true);
@@ -77,6 +84,8 @@ export default function ProfileUserAppEdit({
       });
       setLoading(false);
     }
+    setError(null);
+    setSuccess(false);
   }, [initialData]);
 
   const handleSave = async () => {
@@ -142,30 +151,66 @@ export default function ProfileUserAppEdit({
   if (!open) return null;
 
   return (
-    <Dialog
+    <Drawer
+      anchor="right"
       open={open}
       onClose={onClose}
-      maxWidth="md"
-      fullWidth
       sx={{
-        '& .MuiDialog-paper': {
-          borderRadius: 4,
-          boxShadow: 24,
-        }
+        '& .MuiDrawer-paper': {
+          width: { xs: '100%', sm: 480 },
+          display: 'flex',
+          flexDirection: 'column',
+        },
       }}
     >
-      <DialogTitle sx={{ bgcolor: '#276678', color: 'white', py: 2, px: 4 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6" fontWeight="bold">
-            Editar Perfil
-          </Typography>
-          <Button onClick={onClose} sx={{ color: 'white', minWidth: 'auto' }}>
-            <X size={24} weight="bold" />
-          </Button>
-        </Box>
-      </DialogTitle>
+      <Box
+        sx={{
+          bgcolor: '#276678',
+          color: 'white',
+          py: 2,
+          px: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}
+      >
+        <Typography variant="h6" fontWeight="bold">
+          Editar Perfil
+        </Typography>
 
-      <DialogContent sx={{ pt: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Tooltip title="Usuário anterior">
+            <span>
+              <IconButton
+                size="small"
+                onClick={onAnterior}
+                disabled={!temAnterior}
+                sx={{ color: 'white', '&.Mui-disabled': { color: 'rgba(255,255,255,0.3)' } }}
+              >
+                <ArrowUp size={18} weight="bold" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Próximo usuário">
+            <span>
+              <IconButton
+                size="small"
+                onClick={onProximo}
+                disabled={!temProximo}
+                sx={{ color: 'white', '&.Mui-disabled': { color: 'rgba(255,255,255,0.3)' } }}
+              >
+                <ArrowDown size={18} weight="bold" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <IconButton size="small" onClick={onClose} sx={{ color: 'white', ml: 1 }}>
+            <X size={20} weight="bold" />
+          </IconButton>
+        </Box>
+      </Box>
+
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>
         {success && (
           <Alert severity="success" sx={{ mb: 3 }}>
             Perfil atualizado com sucesso!
@@ -184,7 +229,7 @@ export default function ProfileUserAppEdit({
         ) : (
           <Grid container spacing={3} sx={{ paddingTop: 2 }}>
             {/* Nome completo */}
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="Nome completo"
                 fullWidth
@@ -196,7 +241,7 @@ export default function ProfileUserAppEdit({
             </Grid>
 
             {/* E-mail */}
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="E-mail"
                 fullWidth
@@ -209,7 +254,7 @@ export default function ProfileUserAppEdit({
             </Grid>
 
             {/* Telefone */}
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="Telefone / WhatsApp"
                 fullWidth
@@ -221,7 +266,7 @@ export default function ProfileUserAppEdit({
             </Grid>
 
             {/* Perfil (somente Admin pode editar) */}
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               {isAdmin ? (
                 <FormControl fullWidth required>
                   <InputLabel>Perfil</InputLabel>
@@ -248,7 +293,7 @@ export default function ProfileUserAppEdit({
             </Grid>
 
             {/* Status Ativo/Inativo */}
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               <FormControl fullWidth>
                 <InputLabel>Status da Conta</InputLabel>
                 <Select
@@ -263,7 +308,7 @@ export default function ProfileUserAppEdit({
               </FormControl>
             </Grid>
             {/* Data de Expiração */}
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="Data de Expiração"
                 type="date"
@@ -285,7 +330,7 @@ export default function ProfileUserAppEdit({
             </Grid>
 
             {/* Embaixadora */}
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -308,9 +353,20 @@ export default function ProfileUserAppEdit({
             </Grid>
           </Grid>
         )}
-      </DialogContent>
+      </Box>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 1,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          flexShrink: 0,
+        }}
+      >
         <Button onClick={onClose} disabled={saving} sx={{ color: '#276678' }}>
           Cancelar
         </Button>
@@ -326,7 +382,7 @@ export default function ProfileUserAppEdit({
         >
           {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
         </Button>
-      </DialogActions>
-    </Dialog>
+      </Box>
+    </Drawer>
   );
 }

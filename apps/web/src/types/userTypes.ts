@@ -12,4 +12,5 @@ export interface Usuario {
   possuiLockout: boolean
   statusConta: string
   expirationDate?: string | null
+  dataCadastro?: string | null
 }
