@@ -1,8 +1,11 @@
-import { Box, Typography, InputBase, IconButton, useTheme } from '@mui/material'
+import { Box, Typography, InputBase, IconButton, Button, useTheme } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import MenuIcon from '@mui/icons-material/Menu'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { useLocation } from 'react-router-dom'
+
+const PLATFORM_URL = import.meta.env.VITE_PLATFORM_URL ?? 'https://app.pluralplataforma.com'
 
 interface PageInfoEntry {
   prefix: string
@@ -132,6 +135,24 @@ export default function HeaderContent({ onMenuClick, showMenuButton }: HeaderCon
               }
             />
           </Box>
+
+          <Button
+            component="a"
+            href={PLATFORM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="outlined"
+            size="small"
+            startIcon={<OpenInNewIcon sx={{ fontSize: 18 }} />}
+            sx={{
+              display: { xs: 'none', sm: 'inline-flex' },
+              textTransform: 'none',
+              borderRadius: '8px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Acessar plataforma
+          </Button>
 
           <IconButton>
             <NotificationsIcon sx={{ color: 'text.secondary' }} />

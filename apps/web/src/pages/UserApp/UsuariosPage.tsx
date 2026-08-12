@@ -5,7 +5,8 @@ import {
   Box,
   Snackbar,
   Alert,
-  Modal,
+  Tabs,
+  Tab,
 } from '@mui/material';
 
 import SearchFilterBar, { type FiltroExpiracao } from '../../components/SearchFilterBar';
@@ -16,7 +17,7 @@ import StatsGrid, { type StatCardData } from '../../components/StatsGrid';
 import LoadingState from '../../components/common/LoadingState';
 import ErrorState from '../../components/common/ErrorState';
 
-import { UsersThree, UserCheck, Warning } from '@phosphor-icons/react';
+import { UsersThree, UserCheck, Warning, UserPlus } from '@phosphor-icons/react';
 
 import { fetchUsuariosAdmin } from '../../services/adminService';
 import NewUserDialog from '../../components/dialogs/NewUserDialog';
@@ -37,7 +38,7 @@ export default function UsuariosPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [filtroStatusCadastro, setFiltroStatusCadastro] = useState<
-    'todos' | 'cadastrado' | 'Inativo'
+    'todos' | 'cadastrado' | 'Inativo' | 'bloqueado'
   >('todos');
 
   // Filtro de expiração aplicado localmente (cálculo de dias não vai ao servidor)
@@ -52,7 +53,9 @@ export default function UsuariosPage() {
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
   const [initialData, setInitialData] = useState<Partial<Usuario> | undefined>(undefined);
 
-  // Converte o filtro de status da UI para o parâmetro booleano da API
+  // Converte o filtro de status da UI para o parâmetro booleano da API.
+  // 'bloqueado' não existe como filtro no backend — é aplicado localmente
+  // via possuiLockout (ver filteredUsuarios abaixo).
   const ativoParam: boolean | null =
     filtroStatusCadastro === 'cadastrado' ? true :
     filtroStatusCadastro === 'Inativo' ? false :
@@ -101,18 +104,27 @@ export default function UsuariosPage() {
 
   const invalidateUsuarios = () => queryClient.invalidateQueries({ queryKey: ['usuarios'] });
 
-  // Filtro de expiração — aplicado localmente na página atual
+  // Filtros de expiração e bloqueio — aplicados localmente na página atual
   const now = useMemo(() => new Date(), [data]);
   const filteredUsuarios = useMemo(() => {
-    if (filtroExpiracao === 'todos') return usuarios;
-    return usuarios.filter((user) => {
-      if (!user.expirationDate) return false;
-      const exp = new Date(user.expirationDate);
-      const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      if (filtroExpiracao === 'expirado') return diffDays < 0;
-      return diffDays >= 0 && diffDays <= Number(filtroExpiracao);
-    });
-  }, [usuarios, filtroExpiracao, now]);
+    let resultado = usuarios;
+
+    if (filtroStatusCadastro === 'bloqueado') {
+      resultado = resultado.filter((user) => user.possuiLockout);
+    }
+
+    if (filtroExpiracao !== 'todos') {
+      resultado = resultado.filter((user) => {
+        if (!user.expirationDate) return false;
+        const exp = new Date(user.expirationDate);
+        const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (filtroExpiracao === 'expirado') return diffDays < 0;
+        return diffDays >= 0 && diffDays <= Number(filtroExpiracao);
+      });
+    }
+
+    return resultado;
+  }, [usuarios, filtroExpiracao, filtroStatusCadastro, now]);
 
   // Stats baseados na página atual
   const usuariosAtivos = usuarios.filter((u) => u.ativo).length;
@@ -124,6 +136,11 @@ export default function UsuariosPage() {
   const expirados = usuarios.filter((u) => {
     if (!u.expirationDate) return false;
     return new Date(u.expirationDate) < now;
+  }).length;
+  const novosUltimos7Dias = usuarios.filter((u) => {
+    if (!u.dataCadastro) return false;
+    const diffDays = Math.ceil((now.getTime() - new Date(u.dataCadastro).getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 7;
   }).length;
 
   const statsCards: StatCardData[] = [
@@ -150,7 +167,40 @@ export default function UsuariosPage() {
       corFundoIcone: '#FFF3E0',
       corIcone: '#E65100',
     },
+    {
+      titulo: 'Novos Cadastros (7 dias)',
+      valor: novosUltimos7Dias.toLocaleString(),
+      variacao: `${usuarios.length > 0 ? Math.round((novosUltimos7Dias / usuarios.length) * 100) : 0}% desta página`,
+      icone: <UserPlus size={32} weight="duotone" />,
+      corFundoIcone: '#EDE9FE',
+      corIcone: '#7C3AED',
+    },
   ];
+
+  const handleExportar = (usuariosParaExportar: Usuario[]) => {
+    const cabecalho = ['Nome', 'Email', 'Perfil', 'Status', 'Expira em', 'Cadastrado em', 'Embaixadora'];
+    const linhas = usuariosParaExportar.map((u) => [
+      u.nomeCompleto,
+      u.email,
+      u.roles?.[0] || u.perfil || 'Professor',
+      u.possuiLockout ? 'Bloqueada' : u.statusConta || (u.ativo ? 'Ativa' : 'Inativo'),
+      u.expirationDate ? new Date(u.expirationDate).toLocaleDateString('pt-BR') : '',
+      u.dataCadastro ? new Date(u.dataCadastro).toLocaleDateString('pt-BR') : '',
+      u.isEmbaixadora ? 'Sim' : 'Não',
+    ]);
+
+    const csv = [cabecalho, ...linhas]
+      .map((linha) => linha.map((valor) => `"${String(valor ?? '').replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `usuarios-plural-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleVerPerfil = (user: Usuario) => {
     setSelectedUsuario(user);
@@ -171,6 +221,20 @@ export default function UsuariosPage() {
     setOpenEditModal(true);
   };
 
+  const indiceUsuarioSelecionado = selectedUsuario
+    ? filteredUsuarios.findIndex((u) => u.idUsuario === selectedUsuario.idUsuario)
+    : -1;
+  const temAnterior = indiceUsuarioSelecionado > 0;
+  const temProximo =
+    indiceUsuarioSelecionado >= 0 && indiceUsuarioSelecionado < filteredUsuarios.length - 1;
+
+  const handleAnterior = () => {
+    if (temAnterior) handleVerPerfil(filteredUsuarios[indiceUsuarioSelecionado - 1]);
+  };
+  const handleProximo = () => {
+    if (temProximo) handleVerPerfil(filteredUsuarios[indiceUsuarioSelecionado + 1]);
+  };
+
   return (
     <Box sx={{ width: '100%', bgcolor: 'grey.50', minHeight: '100vh', pb: 8 }}>
       {/* Cards */}
@@ -184,16 +248,33 @@ export default function UsuariosPage() {
         )}
       </Box>
 
+      <Box sx={{ px: { xs: 2, md: 4 }, pt: 2 }}>
+        <Tabs
+          value={filtroStatusCadastro}
+          onChange={(_e, value) => setFiltroStatusCadastro(value)}
+          sx={{
+            minHeight: 40,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              minHeight: 40,
+              textTransform: 'none',
+              fontWeight: 600,
+              color: 'text.secondary',
+            },
+            '& .Mui-selected': { color: 'primary.main' },
+          }}
+        >
+          <Tab value="todos" label="Todos" />
+          <Tab value="cadastrado" label="Ativos" />
+          <Tab value="Inativo" label="Inativos" />
+          <Tab value="bloqueado" label="Bloqueados" />
+        </Tabs>
+      </Box>
+
       <SearchFilterBar
         search={search}
         setSearch={setSearch}
-        statusFilter={filtroStatusCadastro}
-        setStatusFilter={setFiltroStatusCadastro}
-        statusOptions={[
-          { value: 'todos', label: 'Todos os Status' },
-          { value: 'cadastrado', label: 'Cadastrados' },
-          { value: 'Inativo', label: 'Inativos' },
-        ]}
         placeholder="Buscar por nome, e-mail ou telefone..."
         expirationFilter={filtroExpiracao}
         setExpirationFilter={setFiltroExpiracao}
@@ -204,12 +285,17 @@ export default function UsuariosPage() {
           filteredUsuarios={filteredUsuarios}
           loading={isLoading}
           error={isError ? errorMessage : null}
-          totalCount={filtroExpiracao === 'todos' ? totalItens : filteredUsuarios.length}
+          totalCount={
+            filtroExpiracao === 'todos' && filtroStatusCadastro !== 'bloqueado'
+              ? totalItens
+              : filteredUsuarios.length
+          }
           page={page}
           rowsPerPage={rowsPerPage}
           onPageChange={(newPage) => setPage(newPage)}
           onRowsPerPageChange={(newSize) => { setRowsPerPage(newSize); setPage(0); }}
           onVerPerfil={handleVerPerfil}
+          onExportar={handleExportar}
           onNovoUsuarioClick={() => setOpenNewUserModal(true)}
         />
       </Box>
@@ -230,20 +316,22 @@ export default function UsuariosPage() {
         }}
       />
 
-      <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
-        <ProfileUserAppEdit
-          open={openEditModal}
-          onClose={() => setOpenEditModal(false)}
-          userId={selectedUsuario?.idUsuario ?? 0}
-          initialData={initialData}
-          onSuccess={async () => {
-            setSnackMessage('Perfil atualizado com sucesso!');
-            setSnackSeverity('success');
-            setSnackOpen(true);
-            await invalidateUsuarios();
-          }}
-        />
-      </Modal>
+      <ProfileUserAppEdit
+        open={openEditModal}
+        onClose={() => setOpenEditModal(false)}
+        userId={selectedUsuario?.idUsuario ?? 0}
+        initialData={initialData}
+        onProximo={handleProximo}
+        onAnterior={handleAnterior}
+        temProximo={temProximo}
+        temAnterior={temAnterior}
+        onSuccess={async () => {
+          setSnackMessage('Perfil atualizado com sucesso!');
+          setSnackSeverity('success');
+          setSnackOpen(true);
+          await invalidateUsuarios();
+        }}
+      />
 
       <Snackbar
         open={snackOpen}
