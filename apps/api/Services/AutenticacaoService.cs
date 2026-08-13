@@ -20,8 +20,9 @@ namespace api.Services
         private readonly IConfiguration _configuracao;
         private readonly EmailService _emailService;
         private readonly OnboardingWebhookService _onboardingWebhook;
+        private readonly ILogger<AutenticacaoService> _logger;
 
-        public AutenticacaoService(UserManager<Usuario> usuario, RoleManager<IdentityRole> tipo, AppDbContext contexto, IConfiguration configuracao, EmailService emailService, OnboardingWebhookService onboardingWebhook)
+        public AutenticacaoService(UserManager<Usuario> usuario, RoleManager<IdentityRole> tipo, AppDbContext contexto, IConfiguration configuracao, EmailService emailService, OnboardingWebhookService onboardingWebhook, ILogger<AutenticacaoService> logger)
         {
             _usuario = usuario;
             _tipo = tipo;
@@ -29,6 +30,7 @@ namespace api.Services
             _configuracao = configuracao;
             _emailService = emailService;
             _onboardingWebhook = onboardingWebhook;
+            _logger = logger;
         }
 
         public async Task<IdentityResult> Registro(RegistroDTO registroDto, string origem = "site")
@@ -71,32 +73,7 @@ namespace api.Services
 
                     await _usuario.AddToRoleAsync(usuarioApp, "Professor");
 
-                    EmailDTO email = new EmailDTO
-                    {
-                        Destino = registroDto.Email,
-                        Assunto = "Bem-vinda à Plural Plataforma",
-                        NomeDestinatario = registroDto.NomeCompleto
-                    };
-
-                    var resultadoEmail = await _emailService.EnviarEmail(email);
-
-                    if (!resultadoEmail.Sucesso)
-                    {
-                        await transacao.RollbackAsync();
-                        return IdentityResult.Failed(
-                         new IdentityError
-                         {
-                             Description = "Falha ao enviar o e-mail de confirmação."
-                         });
-                    }
-
-
                     await transacao.CommitAsync();
-
-                    // Best-effort: fora da transação de propósito — falha aqui nunca reverte o cadastro.
-                    await _onboardingWebhook.DispararCadastroAsync(registroDto.NomeCompleto, registroDto.Email, origem);
-
-                    return IdentityResult.Success;
                 }
                 catch (Exception)
                 {
@@ -104,6 +81,25 @@ namespace api.Services
                     throw;
                 }
             }
+
+            // Best-effort, fora da transação de propósito: acesso já foi pago e a conta já
+            // existe — falha ao enviar e-mail ou disparar o webhook de onboarding nunca reverte o cadastro.
+            var email = new EmailDTO
+            {
+                Destino = registroDto.Email,
+                Assunto = "Bem-vinda à Plural Plataforma",
+                NomeDestinatario = registroDto.NomeCompleto
+            };
+
+            var resultadoEmail = await _emailService.EnviarEmail(email);
+            if (!resultadoEmail.Sucesso)
+            {
+                _logger.LogError("Cadastro concluído mas falha ao enviar e-mail de boas-vindas para {Email}", registroDto.Email);
+            }
+
+            await _onboardingWebhook.DispararCadastroAsync(registroDto.NomeCompleto, registroDto.Email, origem);
+
+            return IdentityResult.Success;
         }
         public async Task<ServiceResponse<object>> Login(LoginDTO loginDto)
         {

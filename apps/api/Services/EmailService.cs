@@ -2,6 +2,7 @@
 using api.Responses;
 using MailKit.Net.Smtp;
 using MimeKit;
+using Microsoft.Extensions.Logging;
 
 namespace api.Services
 {
@@ -13,13 +14,15 @@ namespace api.Services
         private readonly string _smtpServer;
         private readonly string _smtpPorta;
         private readonly string _senhaPadrao;
-        public EmailService(IConfiguration config)
+        private readonly ILogger<EmailService> _logger;
+        public EmailService(IConfiguration config, ILogger<EmailService> logger)
         {
             _origemEmail = config["ORIGEM_EMAIL"];
             _senhaEmail = config["SENHA_EMAIL"];
             _smtpServer = config["SMTP_SERVER"];
             _smtpPorta = config["SMTP_PORTA"];
             _senhaPadrao = config["SENHA_PADRAO"];
+            _logger = logger;
         }
 
         public async Task<ServiceResponse<bool>> EnviarEmail(EmailDTO dadosEmail)
@@ -53,6 +56,8 @@ namespace api.Services
             }
             catch (Exception e)
             {
+                _logger.LogError(e, "Falha ao enviar e-mail para {Destino} via {SmtpServer}:{SmtpPorta}",
+                    dadosEmail.Destino, _smtpServer, _smtpPorta);
                 resposta.SetFalha("Ocorreu um erro ao enviar o email para o usuário.");
                 return resposta;
             }
