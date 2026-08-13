@@ -9,11 +9,24 @@ using api.Models;
 using api.Services;
 using Data;
 using QuestPDF.Infrastructure;
+using Serilog;
 
 
 QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Console sozinho não fica gravado em nenhum lugar visível em hosting IIS
+// (MonsterASP) sem captura de stdout habilitada. Log em arquivo garante
+// histórico persistente independente disso.
+builder.Host.UseSerilog((context, loggerConfig) => loggerConfig
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .WriteTo.File(
+        Path.Combine(builder.Environment.ContentRootPath, "logs", "log-.txt"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 14,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}"));
 
 
 builder.Services.AddCors(options =>
@@ -186,6 +199,7 @@ builder.Services.AddScoped<EstrategiaService>();
 builder.Services.AddScoped<AvaliacaoService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HotmartService>();
+builder.Services.AddScoped<OnboardingWebhookService>();
 builder.Services.AddScoped<AvaliacaoDiagnosticaService>();
 builder.Services.AddScoped<EstudoDeCasoService>();
 builder.Services.AddScoped<RelatoAtendimentoService>();

@@ -59,8 +59,7 @@ export default function NewUserDialog({
 
     if (senha.length < 8) return 'A senha deve ter pelo menos 8 caracteres';
 
-    // Validação simples de formato ISO para expirationDate (opcional)
-    if (expirationDate && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?$/.test(expirationDate)) {
+    if (expirationDate && Number.isNaN(Date.parse(expirationDate))) {
       return 'Formato de data inválido. Use o formato do campo.';
     }
 
@@ -158,11 +157,11 @@ export default function NewUserDialog({
               Data de expiração da conta (opcional)
             </Typography>
             <TextField
-              type="datetime-local"
-              value={expirationDate ? expirationDate.slice(0, 16) : ''}
+              type="date"
+              value={expirationDate ? expirationDate.slice(0, 10) : ''}
               onChange={(e) => {
                 const val = e.target.value;
-                setExpirationDate(val ? `${val}:00.000Z` : '');
+                setExpirationDate(val ? new Date(val).toISOString() : '');
               }}
               fullWidth
               variant="outlined"

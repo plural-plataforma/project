@@ -125,7 +125,7 @@ namespace api.Services
 
             try
             {
-                var result = await _autenticacaoService.Registro(registroDto);
+                var result = await _autenticacaoService.Registro(registroDto, origem: "hotmart");
 
                 if (result.Succeeded)
                 {
