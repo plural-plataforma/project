@@ -19,17 +19,19 @@ namespace api.Services
         private readonly AppDbContext _contexto;
         private readonly IConfiguration _configuracao;
         private readonly EmailService _emailService;
+        private readonly OnboardingWebhookService _onboardingWebhook;
 
-        public AutenticacaoService(UserManager<Usuario> usuario, RoleManager<IdentityRole> tipo, AppDbContext contexto, IConfiguration configuracao, EmailService emailService)
+        public AutenticacaoService(UserManager<Usuario> usuario, RoleManager<IdentityRole> tipo, AppDbContext contexto, IConfiguration configuracao, EmailService emailService, OnboardingWebhookService onboardingWebhook)
         {
             _usuario = usuario;
             _tipo = tipo;
             _contexto = contexto;
             _configuracao = configuracao;
             _emailService = emailService;
+            _onboardingWebhook = onboardingWebhook;
         }
 
-        public async Task<IdentityResult> Registro(RegistroDTO registroDto)
+        public async Task<IdentityResult> Registro(RegistroDTO registroDto, string origem = "site")
         {
             using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
@@ -90,6 +92,10 @@ namespace api.Services
 
 
                     await transacao.CommitAsync();
+
+                    // Best-effort: fora da transação de propósito — falha aqui nunca reverte o cadastro.
+                    await _onboardingWebhook.DispararCadastroAsync(registroDto.NomeCompleto, registroDto.Email, origem);
+
                     return IdentityResult.Success;
                 }
                 catch (Exception)
