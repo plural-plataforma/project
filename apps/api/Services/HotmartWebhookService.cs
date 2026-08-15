@@ -11,12 +11,14 @@ namespace api.Services
     {
         private readonly AutenticacaoService _autenticacaoService;
         private readonly ILogger<HotmartWebhookService> _logger;
-        private readonly string _expectedProductId;
+        private readonly HashSet<string> _expectedProductIds;
         private readonly UserManager<Usuario> _usuario;
 
         private static readonly string[] EventosLiberamAcesso = { "PURCHASE_APPROVED" };
         private static readonly string[] EventosCortamAcesso = { "PURCHASE_REFUNDED", "PURCHASE_CHARGEBACK" };
 
+        // Hotmart trata a oferta avulsa (6420317) e a de assinatura (7820436) como
+        // produtos diferentes, cada um com seu próprio ID — mesmo sendo a mesma plataforma.
         public HotmartWebhookService(
             AutenticacaoService autenticacaoService,
             ILogger<HotmartWebhookService> logger,
@@ -25,7 +27,10 @@ namespace api.Services
         {
             _autenticacaoService = autenticacaoService;
             _logger = logger;
-            _expectedProductId = configuration["Hotmart:ProductId"] ?? "6420317";
+            var productIdsConfig = configuration["Hotmart:ProductId"] ?? "6420317,7820436";
+            _expectedProductIds = productIdsConfig
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToHashSet();
             _usuario = usuario;
         }
 
@@ -64,10 +69,10 @@ namespace api.Services
             var data = payload.Data;
 
             // Filtro por produto
-            if (data.Product?.Id.ToString() != _expectedProductId)
+            if (data.Product?.Id == null || !_expectedProductIds.Contains(data.Product.Id.ToString()!))
             {
-                _logger.LogInformation("Compra ignorada: produto ID {ProductId} ≠ esperado {Expected}",
-                    data.Product?.Id, _expectedProductId);
+                _logger.LogInformation("Compra ignorada: produto ID {ProductId} não está entre os esperados {Expected}",
+                    data.Product?.Id, string.Join(",", _expectedProductIds));
                 return true;
             }
 
@@ -175,10 +180,10 @@ namespace api.Services
 
             var data = payload.Data;
 
-            if (data.Product?.Id.ToString() != _expectedProductId)
+            if (data.Product?.Id == null || !_expectedProductIds.Contains(data.Product.Id.ToString()!))
             {
-                _logger.LogInformation("Cancelamento ignorado: produto ID {ProductId} ≠ esperado {Expected}",
-                    data.Product?.Id, _expectedProductId);
+                _logger.LogInformation("Cancelamento ignorado: produto ID {ProductId} não está entre os esperados {Expected}",
+                    data.Product?.Id, string.Join(",", _expectedProductIds));
                 return true;
             }
 
@@ -220,10 +225,10 @@ namespace api.Services
                 return true;
             }
 
-            if (subscription.Product?.Id.ToString() != _expectedProductId)
+            if (subscription.Product?.Id == null || !_expectedProductIds.Contains(subscription.Product.Id.ToString()!))
             {
-                _logger.LogInformation("Troca de data de cobrança ignorada: produto ID {ProductId} ≠ esperado {Expected}",
-                    subscription.Product?.Id, _expectedProductId);
+                _logger.LogInformation("Troca de data de cobrança ignorada: produto ID {ProductId} não está entre os esperados {Expected}",
+                    subscription.Product?.Id, string.Join(",", _expectedProductIds));
                 return true;
             }
 
