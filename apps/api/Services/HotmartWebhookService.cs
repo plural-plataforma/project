@@ -27,10 +27,17 @@ namespace api.Services
         {
             _autenticacaoService = autenticacaoService;
             _logger = logger;
-            var productIdsConfig = configuration["Hotmart:ProductId"] ?? "6420317,7820436";
+
+            // Lê direto da env var PRODUCT_ID (não de "Hotmart:ProductId"): esse serviço é
+            // scoped (recriado a cada request), e appsettings.json com reloadOnChange pode
+            // reverter "Hotmart:ProductId" pro placeholder "{PRODUCT_ID}" fora de um restart —
+            // mesmo problema que quebrava a validação do hottok. A env var só traz o produto
+            // avulso, então sempre incluímos o de assinatura junto.
+            var productIdsConfig = configuration["PRODUCT_ID"] ?? "6420317";
             _expectedProductIds = productIdsConfig
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToHashSet();
+            _expectedProductIds.Add("7820436");
             _usuario = usuario;
         }
 
