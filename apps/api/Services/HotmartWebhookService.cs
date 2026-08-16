@@ -105,9 +105,14 @@ namespace api.Services
 
             var emailTrim = buyer.Email.Trim();
 
-            // data_next_charge = data da próxima cobrança = vencimento real do acesso já pago.
-            // warranty_date (garantia/reembolso) só entra como fallback se a Hotmart não mandar recorrência.
-            var expiracao = ConverterEpocaMs(data.Purchase?.DateNextCharge) ?? data.Product?.WarrantyDate;
+            // data_next_charge = data da próxima cobrança = vencimento real do acesso já pago,
+            // só vem preenchido pra assinatura recorrente (produto 7820436, plano mensal).
+            // O produto avulso (6420317, plano anual R$588 — pode vir parcelado até 12x, mas não
+            // é assinatura Hotmart) nunca manda date_next_charge: dá 1 ano de acesso a partir da
+            // aprovação. warranty_date é só a janela de garantia/reembolso (7 dias) — nunca reflete
+            // quanto tempo de acesso foi pago, e não deve virar data de expiração.
+            var expiracao = ConverterEpocaMs(data.Purchase?.DateNextCharge)
+                ?? ConverterEpocaMs(data.Purchase?.ApprovedDate)?.AddYears(1);
 
             var existingUser = await EncontrarUsuarioAsync(subscriberCode, emailTrim);
 
