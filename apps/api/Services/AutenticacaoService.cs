@@ -140,7 +140,13 @@ namespace api.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuracao["JwtSettings:Secret"] ?? Environment.GetEnvironmentVariable("JWT_SECRET")!));
+            // Lê direto da env var, não de "JwtSettings:Secret": esse valor só vira real via um
+            // Replace("{JWT_SECRET}", ...) rodado uma única vez no boot em Program.cs, e
+            // appsettings.json com reloadOnChange pode reverter pro placeholder literal fora de
+            // um restart — o "??" abaixo não pegaria isso porque "{JWT_SECRET}" não é null/vazio.
+            var jwtSecret = _configuracao["JWT_SECRET"]
+                ?? throw new InvalidOperationException("JWT_SECRET não configurado no ambiente");
+            var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
             var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(

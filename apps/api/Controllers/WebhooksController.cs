@@ -23,8 +23,14 @@ namespace api.Controllers
         {
             _hotmartService = hotmartService;
             _logger = logger;
-            _expectedHottok = configuration["Hotmart:Hottok"]
-                ?? throw new InvalidOperationException("Hotmart:Hottok não configurado no appsettings");
+
+            // Lê direto da env var (não de "Hotmart:Hottok"): esse controller é instanciado a
+            // cada request, e appsettings.json tem reloadOnChange habilitado — qualquer reload
+            // do arquivo (fora de um restart do processo) desfaz o Replace("{HOTTOK}", ...) feito
+            // uma única vez no boot em Program.cs, revertendo o valor pro placeholder literal e
+            // derrubando toda validação de hottok até o próximo restart.
+            _expectedHottok = configuration["HOTTOK"]
+                ?? throw new InvalidOperationException("HOTTOK não configurado no ambiente");
 
             _logger.LogInformation("Hottok carregado no startup: {HottokLength} caracteres (primeiros 10: {Preview})",
         _expectedHottok.Length,
@@ -46,6 +52,19 @@ namespace api.Controllers
 
             var eventName = payload.TryGetProperty("event", out var eventEl) ? eventEl.GetString() : null;
             var hottok = payload.TryGetProperty("hottok", out var hottokEl) ? hottokEl.GetString() : null;
+
+            // Diagnóstico: várias entregas reais (não só testes do painel) chegam com o hottok
+            // ausente do corpo. Hipótese: a Hotmart manda por header pra esses casos. Loga os
+            // nomes dos headers recebidos (sem valores) pra confirmar na próxima entrega real —
+            // remover depois de confirmado.
+            if (string.IsNullOrEmpty(hottok))
+            {
+                hottok = Request.Headers["X-Hotmart-Hottok"].FirstOrDefault()
+                    ?? Request.Headers["Hottok"].FirstOrDefault();
+
+                _logger.LogWarning("Hottok ausente no corpo | Evento: {Event} | Headers recebidos: {Headers} | Achou em header: {AchouEmHeader}",
+                    eventName, string.Join(",", Request.Headers.Keys), !string.IsNullOrEmpty(hottok));
+            }
 
             _logger.LogInformation("Webhook recebido - Evento: {Event} | Hottok presente: {HasHottok}",
                 eventName, !string.IsNullOrEmpty(hottok));
