@@ -23,7 +23,9 @@ namespace api.Services
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
-            _productId = configuration["Hotmart:ProductId"] ?? "6420317";
+            // A API de assinaturas só existe pra oferta recorrente (7820436) — o produto avulso
+            // (6420317) não tem assinaturas, então usar o mesmo ID do webhook aqui não funciona.
+            _productId = configuration["Hotmart:SubscriptionProductId"] ?? "7820436";
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
