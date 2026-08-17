@@ -33,7 +33,7 @@ namespace api.Services
             _logger = logger;
         }
 
-        public async Task<IdentityResult> Registro(RegistroDTO registroDto, string origem = "site")
+        public async Task<IdentityResult> Registro(RegistroDTO registroDto, string origem = "site", string? criadoPor = null)
         {
             using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
@@ -56,7 +56,10 @@ namespace api.Services
 
                         // Novo: define a data de expiração
                         // Se não vier no DTO → null (vitalício)
-                        ExpirationDate = registroDto.ExpirationDate
+                        ExpirationDate = registroDto.ExpirationDate,
+
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = origem == "hotmart" ? "hotmart" : criadoPor
                     };
 
                     var result = await _usuario.CreateAsync(usuarioApp, registroDto.Senha);
