@@ -14,7 +14,9 @@ namespace api.Services
         private readonly HashSet<string> _expectedProductIds;
         private readonly UserManager<Usuario> _usuario;
 
-        private static readonly string[] EventosLiberamAcesso = { "PURCHASE_APPROVED" };
+        // PURCHASE_APPROVED cobre a maioria dos casos; PURCHASE_COMPLETE aparece em ofertas com
+        // parcelamento/cartão recorrente (ex: "Cartão recorrência") mesmo em produtos avulsos.
+        private static readonly string[] EventosLiberamAcesso = { "PURCHASE_APPROVED", "PURCHASE_COMPLETE" };
         private static readonly string[] EventosCortamAcesso = { "PURCHASE_REFUNDED", "PURCHASE_CHARGEBACK" };
 
         // Hotmart trata a oferta avulsa (6420317) e a de assinatura (7820436) como

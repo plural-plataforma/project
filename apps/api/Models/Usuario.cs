@@ -18,5 +18,11 @@ namespace api.Models
         public DateTime? ExpirationDate { get; set; }
 
         public string? HotmartSubscriberCode { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // "hotmart" (webhook automático), email do admin (cadastro manual pelo painel)
+        // ou null (cadastro público pelo site).
+        public string? CreatedBy { get; set; }
     }
 }

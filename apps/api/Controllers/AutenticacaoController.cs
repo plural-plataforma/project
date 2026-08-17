@@ -26,7 +26,7 @@ namespace api.Controllers
         {
             if (ModelState.IsValid)
             {
-                var retorno = await _autenticacaoService.Registro(registro);
+                var retorno = await _autenticacaoService.Registro(registro, criadoPor: User?.Identity?.Name);
                 if (retorno.Succeeded)
                 {
                     return Ok("Usuário criado com sucesso");
