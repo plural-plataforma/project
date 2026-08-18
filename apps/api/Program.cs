@@ -212,6 +212,7 @@ builder.Services.AddHostedService<HotmartReconciliacaoAssinaturasJob>();
 builder.Services.AddScoped<DocumentoBibliotecaService>();
 builder.Services.AddScoped<PromptSistemaIAService>();
 builder.Services.AddScoped<GeracaoIALogService>();
+builder.Services.AddScoped<ArtigoService>();
 builder.Services.AddHttpClient<api.Services.IA.IGeradorTextoIA, api.Services.IA.GeminiGeradorTextoIA>();
 
 builder.Services.AddControllers();
@@ -277,3 +278,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// Exposto como partial pra WebApplicationFactory<Program> nos testes de integração conseguir
+// referenciar a classe gerada pelas top-level statements.
+public partial class Program { }

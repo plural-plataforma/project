@@ -44,6 +44,7 @@ namespace Data
         public DbSet<DocumentoBiblioteca> DocumentosBiblioteca { get; set; }
         public DbSet<PromptSistemaIA> PromptsSistemaIA { get; set; }
         public DbSet<GeracaoIALog> GeracoesIALog { get; set; }
+        public DbSet<Artigo> Artigos { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -303,6 +304,11 @@ namespace Data
             modelBuilder.Entity<RelatoAtendimento>()
                 .HasIndex(r => new { r.AlunoId, r.DataSessao })
                 .HasDatabaseName("ix_relatos_atendimento_alunoid_datasessao");
+
+            modelBuilder.Entity<Artigo>()
+                .HasIndex(a => a.Slug)
+                .IsUnique()
+                .HasDatabaseName("ix_artigo_slug");
 
         }
 
