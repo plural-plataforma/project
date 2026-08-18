@@ -20,7 +20,7 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material'
 import logoPlural from '../../../../packages/ui/assets/images/logo-plural-plataforma.png'
-import { ChartDonut, ClipboardText, Files, Sparkle, SignOut, Star, UsersThree } from '@phosphor-icons/react'
+import { ChartDonut, ClipboardText, Files, Newspaper, Sparkle, SignOut, Star, UsersThree } from '@phosphor-icons/react'
 import { useEffect, useState, type ReactNode } from 'react'
 
 // Largura fixa do sidebar (padrão comum)
@@ -58,6 +58,7 @@ export default function Sidebar({ variant = 'permanent', open = true, onClose }:
     { text: 'Biblioteca de Modelos', icon: <Files size={20} weight="fill" />, path: '/biblioteca-modelos' },
     { text: 'Prompts de IA', icon: <SettingsIcon />, path: '/prompts-ia' },
     { text: 'Uso de IA', icon: <Sparkle size={20} weight="fill" />, path: '/uso-ia' },
+    { text: 'Artigos', icon: <Newspaper size={20} weight="fill" />, path: '/artigos' },
   ]
 
   const sistemaGroup = [
