@@ -29,6 +29,7 @@ const ConfiguracoesGerais = lazy(() => import('./pages/Configuracoes/Configuraco
 const BibliotecaModelos = lazy(() => import('./pages/Documentos/BibliotecaModelos'))
 const PromptsIA = lazy(() => import('./pages/Documentos/PromptsIA'))
 const UsoIA = lazy(() => import('./pages/Documentos/UsoIA'))
+const Artigos = lazy(() => import('./pages/Documentos/Artigos'))
 
 function PageFallback() {
   return (
@@ -77,6 +78,7 @@ function App() {
                 <Route path="/biblioteca-modelos" element={<BibliotecaModelos />} />
                 <Route path="/prompts-ia" element={<PromptsIA />} />
                 <Route path="/uso-ia" element={<UsoIA />} />
+                <Route path="/artigos" element={<Artigos />} />
 
                 {/* Rotas do usuário */}
                 <Route path="/change-password" element={<ChangePassword />} />
