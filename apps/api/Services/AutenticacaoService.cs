@@ -50,6 +50,7 @@ namespace api.Services
                     {
                         UserName = registroDto.Email,
                         Email = registroDto.Email,
+                        PhoneNumber = registroDto.Telefone,
                         ProfessorId = perfilId,
                         AceitouTermos = registroDto.AceitouTermos,
                         DeveAlterarSenha = registroDto.DeveAlterarSenha,
