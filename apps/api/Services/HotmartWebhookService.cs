@@ -132,6 +132,10 @@ namespace api.Services
             if (string.IsNullOrWhiteSpace(nomeCompleto))
                 nomeCompleto = "Comprador Hotmart";
 
+            var telefone = !string.IsNullOrWhiteSpace(buyer.CheckoutPhone)
+                ? $"+{buyer.CheckoutPhoneCode?.Trim()}{buyer.CheckoutPhone.Trim()}"
+                : null;
+
             var registroDto = new RegistroDTO
             {
                 NomeCompleto = nomeCompleto,
@@ -140,6 +144,7 @@ namespace api.Services
                 AceitouTermos = true,
                 DeveAlterarSenha = true,
                 ExpirationDate = expiracao,
+                Telefone = telefone,
             };
 
             try
