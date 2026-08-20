@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { useQuery } from '@tanstack/react-query'
 import { buscarProfessor } from '@/services/professorService'
+import { TutorialVideoButton } from '@/components/onboarding/TutorialVideoButton'
 
 export function AppShell() {
   const { data } = useQuery({
@@ -20,6 +21,7 @@ export function AppShell() {
           <Outlet />
         </div>
       </main>
+      <TutorialVideoButton />
     </div>
   )
 }
