@@ -1,6 +1,8 @@
 using api.DTOs.Autenticacao;
 using api.DTOs.Webhooks;
+using api.Helpers;
 using api.Models;
+using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,6 +15,7 @@ namespace api.Services
         private readonly ILogger<HotmartWebhookService> _logger;
         private readonly HashSet<string> _expectedProductIds;
         private readonly UserManager<Usuario> _usuario;
+        private readonly AppDbContext _contexto;
 
         // PURCHASE_APPROVED cobre a maioria dos casos; PURCHASE_COMPLETE aparece em ofertas com
         // parcelamento/cartão recorrente (ex: "Cartão recorrência") mesmo em produtos avulsos.
@@ -25,10 +28,12 @@ namespace api.Services
             AutenticacaoService autenticacaoService,
             ILogger<HotmartWebhookService> logger,
             IConfiguration configuration,
-            UserManager<Usuario> usuario)
+            UserManager<Usuario> usuario,
+            AppDbContext contexto)
         {
             _autenticacaoService = autenticacaoService;
             _logger = logger;
+            _contexto = contexto;
 
             // Lê direto da env var PRODUCT_ID (não de "Hotmart:ProductId"): esse serviço é
             // scoped (recriado a cada request), e appsettings.json com reloadOnChange pode
@@ -116,11 +121,22 @@ namespace api.Services
             var expiracao = ConverterEpocaMs(data.Purchase?.DateNextCharge)
                 ?? ConverterEpocaMs(data.Purchase?.ApprovedDate)?.AddYears(1);
 
+            // checkout_phone às vezes já vem com o DDI embutido e checkout_phone_code vazio —
+            // o helper concatena só quando faz sentido e descarta máscara/espaços.
+            var telefone = TelefoneHelper.Normalizar(buyer.CheckoutPhone, buyer.CheckoutPhoneCode);
+
+            if (telefone == null)
+            {
+                _logger.LogWarning(
+                    "Telefone ausente ou inválido no webhook Hotmart para {Email} (code: {Code}, phone: {Phone})",
+                    emailTrim, buyer.CheckoutPhoneCode, buyer.CheckoutPhone);
+            }
+
             var existingUser = await EncontrarUsuarioAsync(subscriberCode, emailTrim);
 
             if (existingUser != null)
             {
-                return await RenovarAcessoAsync(existingUser, payload.Event, expiracao, subscriberCode);
+                return await RenovarAcessoAsync(existingUser, payload.Event, expiracao, subscriberCode, telefone);
             }
 
             var senhaAleatoria = "Plural@2025"; // ← considere gerar aleatória em produção
@@ -131,10 +147,6 @@ namespace api.Services
 
             if (string.IsNullOrWhiteSpace(nomeCompleto))
                 nomeCompleto = "Comprador Hotmart";
-
-            var telefone = !string.IsNullOrWhiteSpace(buyer.CheckoutPhone)
-                ? $"+{buyer.CheckoutPhoneCode?.Trim()}{buyer.CheckoutPhone.Trim()}"
-                : null;
 
             var registroDto = new RegistroDTO
             {
@@ -164,10 +176,11 @@ namespace api.Services
                     }
 
                     _logger.LogInformation(
-                        "Cadastro automático Hotmart concluído | Evento: {Event} | Email: {Email} | Nome: {Nome} | Expiração: {Exp}",
+                        "Cadastro automático Hotmart concluído | Evento: {Event} | Email: {Email} | Nome: {Nome} | Telefone: {Telefone} | Expiração: {Exp}",
                         payload.Event,
                         registroDto.Email,
                         registroDto.NomeCompleto,
+                        registroDto.Telefone ?? "sem telefone",
                         registroDto.ExpirationDate?.ToString("yyyy-MM-dd") ?? "sem expiração"
                     );
 
@@ -276,10 +289,16 @@ namespace api.Services
             return true;
         }
 
-        private async Task<bool> RenovarAcessoAsync(Usuario usuario, string evento, DateTime? expiracao, string? subscriberCode)
+        private async Task<bool> RenovarAcessoAsync(Usuario usuario, string evento, DateTime? expiracao, string? subscriberCode, string? telefone)
         {
             usuario.ExpirationDate = expiracao ?? usuario.ExpirationDate;
             usuario.IsActive = true;
+
+            if (!string.IsNullOrWhiteSpace(telefone))
+            {
+                await PreencherTelefoneSeAusenteAsync(usuario, telefone);
+            }
+
             if (!string.IsNullOrWhiteSpace(subscriberCode) && usuario.HotmartSubscriberCode != subscriberCode)
             {
                 usuario.HotmartSubscriberCode = subscriberCode;
@@ -296,6 +315,28 @@ namespace api.Services
             _logger.LogInformation("Acesso renovado via Hotmart | Evento: {Event} | Email: {Email} | Nova expiração: {Exp}",
                 evento, usuario.Email, usuario.ExpirationDate?.ToString("yyyy-MM-dd") ?? "sem expiração");
             return true;
+        }
+
+        /// <summary>
+        /// Completa o telefone de quem já tinha conta antes de o dado passar a ser gravado
+        /// (ou de quem foi cadastrado manualmente sem telefone). Nunca sobrescreve valor existente.
+        /// </summary>
+        private async Task PreencherTelefoneSeAusenteAsync(Usuario usuario, string telefone)
+        {
+            if (string.IsNullOrWhiteSpace(usuario.PhoneNumber))
+            {
+                usuario.PhoneNumber = telefone;
+            }
+
+            if (usuario.ProfessorId == null)
+                return;
+
+            var professor = await _contexto.Professores.FirstOrDefaultAsync(p => p.ID == usuario.ProfessorId);
+            if (professor != null && string.IsNullOrWhiteSpace(professor.Telefone))
+            {
+                professor.Telefone = telefone;
+                await _contexto.SaveChangesAsync();
+            }
         }
 
         private async Task<bool> CortarAcessoAsync(string evento, string? email, string? subscriberCode)

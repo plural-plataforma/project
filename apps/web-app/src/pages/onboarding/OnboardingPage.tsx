@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { StoriesOnboarding } from '@/components/onboarding/StoriesOnboarding'
+// import { StoriesOnboarding } from '@/components/onboarding/StoriesOnboarding'
+import { VideoTutorialOnboarding } from '@/components/onboarding/VideoTutorialOnboarding'
 import { useAuth } from '@/context/AuthContext'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 
@@ -26,7 +27,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-dvh w-full flex flex-col md:flex-row md:items-center md:justify-center bg-muted p-0 md:p-4">
-      <StoriesOnboarding isLoggedIn={isLoggedIn} />
+      {/* Onboarding em stories desativado — substituído pelo tutorial em vídeo */}
+      {/* <StoriesOnboarding isLoggedIn={isLoggedIn} /> */}
+      <VideoTutorialOnboarding isLoggedIn={isLoggedIn} />
     </div>
   )
 }

@@ -21,7 +21,7 @@ namespace api.Services
             _httpClient.Timeout = TimeSpan.FromSeconds(10);
         }
 
-        public async Task DispararCadastroAsync(string nomeCompleto, string email, string origem)
+        public async Task DispararCadastroAsync(string nomeCompleto, string email, string? telefone, string origem)
         {
             var url = _config["ONBOARDING_WEBHOOK_URL"];
             if (string.IsNullOrWhiteSpace(url))
@@ -37,9 +37,17 @@ namespace api.Services
                     evento = "cadastro",
                     nomeCompleto,
                     email,
+                    telefone,
                     origem,
                     dataCadastro = DateTime.UtcNow,
                 };
+
+                if (string.IsNullOrWhiteSpace(telefone))
+                {
+                    _logger.LogWarning(
+                        "Webhook de onboarding disparado sem telefone para {Email} (origem: {Origem})",
+                        email, origem);
+                }
 
                 var json = JsonSerializer.Serialize(payload);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
