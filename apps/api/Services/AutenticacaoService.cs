@@ -1,5 +1,6 @@
 ﻿using api.DTOs.Autenticacao;
 using api.DTOs.Email;
+using api.Helpers;
 using api.Models;
 using api.Responses;
 using Data;
@@ -35,12 +36,26 @@ namespace api.Services
 
         public async Task<IdentityResult> Registro(RegistroDTO registroDto, string origem = "site", string? criadoPor = null)
         {
+            var telefone = TelefoneHelper.Normalizar(registroDto.Telefone);
+
+            if (!string.IsNullOrWhiteSpace(registroDto.Telefone) && telefone == null)
+            {
+                _logger.LogWarning(
+                    "Telefone informado no cadastro de {Email} não é válido e não será gravado (origem: {Origem})",
+                    registroDto.Email, origem);
+            }
+
             using (var transacao = await _contexto.Database.BeginTransactionAsync())
             {
                 try
                 {
                     int? perfilId = null;
-                    Professor professor = new Professor { NomeCompleto = registroDto.NomeCompleto };
+
+                    Professor professor = new Professor
+                    {
+                        NomeCompleto = registroDto.NomeCompleto,
+                        Telefone = telefone,
+                    };
                     _contexto.Professores.Add(professor);
 
                     await _contexto.SaveChangesAsync();
@@ -50,7 +65,7 @@ namespace api.Services
                     {
                         UserName = registroDto.Email,
                         Email = registroDto.Email,
-                        PhoneNumber = registroDto.Telefone,
+                        PhoneNumber = telefone,
                         ProfessorId = perfilId,
                         AceitouTermos = registroDto.AceitouTermos,
                         DeveAlterarSenha = registroDto.DeveAlterarSenha,
@@ -101,7 +116,7 @@ namespace api.Services
                 _logger.LogError("Cadastro concluído mas falha ao enviar e-mail de boas-vindas para {Email}", registroDto.Email);
             }
 
-            await _onboardingWebhook.DispararCadastroAsync(registroDto.NomeCompleto, registroDto.Email, origem);
+            await _onboardingWebhook.DispararCadastroAsync(registroDto.NomeCompleto, registroDto.Email, telefone, origem);
 
             return IdentityResult.Success;
         }
