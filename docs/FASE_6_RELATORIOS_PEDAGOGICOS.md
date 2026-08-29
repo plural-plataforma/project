@@ -1,9 +1,32 @@
 # Fase 6 — Relatórios Pedagógicos do AEE: Escopo e sprints
 
 **Documento para:** alinhamento com a cliente, priorização e controle de escopo por sprint.
-**Última atualização:** 25/08/2026
+**Última atualização:** 26/08/2026
 **Prazo comercial:** a definir com a cliente (este arquivo descreve **esforço técnico** e **ordem lógica**, não datas fixas).
 **Fontes:** doc "Nova funcionalidade Plural: Relatórios Pedagógicos do AEE" (implementação) + modelo "RELATÓRIO PEDAGÓGICO DO ATENDIMENTO EDUCACIONAL ESPECIALIZADO" (template final, 15 seções) + respostas da cliente às dúvidas levantadas (25/08/2026).
+
+---
+
+## 0. Status de implementação (atualizado em 26/08/2026)
+
+**Branch:** `feature/fase-6-relatorios-pedagogicos` (criada a partir da `staging`).
+
+**Concluído — S1 a S4 (backend apenas, nenhum frontend em `apps/web-app` foi tocado ainda):**
+
+- **S1 — Base de dados:** `apps/api/Models/Relatorio.cs`, `apps/api/Models/RelatorioSecao.cs` (enums `RelatorioTipoPeriodo`, `RelatorioStatus`, `RelatorioSecaoChave` com as 14 chaves — Identificação fica de fora, é preenchida direto do cadastro na exportação). `TipoDocumentoIA.RelatorioPedagogico = 4` adicionado. Relacionamentos em `apps/api/Data/AppDbContext.cs`. Migration `apps/api/Migrations/20260826001632_AddRelatorioPedagogico.cs` (cria `relatorios_pedagogicos` e `relatorio_pedagogico_secoes` + seed do prompt inicial em `prompt_sistema_ia`). Vínculo `RelatoAtendimento.PlanejamentoId` passou a ser **obrigatório para registros novos** (`RelatoAtendimentoService.ValidarNegocioAsync`, parâmetro `exigirPlanejamento`, só `true` em `Cadastrar`) — não é `NOT NULL` no banco, registros antigos continuam válidos.
+- **S2 — Levantamento automático:** `apps/api/Services/RelatorioService.cs` → `MontarInsumosAsync` agrega Aluno+Escola, Estudo de Caso mais recente, PAEEs vigentes no período (com habilidades/estratégias/objetivos), Relatos de Atendimento no período, Avaliações Diagnósticas no período. Endpoint `GET /api/Relatorio/preview-insumos?alunoId=&dataInicio=&dataFim=` retorna contagens e avisos por seção sem dado suficiente, sem gravar nada.
+- **S3 — Geração via IA:** `MontarPromptRelatorio` monta um prompt único com todos os insumos + regra do período ≥ 3 meses pra seção Evolução (segmenta início/meio/fim) vs. < 3 meses (sintetiza sem segmentar). `GerarSecoesAsync` chama `IGeradorTextoIA` **uma única vez**, faz parse do JSON de resposta (tolera cercas ```json```), cria as 14 `RelatorioSecao` (seção sem dado = `null` da IA = "informação insuficiente", nunca texto inventado). `CriarAsync` (`POST /api/Relatorio/cadastro`) cria o relatório e já gera; se a IA falhar, o relatório fica salvo sem seções e pode ser reprocessado via `GerarNovamenteAsync` (`POST /api/Relatorio/{id}/gerar-novamente`) — **mas só enquanto não existir nenhuma seção ainda** (trava a regra de "sem regeneração por seção" depois da primeira geração bem-sucedida). Log em `GeracaoIALog` a cada tentativa.
+- **S4 — Revisão/edição/status (backend):** `AtualizarSecaoAsync` (`PATCH /api/Relatorio/{id}/secoes`) edita `TextoEditado`/`NotasManuais` de uma seção, bloqueado se `Status == Finalizado`. `FinalizarAsync` (`POST /api/Relatorio/{id}/finalizar`) exige que já tenha sido gerado. `ReabrirAsync` (`POST /api/Relatorio/{id}/reabrir`) volta pra Rascunho **sobrescrevendo o mesmo registro** (sem versionamento, decisão da cliente). `BuscarPorIdAsync` (`GET /api/Relatorio/{id}`) retorna o relatório com as seções.
+
+**Bug legado corrigido (não relacionado à feature):** `apps/api/Migrations/20251125025256_tabelasEstrategias.cs` readicionava a coluna `devealterarsenha` que `20251025140303_novoCampoUsuario.cs` já tinha criado — quebrava bootstrap de banco novo do zero. Corrigido removendo a `AddColumn`/`DropColumn` duplicada. **Atenção:** ao testar bootstrap completo em banco vazio local, apareceu pelo menos **mais um bug legado similar e não corrigido** (`20260219040542_FixProfessorUsuarioNavigation` recria um índice `ix_aspnetusers_professorid` que já existe) — não foi tratado por estar fora do escopo desta feature; só afeta bootstrap do zero, não os bancos reais de teste/prod (que já têm o histórico aplicado).
+
+**Pendente antes de tudo:**
+- Rodar `dotnet ef database update` (ou deixar a pipeline aplicar) nos ambientes de teste/prod pra aplicar a migration `AddRelatorioPedagogico`. Ver nota de ambiente abaixo sobre como rodar `dotnet ef` localmente (SDK e env vars necessárias).
+- Configurar o conteúdo real do prompt de sistema pra `TipoDocumentoIA.RelatorioPedagogico` na tabela `prompt_sistema_ia` (hoje está com texto placeholder, igual aos outros tipos foram antes de ter prompt definido).
+
+**Nota de ambiente (dotnet ef):** este projeto pode não ter o .NET SDK instalado por padrão (só o runtime) — instale via `winget install --id Microsoft.DotNet.SDK.9`. Rode `dotnet tool restore` em `apps/api` antes de usar `dotnet ef` (é uma local tool). `Program.cs` exige várias env vars mesmo pra comandos de design-time que não tocam banco de verdade (`migrations add`): `JWT_SECRET`, `HOTTOK`, `GEMINI_API_KEY`, `HOTMART_CLIENT_ID`, `HOTMART_CLIENT_SECRET`, `PRODUCT_ID` bastam pra `migrations add`; para `database update` contra um Postgres real, adicione também `USER_ID`, `DB_PASSWORD`, `SERVER_URL`, `PORT_API` (a connection string base sempre usa esse template de placeholders, independente do `ASPNETCORE_ENVIRONMENT`). Valores fictícios servem — não é preciso segredo real pra rodar essas ferramentas.
+
+**Próximo passo: S5** (listagem, duplicação, export Word/PDF no layout do template de 15 seções — ver seção 4.6 abaixo). S4 ainda precisa da tela de revisão/edição no frontend (`apps/web-app`), que também não foi iniciada.
 
 ---
 
