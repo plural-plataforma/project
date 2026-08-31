@@ -21,6 +21,21 @@ public class RelatorioController : ControllerBase
         _usuario = usuario;
     }
 
+    [HttpGet("listar")]
+    public async Task<IActionResult> Listar(
+        [FromQuery] int alunoId,
+        [FromQuery] RelatorioStatus? status,
+        [FromQuery] DateOnly? dataInicio,
+        [FromQuery] DateOnly? dataFim)
+    {
+        var usuario = await _usuario.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.ListarAsync(usuario, alunoId, status, dataInicio, dataFim);
+        return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+    }
+
     [HttpGet("preview-insumos")]
     public async Task<IActionResult> PreviewInsumos(
         [FromQuery] int alunoId,
@@ -112,5 +127,23 @@ public class RelatorioController : ControllerBase
 
         var resposta = await _service.ReabrirAsync(id, usuario);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+    }
+
+    [HttpPost("{id:int}/duplicar")]
+    public async Task<IActionResult> Duplicar(int id)
+    {
+        var usuario = await _usuario.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.DuplicarAsync(id, usuario);
+        if (!resposta.Sucesso)
+        {
+            return resposta.Mensagens.Any(m => m.Contains("não encontrado", StringComparison.OrdinalIgnoreCase))
+                ? NotFound(resposta)
+                : BadRequest(resposta);
+        }
+
+        return Ok(resposta);
     }
 }

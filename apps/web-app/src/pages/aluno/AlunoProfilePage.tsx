@@ -14,6 +14,7 @@ import {
   Clock,
   Article,
   Lightning,
+  FileText,
 } from '@phosphor-icons/react'
 import { buscarAlunoPorId, excluirAluno } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
@@ -30,9 +31,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EstudoCasoDetalheDialog } from '@/pages/estudo-caso/EstudoCasoDetalheDialog'
 import { AlunoFormDialog } from './AlunoFormDialog'
 import { AlunoExcluirDialog } from './AlunoExcluirDialog'
+import { NovoRelatorioDialog } from '@/pages/relatorio/NovoRelatorioDialog'
+import { listarRelatoriosPorAluno } from '@/services/relatorioService'
+import {
+  RELATORIO_STATUS_LABELS,
+  RELATORIO_TIPO_PERIODO_LABELS,
+  type RelatorioStatusCodigo,
+} from '@/types/relatorio'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { labelTipoAtendimentoAee } from '@/types/aluno'
@@ -49,6 +58,8 @@ export default function AlunoProfilePage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [estudoCasoDetalheId, setEstudoCasoDetalheId] = useState<number | null>(null)
   const [gerandoPaeeEstudoId, setGerandoPaeeEstudoId] = useState<number | null>(null)
+  const [novoRelatorioOpen, setNovoRelatorioOpen] = useState(false)
+  const [filtroStatusRelatorio, setFiltroStatusRelatorio] = useState<string>('all')
 
   const { data: aluno, isLoading } = useQuery({
     queryKey: ['aluno', id],
@@ -75,6 +86,16 @@ export default function AlunoProfilePage() {
   const { data: estudosCaso = [], isLoading: loadingEstudosCaso } = useQuery({
     queryKey: ['estudos-caso-aluno', aluno?.id],
     queryFn: () => listarEstudosCasoPorAluno(aluno!.id!),
+    enabled: !!aluno?.id,
+  })
+
+  const { data: relatoriosPedagogicos = [], isLoading: loadingRelatorios } = useQuery({
+    queryKey: ['relatorios-pedagogicos-aluno', aluno?.id, filtroStatusRelatorio],
+    queryFn: () =>
+      listarRelatoriosPorAluno({
+        alunoId: aluno!.id!,
+        status: filtroStatusRelatorio === 'all' ? undefined : (Number(filtroStatusRelatorio) as RelatorioStatusCodigo),
+      }),
     enabled: !!aluno?.id,
   })
 
@@ -507,6 +528,61 @@ export default function AlunoProfilePage() {
           </Card>
         ) : null}
 
+        {/* Relatórios Pedagógicos */}
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+            <CardTitle className="flex items-center gap-2">
+              <FileText size={20} />
+              Relatórios Pedagógicos
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Select value={filtroStatusRelatorio} onValueChange={setFiltroStatusRelatorio}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="0">{RELATORIO_STATUS_LABELS[0]}</SelectItem>
+                  <SelectItem value="1">{RELATORIO_STATUS_LABELS[1]}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={() => setNovoRelatorioOpen(true)}>
+                <FileText size={14} />
+                Novo relatório
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {loadingRelatorios ? (
+              <p className="text-sm text-muted-foreground">Carregando relatórios...</p>
+            ) : relatoriosPedagogicos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {filtroStatusRelatorio === 'all'
+                  ? 'Nenhum relatório pedagógico registrado para este aluno.'
+                  : 'Nenhum relatório com esse status.'}
+              </p>
+            ) : (
+              relatoriosPedagogicos.map((r) => (
+                <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                  <div>
+                    <p className="font-semibold text-sm text-foreground">
+                      {RELATORIO_TIPO_PERIODO_LABELS[r.tipoPeriodo]} ·{' '}
+                      {new Date(`${r.dataInicio}T12:00:00`).toLocaleDateString('pt-BR')} →{' '}
+                      {new Date(`${r.dataFim}T12:00:00`).toLocaleDateString('pt-BR')}
+                    </p>
+                    <Badge variant={r.status === 1 ? 'success' : 'amber'} className="mt-1">
+                      {RELATORIO_STATUS_LABELS[r.status]}
+                    </Badge>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/relatorios-pedagogicos/${r.id}`)}>
+                    <ArrowSquareOut size={14} />
+                    Abrir
+                  </Button>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
       </motion.div>
 
@@ -535,6 +611,16 @@ export default function AlunoProfilePage() {
         nomeCompleto={alunoNome}
         isPending={deleteMutation.isPending}
         onConfirm={() => deleteMutation.mutate(alunoId)}
+      />
+
+      <NovoRelatorioDialog
+        open={novoRelatorioOpen}
+        onOpenChange={setNovoRelatorioOpen}
+        alunoId={alunoId}
+        onCriado={(relatorioId) => {
+          void qc.invalidateQueries({ queryKey: ['relatorios-pedagogicos-aluno', alunoId] })
+          navigate(`/relatorios-pedagogicos/${relatorioId}`)
+        }}
       />
     </>
   )

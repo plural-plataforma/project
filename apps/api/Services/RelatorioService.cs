@@ -85,8 +85,8 @@ public class RelatorioService
             .OrderBy(r => r.DataSessao)
             .ToListAsync();
 
-        var inicioDateTime = dataInicio.ToDateTime(TimeOnly.MinValue);
-        var fimDateTime = dataFim.ToDateTime(TimeOnly.MaxValue);
+        var inicioDateTime = DateTime.SpecifyKind(dataInicio.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
+        var fimDateTime = DateTime.SpecifyKind(dataFim.ToDateTime(TimeOnly.MaxValue), DateTimeKind.Utc);
 
         var avaliacoes = await _db.AvaliacoesDiagnosticas
             .Include(a => a.RegistrosDesempenho.Where(d => d.AlunoId == alunoId))
@@ -421,6 +421,8 @@ public class RelatorioService
     {
         var relatorio = await _db.Relatorios
             .Include(r => r.Aluno)
+            .Include(r => r.Escola)
+            .Include(r => r.Professor)
             .Include(r => r.Secoes)
             .AsNoTracking()
             .FirstAsync(r => r.Id == id);
@@ -430,6 +432,13 @@ public class RelatorioService
             Id = relatorio.Id,
             AlunoId = relatorio.AlunoId,
             AlunoNome = relatorio.Aluno?.NomeCompleto ?? "",
+            AlunoDataNascimento = relatorio.Aluno?.DataNascimento,
+            AlunoAno = relatorio.Aluno?.Ano,
+            EscolaNomeInstituicao = relatorio.Escola?.NomeInstituicao,
+            ProfessorNomeCompleto = relatorio.Professor?.NomeCompleto,
+            AlunoFrequenciaSemanalAtendimento = relatorio.Aluno?.FrequenciaSemanalAtendimento,
+            AlunoDuracaoAtendimentoMinutos = relatorio.Aluno?.DuracaoAtendimentoMinutos,
+            AlunoTipoAtendimentoAee = relatorio.Aluno?.TipoAtendimentoAee,
             DataInicio = relatorio.DataInicio,
             DataFim = relatorio.DataFim,
             TipoPeriodo = relatorio.TipoPeriodo,
@@ -666,6 +675,98 @@ public class RelatorioService
 
         resposta.AdicionaObjeto(await MapToBuscarDtoAsync(id));
         resposta.AdicionaMensagem("Relatório reaberto para edição.");
+        return resposta;
+    }
+
+    // Cria um novo relatório (Rascunho, sem seções) pro mesmo aluno, com o período
+    // deslocado pra logo após o período do relatório original (mesma duração). Não copia
+    // texto — a professora aciona "Gerar novamente" quando quiser, sempre do zero via IA
+    // (decisão de escopo registrada no doc da fase 6, seção "Ação Duplicar").
+    public async Task<ServiceResponse<RelatorioBuscarDTO>> DuplicarAsync(int id, Usuario usuario)
+    {
+        var resposta = new ServiceResponse<RelatorioBuscarDTO>();
+        var professorId = usuario.ProfessorId ?? 0;
+        if (professorId == 0)
+        {
+            resposta.SetFalha("Professor não identificado.");
+            return resposta;
+        }
+
+        var original = await _db.Relatorios.FirstOrDefaultAsync(r => r.Id == id && r.ProfessorId == professorId);
+        if (original == null)
+        {
+            resposta.SetFalha("Relatório não encontrado.");
+            return resposta;
+        }
+
+        var duracaoDias = original.DataFim.DayNumber - original.DataInicio.DayNumber;
+        var novoInicio = original.DataFim.AddDays(1);
+        var novoFim = novoInicio.AddDays(duracaoDias);
+
+        var duplicado = new Relatorio
+        {
+            AlunoId = original.AlunoId,
+            ProfessorId = professorId,
+            EscolaId = original.EscolaId,
+            DataInicio = novoInicio,
+            DataFim = novoFim,
+            TipoPeriodo = original.TipoPeriodo,
+            Status = RelatorioStatus.Rascunho,
+        };
+        _db.Relatorios.Add(duplicado);
+        await _db.SaveChangesAsync();
+
+        resposta.AdicionaObjeto(await MapToBuscarDtoAsync(duplicado.Id));
+        resposta.AdicionaMensagem("Relatório duplicado como base pro próximo período. Gere as seções quando quiser.");
+        return resposta;
+    }
+
+    public async Task<ServiceResponse<RelatorioResumoDTO>> ListarAsync(
+        Usuario usuario,
+        int alunoId,
+        RelatorioStatus? status,
+        DateOnly? dataInicio,
+        DateOnly? dataFim)
+    {
+        var resposta = new ServiceResponse<RelatorioResumoDTO>();
+        var professorId = usuario.ProfessorId ?? 0;
+        if (professorId == 0)
+        {
+            resposta.SetFalha("Professor não identificado.");
+            return resposta;
+        }
+
+        var q = _db.Relatorios
+            .Include(r => r.Aluno)
+            .AsNoTracking()
+            .Where(r => r.ProfessorId == professorId && r.AlunoId == alunoId);
+
+        if (status.HasValue)
+            q = q.Where(r => r.Status == status.Value);
+
+        if (dataInicio.HasValue)
+            q = q.Where(r => r.DataFim >= dataInicio.Value);
+
+        if (dataFim.HasValue)
+            q = q.Where(r => r.DataInicio <= dataFim.Value);
+
+        var lista = await q
+            .OrderByDescending(r => r.DataInicio)
+            .ThenByDescending(r => r.Id)
+            .ToListAsync();
+
+        resposta.AdicionaObjetos(lista.Select(r => new RelatorioResumoDTO
+        {
+            Id = r.Id,
+            AlunoId = r.AlunoId,
+            AlunoNome = r.Aluno?.NomeCompleto ?? "",
+            DataInicio = r.DataInicio,
+            DataFim = r.DataFim,
+            TipoPeriodo = r.TipoPeriodo,
+            Status = r.Status,
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt,
+        }));
         return resposta;
     }
 
