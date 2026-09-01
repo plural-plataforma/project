@@ -17,7 +17,6 @@ import type { Aluno } from '@/types/aluno'
 import {
   calcularIdade,
   formatCargaHorariaSemanal,
-  formatDiagnosticoMedicoAluno,
   formatFrequenciaAtendimentos,
   formatOrganizacaoCheckbox,
 } from '@/lib/paeeExportHelpers'
@@ -26,8 +25,6 @@ export interface ExportPaeePlanejamentoDocxParams {
   planejamento: Planejamento
   /** Dados completos do aluno quando export com um único vínculo. */
   alunoAtendimento?: Aluno | null
-  /** Opcional — ex.: laudos quando exportado com dados agregados. */
-  textoDiagnosticoMedicoOpcional?: string
   /** Nome da escola do aluno (resolvida a partir de idEscola). */
   nomeEscola?: string
   /** Nome do(a) professor(a) AEE responsável (professor logado). */
@@ -90,11 +87,6 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
   const periodoFim = p.dataFim
     ? new Date(`${p.dataFim}T12:00:00`).toLocaleDateString('pt-BR')
     : '___'
-
-  const diagnosticText =
-    params.textoDiagnosticoMedicoOpcional?.trim() ||
-    (params.alunoAtendimento ? formatDiagnosticoMedicoAluno(params.alunoAtendimento) : '') ||
-    'Não incluído neste export. Consulte cadastro ou exporte pelo perfil do aluno.'
 
   const aluno = params.alunoAtendimento
   const identificacaoParagraphs: ParagraphType[] =
@@ -179,13 +171,6 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
       spacing: { after: 200 },
     }),
     ...identificacaoParagraphs,
-    new Paragraph({
-      children: [
-        new TextRun('Diagnóstico médico (resumo): '),
-        new TextRun({ text: diagnosticText, italics: true }),
-      ],
-      spacing: { after: 400 },
-    }),
     new Paragraph({
       children: [
         new TextRun({ text: '2. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO:', bold: true, size: 26 }),
