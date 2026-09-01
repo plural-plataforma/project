@@ -14,7 +14,13 @@ import {
 } from 'docx'
 import type { Planejamento } from '@/types/planejamento'
 import type { Aluno } from '@/types/aluno'
-import { formatOrganizacaoAtendimentoAluno } from '@/lib/paeeExportHelpers'
+import {
+  calcularIdade,
+  formatCargaHorariaSemanal,
+  formatDiagnosticoMedicoAluno,
+  formatFrequenciaAtendimentos,
+  formatOrganizacaoCheckbox,
+} from '@/lib/paeeExportHelpers'
 
 export interface ExportPaeePlanejamentoDocxParams {
   planejamento: Planejamento
@@ -22,6 +28,10 @@ export interface ExportPaeePlanejamentoDocxParams {
   alunoAtendimento?: Aluno | null
   /** Opcional — ex.: laudos quando exportado com dados agregados. */
   textoDiagnosticoMedicoOpcional?: string
+  /** Nome da escola do aluno (resolvida a partir de idEscola). */
+  nomeEscola?: string
+  /** Nome do(a) professor(a) AEE responsável (professor logado). */
+  nomeProfessorAee?: string
 }
 
 function slugArquivoPart(texto: string): string {
@@ -33,6 +43,16 @@ function bulletParagraph(texto: string): ParagraphType {
     children: [new TextRun({ text: `• ${texto}`, size: 22 })],
     indent: { left: 560 },
     spacing: { after: 160 },
+  })
+}
+
+function campoParagraph(label: string, valor: string): ParagraphType {
+  return new Paragraph({
+    children: [
+      new TextRun({ text: `${label}: `, bold: true, size: 22 }),
+      new TextRun({ text: valor, size: 22 }),
+    ],
+    spacing: { after: 140 },
   })
 }
 
@@ -64,20 +84,6 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
     [...(p.alunos ?? []).map((a) => (a.nomeCompleto ?? '').trim()).filter(Boolean)]
   )
 
-  const textoOrganizacao =
-    nomesAlunos.length > 1
-      ? 'Vários alunos vinculados — frequência, dias e duração: consultar cadastro individual de cada aluno.'
-      : nomesAlunos.length === 1 && params.alunoAtendimento
-        ? formatOrganizacaoAtendimentoAluno(params.alunoAtendimento)
-        : nomesAlunos.length === 1
-          ? 'Frequência e dias na rotina escolar: conferir cadastro do aluno.'
-          : 'Frequência: informar quando houver aluno(s) vinculado(s).'
-
-  const identificaçãoLinhas =
-    nomesAlunos.length === 0
-      ? ['Nenhum aluno vinculado no momento do export.']
-      : nomesAlunos.map((nome) => `• ${nome}`)
-
   const periodoInicio = p.dataInicio
     ? new Date(`${p.dataInicio}T12:00:00`).toLocaleDateString('pt-BR')
     : '___'
@@ -87,7 +93,53 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
 
   const diagnosticText =
     params.textoDiagnosticoMedicoOpcional?.trim() ||
+    (params.alunoAtendimento ? formatDiagnosticoMedicoAluno(params.alunoAtendimento) : '') ||
     'Não incluído neste export. Consulte cadastro ou exporte pelo perfil do aluno.'
+
+  const aluno = params.alunoAtendimento
+  const identificacaoParagraphs: ParagraphType[] =
+    nomesAlunos.length === 0
+      ? [
+          new Paragraph({
+            children: [new TextRun({ text: 'Nenhum aluno vinculado no momento do export.', size: 22 })],
+            spacing: { after: 200 },
+          }),
+        ]
+      : nomesAlunos.length > 1
+        ? [
+            ...nomesAlunos.map(
+              (nome) =>
+                new Paragraph({
+                  children: [new TextRun({ text: `• ${nome}`, size: 22 })],
+                  indent: { left: 360 },
+                  spacing: { after: 120 },
+                }),
+            ),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Vários alunos vinculados — data de nascimento, idade, escola, organização, frequência e carga horária: consultar cadastro individual de cada aluno.',
+                  italics: true,
+                  size: 22,
+                }),
+              ],
+              spacing: { after: 200 },
+            }),
+          ]
+        : [
+            campoParagraph('Nome do estudante', nomesAlunos[0]),
+            campoParagraph('Data de nascimento', aluno?.dataNascimento
+              ? new Date(`${aluno.dataNascimento}T12:00:00`).toLocaleDateString('pt-BR')
+              : 'não informado'),
+            campoParagraph('Idade', aluno ? calcularIdade(aluno.dataNascimento) : 'não informado'),
+            campoParagraph('Ano/Turma', aluno?.ano?.trim() || 'não informado'),
+            campoParagraph('Escola', params.nomeEscola?.trim() || 'não informado'),
+            campoParagraph('Professor(a) do AEE', params.nomeProfessorAee?.trim() || 'não informado'),
+            campoParagraph('Período avaliado', `${periodoInicio} até ${periodoFim}`),
+            campoParagraph('Organização do atendimento', aluno ? formatOrganizacaoCheckbox(aluno) : '( ) Individual ( ) Grupo'),
+            campoParagraph('Frequência dos atendimentos', aluno ? formatFrequenciaAtendimentos(aluno) : 'conferir cadastro do aluno'),
+            campoParagraph('Carga horária', aluno ? formatCargaHorariaSemanal(aluno) : 'conferir cadastro do aluno'),
+          ]
 
   const encontrosSorted = [...(p.encontros ?? [])].sort((a, b) => {
     const c = String(a.dataEnc).localeCompare(String(b.dataEnc))
@@ -126,14 +178,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
       children: [new TextRun({ text: '1. IDENTIFICAÇÃO DO(A) ALUNO(A):', bold: true, size: 26 })],
       spacing: { after: 200 },
     }),
-    ...identificaçãoLinhas.map(
-      (line) =>
-        new Paragraph({
-          children: [new TextRun({ text: line, size: 22 })],
-          spacing: { after: line.startsWith('•') ? 120 : 200 },
-          indent: line.startsWith('•') ? { left: 360 } : undefined,
-        }),
-    ),
+    ...identificacaoParagraphs,
     new Paragraph({
       children: [
         new TextRun('Diagnóstico médico (resumo): '),
@@ -142,24 +187,8 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
       spacing: { after: 400 },
     }),
     new Paragraph({
-      children: [new TextRun({ text: '2. PERÍODO E ORGANIZAÇÃO DO ATENDIMENTO:', bold: true, size: 26 })],
-      spacing: { after: 200 },
-    }),
-    new Paragraph({
-      children: [new TextRun(`Período do PAEE: ${periodoInicio} até ${periodoFim}`)],
-      spacing: { after: 220 },
-    }),
-    new Paragraph({
       children: [
-        new TextRun({
-          text: textoOrganizacao,
-        }),
-      ],
-      spacing: { after: 420 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: '3. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO:', bold: true, size: 26 }),
+        new TextRun({ text: '2. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO:', bold: true, size: 26 }),
       ],
       spacing: { after: 200 },
     }),
@@ -187,7 +216,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
     new Paragraph({
       children: [
         new TextRun({
-          text: '4. OBJETIVOS RELACIONADOS ÀS HABILIDADES SELECIONADAS:',
+          text: '3. OBJETIVOS RELACIONADOS ÀS HABILIDADES SELECIONADAS:',
           bold: true,
           size: 26,
         }),
@@ -207,7 +236,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
         ] as IFileChild[])),
     new Paragraph({ spacing: { after: 360 } }),
     new Paragraph({
-      children: [new TextRun({ text: '5. ESTRATÉGIAS A SEREM UTILIZADAS:', bold: true, size: 26 })],
+      children: [new TextRun({ text: '4. ESTRATÉGIAS A SEREM UTILIZADAS:', bold: true, size: 26 })],
       spacing: { after: 220 },
     }),
     ...(p.estrategias?.length
@@ -222,7 +251,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
           }),
         ] as IFileChild[])),
     new Paragraph({
-      children: [new TextRun({ text: '6. CRITÉRIOS AVALIATIVOS:', bold: true, size: 26 })],
+      children: [new TextRun({ text: '5. CRITÉRIOS AVALIATIVOS:', bold: true, size: 26 })],
       spacing: { after: 220 },
     }),
     ...(p.avaliacao?.length
@@ -238,7 +267,7 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
         ] as IFileChild[])),
     new Paragraph({ spacing: { after: 460 } }),
     new Paragraph({
-      children: [new TextRun({ text: '7. ENCONTROS:', bold: true, size: 26 })],
+      children: [new TextRun({ text: '6. ENCONTROS:', bold: true, size: 26 })],
       spacing: { after: 240 },
     }),
   ]

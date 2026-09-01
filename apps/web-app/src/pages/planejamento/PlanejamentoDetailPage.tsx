@@ -41,8 +41,7 @@ import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
 import { sortByField } from '@/lib/utils'
-import { downloadPaeePlanejamentoDocx } from '@/lib/exportPaeePlanejamentoDocx'
-import { baixarPlanejamentoPdf } from '@/lib/baixarPlanejamento'
+import { baixarPlanejamentoWord, baixarPlanejamentoPdf } from '@/lib/baixarPlanejamento'
 import { PlanejamentoObjetivosTab } from './PlanejamentoObjetivosTab'
 import { PlanejamentoRevisaoTab } from './PlanejamentoRevisaoTab'
 import { PlanejamentoVisaoGeralTab } from './PlanejamentoVisaoGeralTab'
@@ -422,8 +421,7 @@ export default function PlanejamentoDetailPage() {
               onClick={() => {
                 void (async () => {
                   try {
-                    if (!planoParaExportacao) return
-                    await downloadPaeePlanejamentoDocx({ planejamento: planoParaExportacao })
+                    await baixarPlanejamentoWord(Number(id))
                     success('Arquivo Word gerado.')
                   } catch (e: unknown) {
                     showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
@@ -523,7 +521,7 @@ export default function PlanejamentoDetailPage() {
               onExportWord={() => {
                 void (async () => {
                   try {
-                    await downloadPaeePlanejamentoDocx({ planejamento: planoParaExportacao })
+                    await baixarPlanejamentoWord(Number(id))
                     success('Arquivo Word gerado.')
                   } catch (e: unknown) {
                     showError('Não foi possível exportar', e instanceof Error ? e.message : 'Tente novamente.')
