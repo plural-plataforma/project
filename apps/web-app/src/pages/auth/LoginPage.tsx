@@ -1,22 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Eye, EyeSlash, Lock, Envelope, WarningCircle } from '@phosphor-icons/react'
+import { Eye, EyeSlash, Lock, Envelope, WarningCircle, WifiSlash } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { authLogin, useAuth } from '@/context/AuthContext'
 import { getApiErrorFeedback, formatFriendlyErrorBody } from '@/lib/apiFriendlyError'
+import { getSavedCredential, storeSavedCredential } from '@/lib/credentialManager'
 import { useToast } from '@/hooks/useToast'
-import { PEDAGOGICAL_FLOW_STEP_COUNT } from '@/config/pedagogicalFlow'
+import { PEDAGOGICAL_FLOW_STEP_COUNT, PLATFORM_FEATURE_COUNT } from '@/config/pedagogicalFlow'
 
 const LOGIN_STATS = [
+  { num: String(PLATFORM_FEATURE_COUNT), label: 'Funcionalidades da plataforma' },
   { num: String(PEDAGOGICAL_FLOW_STEP_COUNT), label: 'Etapas da jornada PAEE' },
-  { num: '3', label: 'Níveis de diagnóstico' },
   { num: '2', label: 'Exportação PDF e Word' },
 ] as const
 
@@ -35,18 +36,43 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [capsLockOn, setCapsLockOn] = useState(false)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(loginSchema) })
+
+  // Preenche com credencial salva pelo navegador, quando disponível
+  useEffect(() => {
+    getSavedCredential().then((credential) => {
+      if (credential) {
+        setValue('email', credential.id)
+        setValue('senha', credential.password)
+      }
+    })
+  }, [setValue])
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   async function onSubmit(data: FormData) {
     setSubmitError(null)
     try {
       const result = await authLogin(data)
       if (result.token) {
+        await storeSavedCredential(data.email, data.senha)
         setIsLoggingIn(true)
         const destination = result.precisaTrocarSenha ? '/alterar-senha' : '/dashboard'
         // Delay intencional: imersão de marca, familiaridade, transição suave
@@ -172,6 +198,16 @@ export default function LoginPage() {
             </h1>
             <p className="text-muted-foreground text-sm mb-8">Acesse sua conta para continuar</p>
 
+            {!isOnline && (
+              <div
+                role="alert"
+                className="mb-4 flex items-start gap-2 rounded-lg border border-amber/30 bg-amber/10 px-4 py-3 text-sm text-amber-foreground"
+              >
+                <WifiSlash size={18} weight="fill" className="shrink-0 mt-0.5" />
+                <span className="leading-snug">Você está offline. Verifique sua conexão para entrar.</span>
+              </div>
+            )}
+
             {submitError && (
               <div
                 role="alert"
@@ -190,34 +226,47 @@ export default function LoginPage() {
                 autoComplete="email"
                 leftIcon={<Envelope size={16} />}
                 error={errors.email?.message}
+                disabled={isSubmitting}
                 {...register('email')}
               />
 
-              <Input
-                label="Senha"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                leftIcon={<Lock size={16} />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="cursor-pointer hover:text-primary transition-colors"
-                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  >
-                    {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
-                  </button>
-                }
-                error={errors.senha?.message}
-                {...register('senha')}
-              />
+              <div className="space-y-1.5">
+                <Input
+                  label="Senha"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  leftIcon={<Lock size={16} />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="cursor-pointer hover:text-primary transition-colors"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                    </button>
+                  }
+                  error={errors.senha?.message}
+                  disabled={isSubmitting}
+                  onKeyUp={(e) => setCapsLockOn(e.getModifierState('CapsLock'))}
+                  onKeyDown={(e) => setCapsLockOn(e.getModifierState('CapsLock'))}
+                  {...register('senha')}
+                />
+                {capsLockOn && (
+                  <p className="flex items-center gap-1 text-xs text-amber font-medium">
+                    <WarningCircle size={14} weight="fill" />
+                    Caps Lock ativado
+                  </p>
+                )}
+              </div>
 
               <Button
                 type="submit"
                 size="lg"
                 className="w-full"
                 loading={isSubmitting}
+                disabled={!isOnline}
               >
                 Entrar
               </Button>

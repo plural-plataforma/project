@@ -105,3 +105,9 @@ export const BIBLIOTECA_MODELOS_NAV = {
   route: '/biblioteca-modelos',
   activePathPrefix: '/biblioteca-modelos',
 } as const
+
+/** Módulos extras do menu além do fluxo principal: Relatórios, Estudo de caso + PAEE, Biblioteca de Modelos. */
+export const EXTRA_PLATFORM_FEATURES_COUNT = 3
+
+/** Total de funcionalidades da plataforma (fluxo pedagógico + módulos extras). Usado na tela de login e no versionamento (1.<funcionalidades>.1). */
+export const PLATFORM_FEATURE_COUNT = PEDAGOGICAL_FLOW_STEP_COUNT + EXTRA_PLATFORM_FEATURES_COUNT
