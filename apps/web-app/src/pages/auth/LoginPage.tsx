@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { Eye, EyeSlash, Lock, Envelope, WarningCircle, WifiSlash } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { authLogin, useAuth } from '@/context/AuthContext'
 import { getApiErrorFeedback, formatFriendlyErrorBody } from '@/lib/apiFriendlyError'
@@ -28,6 +29,8 @@ export const loginSchema = z.object({
 
 type FormData = z.infer<typeof loginSchema>
 
+const REMEMBERED_EMAIL_KEY = 'rememberedEmail'
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -38,6 +41,7 @@ export default function LoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [capsLockOn, setCapsLockOn] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [rememberMe, setRememberMe] = useState(false)
 
   const {
     register,
@@ -46,12 +50,19 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(loginSchema) })
 
-  // Preenche com credencial salva pelo navegador, quando disponível
+  // Preenche com credencial salva pelo navegador; se não houver, usa o e-mail lembrado
   useEffect(() => {
     getSavedCredential().then((credential) => {
       if (credential) {
         setValue('email', credential.id)
         setValue('senha', credential.password)
+        return
+      }
+
+      const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY)
+      if (rememberedEmail) {
+        setValue('email', rememberedEmail)
+        setRememberMe(true)
       }
     })
   }, [setValue])
@@ -73,6 +84,13 @@ export default function LoginPage() {
       const result = await authLogin(data)
       if (result.token) {
         await storeSavedCredential(data.email, data.senha)
+
+        if (rememberMe) {
+          localStorage.setItem(REMEMBERED_EMAIL_KEY, data.email)
+        } else {
+          localStorage.removeItem(REMEMBERED_EMAIL_KEY)
+        }
+
         setIsLoggingIn(true)
         const destination = result.precisaTrocarSenha ? '/alterar-senha' : '/dashboard'
         // Delay intencional: imersão de marca, familiaridade, transição suave
@@ -260,6 +278,16 @@ export default function LoginPage() {
                   </p>
                 )}
               </div>
+
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <Checkbox
+                  className="mt-0"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  disabled={isSubmitting}
+                />
+                <span className="text-sm text-muted-foreground">Lembrar-me neste dispositivo</span>
+              </label>
 
               <Button
                 type="submit"

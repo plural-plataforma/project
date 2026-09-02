@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { buildFriendlyApiFeedback, type FriendlyApiErrorPayload } from '@/lib/apiFriendlyError'
+import { getAuthToken } from '@/lib/authStorage'
 
 const rawApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim()
 const API_BASE_URL = rawApiUrl?.replace(/\/+$/, '') ?? ''
@@ -58,7 +59,7 @@ const logError = (error: AxiosError): void => {
 // Injeta Bearer token em todas as requisições (mesmo padrão do mobile)
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('authToken')
+    const token = getAuthToken()
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }

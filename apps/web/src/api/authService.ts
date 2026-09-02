@@ -4,7 +4,6 @@ import api from './http';
 export interface LoginCredentials {
   email: string;
   password: string;
-  rememberMe?: boolean;
 }
 
 interface LoginApiResponse {
@@ -48,7 +47,7 @@ export const registerUser = async (payload: RegisterPayload): Promise<void> => {
 };
 
 export const authService = {
-  login: async ({ email, password, rememberMe }: LoginCredentials) => {
+  login: async ({ email, password }: LoginCredentials) => {
     const response = await api.post<LoginApiResponse>(
       '/Autenticacao/login',
       { email, senha: password }
@@ -57,13 +56,8 @@ export const authService = {
     const jwt = response.data.token.token;
     const user = response.data.token.user;
 
-    if (rememberMe) {
-      localStorage.setItem('token', jwt);
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      sessionStorage.setItem('token', jwt);
-      sessionStorage.setItem('user', JSON.stringify(user));
-    }
+    localStorage.setItem('token', jwt);
+    localStorage.setItem('user', JSON.stringify(user));
 
     return response.data;
   },

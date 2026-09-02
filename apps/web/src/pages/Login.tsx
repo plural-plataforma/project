@@ -34,6 +34,8 @@ interface DecodedToken {
   [key: string]: any;
 }
 
+const REMEMBERED_EMAIL_KEY = 'rememberedEmail';
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,12 +48,19 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  // Preenche com credencial salva pelo navegador, quando disponível
+  // Preenche com credencial salva pelo navegador; se não houver, usa o e-mail lembrado
   useEffect(() => {
     getSavedCredential().then(credential => {
       if (credential) {
         setEmail(credential.id);
         setPassword(credential.password);
+        return;
+      }
+
+      const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+      if (rememberedEmail) {
+        setEmail(rememberedEmail);
+        setRememberMe(true);
       }
     });
   }, []);
@@ -79,11 +88,13 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      const response = await authService.login({
-        email,
-        password,
-        rememberMe
-      });
+      const response = await authService.login({ email, password });
+
+      if (rememberMe) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
 
       const token = response.token.token;
 

@@ -9,6 +9,14 @@ import {
 import { api } from '@/api/http'
 import type { LoginCredentials, RegisterCredentials, AuthResponse } from '@/types/auth'
 import { getApiErrorMessageForUser } from '@/lib/apiFriendlyError'
+import {
+  getAuthToken,
+  getPrecisaTrocarSenha,
+  setAuthSession,
+  updateAuthToken,
+  clearPrecisaTrocarSenha,
+  clearAuthSession,
+} from '@/lib/authStorage'
 
 interface AuthContextType {
   isLoggedIn: boolean
@@ -33,8 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSigningOut = useRef(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken')
-    const precisaTrocar = localStorage.getItem('precisaTrocarSenha') === 'true'
+    const token = getAuthToken()
+    const precisaTrocar = getPrecisaTrocarSenha()
 
     if (!token) {
       setLoading(false)
@@ -67,15 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   function login(token: string, precisaTrocar: boolean) {
-    localStorage.setItem('authToken', token)
-    localStorage.setItem('precisaTrocarSenha', precisaTrocar.toString())
+    setAuthSession(token, precisaTrocar)
     setUserToken(token)
     setIsLoggedIn(true)
     setPrecisaTrocarSenha(precisaTrocar)
   }
 
   function trocarSenhaConcluida() {
-    localStorage.removeItem('precisaTrocarSenha')
+    clearPrecisaTrocarSenha()
     setPrecisaTrocarSenha(false)
   }
 
@@ -93,9 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function limparSessao() {
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('precisaTrocarSenha')
-    localStorage.removeItem('alert_troca_senha_adiado')
+    clearAuthSession()
     setUserToken(null)
     setIsLoggedIn(false)
     setPrecisaTrocarSenha(false)
@@ -134,8 +139,7 @@ export async function authLogin(credentials: LoginCredentials): Promise<AuthResp
   const token: string = innerTokenObj.token
   const precisaTrocarSenha: boolean = innerTokenObj.precisaTrocarSenha ?? false
 
-  localStorage.setItem('authToken', token)
-  localStorage.setItem('precisaTrocarSenha', precisaTrocarSenha.toString())
+  setAuthSession(token, precisaTrocarSenha)
 
   return { success: true, token, precisaTrocarSenha }
 }
@@ -176,13 +180,13 @@ export async function authTrocarSenha(request: {
   const success = response.data.success !== false
   if (!success) throw new Error('Falha na troca de senha pelo backend')
 
-  const token = response.data.token || localStorage.getItem('authToken')
+  const token = response.data.token || getAuthToken()
   if (!token) throw new Error('Token perdido; faça login novamente')
 
   if (response.data.token) {
-    localStorage.setItem('authToken', response.data.token)
+    updateAuthToken(response.data.token)
   }
-  localStorage.removeItem('precisaTrocarSenha')
+  clearPrecisaTrocarSenha()
 
   return { success: true, token, precisaTrocarSenha: false }
 }
@@ -191,7 +195,7 @@ export async function authAdiarTrocaSenha(): Promise<{ success: boolean }> {
   try {
     const response = await api.post('Autenticacao/adiar-troca-senha')
     if (response.data.success === true) {
-      localStorage.removeItem('precisaTrocarSenha')
+      clearPrecisaTrocarSenha()
       return { success: true }
     }
     return { success: false }
