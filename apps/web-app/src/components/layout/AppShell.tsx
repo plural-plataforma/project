@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar'
 import { useQuery } from '@tanstack/react-query'
 import { buscarProfessor } from '@/services/professorService'
 import { TutorialVideoButton } from '@/components/onboarding/TutorialVideoButton'
+import { SupportWhatsAppButton } from '@/components/common/SupportWhatsAppButton'
 
 export function AppShell() {
   const { data } = useQuery({
@@ -22,6 +23,7 @@ export function AppShell() {
         </div>
       </main>
       <TutorialVideoButton />
+      <SupportWhatsAppButton />
     </div>
   )
 }

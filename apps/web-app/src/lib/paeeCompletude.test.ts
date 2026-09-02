@@ -32,19 +32,49 @@ describe('avaliarCompletudePaee', () => {
   })
 })
 
-describe('formatOrganizacaoAtendimentoAluno', () => {
-  it('monta texto com frequência e dias', async () => {
-    const { formatOrganizacaoAtendimentoAluno } = await import('./paeeExportHelpers')
-    const txt = formatOrganizacaoAtendimentoAluno({
-      nomeCompleto: 'A',
-      estado: 'SP',
-      responsavel: { nomeCompleto: 'R', telefone: '1' },
-      frequenciaSemanalAtendimento: 2,
-      diasSemanaAtendimento: ['Segunda', 'Quarta'],
-      duracaoAtendimentoMinutos: 50,
-      tipoAtendimentoAee: 0,
-    })
-    expect(txt).toContain('Frequência semanal: 2x')
+describe('paeeExportHelpers', () => {
+  const alunoBase = {
+    nomeCompleto: 'A',
+    estado: 'SP',
+    responsavel: { nomeCompleto: 'R', telefone: '1' },
+    frequenciaSemanalAtendimento: 2,
+    diasSemanaAtendimento: ['Segunda', 'Quarta'],
+    duracaoAtendimentoMinutos: 50,
+    tipoAtendimentoAee: 0,
+  }
+
+  it('formatFrequenciaAtendimentos monta texto com frequência e dias', async () => {
+    const { formatFrequenciaAtendimentos } = await import('./paeeExportHelpers')
+    const txt = formatFrequenciaAtendimentos(alunoBase)
+    expect(txt).toContain('2x por semana')
     expect(txt).toContain('Segunda')
+  })
+
+  it('formatCargaHorariaSemanal calcula total semanal', async () => {
+    const { formatCargaHorariaSemanal } = await import('./paeeExportHelpers')
+    expect(formatCargaHorariaSemanal(alunoBase)).toBe('1h40min semanais')
+  })
+
+  it('formatOrganizacaoCheckbox marca Individual quando tipoAtendimentoAee é 0', async () => {
+    const { formatOrganizacaoCheckbox } = await import('./paeeExportHelpers')
+    expect(formatOrganizacaoCheckbox(alunoBase)).toBe('(X) Individual ( ) Grupo')
+    expect(formatOrganizacaoCheckbox({ ...alunoBase, tipoAtendimentoAee: 1 })).toBe('( ) Individual (X) Grupo')
+  })
+
+  it('calcularIdade retorna anos completos a partir da data de nascimento', async () => {
+    const { calcularIdade } = await import('./paeeExportHelpers')
+    const dezAnosAtras = new Date()
+    dezAnosAtras.setFullYear(dezAnosAtras.getFullYear() - 10)
+    const iso = dezAnosAtras.toISOString().slice(0, 10)
+    expect(calcularIdade(iso)).toBe('10 anos')
+  })
+
+  it('formatDiagnosticoMedicoAluno monta texto a partir do laudo', async () => {
+    const { formatDiagnosticoMedicoAluno } = await import('./paeeExportHelpers')
+    const txt = formatDiagnosticoMedicoAluno({
+      ...alunoBase,
+      laudos: [{ codigoCid: 'F84', nomeMedico: 'Dr. X', descricao: 'TEA' }],
+    })
+    expect(txt).toBe('CID: F84 — TEA — Médico: Dr. X')
   })
 })

@@ -1,11 +1,20 @@
 import { jsPDF } from 'jspdf'
 import type { Planejamento } from '@/types/planejamento'
 import type { Aluno } from '@/types/aluno'
-import { formatOrganizacaoAtendimentoAluno } from '@/lib/paeeExportHelpers'
+import {
+  calcularIdade,
+  formatCargaHorariaSemanal,
+  formatFrequenciaAtendimentos,
+  formatOrganizacaoCheckbox,
+} from '@/lib/paeeExportHelpers'
 
 export interface ExportPaeePlanejamentoPdfParams {
   planejamento: Planejamento
   alunoAtendimento?: Aluno | null
+  /** Nome da escola do aluno (resolvida a partir de idEscola). */
+  nomeEscola?: string
+  /** Nome do(a) professor(a) AEE responsável (professor logado). */
+  nomeProfessorAee?: string
 }
 
 function slugArquivoPart(texto: string): string {
@@ -80,28 +89,45 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
     ? new Date(`${p.dataFim}T12:00:00`).toLocaleDateString('pt-BR')
     : '—'
 
-  y = addSection(doc, '1. IDENTIFICAÇÃO DO(A) ALUNO(A)', y, margin, maxW)
+  const aluno = params.alunoAtendimento
   const nomes = (p.alunos ?? []).map((a) => a.nomeCompleto).filter(Boolean)
-  y = addParagraph(doc, nomes.length ? nomes.map((n) => `• ${n}`).join('\n') : 'Nenhum aluno vinculado.', y, margin, maxW)
 
-  y = addSection(doc, '2. PERÍODO E ORGANIZAÇÃO DO ATENDIMENTO', y, margin, maxW)
-  y = addParagraph(doc, `Período do PAEE: ${periodoInicio} até ${periodoFim}`, y, margin, maxW)
-  const textoOrg =
-    nomes.length > 1
-      ? 'Vários alunos vinculados — consultar cadastro individual.'
-      : nomes.length === 1 && params.alunoAtendimento
-        ? formatOrganizacaoAtendimentoAluno(params.alunoAtendimento)
-        : nomes.length === 1
-          ? 'Conferir cadastro do aluno para frequência e dias.'
-          : 'Informar quando houver aluno(s) vinculado(s).'
-  y = addParagraph(doc, textoOrg, y, margin, maxW)
-
-  y = addSection(doc, '3. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO', y, margin, maxW)
+  y = addSection(doc, '1. IDENTIFICAÇÃO DO(A) ALUNO(A)', y, margin, maxW)
+  if (nomes.length === 0) {
+    y = addParagraph(doc, 'Nenhum aluno vinculado no momento do export.', y, margin, maxW)
+  } else if (nomes.length > 1) {
+    y = addParagraph(doc, nomes.map((n) => `• ${n}`).join('\n'), y, margin, maxW)
+    y = addParagraph(
+      doc,
+      'Vários alunos vinculados — data de nascimento, idade, escola, organização, frequência e carga horária: consultar cadastro individual de cada aluno.',
+      y,
+      margin,
+      maxW
+    )
+  } else {
+    const dataNascimentoFmt = aluno?.dataNascimento
+      ? new Date(`${aluno.dataNascimento}T12:00:00`).toLocaleDateString('pt-BR')
+      : 'não informado'
+    const campos = [
+      `Nome do estudante: ${nomes[0]}`,
+      `Data de nascimento: ${dataNascimentoFmt}`,
+      `Idade: ${aluno ? calcularIdade(aluno.dataNascimento) : 'não informado'}`,
+      `Ano/Turma: ${aluno?.ano?.trim() || 'não informado'}`,
+      `Escola: ${params.nomeEscola?.trim() || 'não informado'}`,
+      `Professor(a) do AEE: ${params.nomeProfessorAee?.trim() || 'não informado'}`,
+      `Período avaliado: ${periodoInicio} até ${periodoFim}`,
+      `Organização do atendimento: ${aluno ? formatOrganizacaoCheckbox(aluno) : '( ) Individual ( ) Grupo'}`,
+      `Frequência dos atendimentos: ${aluno ? formatFrequenciaAtendimentos(aluno) : 'conferir cadastro do aluno'}`,
+      `Carga horária: ${aluno ? formatCargaHorariaSemanal(aluno) : 'conferir cadastro do aluno'}`,
+    ]
+    y = addParagraph(doc, campos.join('\n'), y, margin, maxW)
+  }
+  y = addSection(doc, '2. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO', y, margin, maxW)
   y = addParagraph(doc, `Curto prazo: ${textoObj(p.objetivoCurtoPrazo)}`, y, margin, maxW)
   y = addParagraph(doc, `Médio prazo: ${textoObj(p.objetivoMedioPrazo)}`, y, margin, maxW)
   y = addParagraph(doc, `Longo prazo: ${textoObj(p.objetivoLongoPrazo)}`, y, margin, maxW)
 
-  y = addSection(doc, '4. OBJETIVOS RELACIONADOS ÀS HABILIDADES', y, margin, maxW)
+  y = addSection(doc, '3. OBJETIVOS RELACIONADOS ÀS HABILIDADES', y, margin, maxW)
   y = addParagraph(
     doc,
     p.habilidades?.length
@@ -112,7 +138,7 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
     maxW
   )
 
-  y = addSection(doc, '5. ESTRATÉGIAS A SEREM UTILIZADAS', y, margin, maxW)
+  y = addSection(doc, '4. ESTRATÉGIAS A SEREM UTILIZADAS', y, margin, maxW)
   y = addParagraph(
     doc,
     p.estrategias?.length
@@ -123,7 +149,7 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
     maxW
   )
 
-  y = addSection(doc, '6. CRITÉRIOS AVALIATIVOS', y, margin, maxW)
+  y = addSection(doc, '5. CRITÉRIOS AVALIATIVOS', y, margin, maxW)
   y = addParagraph(
     doc,
     p.avaliacao?.length
@@ -134,7 +160,7 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
     maxW
   )
 
-  y = addSection(doc, '7. ENCONTROS', y, margin, maxW)
+  y = addSection(doc, '6. ENCONTROS', y, margin, maxW)
   const encontros = [...(p.encontros ?? [])].sort((a, b) => String(a.dataEnc).localeCompare(String(b.dataEnc)))
   if (encontros.length === 0) {
     y = addParagraph(doc, 'Nenhum encontro registrado.', y, margin, maxW)
