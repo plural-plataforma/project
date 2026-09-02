@@ -47,6 +47,7 @@ namespace Data
         public DbSet<PromptSistemaIA> PromptsSistemaIA { get; set; }
         public DbSet<GeracaoIALog> GeracoesIALog { get; set; }
         public DbSet<Artigo> Artigos { get; set; }
+        public DbSet<Notificacao> Notificacoes { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

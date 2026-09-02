@@ -11,10 +11,15 @@ namespace api.Models
         Semestral = 1,
     }
 
+    // Gerando: aguardando o worker de background processar a IA (ver RelatorioGeracaoWorker).
+    // ErroGeracao: o worker tentou e falhou (IA fora do ar, resposta inesperada, etc.) —
+    // a professora pode tentar de novo pelo botão "Gerar novamente".
     public enum RelatorioStatus
     {
         Rascunho = 0,
         Finalizado = 1,
+        Gerando = 2,
+        ErroGeracao = 3,
     }
 
     // Documento consolidado por período (fotografia): uma vez finalizado, não recalcula
