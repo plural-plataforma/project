@@ -12,6 +12,12 @@ public class RelatorioResumoDTO
 
     public string AlunoNome { get; set; } = "";
 
+    public string? AlunoAno { get; set; }
+
+    public int? EscolaId { get; set; }
+
+    public string? EscolaNomeInstituicao { get; set; }
+
     public DateOnly DataInicio { get; set; }
 
     public DateOnly DataFim { get; set; }

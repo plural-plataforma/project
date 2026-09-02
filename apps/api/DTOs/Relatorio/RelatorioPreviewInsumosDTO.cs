@@ -14,6 +14,9 @@ public class RelatorioPreviewInsumosDTO
 
     public int QuantidadeAvaliacoesNoPeriodo { get; set; }
 
+    // Lançamentos de desempenho (habilidades) dentro das avaliações do período.
+    public int QuantidadeLancamentosDesempenho { get; set; }
+
     // Regra da cliente: comparação início/meio/fim só faz sentido com período >= 3 meses.
     public bool PeriodoElegivelParaComparacaoEvolucao { get; set; }
 

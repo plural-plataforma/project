@@ -132,7 +132,7 @@ export default function RelatorioDetailPage() {
     mutationFn: () => duplicarRelatorio(Number(id)),
     onSuccess: (novoRelatorio) => {
       success('Relatório duplicado', 'Base criada pro próximo período — gere as seções quando quiser.')
-      navigate(`/relatorios-pedagogicos/${novoRelatorio.id}`)
+      navigate(`/relatorios/${novoRelatorio.id}`)
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)

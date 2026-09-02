@@ -152,6 +152,7 @@ public class RelatorioService
                 QuantidadeRelatosNoPeriodo = insumos.RelatosNoPeriodo.Count,
                 QuantidadeRelatosComPresenca = insumos.RelatosNoPeriodo.Count(r => r.PresencaPresente),
                 QuantidadeAvaliacoesNoPeriodo = insumos.AvaliacoesNoPeriodo.Count,
+                QuantidadeLancamentosDesempenho = insumos.AvaliacoesNoPeriodo.Sum(a => a.RegistrosDesempenho.Count),
                 PeriodoElegivelParaComparacaoEvolucao = dataInicio.AddMonths(3) <= dataFim,
                 Avisos = avisos,
             });
@@ -723,7 +724,9 @@ public class RelatorioService
 
     public async Task<ServiceResponse<RelatorioResumoDTO>> ListarAsync(
         Usuario usuario,
-        int alunoId,
+        int? alunoId,
+        int? escolaId,
+        RelatorioTipoPeriodo? tipoPeriodo,
         RelatorioStatus? status,
         DateOnly? dataInicio,
         DateOnly? dataFim)
@@ -738,8 +741,18 @@ public class RelatorioService
 
         var q = _db.Relatorios
             .Include(r => r.Aluno)
+            .Include(r => r.Escola)
             .AsNoTracking()
-            .Where(r => r.ProfessorId == professorId && r.AlunoId == alunoId);
+            .Where(r => r.ProfessorId == professorId);
+
+        if (alunoId.HasValue)
+            q = q.Where(r => r.AlunoId == alunoId.Value);
+
+        if (escolaId.HasValue)
+            q = q.Where(r => r.EscolaId == escolaId.Value);
+
+        if (tipoPeriodo.HasValue)
+            q = q.Where(r => r.TipoPeriodo == tipoPeriodo.Value);
 
         if (status.HasValue)
             q = q.Where(r => r.Status == status.Value);
@@ -760,6 +773,9 @@ public class RelatorioService
             Id = r.Id,
             AlunoId = r.AlunoId,
             AlunoNome = r.Aluno?.NomeCompleto ?? "",
+            AlunoAno = r.Aluno?.Ano,
+            EscolaId = r.EscolaId,
+            EscolaNomeInstituicao = r.Escola?.NomeInstituicao,
             DataInicio = r.DataInicio,
             DataFim = r.DataFim,
             TipoPeriodo = r.TipoPeriodo,

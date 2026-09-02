@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
-  listarRelatoriosPorAluno,
+  listarRelatorios,
   previewInsumosRelatorio,
   cadastrarRelatorio,
   buscarRelatorioPorId,
@@ -25,7 +25,7 @@ describe('relatorioService', () => {
     vi.clearAllMocks()
   })
 
-  describe('listarRelatoriosPorAluno', () => {
+  describe('listarRelatorios', () => {
     it('retorna a lista quando a API responde com sucesso', async () => {
       vi.mocked(api.get).mockResolvedValue({
         data: {
@@ -34,7 +34,7 @@ describe('relatorioService', () => {
         },
       })
 
-      const result = await listarRelatoriosPorAluno({ alunoId: 5 })
+      const result = await listarRelatorios({ alunoId: 5 })
 
       expect(result).toHaveLength(1)
       expect(api.get).toHaveBeenCalledWith('/Relatorio/listar', { params: { alunoId: 5 } })
@@ -45,7 +45,7 @@ describe('relatorioService', () => {
         data: { sucesso: true, listaObjetos: [] },
       })
 
-      const result = await listarRelatoriosPorAluno({ alunoId: 5 })
+      const result = await listarRelatorios({ alunoId: 5 })
 
       expect(result).toEqual([])
     })
@@ -55,7 +55,7 @@ describe('relatorioService', () => {
         data: { sucesso: false, mensagens: ['Professor não identificado.'] },
       })
 
-      await expect(listarRelatoriosPorAluno({ alunoId: 5 })).rejects.toThrow('Professor não identificado.')
+      await expect(listarRelatorios({ alunoId: 5 })).rejects.toThrow('Professor não identificado.')
     })
   })
 

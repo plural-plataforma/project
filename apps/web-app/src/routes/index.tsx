@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicRoute } from './PublicRoute'
 import { HomeRedirect } from './HomeRedirect'
@@ -24,6 +24,8 @@ const AvaliacaoDesempenhoPage = lazy(() => import('@/pages/avaliacao/AvaliacaoDe
 const EstudoCasoWizardPage = lazy(() => import('@/pages/estudo-caso/EstudoCasoWizardPage'))
 const EstudosCasoPage = lazy(() => import('@/pages/estudo-caso/EstudosCasoPage'))
 const RelatosPage = lazy(() => import('@/pages/relatos/RelatosPage'))
+const RelatoriosPage = lazy(() => import('@/pages/relatorio/RelatoriosPage'))
+const RelatorioWizardPage = lazy(() => import('@/pages/relatorio/RelatorioWizardPage'))
 const RelatorioDetailPage = lazy(() => import('@/pages/relatorio/RelatorioDetailPage'))
 const DocumentacaoPedagogicaPage = lazy(() => import('@/pages/documentacao/DocumentacaoPedagogicaPage'))
 const BibliotecaModelosPage = lazy(() => import('@/pages/biblioteca-modelos/BibliotecaModelosPage'))
@@ -35,6 +37,12 @@ function PageLoader() {
       <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
     </div>
   )
+}
+
+/** Rota antiga (curta janela em staging/produção antes da tela central de Relatórios existir). */
+function RelatorioLegacyRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/relatorios/${id}`} replace />
 }
 
 export function AppRouter() {
@@ -158,15 +166,31 @@ export function AppRouter() {
                 </Suspense>
               }
             />
-            <Route path="/relatorios" element={<Navigate to="/relatos" replace />} />
             <Route
-              path="/relatorios-pedagogicos/:id"
+              path="/relatorios"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <RelatoriosPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/relatorios/novo/:step?"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <RelatorioWizardPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/relatorios/:id"
               element={
                 <Suspense fallback={<PageLoader />}>
                   <RelatorioDetailPage />
                 </Suspense>
               }
             />
+            <Route path="/relatorios-pedagogicos/:id" element={<RelatorioLegacyRedirect />} />
             <Route
               path="/documentacao-pedagogica"
               element={
