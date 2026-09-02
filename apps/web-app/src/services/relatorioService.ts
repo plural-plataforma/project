@@ -11,8 +11,12 @@ import type {
   RelatorioTipoPeriodoCodigo,
 } from '@/types/relatorio'
 
-export const listarRelatoriosPorAluno = async (params: {
-  alunoId: number
+// alunoId ausente traz os relatórios de todos os alunos do professor (tela central de
+// Relatórios); informado, filtra só daquele aluno (card no perfil do aluno).
+export const listarRelatorios = async (params: {
+  alunoId?: number
+  escolaId?: number
+  tipoPeriodo?: RelatorioTipoPeriodoCodigo
   status?: RelatorioStatusCodigo
   dataInicio?: string
   dataFim?: string

@@ -104,6 +104,9 @@ export interface RelatorioResumo {
   id: number
   alunoId: number
   alunoNome: string
+  alunoAno?: string | null
+  escolaId?: number | null
+  escolaNomeInstituicao?: string | null
   dataInicio: string
   dataFim: string
   tipoPeriodo: RelatorioTipoPeriodoCodigo
@@ -126,6 +129,7 @@ export interface RelatorioPreviewInsumos {
   quantidadeRelatosNoPeriodo: number
   quantidadeRelatosComPresenca: number
   quantidadeAvaliacoesNoPeriodo: number
+  quantidadeLancamentosDesempenho: number
   periodoElegivelParaComparacaoEvolucao: boolean
   avisos: string[]
 }

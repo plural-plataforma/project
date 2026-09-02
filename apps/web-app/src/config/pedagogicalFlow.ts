@@ -85,6 +85,13 @@ export const PEDAGOGICAL_FLOW_STEPS: PedagogicalFlowStep[] = [
 
 export const PEDAGOGICAL_FLOW_STEP_COUNT = PEDAGOGICAL_FLOW_STEPS.length
 
+/** Menu extra (após o fluxo principal): relatório pedagógico do AEE por período, a partir do que já foi registrado. */
+export const RELATORIOS_NAV = {
+  label: 'Relatórios',
+  route: '/relatorios',
+  activePathPrefix: '/relatorios',
+} as const
+
 /** Menu extra (após o fluxo principal): download combinado quando estudo + PAEE existem. */
 export const DOCUMENTACAO_PEDAGOGICA_NAV = {
   label: 'Estudo de caso + PAEE',

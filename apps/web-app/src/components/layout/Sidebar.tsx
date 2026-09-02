@@ -21,8 +21,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PEDAGOGICAL_FLOW_STEPS, DOCUMENTACAO_PEDAGOGICA_NAV, BIBLIOTECA_MODELOS_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
-import { Files, BookBookmark } from '@phosphor-icons/react'
+import { PEDAGOGICAL_FLOW_STEPS, RELATORIOS_NAV, DOCUMENTACAO_PEDAGOGICA_NAV, BIBLIOTECA_MODELOS_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
+import { Files, BookBookmark, FileText } from '@phosphor-icons/react'
 import { useTourStore } from '@/stores/tourStore'
 import { startProductTour } from '@/lib/productTour'
 
@@ -43,6 +43,12 @@ const navItems = [
     label: step.label,
     activePathPrefix: step.activePathPrefix ?? step.route,
   })),
+  {
+    to: RELATORIOS_NAV.route,
+    icon: FileText,
+    label: RELATORIOS_NAV.label,
+    activePathPrefix: RELATORIOS_NAV.activePathPrefix,
+  },
   {
     to: DOCUMENTACAO_PEDAGOGICA_NAV.route,
     icon: Files,

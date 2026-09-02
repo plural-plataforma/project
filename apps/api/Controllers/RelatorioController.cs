@@ -21,9 +21,13 @@ public class RelatorioController : ControllerBase
         _usuario = usuario;
     }
 
+    // alunoId ausente lista os relatórios de todos os alunos do professor (tela central
+    // de Relatórios); informado, filtra só daquele aluno (card no perfil do aluno).
     [HttpGet("listar")]
     public async Task<IActionResult> Listar(
-        [FromQuery] int alunoId,
+        [FromQuery] int? alunoId,
+        [FromQuery] int? escolaId,
+        [FromQuery] RelatorioTipoPeriodo? tipoPeriodo,
         [FromQuery] RelatorioStatus? status,
         [FromQuery] DateOnly? dataInicio,
         [FromQuery] DateOnly? dataFim)
@@ -32,7 +36,7 @@ public class RelatorioController : ControllerBase
         if (usuario == null)
             return Unauthorized();
 
-        var resposta = await _service.ListarAsync(usuario, alunoId, status, dataInicio, dataFim);
+        var resposta = await _service.ListarAsync(usuario, alunoId, escolaId, tipoPeriodo, status, dataInicio, dataFim);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 

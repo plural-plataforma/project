@@ -35,8 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { EstudoCasoDetalheDialog } from '@/pages/estudo-caso/EstudoCasoDetalheDialog'
 import { AlunoFormDialog } from './AlunoFormDialog'
 import { AlunoExcluirDialog } from './AlunoExcluirDialog'
-import { NovoRelatorioDialog } from '@/pages/relatorio/NovoRelatorioDialog'
-import { listarRelatoriosPorAluno } from '@/services/relatorioService'
+import { listarRelatorios } from '@/services/relatorioService'
 import {
   RELATORIO_STATUS_LABELS,
   RELATORIO_TIPO_PERIODO_LABELS,
@@ -58,7 +57,6 @@ export default function AlunoProfilePage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [estudoCasoDetalheId, setEstudoCasoDetalheId] = useState<number | null>(null)
   const [gerandoPaeeEstudoId, setGerandoPaeeEstudoId] = useState<number | null>(null)
-  const [novoRelatorioOpen, setNovoRelatorioOpen] = useState(false)
   const [filtroStatusRelatorio, setFiltroStatusRelatorio] = useState<string>('all')
 
   const { data: aluno, isLoading } = useQuery({
@@ -92,7 +90,7 @@ export default function AlunoProfilePage() {
   const { data: relatoriosPedagogicos = [], isLoading: loadingRelatorios } = useQuery({
     queryKey: ['relatorios-pedagogicos-aluno', aluno?.id, filtroStatusRelatorio],
     queryFn: () =>
-      listarRelatoriosPorAluno({
+      listarRelatorios({
         alunoId: aluno!.id!,
         status: filtroStatusRelatorio === 'all' ? undefined : (Number(filtroStatusRelatorio) as RelatorioStatusCodigo),
       }),
@@ -546,7 +544,7 @@ export default function AlunoProfilePage() {
                   <SelectItem value="1">{RELATORIO_STATUS_LABELS[1]}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button size="sm" variant="outline" onClick={() => setNovoRelatorioOpen(true)}>
+              <Button size="sm" variant="outline" onClick={() => navigate(`/relatorios/novo/aluno?alunoId=${alunoId}`)}>
                 <FileText size={14} />
                 Novo relatório
               </Button>
@@ -574,7 +572,7 @@ export default function AlunoProfilePage() {
                       {RELATORIO_STATUS_LABELS[r.status]}
                     </Badge>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/relatorios-pedagogicos/${r.id}`)}>
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/relatorios/${r.id}`)}>
                     <ArrowSquareOut size={14} />
                     Abrir
                   </Button>
@@ -611,16 +609,6 @@ export default function AlunoProfilePage() {
         nomeCompleto={alunoNome}
         isPending={deleteMutation.isPending}
         onConfirm={() => deleteMutation.mutate(alunoId)}
-      />
-
-      <NovoRelatorioDialog
-        open={novoRelatorioOpen}
-        onOpenChange={setNovoRelatorioOpen}
-        alunoId={alunoId}
-        onCriado={(relatorioId) => {
-          void qc.invalidateQueries({ queryKey: ['relatorios-pedagogicos-aluno', alunoId] })
-          navigate(`/relatorios-pedagogicos/${relatorioId}`)
-        }}
       />
     </>
   )
