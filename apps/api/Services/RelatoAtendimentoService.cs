@@ -84,13 +84,20 @@ public class RelatoAtendimentoService
         int? estrategiaId,
         bool presencaPresente,
         RelatoTipoOcorrencia tipoOcorrencia,
-        string? observacoes)
+        string? observacoes,
+        bool exigirPlanejamento = false)
     {
         if (!presencaPresente && string.IsNullOrWhiteSpace(observacoes))
             return "Informe observações quando o aluno não esteve presente.";
 
         if (tipoOcorrencia != RelatoTipoOcorrencia.Normal && string.IsNullOrWhiteSpace(observacoes))
             return "Informe observações quando a ocorrência não for sessão normal (cancelada ou reagendada).";
+
+        // Vínculo com PAEE passou a ser obrigatório para registros novos (o Relatório
+        // Pedagógico depende dele pra montar a evolução do aluno). Relatos antigos sem
+        // vínculo continuam existindo e sendo editáveis normalmente.
+        if (exigirPlanejamento && !planejamentoId.HasValue)
+            return "Selecione o PAEE vinculado a este atendimento.";
 
         var aluno = await _db.Alunos.AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == alunoId && a.IdProfessor == professorId);
@@ -185,7 +192,8 @@ public class RelatoAtendimentoService
             dto.EstrategiaId,
             dto.PresencaPresente,
             dto.TipoOcorrencia,
-            dto.Observacoes);
+            dto.Observacoes,
+            exigirPlanejamento: true);
         if (erro != null)
         {
             resposta.SetFalha(erro);

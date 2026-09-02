@@ -8,6 +8,8 @@ public class RelatoAtendimentoCadastroDTO
     [Required]
     public int AlunoId { get; set; }
 
+    // Obrigatório na prática para registros novos — validado em RelatoAtendimentoService
+    // (mantido int? porque o ModelBinding não distingue "não veio" de "veio 0").
     public int? PlanejamentoId { get; set; }
 
     [Required]
