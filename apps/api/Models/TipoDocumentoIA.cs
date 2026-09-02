@@ -6,6 +6,5 @@ namespace api.Models
         PAEE = 1,
         AvaliacaoDiagnostica = 2,
         RelatoAtendimento = 3,
-        RelatorioPedagogico = 4,
     }
 }
