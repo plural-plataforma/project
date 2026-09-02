@@ -21,17 +21,23 @@ public class RelatorioService
     private readonly PromptSistemaIAService _promptService;
     private readonly IGeradorTextoIA _geradorTextoIA;
     private readonly GeracaoIALogService _geracaoLog;
+    private readonly IRelatorioGeracaoQueue _geracaoQueue;
+    private readonly NotificacaoService _notificacaoService;
 
     public RelatorioService(
         AppDbContext db,
         PromptSistemaIAService promptService,
         IGeradorTextoIA geradorTextoIA,
-        GeracaoIALogService geracaoLog)
+        GeracaoIALogService geracaoLog,
+        IRelatorioGeracaoQueue geracaoQueue,
+        NotificacaoService notificacaoService)
     {
         _db = db;
         _promptService = promptService;
         _geradorTextoIA = geradorTextoIA;
         _geracaoLog = geracaoLog;
+        _geracaoQueue = geracaoQueue;
+        _notificacaoService = notificacaoService;
     }
 
     // Insumos levantados automaticamente pra montar o relatório — usado tanto no preview
@@ -418,6 +424,57 @@ public class RelatorioService
         return null;
     }
 
+    // Chamado pelo RelatorioGeracaoWorker, fora do ciclo de requisição HTTP — é aqui que a
+    // chamada lenta de IA (14 seções numa chamada só) realmente acontece.
+    public async Task ProcessarGeracaoAsync(int relatorioId)
+    {
+        var relatorio = await _db.Relatorios
+            .Include(r => r.Aluno)
+            .FirstOrDefaultAsync(r => r.Id == relatorioId);
+        if (relatorio == null) return;
+
+        var alunoNome = relatorio.Aluno?.NomeCompleto ?? "aluno";
+
+        var insumos = await MontarInsumosAsync(relatorio.ProfessorId, relatorio.AlunoId, relatorio.DataInicio, relatorio.DataFim);
+        if (insumos == null)
+        {
+            relatorio.Status = RelatorioStatus.ErroGeracao;
+            relatorio.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            await _notificacaoService.CriarAsync(
+                relatorio.ProfessorId,
+                TipoNotificacao.RelatorioComErro,
+                "Falha ao gerar relatório",
+                $"Não foi possível gerar o relatório de {alunoNome}: aluno não encontrado ou sem permissão.",
+                relatorio.Id);
+            return;
+        }
+
+        var erro = await GerarSecoesAsync(relatorio, insumos, relatorio.ProfessorId);
+        relatorio.Status = erro != null ? RelatorioStatus.ErroGeracao : RelatorioStatus.Rascunho;
+        relatorio.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        if (erro != null)
+        {
+            await _notificacaoService.CriarAsync(
+                relatorio.ProfessorId,
+                TipoNotificacao.RelatorioComErro,
+                "Falha ao gerar relatório",
+                $"O relatório de {alunoNome} teve um problema na geração: {erro}",
+                relatorio.Id);
+        }
+        else
+        {
+            await _notificacaoService.CriarAsync(
+                relatorio.ProfessorId,
+                TipoNotificacao.RelatorioGerado,
+                "Relatório pronto",
+                $"O relatório pedagógico de {alunoNome} foi gerado e está pronto para revisão.",
+                relatorio.Id);
+        }
+    }
+
     private async Task<RelatorioBuscarDTO> MapToBuscarDtoAsync(int id)
     {
         var relatorio = await _db.Relatorios
@@ -479,6 +536,10 @@ public class RelatorioService
 
         try
         {
+            // Só valida que o aluno existe e monta os insumos pra checagem de permissão —
+            // os dados de verdade pro prompt são relidos em ProcessarGeracaoAsync, já que a
+            // geração roda depois, em background (podem ter mudado entre o cadastro e o
+            // processamento, o que é aceitável — reflete o estado mais atual).
             var insumos = await MontarInsumosAsync(professorId, dto.AlunoId, dto.DataInicio, dto.DataFim);
             if (insumos == null)
             {
@@ -494,23 +555,16 @@ public class RelatorioService
                 DataInicio = dto.DataInicio,
                 DataFim = dto.DataFim,
                 TipoPeriodo = dto.TipoPeriodo,
-                Status = RelatorioStatus.Rascunho,
+                Status = RelatorioStatus.Gerando,
             };
             _db.Relatorios.Add(relatorio);
             await _db.SaveChangesAsync();
 
-            var erro = await GerarSecoesAsync(relatorio, insumos, professorId);
+            _geracaoQueue.Enfileirar(relatorio.Id);
+
             var dtoResultado = await MapToBuscarDtoAsync(relatorio.Id);
-
-            if (erro != null)
-            {
-                resposta.SetFalha($"Relatório criado, mas {erro} Você pode tentar gerar novamente.");
-                resposta.AdicionaObjeto(dtoResultado);
-                return resposta;
-            }
-
             resposta.AdicionaObjeto(dtoResultado);
-            resposta.AdicionaMensagem("Relatório gerado. Revise as seções antes de finalizar.");
+            resposta.AdicionaMensagem("Relatório em geração. Você será avisado quando estiver pronto.");
             return resposta;
         }
         catch (Exception ex)
