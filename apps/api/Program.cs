@@ -203,6 +203,7 @@ builder.Services.AddScoped<OnboardingWebhookService>();
 builder.Services.AddScoped<AvaliacaoDiagnosticaService>();
 builder.Services.AddScoped<EstudoDeCasoService>();
 builder.Services.AddScoped<RelatoAtendimentoService>();
+builder.Services.AddScoped<RelatorioService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AtividadeService>();
 builder.Services.AddScoped<ConfiguracaoSiteService>();

@@ -39,6 +39,8 @@ namespace Data
         public DbSet<EstudoDeCaso> EstudosCaso { get; set; }
         public DbSet<EstudoDeCasoItemEixo> EstudoCasoItensEixo { get; set; }
         public DbSet<RelatoAtendimento> RelatosAtendimento { get; set; }
+        public DbSet<Relatorio> Relatorios { get; set; }
+        public DbSet<RelatorioSecao> RelatorioSecoes { get; set; }
         public DbSet<PaeeObjetivoCatalogo> PaeeObjetivosCatalogo { get; set; }
         public DbSet<ConfiguracaoSite> ConfiguracoesSite { get; set; }
         public DbSet<DocumentoBiblioteca> DocumentosBiblioteca { get; set; }
@@ -309,6 +311,40 @@ namespace Data
                 .HasIndex(a => a.Slug)
                 .IsUnique()
                 .HasDatabaseName("ix_artigo_slug");
+
+            modelBuilder.Entity<Relatorio>()
+                .HasOne(r => r.Aluno)
+                .WithMany()
+                .HasForeignKey(r => r.AlunoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Relatorio>()
+                .HasOne(r => r.Professor)
+                .WithMany()
+                .HasForeignKey(r => r.ProfessorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Relatorio>()
+                .HasOne(r => r.Escola)
+                .WithMany()
+                .HasForeignKey(r => r.EscolaId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            modelBuilder.Entity<Relatorio>()
+                .HasIndex(r => new { r.AlunoId, r.DataInicio, r.DataFim })
+                .HasDatabaseName("ix_relatorios_pedagogicos_alunoid_periodo");
+
+            modelBuilder.Entity<RelatorioSecao>()
+                .HasOne(s => s.Relatorio)
+                .WithMany(r => r.Secoes)
+                .HasForeignKey(s => s.RelatorioId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RelatorioSecao>()
+                .HasIndex(s => new { s.RelatorioId, s.SecaoChave })
+                .IsUnique()
+                .HasDatabaseName("ix_relatorio_pedagogico_secoes_relatorioid_secaochave");
 
         }
 
