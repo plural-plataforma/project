@@ -433,10 +433,56 @@ public class RelatorioService
             .FirstOrDefaultAsync(r => r.Id == relatorioId);
         if (relatorio == null) return;
 
+        // Guarda contra a fila processar o mesmo id duas vezes (ex.: um reenfileiramento de
+        // retry correndo em paralelo com o item original) — só processa se ainda está Gerando.
+        if (relatorio.Status != RelatorioStatus.Gerando) return;
+
         var alunoNome = relatorio.Aluno?.NomeCompleto ?? "aluno";
 
-        var insumos = await MontarInsumosAsync(relatorio.ProfessorId, relatorio.AlunoId, relatorio.DataInicio, relatorio.DataFim);
-        if (insumos == null)
+        // Qualquer exceção não tratada aqui (timeout do Gemini, resposta malformada, falha de
+        // banco) deixava o relatório preso em Gerando para sempre, sem notificar o professor.
+        try
+        {
+            var insumos = await MontarInsumosAsync(relatorio.ProfessorId, relatorio.AlunoId, relatorio.DataInicio, relatorio.DataFim);
+            if (insumos == null)
+            {
+                relatorio.Status = RelatorioStatus.ErroGeracao;
+                relatorio.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                await _notificacaoService.CriarAsync(
+                    relatorio.ProfessorId,
+                    TipoNotificacao.RelatorioComErro,
+                    "Falha ao gerar relatório",
+                    $"Não foi possível gerar o relatório de {alunoNome}: aluno não encontrado ou sem permissão.",
+                    relatorio.Id);
+                return;
+            }
+
+            var erro = await GerarSecoesAsync(relatorio, insumos, relatorio.ProfessorId);
+            relatorio.Status = erro != null ? RelatorioStatus.ErroGeracao : RelatorioStatus.Rascunho;
+            relatorio.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            if (erro != null)
+            {
+                await _notificacaoService.CriarAsync(
+                    relatorio.ProfessorId,
+                    TipoNotificacao.RelatorioComErro,
+                    "Falha ao gerar relatório",
+                    $"O relatório de {alunoNome} teve um problema na geração: {erro}",
+                    relatorio.Id);
+            }
+            else
+            {
+                await _notificacaoService.CriarAsync(
+                    relatorio.ProfessorId,
+                    TipoNotificacao.RelatorioGerado,
+                    "Relatório pronto",
+                    $"O relatório pedagógico de {alunoNome} foi gerado e está pronto para revisão.",
+                    relatorio.Id);
+            }
+        }
+        catch (Exception ex)
         {
             relatorio.Status = RelatorioStatus.ErroGeracao;
             relatorio.UpdatedAt = DateTime.UtcNow;
@@ -445,33 +491,9 @@ public class RelatorioService
                 relatorio.ProfessorId,
                 TipoNotificacao.RelatorioComErro,
                 "Falha ao gerar relatório",
-                $"Não foi possível gerar o relatório de {alunoNome}: aluno não encontrado ou sem permissão.",
+                $"O relatório de {alunoNome} não pôde ser gerado: {ex.Message}",
                 relatorio.Id);
-            return;
-        }
-
-        var erro = await GerarSecoesAsync(relatorio, insumos, relatorio.ProfessorId);
-        relatorio.Status = erro != null ? RelatorioStatus.ErroGeracao : RelatorioStatus.Rascunho;
-        relatorio.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-
-        if (erro != null)
-        {
-            await _notificacaoService.CriarAsync(
-                relatorio.ProfessorId,
-                TipoNotificacao.RelatorioComErro,
-                "Falha ao gerar relatório",
-                $"O relatório de {alunoNome} teve um problema na geração: {erro}",
-                relatorio.Id);
-        }
-        else
-        {
-            await _notificacaoService.CriarAsync(
-                relatorio.ProfessorId,
-                TipoNotificacao.RelatorioGerado,
-                "Relatório pronto",
-                $"O relatório pedagógico de {alunoNome} foi gerado e está pronto para revisão.",
-                relatorio.Id);
+            throw;
         }
     }
 
@@ -598,7 +620,7 @@ public class RelatorioService
             return resposta;
         }
 
-        if (relatorio.Status == RelatorioStatus.Gerando)
+        if (relatorio.Status == RelatorioStatus.Gerando && relatorio.UpdatedAt > DateTime.UtcNow.AddMinutes(-10))
         {
             resposta.SetFalha("Este relatório já está sendo gerado.");
             return resposta;

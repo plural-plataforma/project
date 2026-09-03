@@ -336,6 +336,10 @@ namespace Data
                 .HasIndex(r => new { r.AlunoId, r.DataInicio, r.DataFim })
                 .HasDatabaseName("ix_relatorios_pedagogicos_alunoid_periodo");
 
+            modelBuilder.Entity<Notificacao>()
+                .HasIndex(n => new { n.ProfessorId, n.CreatedAt })
+                .HasDatabaseName("ix_notificacoes_professorid_createdat");
+
             modelBuilder.Entity<RelatorioSecao>()
                 .HasOne(s => s.Relatorio)
                 .WithMany(r => r.Secoes)
