@@ -598,34 +598,22 @@ public class RelatorioService
             return resposta;
         }
 
-        try
+        if (relatorio.Status == RelatorioStatus.Gerando)
         {
-            var insumos = await MontarInsumosAsync(professorId, relatorio.AlunoId, relatorio.DataInicio, relatorio.DataFim);
-            if (insumos == null)
-            {
-                resposta.SetFalha("Aluno não encontrado ou sem permissão.");
-                return resposta;
-            }
-
-            var erro = await GerarSecoesAsync(relatorio, insumos, professorId);
-            var dtoResultado = await MapToBuscarDtoAsync(id);
-
-            if (erro != null)
-            {
-                resposta.SetFalha(erro);
-                resposta.AdicionaObjeto(dtoResultado);
-                return resposta;
-            }
-
-            resposta.AdicionaObjeto(dtoResultado);
-            resposta.AdicionaMensagem("Relatório gerado. Revise as seções antes de finalizar.");
+            resposta.SetFalha("Este relatório já está sendo gerado.");
             return resposta;
         }
-        catch (Exception ex)
-        {
-            resposta.SetFalha("Erro ao gerar relatório: " + ex.Message);
-            return resposta;
-        }
+
+        relatorio.Status = RelatorioStatus.Gerando;
+        relatorio.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _geracaoQueue.Enfileirar(relatorio.Id);
+
+        var dtoResultado = await MapToBuscarDtoAsync(id);
+        resposta.AdicionaObjeto(dtoResultado);
+        resposta.AdicionaMensagem("Relatório em geração. Você será avisado quando estiver pronto.");
+        return resposta;
     }
 
     public async Task<ServiceResponse<RelatorioBuscarDTO>> AtualizarSecaoAsync(
