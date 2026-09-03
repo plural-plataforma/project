@@ -217,7 +217,11 @@ builder.Services.AddScoped<PromptSistemaIAService>();
 builder.Services.AddScoped<GeracaoIALogService>();
 builder.Services.AddScoped<NotificacaoService>();
 builder.Services.AddScoped<ArtigoService>();
-builder.Services.AddHttpClient<api.Services.IA.IGeradorTextoIA, api.Services.IA.GeminiGeradorTextoIA>();
+// Timeout explícito (default do HttpClient seria 100s) — agora que a geração roda em
+// background (RelatorioGeracaoWorker), isso só limita quanto tempo o worker espera o Gemini
+// antes de marcar Status.ErroGeracao, evitando ficar preso indefinidamente numa chamada travada.
+builder.Services.AddHttpClient<api.Services.IA.IGeradorTextoIA, api.Services.IA.GeminiGeradorTextoIA>()
+    .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(120));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
