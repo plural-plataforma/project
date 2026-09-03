@@ -25,6 +25,7 @@ import {
   RELATORIO_SECAO_LABELS,
   RELATORIO_SECAO_NUMERO,
   RELATORIO_SECAO_ORDEM,
+  RELATORIO_STATUS_BADGE_VARIANT,
   RELATORIO_STATUS_LABELS,
   RELATORIO_TIPO_PERIODO_LABELS,
   type RelatorioSecaoChaveCodigo,
@@ -49,6 +50,7 @@ export default function RelatorioDetailPage() {
     queryKey: ['relatorio', id],
     queryFn: () => buscarRelatorioPorId(Number(id)),
     enabled: !!id,
+    refetchInterval: (query) => (query.state.data?.status === 2 ? 5000 : false),
   })
 
   /* eslint-disable react-hooks/set-state-in-effect --
@@ -92,7 +94,7 @@ export default function RelatorioDetailPage() {
     mutationFn: () => gerarNovamenteRelatorio(Number(id)),
     onSuccess: (resultado) => {
       if (resultado.sucesso) {
-        success('Relatório gerado', 'Revise as seções antes de finalizar.')
+        success('Relatório em geração', 'Você será avisado por notificação quando estiver pronto.')
       } else {
         showError('Geração com pendência', resultado.mensagem)
       }
@@ -144,6 +146,8 @@ export default function RelatorioDetailPage() {
   if (!relatorio) return <p className="text-muted-foreground">Relatório não encontrado.</p>
 
   const finalizado = relatorio.status === 1
+  const gerando = relatorio.status === 2
+  const erroGeracao = relatorio.status === 3
   const secoesPorChave = new Map(relatorio.secoes.map((s) => [s.secaoChave, s]))
   const semSecoes = relatorio.secoes.length === 0
 
@@ -155,7 +159,7 @@ export default function RelatorioDetailPage() {
         backTo={`/alunos/${relatorio.alunoId}`}
         action={
           <div className="flex flex-wrap items-center gap-2 justify-end">
-            <Badge variant={finalizado ? 'success' : 'amber'}>{RELATORIO_STATUS_LABELS[relatorio.status]}</Badge>
+            <Badge variant={RELATORIO_STATUS_BADGE_VARIANT[relatorio.status]}>{RELATORIO_STATUS_LABELS[relatorio.status]}</Badge>
             {finalizado && (
               <>
                 <Button variant="outline" size="sm" onClick={() => downloadRelatorioPdf(relatorio)}>
@@ -210,12 +214,26 @@ export default function RelatorioDetailPage() {
         }
       />
 
-      {semSecoes ? (
+      {gerando ? (
+        <Card>
+          <CardContent className="pt-5 flex flex-col items-center gap-3 text-center">
+            <span className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            <p className="text-sm text-muted-foreground">
+              A Plural está gerando este relatório em segundo plano. Você pode sair desta tela —
+              avisamos por notificação quando estiver pronto.
+            </p>
+          </CardContent>
+        </Card>
+      ) : semSecoes ? (
         <Card>
           <CardContent className="pt-5 space-y-3">
             <div className="flex items-center gap-2 text-danger">
               <Warning size={18} />
-              <p className="text-sm font-semibold">A geração por IA ainda não foi concluída para este relatório.</p>
+              <p className="text-sm font-semibold">
+                {erroGeracao
+                  ? 'A geração por IA deste relatório falhou.'
+                  : 'A geração por IA ainda não foi concluída para este relatório.'}
+              </p>
             </div>
             <Button
               variant="outline"
