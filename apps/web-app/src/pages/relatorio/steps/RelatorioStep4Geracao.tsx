@@ -28,7 +28,7 @@ export function RelatorioStep4Geracao() {
     mutationFn: () => cadastrarRelatorio({ alunoId: alunoId!, dataInicio, dataFim, tipoPeriodo }),
     onSuccess: (resultado) => {
       if (resultado.sucesso) {
-        success('Relatório gerado', 'Revise as seções antes de finalizar.')
+        success('Relatório em geração', 'Você será avisado por notificação quando estiver pronto.')
       } else {
         showError('Relatório criado com pendência', resultado.mensagem)
       }
@@ -51,8 +51,7 @@ export function RelatorioStep4Geracao() {
         <div className="rounded-lg border border-border p-6 flex flex-col items-center gap-3 text-center">
           <span className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
           <p className="text-sm text-muted-foreground">
-            A Plural está analisando os registros do período e organizando o relatório
-            pedagógico.
+            Enviando os dados para gerar o relatório pedagógico…
           </p>
         </div>
       ) : (
