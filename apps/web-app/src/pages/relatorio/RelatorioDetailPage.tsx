@@ -222,6 +222,15 @@ export default function RelatorioDetailPage() {
               A Plural está gerando este relatório em segundo plano. Você pode sair desta tela —
               avisamos por notificação quando estiver pronto.
             </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={gerarNovamenteMutation.isPending}
+              onClick={() => gerarNovamenteMutation.mutate()}
+            >
+              <ArrowClockwise size={14} />
+              Está demorando? Tentar novamente
+            </Button>
           </CardContent>
         </Card>
       ) : semSecoes ? (
