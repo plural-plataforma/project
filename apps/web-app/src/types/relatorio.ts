@@ -9,11 +9,20 @@ export const RELATORIO_TIPO_PERIODO_LABELS: Record<RelatorioTipoPeriodoCodigo, s
 }
 
 /** Alinhado ao enum `RelatorioStatus` da API. */
-export type RelatorioStatusCodigo = 0 | 1
+export type RelatorioStatusCodigo = 0 | 1 | 2 | 3
 
 export const RELATORIO_STATUS_LABELS: Record<RelatorioStatusCodigo, string> = {
   0: 'Rascunho',
   1: 'Finalizado',
+  2: 'Gerando',
+  3: 'Erro na geração',
+}
+
+export const RELATORIO_STATUS_BADGE_VARIANT: Record<RelatorioStatusCodigo, 'amber' | 'success' | 'default' | 'danger'> = {
+  0: 'amber',
+  1: 'success',
+  2: 'default',
+  3: 'danger',
 }
 
 /** Alinhado ao enum `RelatorioSecaoChave` da API — Identificação fica de fora (vem do cadastro do aluno). */
