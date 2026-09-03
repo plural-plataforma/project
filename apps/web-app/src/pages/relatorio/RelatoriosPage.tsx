@@ -24,6 +24,7 @@ import { buscarAlunos } from '@/services/alunoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
 import { buscarRelatorioPorId, duplicarRelatorio, listarRelatorios } from '@/services/relatorioService'
 import {
+  RELATORIO_STATUS_BADGE_VARIANT,
   RELATORIO_STATUS_LABELS,
   RELATORIO_TIPO_PERIODO_LABELS,
   type RelatorioStatusCodigo,
@@ -223,6 +224,8 @@ export default function RelatoriosPage() {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="0">{RELATORIO_STATUS_LABELS[0]}</SelectItem>
                   <SelectItem value="1">{RELATORIO_STATUS_LABELS[1]}</SelectItem>
+                  <SelectItem value="2">{RELATORIO_STATUS_LABELS[2]}</SelectItem>
+                  <SelectItem value="3">{RELATORIO_STATUS_LABELS[3]}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -254,7 +257,7 @@ export default function RelatoriosPage() {
                 badges={[
                   {
                     label: RELATORIO_STATUS_LABELS[r.status],
-                    variant: r.status === 1 ? 'success' : 'amber',
+                    variant: RELATORIO_STATUS_BADGE_VARIANT[r.status],
                   },
                 ]}
                 meta={
