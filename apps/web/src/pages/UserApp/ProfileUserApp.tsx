@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ArrowUp, ArrowDown, Copy, Check } from '@phosphor-icons/react';
+import { X, ArrowUp, ArrowDown, Copy, Check, Eye, EyeSlash } from '@phosphor-icons/react';
 
 import {
   Box,
@@ -68,6 +68,7 @@ export default function ProfileUserAppEdit({
   const [novaSenhaGerada, setNovaSenhaGerada] = useState<string | null>(null);
   const [emailEnviado, setEmailEnviado] = useState(false);
   const [senhaCopiada, setSenhaCopiada] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -106,6 +107,7 @@ export default function ProfileUserAppEdit({
     setEmailEnviado(false);
     setResetError(null);
     setConfirmResetOpen(false);
+    setMostrarSenha(false);
   }, [initialData]);
 
   const handleSave = async () => {
@@ -188,8 +190,10 @@ export default function ProfileUserAppEdit({
 
   const handleCopiarSenha = async () => {
     if (!novaSenhaGerada) return;
+    const primeiroNome = (formData.nomeCompleto || '').trim().split(' ')[0] || 'usuária';
+    const mensagem = `Olá ${primeiroNome}, resetamos sua senha, para acessar use a senha ${novaSenhaGerada}`;
     try {
-      await navigator.clipboard.writeText(novaSenhaGerada);
+      await navigator.clipboard.writeText(mensagem);
       setSenhaCopiada(true);
       setTimeout(() => setSenhaCopiada(false), 2000);
     } catch (err) {
@@ -201,6 +205,7 @@ export default function ProfileUserAppEdit({
     setNovaSenhaGerada(null);
     setEmailEnviado(false);
     setSenhaCopiada(false);
+    setMostrarSenha(false);
   };
 
   if (!open) return null;
@@ -496,11 +501,17 @@ export default function ProfileUserAppEdit({
           <TextField
             label="Senha temporária"
             fullWidth
+            type={mostrarSenha ? 'text' : 'password'}
             value={novaSenhaGerada || ''}
             InputProps={{
               readOnly: true,
               endAdornment: (
                 <InputAdornment position="end">
+                  <Tooltip title={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>
+                    <IconButton onClick={() => setMostrarSenha((v) => !v)} edge="start">
+                      {mostrarSenha ? <EyeSlash size={20} /> : <Eye size={20} />}
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title={senhaCopiada ? 'Copiado!' : 'Copiar senha'}>
                     <IconButton onClick={handleCopiarSenha} edge="end">
                       {senhaCopiada ? <Check size={20} color="#16A34A" /> : <Copy size={20} />}
