@@ -65,3 +65,37 @@ export const fetchUsuariosAdmin = async (
     throw new Error(mensagemErro);
   }
 };
+
+export interface ResetarSenhaResultado {
+  novaSenha: string;
+  emailEnviado: boolean;
+}
+
+/**
+ * Reseta a senha de um usuário (ação de admin): gera uma nova senha
+ * aleatória, salva no backend e dispara e-mail para o usuário.
+ * A senha também retorna na resposta para o admin copiar, se precisar repassar.
+ */
+export const resetarSenhaAdmin = async (
+  idUsuario: number
+): Promise<ResetarSenhaResultado> => {
+  try {
+    const response = await api.post('/admin/usuarios/resetar-senha', { idUsuario });
+    const objeto = response.data?.objeto ?? response.data;
+
+    return {
+      novaSenha: objeto.novaSenha,
+      emailEnviado: !!objeto.emailEnviado,
+    };
+  } catch (error: any) {
+    const mensagemErro =
+      error.response?.data?.mensagens?.[0] ||
+      error.response?.data?.detalhe ||
+      error.response?.data?.erro ||
+      error.response?.data?.message ||
+      error.message ||
+      'Erro desconhecido ao resetar senha';
+
+    throw new Error(mensagemErro);
+  }
+};

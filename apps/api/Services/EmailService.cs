@@ -67,5 +67,46 @@ namespace api.Services
 
         }
 
+        public async Task<ServiceResponse<bool>> EnviarSenhaResetada(string nomeDestinatario, string destino, string novaSenha)
+        {
+            var resposta = new ServiceResponse<bool>();
+
+            MimeMessage email = new MimeMessage();
+
+            email.From.Add(new MailboxAddress("Plural Plataforma", _origemEmail));
+            email.To.Add(new MailboxAddress(nomeDestinatario, destino));
+            email.Subject = "Sua senha foi resetada — Plural Plataforma";
+
+            try
+            {
+                string template = File.ReadAllText("Templates/senhaResetada.html");
+                string mensagemHtml = template
+                    .Replace("{{NomeDestinatario}}", nomeDestinatario)
+                    .Replace("{{NovaSenha}}", novaSenha);
+
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = mensagemHtml
+                };
+
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync(_smtpServer, int.Parse(_smtpPorta), MailKit.Security.SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_origemEmail, _senhaEmail);
+
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Falha ao enviar e-mail de reset de senha para {Destino} via {SmtpServer}:{SmtpPorta}",
+                    destino, _smtpServer, _smtpPorta);
+                resposta.SetFalha("Ocorreu um erro ao enviar o email para o usuário.");
+                return resposta;
+            }
+
+            resposta.Sucesso = true;
+            return resposta;
+        }
+
     }
 }

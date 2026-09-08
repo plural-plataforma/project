@@ -47,6 +47,24 @@ namespace api.Controllers
             return BadRequest(resposta);
         }
 
+        [HttpPost("usuarios/resetar-senha")]
+        public async Task<IActionResult> ResetarSenha([FromBody] ResetarSenhaDTO dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var resposta = await _adminService.ResetarSenhaAsync(dto.IdUsuario);
+
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+
+            return BadRequest(resposta);
+        }
+
         [HttpGet("usuarios/listar")]
         public async Task<IActionResult> ListarParaAdmin(
             [FromQuery] int pagina = 1,

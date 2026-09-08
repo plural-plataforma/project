@@ -1,4 +1,5 @@
-﻿using api.DTOs.Admin;
+﻿using System.Security.Cryptography;
+using api.DTOs.Admin;
 using api.Models;
 using api.Responses;
 using Data;
@@ -12,12 +13,18 @@ namespace api.Services
         private readonly AppDbContext _contexto;
         private readonly UserManager<Usuario> _usuario;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly EmailService _emailService;
 
-        public AdminService(AppDbContext contexto, UserManager<Usuario> usuario, RoleManager<IdentityRole> roleManager)
+        public AdminService(
+            AppDbContext contexto,
+            UserManager<Usuario> usuario,
+            RoleManager<IdentityRole> roleManager,
+            EmailService emailService)
         {
             _contexto = contexto;
             _usuario = usuario;
             _roleManager = roleManager;
+            _emailService = emailService;
         }
 
         public async Task<ServiceResponse<object>> AtualizarUsuarioAsync(AtualizarStatusUsuarioDTO dto)
@@ -291,6 +298,89 @@ namespace api.Services
                 return resposta;
             }
         }
+        public async Task<ServiceResponse<ResetarSenhaResponseDTO>> ResetarSenhaAsync(int idUsuario)
+        {
+            var resposta = new ServiceResponse<ResetarSenhaResponseDTO>();
+
+            var professor = await _contexto.Professores
+                .FirstOrDefaultAsync(p => p.ID == idUsuario);
+
+            if (professor == null)
+            {
+                resposta.SetFalha("Professor não encontrado.");
+                return resposta;
+            }
+
+            var usuario = await _usuario.Users
+                .FirstOrDefaultAsync(u => u.ProfessorId == idUsuario);
+
+            if (usuario == null)
+            {
+                resposta.SetFalha("Usuário associado não encontrado.");
+                return resposta;
+            }
+
+            var novaSenha = GerarSenhaAleatoria();
+
+            var token = await _usuario.GeneratePasswordResetTokenAsync(usuario);
+            var identityResult = await _usuario.ResetPasswordAsync(usuario, token, novaSenha);
+
+            if (!identityResult.Succeeded)
+            {
+                resposta.SetFalha(
+                    "Erro ao resetar senha: " +
+                    string.Join("; ", identityResult.Errors.Select(e => e.Description))
+                );
+                return resposta;
+            }
+
+            var emailResposta = await _emailService.EnviarSenhaResetada(
+                professor.NomeCompleto ?? usuario.Email,
+                usuario.Email,
+                novaSenha
+            );
+
+            resposta.Sucesso = true;
+            resposta.AdicionaMensagem("Senha resetada com sucesso.");
+            resposta.AdicionaObjeto(new ResetarSenhaResponseDTO
+            {
+                NovaSenha = novaSenha,
+                EmailEnviado = emailResposta.Sucesso,
+            });
+            return resposta;
+        }
+
+        private static string GerarSenhaAleatoria()
+        {
+            const string minusculas = "abcdefghijkmnpqrstuvwxyz";
+            const string maiusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string digitos = "23456789";
+            const string simbolos = "!@#$%&*";
+            const string todos = minusculas + maiusculas + digitos + simbolos;
+
+            var caracteres = new List<char>
+            {
+                minusculas[RandomNumberGenerator.GetInt32(minusculas.Length)],
+                maiusculas[RandomNumberGenerator.GetInt32(maiusculas.Length)],
+                digitos[RandomNumberGenerator.GetInt32(digitos.Length)],
+                simbolos[RandomNumberGenerator.GetInt32(simbolos.Length)],
+            };
+
+            for (int i = caracteres.Count; i < 12; i++)
+            {
+                caracteres.Add(todos[RandomNumberGenerator.GetInt32(todos.Length)]);
+            }
+
+            // Embaralha para não deixar os tipos de caractere em posição previsível
+            for (int i = caracteres.Count - 1; i > 0; i--)
+            {
+                int j = RandomNumberGenerator.GetInt32(i + 1);
+                (caracteres[i], caracteres[j]) = (caracteres[j], caracteres[i]);
+            }
+
+            return new string(caracteres.ToArray());
+        }
+
         public class PaginatedResult<T>
         {
             public List<T> Itens { get; set; } = new();
