@@ -77,18 +77,18 @@ namespace api.Services
             email.To.Add(new MailboxAddress(nomeDestinatario, destino));
             email.Subject = "Sua senha foi resetada — Plural Plataforma";
 
-            string template = File.ReadAllText("Templates/senhaResetada.html");
-            string mensagemHtml = template
-                .Replace("{{NomeDestinatario}}", nomeDestinatario)
-                .Replace("{{NovaSenha}}", novaSenha);
-
-            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
-            {
-                Text = mensagemHtml
-            };
-
             try
             {
+                string template = File.ReadAllText("Templates/senhaResetada.html");
+                string mensagemHtml = template
+                    .Replace("{{NomeDestinatario}}", nomeDestinatario)
+                    .Replace("{{NovaSenha}}", novaSenha);
+
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+                {
+                    Text = mensagemHtml
+                };
+
                 using var smtp = new SmtpClient();
                 await smtp.ConnectAsync(_smtpServer, int.Parse(_smtpPorta), MailKit.Security.SecureSocketOptions.StartTls);
                 await smtp.AuthenticateAsync(_origemEmail, _senhaEmail);
