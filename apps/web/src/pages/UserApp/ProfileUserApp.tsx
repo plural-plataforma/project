@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ArrowUp, ArrowDown } from '@phosphor-icons/react';
+import { X, ArrowUp, ArrowDown, Copy, Check } from '@phosphor-icons/react';
 
 import {
   Box,
@@ -18,9 +18,16 @@ import {
   Drawer,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  InputAdornment,
 } from '@mui/material';
 
 import { updateUserProfile } from '../../services/userProfileService'; // ajuste o caminho conforme sua estrutura
+import { resetarSenhaAdmin } from '../../services/adminService';
 import { Usuario } from '../../types/userTypes';
 import { jwtDecode } from 'jwt-decode';
 
@@ -55,6 +62,13 @@ export default function ProfileUserAppEdit({
 
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [resetando, setResetando] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [novaSenhaGerada, setNovaSenhaGerada] = useState<string | null>(null);
+  const [emailEnviado, setEmailEnviado] = useState(false);
+  const [senhaCopiada, setSenhaCopiada] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
@@ -86,6 +100,12 @@ export default function ProfileUserAppEdit({
     }
     setError(null);
     setSuccess(false);
+
+    // Evita vazar a senha temporária de um usuário pro modal do próximo
+    setNovaSenhaGerada(null);
+    setEmailEnviado(false);
+    setResetError(null);
+    setConfirmResetOpen(false);
   }, [initialData]);
 
   const handleSave = async () => {
@@ -146,6 +166,41 @@ export default function ProfileUserAppEdit({
 
   const handleChange = (field: keyof Usuario, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleResetarSenha = async () => {
+    if (!formData.idUsuario) return;
+
+    setResetando(true);
+    setResetError(null);
+
+    try {
+      const resultado = await resetarSenhaAdmin(formData.idUsuario);
+      setNovaSenhaGerada(resultado.novaSenha);
+      setEmailEnviado(resultado.emailEnviado);
+      setConfirmResetOpen(false);
+    } catch (err: any) {
+      setResetError(err.message || 'Erro ao resetar senha.');
+    } finally {
+      setResetando(false);
+    }
+  };
+
+  const handleCopiarSenha = async () => {
+    if (!novaSenhaGerada) return;
+    try {
+      await navigator.clipboard.writeText(novaSenhaGerada);
+      setSenhaCopiada(true);
+      setTimeout(() => setSenhaCopiada(false), 2000);
+    } catch (err) {
+      console.error('Erro ao copiar senha:', err);
+    }
+  };
+
+  const handleFecharResultadoReset = () => {
+    setNovaSenhaGerada(null);
+    setEmailEnviado(false);
+    setSenhaCopiada(false);
   };
 
   if (!open) return null;
@@ -360,29 +415,108 @@ export default function ProfileUserAppEdit({
           px: 3,
           py: 2,
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           gap: 1,
           borderTop: '1px solid',
           borderColor: 'divider',
           flexShrink: 0,
         }}
       >
-        <Button onClick={onClose} disabled={saving} sx={{ color: '#276678' }}>
-          Cancelar
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={
-            saving ||
-            !formData.nomeCompleto?.trim() ||
-            !formData.email?.trim()
-          }
-          sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5a' } }}
-        >
-          {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
-        </Button>
+        {isAdmin ? (
+          <Button
+            onClick={() => setConfirmResetOpen(true)}
+            disabled={saving || !formData.idUsuario}
+            color="warning"
+            variant="outlined"
+          >
+            Resetar senha
+          </Button>
+        ) : (
+          <span />
+        )}
+
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button onClick={onClose} disabled={saving} sx={{ color: '#276678' }}>
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={
+              saving ||
+              !formData.nomeCompleto?.trim() ||
+              !formData.email?.trim()
+            }
+            sx={{ bgcolor: '#276678', '&:hover': { bgcolor: '#1e4d5a' } }}
+          >
+            {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
+          </Button>
+        </Box>
       </Box>
+
+      {/* Confirmação de reset de senha */}
+      <Dialog open={confirmResetOpen} onClose={() => setConfirmResetOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Resetar senha da usuária?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Uma nova senha aleatória será gerada para <b>{formData.nomeCompleto || 'esta usuária'}</b> e
+            enviada por e-mail. A senha atual deixará de funcionar imediatamente.
+          </DialogContentText>
+          {resetError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {resetError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmResetOpen(false)} disabled={resetando}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleResetarSenha}
+            disabled={resetando}
+            color="warning"
+            variant="contained"
+          >
+            {resetando ? <CircularProgress size={20} color="inherit" /> : 'Resetar senha'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Resultado do reset — senha temporária pra copiar */}
+      <Dialog open={!!novaSenhaGerada} onClose={handleFecharResultadoReset} maxWidth="xs" fullWidth>
+        <DialogTitle>Senha resetada com sucesso</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            {emailEnviado
+              ? 'A nova senha também foi enviada por e-mail para a usuária.'
+              : 'Não foi possível enviar o e-mail automaticamente — repasse a senha manualmente.'}
+          </DialogContentText>
+          <TextField
+            label="Senha temporária"
+            fullWidth
+            value={novaSenhaGerada || ''}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Tooltip title={senhaCopiada ? 'Copiado!' : 'Copiar senha'}>
+                    <IconButton onClick={handleCopiarSenha} edge="end">
+                      {senhaCopiada ? <Check size={20} color="#16A34A" /> : <Copy size={20} />}
+                    </IconButton>
+                  </Tooltip>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleFecharResultadoReset} sx={{ color: '#276678' }}>
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Drawer>
   );
 }
