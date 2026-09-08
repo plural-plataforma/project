@@ -85,6 +85,13 @@ export const PEDAGOGICAL_FLOW_STEPS: PedagogicalFlowStep[] = [
 
 export const PEDAGOGICAL_FLOW_STEP_COUNT = PEDAGOGICAL_FLOW_STEPS.length
 
+/** Menu extra (após o fluxo principal): relatório pedagógico do AEE por período, a partir do que já foi registrado. */
+export const RELATORIOS_NAV = {
+  label: 'Relatórios',
+  route: '/relatorios',
+  activePathPrefix: '/relatorios',
+} as const
+
 /** Menu extra (após o fluxo principal): download combinado quando estudo + PAEE existem. */
 export const DOCUMENTACAO_PEDAGOGICA_NAV = {
   label: 'Estudo de caso + PAEE',
@@ -98,3 +105,9 @@ export const BIBLIOTECA_MODELOS_NAV = {
   route: '/biblioteca-modelos',
   activePathPrefix: '/biblioteca-modelos',
 } as const
+
+/** Módulos extras do menu além do fluxo principal: Relatórios, Estudo de caso + PAEE, Biblioteca de Modelos. */
+export const EXTRA_PLATFORM_FEATURES_COUNT = 3
+
+/** Total de funcionalidades da plataforma (fluxo pedagógico + módulos extras). Usado na tela de login e no versionamento (1.<funcionalidades>.1). */
+export const PLATFORM_FEATURE_COUNT = PEDAGOGICAL_FLOW_STEP_COUNT + EXTRA_PLATFORM_FEATURES_COUNT

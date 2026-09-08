@@ -56,3 +56,6 @@ yarn-error.log*
 *.sln.docstates 
 
 *.log
+
+# Git worktrees (isolamento de sessão de implementação)
+.worktrees/

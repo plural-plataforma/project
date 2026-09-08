@@ -1284,6 +1284,55 @@ namespace api.Migrations
                     b.ToTable("laudos");
                 });
 
+            modelBuilder.Entity("api.Models.Notificacao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdat");
+
+                    b.Property<bool>("Lida")
+                        .HasColumnType("boolean")
+                        .HasColumnName("lida");
+
+                    b.Property<string>("Mensagem")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("mensagem");
+
+                    b.Property<int>("ProfessorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("professorid");
+
+                    b.Property<int?>("RelatorioId")
+                        .HasColumnType("integer")
+                        .HasColumnName("relatorioid");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipo");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("titulo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notificacoes");
+
+                    b.HasIndex("ProfessorId", "CreatedAt")
+                        .HasDatabaseName("ix_notificacoes_professorid_createdat");
+
+                    b.ToTable("notificacoes");
+                });
+
             modelBuilder.Entity("api.Models.ObservacaoAlunoAvaliacaoHistorico", b =>
                 {
                     b.Property<int>("Id")
@@ -1674,6 +1723,113 @@ namespace api.Migrations
                         .HasDatabaseName("ix_relatos_atendimento_alunoid_datasessao");
 
                     b.ToTable("relatos_atendimento");
+                });
+
+            modelBuilder.Entity("api.Models.Relatorio", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AlunoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("alunoid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdat");
+
+                    b.Property<DateOnly>("DataFim")
+                        .HasColumnType("date")
+                        .HasColumnName("datafim");
+
+                    b.Property<DateOnly>("DataInicio")
+                        .HasColumnType("date")
+                        .HasColumnName("datainicio");
+
+                    b.Property<int?>("EscolaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("escolaid");
+
+                    b.Property<int>("ProfessorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("professorid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<int>("TipoPeriodo")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipoperiodo");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedat");
+
+                    b.HasKey("Id")
+                        .HasName("pk_relatorios_pedagogicos");
+
+                    b.HasIndex("EscolaId")
+                        .HasDatabaseName("ix_relatorios_pedagogicos_escolaid");
+
+                    b.HasIndex("ProfessorId")
+                        .HasDatabaseName("ix_relatorios_pedagogicos_professorid");
+
+                    b.HasIndex("AlunoId", "DataInicio", "DataFim")
+                        .HasDatabaseName("ix_relatorios_pedagogicos_alunoid_periodo");
+
+                    b.ToTable("relatorios_pedagogicos");
+                });
+
+            modelBuilder.Entity("api.Models.RelatorioSecao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("EditadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("editadoem");
+
+                    b.Property<DateTime?>("GeradoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geradoem");
+
+                    b.Property<string>("NotasManuais")
+                        .HasColumnType("text")
+                        .HasColumnName("notasmanuais");
+
+                    b.Property<int>("RelatorioId")
+                        .HasColumnType("integer")
+                        .HasColumnName("relatorioid");
+
+                    b.Property<int>("SecaoChave")
+                        .HasColumnType("integer")
+                        .HasColumnName("secaochave");
+
+                    b.Property<string>("TextoEditado")
+                        .HasColumnType("text")
+                        .HasColumnName("textoeditado");
+
+                    b.Property<string>("TextoGerado")
+                        .HasColumnType("text")
+                        .HasColumnName("textogerado");
+
+                    b.HasKey("Id")
+                        .HasName("pk_relatorio_pedagogico_secoes");
+
+                    b.HasIndex("RelatorioId", "SecaoChave")
+                        .IsUnique()
+                        .HasDatabaseName("ix_relatorio_pedagogico_secoes_relatorioid_secaochave");
+
+                    b.ToTable("relatorio_pedagogico_secoes");
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>
@@ -2363,6 +2519,47 @@ namespace api.Migrations
                     b.Navigation("Planejamento");
                 });
 
+            modelBuilder.Entity("api.Models.Relatorio", b =>
+                {
+                    b.HasOne("api.Models.Aluno", "Aluno")
+                        .WithMany()
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_relatorios_pedagogicos_alunos_alunoid");
+
+                    b.HasOne("api.Models.Escola", "Escola")
+                        .WithMany()
+                        .HasForeignKey("EscolaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_relatorios_pedagogicos_escolas_escolaid");
+
+                    b.HasOne("api.Models.Professor", "Professor")
+                        .WithMany()
+                        .HasForeignKey("ProfessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_relatorios_pedagogicos_professores_professorid");
+
+                    b.Navigation("Aluno");
+
+                    b.Navigation("Escola");
+
+                    b.Navigation("Professor");
+                });
+
+            modelBuilder.Entity("api.Models.RelatorioSecao", b =>
+                {
+                    b.HasOne("api.Models.Relatorio", "Relatorio")
+                        .WithMany("Secoes")
+                        .HasForeignKey("RelatorioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_relatorio_pedagogico_secoes_relatorios_pedagogicos_relatori~");
+
+                    b.Navigation("Relatorio");
+                });
+
             modelBuilder.Entity("api.Models.Usuario", b =>
                 {
                     b.HasOne("api.Models.Professor", "Professor")
@@ -2447,6 +2644,11 @@ namespace api.Migrations
                     b.Navigation("Planejamentos");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("api.Models.Relatorio", b =>
+                {
+                    b.Navigation("Secoes");
                 });
 
             modelBuilder.Entity("api.Models.Responsavel", b =>

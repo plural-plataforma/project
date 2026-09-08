@@ -21,10 +21,11 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PEDAGOGICAL_FLOW_STEPS, DOCUMENTACAO_PEDAGOGICA_NAV, BIBLIOTECA_MODELOS_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
-import { Files, BookBookmark } from '@phosphor-icons/react'
+import { PEDAGOGICAL_FLOW_STEPS, RELATORIOS_NAV, DOCUMENTACAO_PEDAGOGICA_NAV, BIBLIOTECA_MODELOS_NAV, type PedagogicalFlowStepId } from '@/config/pedagogicalFlow'
+import { Files, BookBookmark, FileText } from '@phosphor-icons/react'
 import { useTourStore } from '@/stores/tourStore'
 import { startProductTour } from '@/lib/productTour'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const FLOW_ICONS: Record<PedagogicalFlowStepId, Icon> = {
   escola: Buildings,
@@ -43,6 +44,12 @@ const navItems = [
     label: step.label,
     activePathPrefix: step.activePathPrefix ?? step.route,
   })),
+  {
+    to: RELATORIOS_NAV.route,
+    icon: FileText,
+    label: RELATORIOS_NAV.label,
+    activePathPrefix: RELATORIOS_NAV.activePathPrefix,
+  },
   {
     to: DOCUMENTACAO_PEDAGOGICA_NAV.route,
     icon: Files,
@@ -93,18 +100,21 @@ export function Sidebar({ professorNome }: SidebarProps) {
 
     return (
     <nav className="flex flex-col h-full">
-      <NavLink
-        id={withTourAnchors ? 'tour-sidebar-brand' : undefined}
-        to="/dashboard"
-        className="flex items-center gap-2.5 px-4 py-4 border-b border-border hover:bg-primary-light transition-colors duration-150"
-        aria-label="Ir para o dashboard"
-      >
-        <img src="/favicon.png" alt="" aria-hidden className="h-7 w-7 object-contain shrink-0" />
-        <div className="leading-none">
-          <span className="text-primary font-black text-base tracking-tight block">Plural</span>
-          <span className="text-brand-purple text-[8px] font-semibold tracking-widest uppercase">Plataforma</span>
-        </div>
-      </NavLink>
+      <div className="flex items-center justify-between border-b border-border px-4 py-4">
+        <NavLink
+          id={withTourAnchors ? 'tour-sidebar-brand' : undefined}
+          to="/dashboard"
+          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-150"
+          aria-label="Ir para o dashboard"
+        >
+          <img src="/favicon.png" alt="" aria-hidden className="h-7 w-7 object-contain shrink-0" />
+          <div className="leading-none">
+            <span className="text-primary font-black text-base tracking-tight block">Plural</span>
+            <span className="text-brand-purple text-[8px] font-semibold tracking-widest uppercase">Plataforma</span>
+          </div>
+        </NavLink>
+        <NotificationBell />
+      </div>
 
       <div id={withTourAnchors ? 'tour-sidebar-nav' : undefined} className="flex-1 py-4 px-3 space-y-1">
         {navItems.map(({ to, icon: Icon, label, activePathPrefix }) => {
@@ -205,14 +215,17 @@ export function Sidebar({ professorNome }: SidebarProps) {
           <img src="/favicon.png" alt="" aria-hidden className="h-6 w-6 object-contain" />
           <span className="text-primary font-black text-base tracking-tight">Plural</span>
         </NavLink>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Abrir menu"
-        >
-          <List size={22} />
-        </Button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menu"
+          >
+            <List size={22} />
+          </Button>
+        </div>
       </div>
 
       <AnimatePresence>

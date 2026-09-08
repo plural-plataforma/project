@@ -143,13 +143,6 @@ namespace api.Migrations
                 oldType: "character varying(50)",
                 oldMaxLength: 50);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "devealterarsenha",
-                table: "aspnetusers",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
-
             migrationBuilder.CreateTable(
                 name: "estrategias",
                 columns: table => new
@@ -202,10 +195,6 @@ namespace api.Migrations
 
             migrationBuilder.DropTable(
                 name: "estrategias");
-
-            migrationBuilder.DropColumn(
-                name: "devealterarsenha",
-                table: "aspnetusers");
 
             migrationBuilder.AlterColumn<string>(
                 name: "telefone",
