@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers;
 
-[Authorize(Roles = "Professor")]
+[Authorize]
 [ApiController]
 [Route("api/termos")]
 public class TermosController : ControllerBase
