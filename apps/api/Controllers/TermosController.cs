@@ -1,3 +1,4 @@
+using api.DTOs.Termo;
 using api.Models;
 using api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -29,11 +30,6 @@ public class TermosController : ControllerBase
 
         var resposta = await _service.ObterPendentesAsync(usuario);
         return Ok(resposta);
-    }
-
-    public class AceitarTermoDTO
-    {
-        public int TermoVersaoId { get; set; }
     }
 
     [HttpPost("aceitar")]
