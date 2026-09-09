@@ -217,6 +217,7 @@ builder.Services.AddScoped<PromptSistemaIAService>();
 builder.Services.AddScoped<GeracaoIALogService>();
 builder.Services.AddScoped<NotificacaoService>();
 builder.Services.AddScoped<ArtigoService>();
+builder.Services.AddScoped<TermoService>();
 // Timeout explícito (default do HttpClient seria 100s) — agora que a geração roda em
 // background (RelatorioGeracaoWorker), isso só limita quanto tempo o worker espera o Gemini
 // antes de marcar Status.ErroGeracao, evitando ficar preso indefinidamente numa chamada travada.
