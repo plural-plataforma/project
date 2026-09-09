@@ -30,9 +30,9 @@ describe('AceitarTermosPage', () => {
     } as any)
 
     const onAceito = vi.fn()
-    const { container } = render(<AceitarTermosPage onAceito={onAceito} />)
+    render(<AceitarTermosPage onAceito={onAceito} />)
 
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
+    expect(screen.getByLabelText('Carregando termos de uso...')).toBeInTheDocument()
     expect(onAceito).not.toHaveBeenCalled()
   })
 
