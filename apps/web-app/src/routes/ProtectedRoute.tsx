@@ -24,7 +24,20 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
 
+  // Primeira vez logado: redireciona para onboarding antes de acessar a app
+  if (!hasSeenOnboarding) {
+    return (
+      <Navigate
+        to="/onboarding"
+        replace
+        state={{ destination: location.pathname || '/dashboard' }}
+      />
+    )
+  }
+
   // Fail-open: se a checagem de termos falhar (rede/servidor), não bloqueia a usuária.
+  // Checado só depois do onboarding: quem ainda não viu o tutorial vê ele primeiro,
+  // e só depois cai na tela de termos (se houver pendência).
   if (termosLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -35,17 +48,6 @@ export function ProtectedRoute() {
 
   if (!termosError && pendentes.length > 0 && location.pathname !== '/aceitar-termos') {
     return <Navigate to="/aceitar-termos" replace />
-  }
-
-  // Primeira vez logado: redireciona para onboarding antes de acessar a app
-  if (!hasSeenOnboarding) {
-    return (
-      <Navigate
-        to="/onboarding"
-        replace
-        state={{ destination: location.pathname || '/dashboard' }}
-      />
-    )
   }
 
   return <Outlet />
