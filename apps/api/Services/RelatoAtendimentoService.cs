@@ -93,9 +93,6 @@ public class RelatoAtendimentoService
         if (tipoOcorrencia != RelatoTipoOcorrencia.Normal && string.IsNullOrWhiteSpace(observacoes))
             return "Informe observações quando a ocorrência não for sessão normal (cancelada ou reagendada).";
 
-        // Vínculo com PAEE passou a ser obrigatório para registros novos (o Relatório
-        // Pedagógico depende dele pra montar a evolução do aluno). Relatos antigos sem
-        // vínculo continuam existindo e sendo editáveis normalmente.
         if (exigirPlanejamento && !planejamentoId.HasValue)
             return "Selecione o PAEE vinculado a este atendimento.";
 
@@ -193,7 +190,7 @@ public class RelatoAtendimentoService
             dto.PresencaPresente,
             dto.TipoOcorrencia,
             dto.Observacoes,
-            exigirPlanejamento: true);
+            exigirPlanejamento: false);
         if (erro != null)
         {
             resposta.SetFalha(erro);
