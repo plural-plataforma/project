@@ -50,6 +50,19 @@ const PLANOS: PlanoConfig[] = [
   },
 ]
 
+const PLANOS_AFILIADO: PlanoConfig[] = [
+  {
+    field: 'pluralCheckoutUrlMensalAfiliado',
+    titulo: 'Assinatura Mensal (afiliado)',
+    descricao: 'Link de checkout Hotmart com parâmetro de afiliado, usado na landing page de tráfego pago.',
+  },
+  {
+    field: 'pluralCheckoutUrlAnualAfiliado',
+    titulo: 'Assinatura Anual (afiliado)',
+    descricao: 'Link de checkout Hotmart com parâmetro de afiliado, usado na landing page de tráfego pago.',
+  },
+]
+
 function LinkCheckoutCard({
   config,
   savedUrl,
@@ -195,10 +208,14 @@ export default function LinksHotmart() {
   const [savedLinks, setSavedLinks] = useState<LinkCheckout>({
     pluralCheckoutUrlMensal: '',
     pluralCheckoutUrlAnual: '',
+    pluralCheckoutUrlMensalAfiliado: '',
+    pluralCheckoutUrlAnualAfiliado: '',
   })
   const [formData, setFormData] = useState<LinkCheckout>({
     pluralCheckoutUrlMensal: '',
     pluralCheckoutUrlAnual: '',
+    pluralCheckoutUrlMensalAfiliado: '',
+    pluralCheckoutUrlAnualAfiliado: '',
   })
   const [editingField, setEditingField] = useState<CheckoutField | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -221,6 +238,8 @@ export default function LinksHotmart() {
     const normalized = {
       pluralCheckoutUrlMensal: links.pluralCheckoutUrlMensal ?? '',
       pluralCheckoutUrlAnual: links.pluralCheckoutUrlAnual ?? '',
+      pluralCheckoutUrlMensalAfiliado: links.pluralCheckoutUrlMensalAfiliado ?? '',
+      pluralCheckoutUrlAnualAfiliado: links.pluralCheckoutUrlAnualAfiliado ?? '',
     }
 
     setSavedLinks(normalized)
@@ -243,7 +262,9 @@ export default function LinksHotmart() {
   const hasChanges = useMemo(
     () =>
       formData.pluralCheckoutUrlMensal !== savedLinks.pluralCheckoutUrlMensal
-      || formData.pluralCheckoutUrlAnual !== savedLinks.pluralCheckoutUrlAnual,
+      || formData.pluralCheckoutUrlAnual !== savedLinks.pluralCheckoutUrlAnual
+      || formData.pluralCheckoutUrlMensalAfiliado !== savedLinks.pluralCheckoutUrlMensalAfiliado
+      || formData.pluralCheckoutUrlAnualAfiliado !== savedLinks.pluralCheckoutUrlAnualAfiliado,
     [formData, savedLinks],
   )
 
@@ -274,6 +295,8 @@ export default function LinksHotmart() {
     updateMutation.mutate({
       pluralCheckoutUrlMensal: normalizeCheckoutUrl(formData.pluralCheckoutUrlMensal),
       pluralCheckoutUrlAnual: normalizeCheckoutUrl(formData.pluralCheckoutUrlAnual),
+      pluralCheckoutUrlMensalAfiliado: normalizeCheckoutUrl(formData.pluralCheckoutUrlMensalAfiliado),
+      pluralCheckoutUrlAnualAfiliado: normalizeCheckoutUrl(formData.pluralCheckoutUrlAnualAfiliado),
     })
   }
 
@@ -315,6 +338,30 @@ export default function LinksHotmart() {
 
       <Grid container spacing={3}>
         {PLANOS.map((plano) => (
+          <Grid key={plano.field} size={{ xs: 12, lg: 6 }}>
+            <LinkCheckoutCard
+              config={plano}
+              savedUrl={savedLinks[plano.field]}
+              draftUrl={formData[plano.field]}
+              isEditing={editingField === plano.field}
+              onStartEdit={() => handleStartEdit(plano.field)}
+              onCancelEdit={() => handleCancelEdit(plano.field)}
+              onDraftChange={(value) => handleDraftChange(plano.field, value)}
+            />
+          </Grid>
+        ))}
+      </Grid>
+
+      <Typography variant="h6" fontWeight={700} sx={{ mt: 4, mb: 1 }}>
+        Links de afiliado (tráfego pago)
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 720 }}>
+        Usados na landing page de tráfego pago (com o parâmetro de afiliado da Hotmart). Deixe em
+        branco se ainda não houver link de afiliado configurado.
+      </Typography>
+
+      <Grid container spacing={3}>
+        {PLANOS_AFILIADO.map((plano) => (
           <Grid key={plano.field} size={{ xs: 12, lg: 6 }}>
             <LinkCheckoutCard
               config={plano}

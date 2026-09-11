@@ -15,5 +15,23 @@ namespace api.DTOs.ConfiguracaoSite
             @"^https:\/\/([a-zA-Z0-9-]+\.)*hotmart\.com(\/.*)?$",
             ErrorMessage = "Informe uma URL válida da Hotmart (ex.: https://pay.hotmart.com/...)")]
         public string PluralCheckoutUrlAnual { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Link de checkout mensal com parâmetro de afiliado Hotmart, usado na
+        /// página de tráfego pago. Opcional — fica vazio até a cliente configurar.
+        /// </summary>
+        [RegularExpression(
+            @"^(https:\/\/([a-zA-Z0-9-]+\.)*hotmart\.com(\/.*)?)?$",
+            ErrorMessage = "Informe uma URL válida da Hotmart (ex.: https://pay.hotmart.com/...)")]
+        public string PluralCheckoutUrlMensalAfiliado { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Link de checkout anual com parâmetro de afiliado Hotmart, usado na
+        /// página de tráfego pago. Opcional — fica vazio até a cliente configurar.
+        /// </summary>
+        [RegularExpression(
+            @"^(https:\/\/([a-zA-Z0-9-]+\.)*hotmart\.com(\/.*)?)?$",
+            ErrorMessage = "Informe uma URL válida da Hotmart (ex.: https://pay.hotmart.com/...)")]
+        public string PluralCheckoutUrlAnualAfiliado { get; set; } = string.Empty;
     }
 }

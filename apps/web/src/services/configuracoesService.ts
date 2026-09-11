@@ -9,6 +9,8 @@ export interface LinksWhatsApp {
 export interface LinkCheckout {
   pluralCheckoutUrlMensal: string
   pluralCheckoutUrlAnual: string
+  pluralCheckoutUrlMensalAfiliado: string
+  pluralCheckoutUrlAnualAfiliado: string
 }
 
 interface ServiceResponse<T> {
@@ -50,7 +52,12 @@ function normalizeLinksWhatsApp(data: Record<string, unknown> | LinksWhatsApp | 
 
 function normalizeLinkCheckout(data: Record<string, unknown> | LinkCheckout | undefined): LinkCheckout {
   if (!data) {
-    return { pluralCheckoutUrlMensal: '', pluralCheckoutUrlAnual: '' }
+    return {
+      pluralCheckoutUrlMensal: '',
+      pluralCheckoutUrlAnual: '',
+      pluralCheckoutUrlMensalAfiliado: '',
+      pluralCheckoutUrlAnualAfiliado: '',
+    }
   }
 
   return {
@@ -62,6 +69,16 @@ function normalizeLinkCheckout(data: Record<string, unknown> | LinkCheckout | un
     pluralCheckoutUrlAnual: String(
       (data as LinkCheckout).pluralCheckoutUrlAnual
         ?? (data as Record<string, unknown>).PluralCheckoutUrlAnual
+        ?? '',
+    ),
+    pluralCheckoutUrlMensalAfiliado: String(
+      (data as LinkCheckout).pluralCheckoutUrlMensalAfiliado
+        ?? (data as Record<string, unknown>).PluralCheckoutUrlMensalAfiliado
+        ?? '',
+    ),
+    pluralCheckoutUrlAnualAfiliado: String(
+      (data as LinkCheckout).pluralCheckoutUrlAnualAfiliado
+        ?? (data as Record<string, unknown>).PluralCheckoutUrlAnualAfiliado
         ?? '',
     ),
   }

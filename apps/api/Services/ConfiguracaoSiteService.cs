@@ -83,6 +83,8 @@ namespace api.Services
                 {
                     ConfiguracaoSiteChaves.PluralCheckoutUrlMensal,
                     ConfiguracaoSiteChaves.PluralCheckoutUrlAnual,
+                    ConfiguracaoSiteChaves.PluralCheckoutUrlMensalAfiliado,
+                    ConfiguracaoSiteChaves.PluralCheckoutUrlAnualAfiliado,
                 };
 
                 var configuracoes = await _contexto.ConfiguracoesSite
@@ -94,6 +96,8 @@ namespace api.Services
                 {
                     PluralCheckoutUrlMensal = configuracoes.GetValueOrDefault(ConfiguracaoSiteChaves.PluralCheckoutUrlMensal, string.Empty),
                     PluralCheckoutUrlAnual = configuracoes.GetValueOrDefault(ConfiguracaoSiteChaves.PluralCheckoutUrlAnual, string.Empty),
+                    PluralCheckoutUrlMensalAfiliado = configuracoes.GetValueOrDefault(ConfiguracaoSiteChaves.PluralCheckoutUrlMensalAfiliado, string.Empty),
+                    PluralCheckoutUrlAnualAfiliado = configuracoes.GetValueOrDefault(ConfiguracaoSiteChaves.PluralCheckoutUrlAnualAfiliado, string.Empty),
                 });
 
                 return resposta;
@@ -113,6 +117,8 @@ namespace api.Services
             {
                 await UpsertAsync(ConfiguracaoSiteChaves.PluralCheckoutUrlMensal, dto.PluralCheckoutUrlMensal.Trim(), atualizadoPor);
                 await UpsertAsync(ConfiguracaoSiteChaves.PluralCheckoutUrlAnual, dto.PluralCheckoutUrlAnual.Trim(), atualizadoPor);
+                await UpsertAsync(ConfiguracaoSiteChaves.PluralCheckoutUrlMensalAfiliado, dto.PluralCheckoutUrlMensalAfiliado.Trim(), atualizadoPor);
+                await UpsertAsync(ConfiguracaoSiteChaves.PluralCheckoutUrlAnualAfiliado, dto.PluralCheckoutUrlAnualAfiliado.Trim(), atualizadoPor);
 
                 await _contexto.SaveChangesAsync();
 
@@ -120,6 +126,8 @@ namespace api.Services
                 {
                     PluralCheckoutUrlMensal = dto.PluralCheckoutUrlMensal.Trim(),
                     PluralCheckoutUrlAnual = dto.PluralCheckoutUrlAnual.Trim(),
+                    PluralCheckoutUrlMensalAfiliado = dto.PluralCheckoutUrlMensalAfiliado.Trim(),
+                    PluralCheckoutUrlAnualAfiliado = dto.PluralCheckoutUrlAnualAfiliado.Trim(),
                 });
                 resposta.AdicionaMensagem("Links de checkout atualizados com sucesso.");
                 return resposta;
