@@ -111,6 +111,20 @@ public class RelatorioController : ControllerBase
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
+    [HttpPost("{id:int}/secoes/reescrever")]
+    public async Task<IActionResult> ReescreverSecao(int id, [FromBody] RelatorioSecaoReescreverDTO dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var usuario = await _usuario.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.ReescreverSecaoAsync(id, dto, usuario);
+        return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+    }
+
     [HttpPost("{id:int}/finalizar")]
     public async Task<IActionResult> Finalizar(int id)
     {

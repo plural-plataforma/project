@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ArrowClockwise, CheckCircle, Copy, DownloadSimple, FilePdf, LockOpen, Warning } from '@phosphor-icons/react'
+import { ArrowClockwise, CheckCircle, Copy, DownloadSimple, FilePdf, LockOpen, Sparkle, Warning } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import {
   buscarRelatorioPorId,
@@ -11,6 +11,7 @@ import {
   reabrirRelatorio,
   duplicarRelatorio,
   gerarNovamenteRelatorio,
+  reescreverSecaoRelatorio,
 } from '@/services/relatorioService'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SkeletonList } from '@/components/common/SkeletonCard'
@@ -45,6 +46,7 @@ export default function RelatorioDetailPage() {
   const { success, error: showError } = useToast()
 
   const [drafts, setDrafts] = useState<Record<number, SecaoDraft>>({})
+  const [sugestoesIA, setSugestoesIA] = useState<Record<number, string>>({})
 
   const { data: relatorio, isLoading } = useQuery({
     queryKey: ['relatorio', id],
@@ -68,10 +70,18 @@ export default function RelatorioDetailPage() {
         ])
       )
     )
+    setSugestoesIA({})
   }, [relatorio])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['relatorio', id] })
+
+  const descartarSugestao = (chave: RelatorioSecaoChaveCodigo) =>
+    setSugestoesIA((prev) => {
+      const proximo = { ...prev }
+      delete proximo[chave]
+      return proximo
+    })
 
   const salvarSecaoMutation = useMutation({
     mutationFn: (secaoChave: RelatorioSecaoChaveCodigo) =>
@@ -83,6 +93,22 @@ export default function RelatorioDetailPage() {
     onSuccess: () => {
       success('Seção salva!')
       invalidate()
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  const reescreverSecaoMutation = useMutation({
+    mutationFn: (secaoChave: RelatorioSecaoChaveCodigo) =>
+      reescreverSecaoRelatorio(Number(id), {
+        secaoChave,
+        textoAtual: drafts[secaoChave]?.textoEditado ?? '',
+        notasManuais: drafts[secaoChave]?.notasManuais ?? '',
+      }),
+    onSuccess: (sugestao) => {
+      setSugestoesIA((prev) => ({ ...prev, [sugestao.secaoChave]: sugestao.textoSugerido }))
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -261,6 +287,8 @@ export default function RelatorioDetailPage() {
             const secao = secoesPorChave.get(chave)
             const draft = drafts[chave] ?? { textoEditado: '', notasManuais: '' }
             const salvando = salvarSecaoMutation.isPending && salvarSecaoMutation.variables === chave
+            const reescrevendo = reescreverSecaoMutation.isPending && reescreverSecaoMutation.variables === chave
+            const sugestaoIA = sugestoesIA[chave]
 
             return (
               <Card key={chave}>
@@ -293,6 +321,10 @@ export default function RelatorioDetailPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-semibold text-foreground">Notas manuais (opcional)</label>
+                    <p className="text-xs text-muted-foreground">
+                      Observações suas sobre o período. Use &quot;Reescrever com IA&quot; pra incorporá-las ao texto
+                      acima — o que ficar aqui sai emendado no fim da seção no documento.
+                    </p>
                     <textarea
                       rows={2}
                       value={draft.notasManuais}
@@ -306,8 +338,46 @@ export default function RelatorioDetailPage() {
                       className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                     />
                   </div>
+                  {sugestaoIA && (
+                    <div className="flex flex-col gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                      <p className="text-sm font-semibold text-foreground">Sugestão da IA com a nota incorporada</p>
+                      <p className="whitespace-pre-wrap text-sm text-foreground">{sugestaoIA}</p>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => descartarSugestao(chave)}
+                        >
+                          Descartar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [chave]: { textoEditado: sugestaoIA, notasManuais: '' },
+                            }))
+                            descartarSugestao(chave)
+                            success('Texto aplicado', 'A nota saiu do campo separado — clique em Salvar seção pra gravar.')
+                          }}
+                        >
+                          Usar este texto
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {!finalizado && (
-                    <div className="flex justify-end">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        loading={reescrevendo}
+                        disabled={!draft.notasManuais.trim()}
+                        onClick={() => reescreverSecaoMutation.mutate(chave)}
+                      >
+                        <Sparkle size={14} />
+                        Reescrever com IA
+                      </Button>
                       <Button size="sm" loading={salvando} onClick={() => salvarSecaoMutation.mutate(chave)}>
                         Salvar seção
                       </Button>

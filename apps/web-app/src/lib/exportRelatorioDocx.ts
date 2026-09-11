@@ -7,12 +7,8 @@ import {
   convertInchesToTwip,
 } from 'docx'
 import { montarCamposIdentificacaoRelatorio, type RelatorioMetadadosInput } from '@/lib/relatorioMetadados'
-import {
-  RELATORIO_SECAO_LABELS,
-  RELATORIO_SECAO_NUMERO,
-  RELATORIO_SECAO_ORDEM,
-  type Relatorio,
-} from '@/types/relatorio'
+import { montarSecoesRelatorioParaExport } from '@/lib/relatorioSecoesExport'
+import { type Relatorio } from '@/types/relatorio'
 
 const COR_AZUL = '1D3557'
 const COR_CINZA = '666666'
@@ -39,11 +35,9 @@ function paragrafoCampo(label: string, valor: string): Paragraph {
   })
 }
 
-function paragrafoCorpo(texto: string, opts?: { italico?: boolean; tamanho?: number }): Paragraph {
+function paragrafoCorpo(texto: string): Paragraph {
   return new Paragraph({
-    children: [
-      new TextRun({ text: texto, size: opts?.tamanho ?? 22, italics: opts?.italico, font: FONTE_PADRAO }),
-    ],
+    children: [new TextRun({ text: texto, size: 22, font: FONTE_PADRAO })],
     alignment: AlignmentType.JUSTIFIED,
     indent: { left: convertInchesToTwip(0.15) },
     spacing: { after: 200 },
@@ -64,8 +58,6 @@ export async function downloadRelatorioDocx(relatorio: Relatorio): Promise<void>
     dataFim: relatorio.dataFim,
     tipoPeriodoLabel: relatorio.tipoPeriodo === 1 ? 'Semestral' : 'Trimestral',
   }
-
-  const secoesPorChave = new Map(relatorio.secoes.map((s) => [s.secaoChave, s]))
 
   const children: Paragraph[] = [
     new Paragraph({
@@ -94,15 +86,10 @@ export async function downloadRelatorioDocx(relatorio: Relatorio): Promise<void>
     ),
   ]
 
-  RELATORIO_SECAO_ORDEM.forEach((chave) => {
-    const secao = secoesPorChave.get(chave)
-    const texto = (secao?.textoEditado ?? secao?.textoGerado ?? '').trim()
-
-    children.push(paragrafoTituloSecao(`${RELATORIO_SECAO_NUMERO[chave]}. ${RELATORIO_SECAO_LABELS[chave]}`))
-    children.push(paragrafoCorpo(texto || 'Informação insuficiente — não preenchida.'))
-    if (secao?.notasManuais?.trim()) {
-      children.push(paragrafoCorpo(`Notas manuais: ${secao.notasManuais.trim()}`, { italico: true, tamanho: 18 }))
-    }
+  // Demais seções — as vazias não entram no documento
+  montarSecoesRelatorioParaExport(relatorio.secoes).forEach((secao) => {
+    children.push(paragrafoTituloSecao(secao.titulo))
+    children.push(paragrafoCorpo(secao.corpo))
   })
 
   children.push(

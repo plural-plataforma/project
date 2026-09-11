@@ -1,11 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { montarCamposIdentificacaoRelatorio, type RelatorioMetadadosInput } from '@/lib/relatorioMetadados'
-import {
-  RELATORIO_SECAO_LABELS,
-  RELATORIO_SECAO_NUMERO,
-  RELATORIO_SECAO_ORDEM,
-  type Relatorio,
-} from '@/types/relatorio'
+import { montarSecoesRelatorioParaExport } from '@/lib/relatorioSecoesExport'
+import { type Relatorio } from '@/types/relatorio'
 
 const AZUL: [number, number, number] = [29, 53, 87]
 const CINZA: [number, number, number] = [100, 100, 100]
@@ -67,9 +63,9 @@ export function downloadRelatorioPdf(relatorio: Relatorio): void {
     doc.setTextColor(...PRETO)
   }
 
-  function escreverParagrafoCorpo(texto: string, italico = false) {
+  function escreverParagrafoCorpo(texto: string) {
     doc.setFontSize(9.5)
-    doc.setFont('helvetica', italico ? 'italic' : 'normal')
+    doc.setFont('helvetica', 'normal')
     doc.setTextColor(...PRETO)
     const n = escreverTexto(texto, marginL, y, { maxWidth: maxW })
     novaLinha(n * 5 + 6)
@@ -118,17 +114,10 @@ export function downloadRelatorioPdf(relatorio: Relatorio): void {
   }
   novaLinha(2)
 
-  // Demais 14 seções
-  const secoesPorChave = new Map(relatorio.secoes.map((s) => [s.secaoChave, s]))
-  RELATORIO_SECAO_ORDEM.forEach((chave) => {
-    const secao = secoesPorChave.get(chave)
-    const texto = (secao?.textoEditado ?? secao?.textoGerado ?? '').trim()
-
-    escreverTituloSecao(`${RELATORIO_SECAO_NUMERO[chave]}. ${RELATORIO_SECAO_LABELS[chave]}`)
-    escreverParagrafoCorpo(texto || 'Informação insuficiente — não preenchida.')
-    if (secao?.notasManuais?.trim()) {
-      escreverParagrafoCorpo(`Notas manuais: ${secao.notasManuais.trim()}`, true)
-    }
+  // Demais seções — as vazias não entram no documento
+  montarSecoesRelatorioParaExport(relatorio.secoes).forEach((secao) => {
+    escreverTituloSecao(secao.titulo)
+    escreverParagrafoCorpo(secao.corpo)
   })
 
   // Local e data, assinatura (mesmo padrão de export usado no PAEE)

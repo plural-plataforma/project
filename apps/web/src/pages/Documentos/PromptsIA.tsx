@@ -10,6 +10,8 @@ const ROTULOS: Record<string, string> = {
   PAEE: 'Plano de AEE (PAEE)',
   AvaliacaoDiagnostica: 'Avaliação Diagnóstica',
   RelatoAtendimento: 'Relato de Atendimento',
+  RelatorioPedagogico: 'Relatório Pedagógico',
+  RelatorioSecaoReescrita: 'Relatório Pedagógico — reescrita de seção com notas manuais',
 }
 
 function PromptCard({ prompt }: { prompt: PromptSistemaIA }) {

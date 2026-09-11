@@ -7,6 +7,8 @@ import type {
   RelatorioPreviewInsumos,
   RelatorioPreviewInsumosResponse,
   RelatorioSecaoChaveCodigo,
+  RelatorioSecaoReescrita,
+  RelatorioSecaoReescritaResponse,
   RelatorioStatusCodigo,
   RelatorioTipoPeriodoCodigo,
 } from '@/types/relatorio'
@@ -87,6 +89,18 @@ export const atualizarSecaoRelatorio = async (
   const response = await api.patch<RelatorioResponse>(`/Relatorio/${id}/secoes`, payload)
   if (response.data.sucesso && response.data.objeto) return response.data.objeto
   throw new Error(response.data.mensagens?.join(', ') || 'Falha ao salvar a seção')
+}
+
+// Pede à IA a seção reescrita já com as notas manuais incorporadas ao texto. Manda o
+// rascunho em tela, não o que está salvo, e devolve só a sugestão — gravar é decisão da
+// professora, via `atualizarSecaoRelatorio`.
+export const reescreverSecaoRelatorio = async (
+  id: number,
+  payload: { secaoChave: RelatorioSecaoChaveCodigo; textoAtual: string; notasManuais: string }
+): Promise<RelatorioSecaoReescrita> => {
+  const response = await api.post<RelatorioSecaoReescritaResponse>(`/Relatorio/${id}/secoes/reescrever`, payload)
+  if (response.data.sucesso && response.data.objeto) return response.data.objeto
+  throw new Error(response.data.mensagens?.join(', ') || 'Falha ao reescrever a seção com IA')
 }
 
 export const finalizarRelatorio = async (id: number): Promise<Relatorio> => {
