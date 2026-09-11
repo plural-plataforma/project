@@ -9,4 +9,6 @@ public static class ConfiguracaoSiteChaves
     public const string PluralWhatsappGroupUrl = "plural_whatsapp_group_url";
     public const string PluralCheckoutUrlMensal = "plural_checkout_url_mensal";
     public const string PluralCheckoutUrlAnual = "plural_checkout_url_anual";
+    public const string PluralCheckoutUrlMensalAfiliado = "plural_checkout_url_mensal_afiliado";
+    public const string PluralCheckoutUrlAnualAfiliado = "plural_checkout_url_anual_afiliado";
 }

@@ -29,6 +29,14 @@ export function validateLinkCheckout(data: LinkCheckout): string | null {
     errors.push('Informe uma URL válida da Hotmart para o link anual (ex.: https://pay.hotmart.com/...).')
   }
 
+  if (data.pluralCheckoutUrlMensalAfiliado.trim() && !isValidHotmartUrl(data.pluralCheckoutUrlMensalAfiliado)) {
+    errors.push('Informe uma URL válida da Hotmart para o link mensal de afiliado (ex.: https://pay.hotmart.com/...).')
+  }
+
+  if (data.pluralCheckoutUrlAnualAfiliado.trim() && !isValidHotmartUrl(data.pluralCheckoutUrlAnualAfiliado)) {
+    errors.push('Informe uma URL válida da Hotmart para o link anual de afiliado (ex.: https://pay.hotmart.com/...).')
+  }
+
   return errors.length > 0 ? errors.join(' ') : null
 }
 
