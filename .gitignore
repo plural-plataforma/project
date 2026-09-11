@@ -49,6 +49,7 @@ yarn-error.log*
 #ASP.NET
 /apps/api/bin/
 /apps/api/obj/
+/apps/api/logs/
 *.user
 *.rsuser
 *.suo

@@ -9,6 +9,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import ChangePasswordPage from '@/pages/auth/ChangePasswordPage'
+import AceitarTermosPage from '@/pages/auth/AceitarTermosPage'
 import OnboardingPage from '@/pages/onboarding/OnboardingPage'
 
 // Protected pages (lazy)
@@ -60,6 +61,10 @@ export function AppRouter() {
 
         {/* Protected app routes */}
         <Route element={<ProtectedRoute />}>
+          <Route
+            path="/aceitar-termos"
+            element={<AceitarTermosPage onAceito={() => window.location.assign('/dashboard')} />}
+          />
           <Route element={<AppShell />}>
             <Route
               path="/dashboard"

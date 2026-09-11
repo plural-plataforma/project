@@ -48,6 +48,9 @@ namespace Data
         public DbSet<GeracaoIALog> GeracoesIALog { get; set; }
         public DbSet<Artigo> Artigos { get; set; }
         public DbSet<Notificacao> Notificacoes { get; set; }
+        public DbSet<Termo> Termos { get; set; }
+        public DbSet<TermoVersao> TermosVersoes { get; set; }
+        public DbSet<AceiteTermo> AceitesTermos { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -339,6 +342,21 @@ namespace Data
             modelBuilder.Entity<Notificacao>()
                 .HasIndex(n => new { n.ProfessorId, n.CreatedAt })
                 .HasDatabaseName("ix_notificacoes_professorid_createdat");
+
+            modelBuilder.Entity<Termo>()
+                .HasIndex(t => t.Chave)
+                .IsUnique()
+                .HasDatabaseName("ix_termos_chave");
+
+            modelBuilder.Entity<TermoVersao>()
+                .HasIndex(tv => new { tv.TermoId, tv.Versao })
+                .IsUnique()
+                .HasDatabaseName("ix_termos_versoes_termoid_versao");
+
+            modelBuilder.Entity<AceiteTermo>()
+                .HasIndex(a => new { a.UsuarioId, a.TermoVersaoId })
+                .IsUnique()
+                .HasDatabaseName("ix_aceites_termos_usuarioid_termoversaoid");
 
             modelBuilder.Entity<RelatorioSecao>()
                 .HasOne(s => s.Relatorio)

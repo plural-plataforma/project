@@ -1,5 +1,6 @@
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -217,6 +218,7 @@ builder.Services.AddScoped<PromptSistemaIAService>();
 builder.Services.AddScoped<GeracaoIALogService>();
 builder.Services.AddScoped<NotificacaoService>();
 builder.Services.AddScoped<ArtigoService>();
+builder.Services.AddScoped<TermoService>();
 // Timeout explícito (default do HttpClient seria 100s) — agora que a geração roda em
 // background (RelatorioGeracaoWorker), isso só limita quanto tempo o worker espera o Gemini
 // antes de marcar Status.ErroGeracao, evitando ficar preso indefinidamente numa chamada travada.
@@ -239,6 +241,14 @@ builder.Services.AddSwaggerGen(x =>
 });
 
 var app = builder.Build();
+
+// Hospedagem roda atrás de proxy (IIS/ARR no runasp.net) — sem isso,
+// HttpContext.Connection.RemoteIpAddress registra o IP do proxy, não o da cliente
+// (usado hoje só na auditoria de aceite de termos, TermosController).
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 // Pipeline
 if (!app.Environment.IsDevelopment())

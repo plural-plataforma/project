@@ -1,11 +1,13 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useOnboardingStore } from '@/stores/onboardingStore'
+import { useTermosPendentes } from '@/hooks/useTermosPendentes'
 
 export function ProtectedRoute() {
   const { isLoggedIn, loading } = useAuth()
   const hasSeenOnboarding = useOnboardingStore((s) => s.hasSeenOnboarding)
   const location = useLocation()
+  const { pendentes, isLoading: termosLoading, isError: termosError } = useTermosPendentes(isLoggedIn)
 
   if (loading) {
     return (
@@ -31,6 +33,21 @@ export function ProtectedRoute() {
         state={{ destination: location.pathname || '/dashboard' }}
       />
     )
+  }
+
+  // Fail-open: se a checagem de termos falhar (rede/servidor), não bloqueia a usuária.
+  // Checado só depois do onboarding: quem ainda não viu o tutorial vê ele primeiro,
+  // e só depois cai na tela de termos (se houver pendência).
+  if (termosLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (!termosError && pendentes.length > 0 && location.pathname !== '/aceitar-termos') {
+    return <Navigate to="/aceitar-termos" replace />
   }
 
   return <Outlet />
