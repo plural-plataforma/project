@@ -683,6 +683,132 @@ public class RelatorioService
         return resposta;
     }
 
+    // Rótulos do template da cliente, usados só pra dizer à IA qual seção ela está
+    // reescrevendo — a numeração fica no front, que é quem monta o documento exportado.
+    private static readonly Dictionary<RelatorioSecaoChave, string> SecaoRotulos = new()
+    {
+        [RelatorioSecaoChave.Contextualizacao] = "Contextualização do atendimento",
+        [RelatorioSecaoChave.Potencialidades] = "Potencialidades, interesses e formas de aprendizagem",
+        [RelatorioSecaoChave.Comunicacao] = "Comunicação e linguagem",
+        [RelatorioSecaoChave.Cognicao] = "Aspectos cognitivos e funções executivas",
+        [RelatorioSecaoChave.Academico] = "Aspectos acadêmicos e acesso ao currículo",
+        [RelatorioSecaoChave.Interacao] = "Interação social e participação",
+        [RelatorioSecaoChave.Autonomia] = "Autonomia e habilidades funcionais",
+        [RelatorioSecaoChave.MotorSensorial] = "Aspectos motores, sensoriais e de acessibilidade",
+        [RelatorioSecaoChave.Barreiras] = "Barreiras identificadas",
+        [RelatorioSecaoChave.Estrategias] = "Estratégias, recursos e apoios utilizados",
+        [RelatorioSecaoChave.Evolucao] = "Evolução observada no período",
+        [RelatorioSecaoChave.Necessidades] = "Necessidades que permanecem",
+        [RelatorioSecaoChave.Encaminhamentos] = "Encaminhamentos e recomendações pedagógicas",
+        [RelatorioSecaoChave.Conclusao] = "Síntese conclusiva",
+    };
+
+    private static string MontarPromptReescritaSecao(
+        Relatorio relatorio,
+        RelatorioSecaoChave secaoChave,
+        string textoAtual,
+        string notasManuais)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Reescreva a seção abaixo do Relatório Pedagógico do AEE incorporando as notas manuais da professora. Siga as regras do system prompt.");
+        sb.AppendLine();
+        sb.AppendLine($"Estudante: {relatorio.Aluno?.NomeCompleto ?? "não informado"}");
+        sb.AppendLine($"Período do relatório: {relatorio.DataInicio:dd/MM/yyyy} a {relatorio.DataFim:dd/MM/yyyy} ({relatorio.TipoPeriodo}).");
+        sb.AppendLine($"Seção: {SecaoRotulos[secaoChave]}");
+        sb.AppendLine();
+        sb.AppendLine("TEXTO ATUAL DA SEÇÃO:");
+        sb.AppendLine(string.IsNullOrWhiteSpace(textoAtual) ? "(vazio — a seção ainda não foi redigida)" : textoAtual);
+        sb.AppendLine();
+        sb.AppendLine("NOTAS MANUAIS DA PROFESSORA:");
+        sb.AppendLine(notasManuais);
+
+        return sb.ToString();
+    }
+
+    // Reescreve uma seção só, de forma síncrona — diferente da geração do relatório inteiro,
+    // que passa pela fila por levar as 14 seções numa chamada. Nada é gravado: a sugestão
+    // volta pra professora aceitar ou descartar em tela.
+    public async Task<ServiceResponse<RelatorioSecaoReescritaDTO>> ReescreverSecaoAsync(
+        int relatorioId,
+        RelatorioSecaoReescreverDTO dto,
+        Usuario usuario)
+    {
+        var resposta = new ServiceResponse<RelatorioSecaoReescritaDTO>();
+        var professorId = usuario.ProfessorId ?? 0;
+        if (professorId == 0)
+        {
+            resposta.SetFalha("Professor não identificado.");
+            return resposta;
+        }
+
+        var notasManuais = dto.NotasManuais?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(notasManuais))
+        {
+            resposta.SetFalha("Escreva uma nota manual para a IA incorporar ao texto.");
+            return resposta;
+        }
+
+        if (!SecaoRotulos.ContainsKey(dto.SecaoChave))
+        {
+            resposta.SetFalha("Seção inválida.");
+            return resposta;
+        }
+
+        var relatorio = await _db.Relatorios
+            .Include(r => r.Aluno)
+            .FirstOrDefaultAsync(r => r.Id == relatorioId && r.ProfessorId == professorId);
+        if (relatorio == null)
+        {
+            resposta.SetFalha("Relatório não encontrado.");
+            return resposta;
+        }
+
+        if (relatorio.Status == RelatorioStatus.Finalizado)
+        {
+            resposta.SetFalha("Relatório finalizado — reabra para editar.");
+            return resposta;
+        }
+
+        var systemPrompt = await _promptService.BuscarConteudoAtivoAsync(TipoDocumentoIA.RelatorioSecaoReescrita);
+        if (string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            resposta.SetFalha("Nenhum prompt de sistema cadastrado para reescrita de seção. Peça à gestora para configurar em Prompts de IA.");
+            return resposta;
+        }
+
+        var promptUsuario = MontarPromptReescritaSecao(relatorio, dto.SecaoChave, dto.TextoAtual?.Trim() ?? string.Empty, notasManuais);
+
+        string textoSugerido;
+        try
+        {
+            textoSugerido = await _geradorTextoIA.GerarTextoAsync(systemPrompt, promptUsuario);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await _geracaoLog.RegistrarAsync(professorId, TipoDocumentoIA.RelatorioSecaoReescrita, relatorioId, relatorio.AlunoId, sucesso: false);
+            resposta.SetFalha($"A reescrita por IA falhou: {ex.Message}");
+            return resposta;
+        }
+
+        textoSugerido = textoSugerido.Trim();
+        if (string.IsNullOrWhiteSpace(textoSugerido))
+        {
+            await _geracaoLog.RegistrarAsync(professorId, TipoDocumentoIA.RelatorioSecaoReescrita, relatorioId, relatorio.AlunoId, sucesso: false);
+            resposta.SetFalha("A IA devolveu um texto vazio. Tente novamente.");
+            return resposta;
+        }
+
+        await _geracaoLog.RegistrarAsync(professorId, TipoDocumentoIA.RelatorioSecaoReescrita, relatorioId, relatorio.AlunoId, sucesso: true);
+
+        resposta.AdicionaObjeto(new RelatorioSecaoReescritaDTO
+        {
+            SecaoChave = dto.SecaoChave,
+            TextoSugerido = textoSugerido,
+        });
+        resposta.AdicionaMensagem("Sugestão gerada.");
+        return resposta;
+    }
+
     public async Task<ServiceResponse<RelatorioBuscarDTO>> FinalizarAsync(int id, Usuario usuario)
     {
         var resposta = new ServiceResponse<RelatorioBuscarDTO>();
