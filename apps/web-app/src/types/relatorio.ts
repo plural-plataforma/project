@@ -101,6 +101,18 @@ export interface Relatorio {
   secoes: RelatorioSecao[]
 }
 
+/** Sugestão da IA pra uma seção — não fica gravada até a professora aceitar e salvar. */
+export interface RelatorioSecaoReescrita {
+  secaoChave: RelatorioSecaoChaveCodigo
+  textoSugerido: string
+}
+
+export interface RelatorioSecaoReescritaResponse {
+  sucesso: boolean
+  mensagens: string[]
+  objeto: RelatorioSecaoReescrita | null
+}
+
 export interface RelatorioResponse {
   sucesso: boolean
   mensagens: string[]
