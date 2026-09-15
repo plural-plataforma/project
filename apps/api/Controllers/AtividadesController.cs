@@ -1,5 +1,6 @@
 ﻿using api.DTOs.Atividade;
 using api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
@@ -28,6 +29,21 @@ namespace api.Controllers
             var response = await _service.GetAtividadePorId(id);
             return response.Sucesso ? Ok(response) : NotFound(response);
         }
+
+        // Proxy da imagem da atividade: o host externo não manda CORS, então o front não consegue
+        // ler os bytes direto pra montar o .docx da Avaliação Diagnóstica.
+        [Authorize]
+        [HttpGet("{id}/imagem")]
+        public async Task<IActionResult> GetImagem(int id)
+        {
+            var response = await _service.GetImagemAtividade(id);
+            if (!response.Sucesso || response.Objeto == null)
+                return NotFound(response);
+
+            Response.Headers.CacheControl = "private, max-age=3600";
+            return File(response.Objeto.Conteudo, response.Objeto.ContentType);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] AtividadeCadastroDTO dto)
         {
