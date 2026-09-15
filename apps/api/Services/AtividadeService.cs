@@ -12,9 +12,11 @@ namespace api.Services
     public class AtividadeService
     {
         private readonly AppDbContext _contexto;
-        public AtividadeService(AppDbContext contexto)
+        private readonly IHttpClientFactory _httpClientFactory;
+        public AtividadeService(AppDbContext contexto, IHttpClientFactory httpClientFactory)
         {
             _contexto = contexto;
+            _httpClientFactory = httpClientFactory;
         }
 
         // Listagem com paginação e filtros
@@ -126,6 +128,65 @@ namespace api.Services
             catch (Exception ex)
             {
                 resposta.SetFalha("Erro ao buscar atividade: " + ex.Message);
+                return resposta;
+            }
+        }
+
+        // Baixa a imagem da atividade no servidor e devolve os bytes. O host externo de imagens
+        // (ImgBB) não envia cabeçalho CORS, então fetch direto pelo navegador falha e a exportação
+        // Word saía com "(Imagem não disponível)" — este proxy é a fonte usada pelo front.
+        public async Task<ServiceResponse<AtividadeImagemDTO>> GetImagemAtividade(int id)
+        {
+            var resposta = new ServiceResponse<AtividadeImagemDTO>();
+
+            try
+            {
+                var imagemUrl = await _contexto.Atividades
+                    .Where(a => a.Id == id)
+                    .Select(a => a.ImagemUrl)
+                    .FirstOrDefaultAsync();
+
+                if (string.IsNullOrWhiteSpace(imagemUrl))
+                {
+                    resposta.SetFalha($"Atividade {id} não tem imagem cadastrada.");
+                    return resposta;
+                }
+
+                if (!Uri.TryCreate(imagemUrl.Trim(), UriKind.Absolute, out var uri)
+                    || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                {
+                    resposta.SetFalha("URL da imagem da atividade é inválida.");
+                    return resposta;
+                }
+
+                var http = _httpClientFactory.CreateClient();
+                http.Timeout = TimeSpan.FromSeconds(30);
+
+                using var respostaHttp = await http.GetAsync(uri);
+                if (!respostaHttp.IsSuccessStatusCode)
+                {
+                    resposta.SetFalha($"Host da imagem respondeu {(int)respostaHttp.StatusCode}.");
+                    return resposta;
+                }
+
+                var conteudo = await respostaHttp.Content.ReadAsByteArrayAsync();
+                if (conteudo.Length == 0)
+                {
+                    resposta.SetFalha("Host da imagem devolveu conteúdo vazio.");
+                    return resposta;
+                }
+
+                resposta.AdicionaObjeto(new AtividadeImagemDTO
+                {
+                    Conteudo = conteudo,
+                    ContentType = respostaHttp.Content.Headers.ContentType?.MediaType ?? "image/jpeg",
+                });
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha("Erro ao baixar imagem da atividade: " + ex.Message);
                 return resposta;
             }
         }

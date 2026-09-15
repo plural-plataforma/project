@@ -7,6 +7,7 @@ import {
   Paragraph,
   TextRun,
 } from 'docx'
+import { baixarImagemAtividade } from '@/services/atividadeService'
 import type { AvaliacaoDiagnosticaDetalhada } from '@/types/avaliacao-diagnostica'
 import dayjs from 'dayjs'
 
@@ -49,16 +50,12 @@ function tipoImagemPorUrl(url: string, contentType?: string | null): ImagemDocx[
   return 'jpg'
 }
 
-async function buscarImagem(url: string): Promise<ImagemDocx | null> {
-  try {
-    const response = await fetch(url)
-    if (!response.ok) return null
-    const data = new Uint8Array(await response.arrayBuffer())
-    if (data.length === 0) return null
-    return { data, type: tipoImagemPorUrl(url, response.headers.get('content-type')) }
-  } catch {
-    return null
-  }
+// Via API (proxy no servidor), porque o host externo de imagens não manda CORS e o fetch direto
+// pelo navegador falha — era o que fazia a atividade sair como "(Imagem não disponível)".
+async function buscarImagemAtividade(atividadeId: number, url: string): Promise<ImagemDocx | null> {
+  const baixada = await baixarImagemAtividade(atividadeId)
+  if (!baixada) return null
+  return { data: baixada.bytes, type: tipoImagemPorUrl(url, baixada.contentType) }
 }
 
 function temResultadosDesempenho(avaliacao: AvaliacaoDiagnosticaDetalhada): boolean {
@@ -79,16 +76,22 @@ export async function downloadAvaliacaoDiagnosticaDocx(
     (a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)
   )
 
-  const imagensPorUrl = new Map<string, ImagemDocx | null>()
-  const urls = blocos.flatMap((b) =>
-    (b.atividades ?? [])
-      .map((a) => a.imagemUrl?.trim())
-      .filter((url): url is string => !!url)
-  )
+  const imagensPorAtividade = new Map<number, ImagemDocx | null>()
+  const atividadesComImagem = [
+    ...new Map(
+      blocos
+        .flatMap((b) =>
+          (b.atividades ?? [])
+            .map((a) => ({ id: a.id, url: a.imagemUrl?.trim() }))
+            .filter((a): a is { id: number; url: string } => !!a.url)
+        )
+        .map((a) => [a.id, a] as const)
+    ).values(),
+  ]
 
   await Promise.all(
-    [...new Set(urls)].map(async (url) => {
-      imagensPorUrl.set(url, await buscarImagem(url))
+    atividadesComImagem.map(async ({ id, url }) => {
+      imagensPorAtividade.set(id, await buscarImagemAtividade(id, url))
     })
   )
 
@@ -164,7 +167,7 @@ export async function downloadAvaliacaoDiagnosticaDocx(
 
       const url = atv.imagemUrl?.trim()
       if (url) {
-        const img = imagensPorUrl.get(url)
+        const img = imagensPorAtividade.get(atv.id)
         if (img) {
           children.push(
             new Paragraph({
