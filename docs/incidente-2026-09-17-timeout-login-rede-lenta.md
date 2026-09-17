@@ -96,7 +96,7 @@ Dois fatores do nosso lado pioram o quadro para quem tem conexão ruim:
 
 1. `.SetPreflightMaxAge(TimeSpan.FromHours(2))` na política `AllowLocalhost` — teto que o
    Chromium respeita. Corta o preflight repetido.
-2. `AddResponseCompression` (Brotli + Gzip, `CompressionLevel.Fastest`, `EnableForHttps`) e
+2. `AddResponseCompression` (Brotli + Gzip, `CompressionLevel.Optimal`, `EnableForHttps`) e
    `app.UseResponseCompression()` logo após `UseForwardedHeaders`. MIME types padrão: comprime
    JSON e texto, não mexe em PDF, DOCX e imagens.
    - Risco BREACH avaliado: a autenticação é Bearer em header, que o navegador não anexa em

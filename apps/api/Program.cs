@@ -244,8 +244,12 @@ builder.Services.AddResponseCompression(options =>
     options.Providers.Add<BrotliCompressionProvider>();
     options.Providers.Add<GzipCompressionProvider>();
 });
-builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
-builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+// Optimal, não Fastest: medido em produção (Planejamento/buscar, 43,4 KB), Brotli Fastest ficou
+// em 15,4 KB contra 10,6 KB do gzip Fastest — e o navegador recebe Brotli, porque o Chrome manda
+// gzip e br com o mesmo peso e o middleware desempata pela ordem de registro. Para JSON desse
+// porte o custo de CPU do Optimal é de poucos ms.
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Optimal);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Optimal);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
