@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ArrowClockwise, CheckCircle, Copy, DownloadSimple, FilePdf, LockOpen, Sparkle, Warning } from '@phosphor-icons/react'
+import { ArrowClockwise, CheckCircle, Copy, DownloadSimple, FilePdf, LockOpen, Sparkle, Warning, WarningCircle } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import {
   buscarRelatorioPorId,
@@ -29,14 +29,32 @@ import {
   RELATORIO_STATUS_BADGE_VARIANT,
   RELATORIO_STATUS_LABELS,
   RELATORIO_TIPO_PERIODO_LABELS,
+  type RelatorioSecao,
   type RelatorioSecaoChaveCodigo,
 } from '@/types/relatorio'
 
 const formatDate = (d: string) => dayjs(d).format('DD/MM/YYYY')
+const formatDateTime = (d: string) => dayjs(d).format('DD/MM/YYYY [às] HH:mm')
+const formatShortDateTime = (d: string) => dayjs(d).format('DD/MM HH:mm')
 
 interface SecaoDraft {
   textoEditado: string
   notasManuais: string
+}
+
+/** Mesma normalização usada para montar o rascunho — permite comparar o que está na tela com o que está gravado. */
+function secaoPersistida(secao: RelatorioSecao | undefined): SecaoDraft {
+  return {
+    textoEditado: secao?.textoEditado ?? secao?.textoGerado ?? '',
+    notasManuais: secao?.notasManuais ?? '',
+  }
+}
+
+function temAlteracaoPendente(secao: RelatorioSecao | undefined, draft: SecaoDraft): boolean {
+  const persistida = secaoPersistida(secao)
+  return (
+    persistida.textoEditado !== draft.textoEditado || persistida.notasManuais !== draft.notasManuais
+  )
 }
 
 export default function RelatorioDetailPage() {
@@ -61,13 +79,7 @@ export default function RelatorioDetailPage() {
     if (!relatorio) return
     setDrafts(
       Object.fromEntries(
-        relatorio.secoes.map((s) => [
-          s.secaoChave,
-          {
-            textoEditado: s.textoEditado ?? s.textoGerado ?? '',
-            notasManuais: s.notasManuais ?? '',
-          },
-        ])
+        relatorio.secoes.map((s) => [s.secaoChave, secaoPersistida(s)])
       )
     )
     setSugestoesIA({})
@@ -287,6 +299,7 @@ export default function RelatorioDetailPage() {
             const secao = secoesPorChave.get(chave)
             const draft = drafts[chave] ?? { textoEditado: '', notasManuais: '' }
             const salvando = salvarSecaoMutation.isPending && salvarSecaoMutation.variables === chave
+            const alteracaoPendente = temAlteracaoPendente(secao, draft)
             const reescrevendo = reescreverSecaoMutation.isPending && reescreverSecaoMutation.variables === chave
             const sugestaoIA = sugestoesIA[chave]
 
@@ -296,7 +309,20 @@ export default function RelatorioDetailPage() {
                   <CardTitle className="text-base">
                     {RELATORIO_SECAO_NUMERO[chave]}. {RELATORIO_SECAO_LABELS[chave]}
                   </CardTitle>
-                  {secao?.informacaoInsuficiente && <Badge variant="muted">Informação insuficiente</Badge>}
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {secao?.informacaoInsuficiente && <Badge variant="muted">Informação insuficiente</Badge>}
+                    {alteracaoPendente ? (
+                      <Badge variant="amber">
+                        <WarningCircle size={12} weight="fill" />
+                        Alterações não salvas
+                      </Badge>
+                    ) : secao?.editadoEm ? (
+                      <Badge variant="success" title={`Última edição salva em ${formatDateTime(secao.editadoEm)}`}>
+                        <CheckCircle size={12} weight="fill" />
+                        Salvo {formatShortDateTime(secao.editadoEm)}
+                      </Badge>
+                    ) : null}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex flex-col gap-1.5">
@@ -378,8 +404,13 @@ export default function RelatorioDetailPage() {
                         <Sparkle size={14} />
                         Reescrever com IA
                       </Button>
-                      <Button size="sm" loading={salvando} onClick={() => salvarSecaoMutation.mutate(chave)}>
-                        Salvar seção
+                      <Button
+                        size="sm"
+                        loading={salvando}
+                        disabled={!alteracaoPendente}
+                        onClick={() => salvarSecaoMutation.mutate(chave)}
+                      >
+                        {alteracaoPendente ? 'Salvar seção' : 'Seção salva'}
                       </Button>
                     </div>
                   )}
