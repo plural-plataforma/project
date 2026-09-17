@@ -15,8 +15,10 @@ export function PageHeader({ title, description, backTo, action, className }: Pa
   const navigate = useNavigate()
 
   return (
-    <div className={cn('flex items-start justify-between gap-4 mb-6', className)}>
-      <div className="flex items-start gap-3">
+    // No mobile as ações descem para baixo do título: com shrink-0 ao lado do título, grupos de
+    // vários botões (ex.: Baixar PDF/Word + Editar + Excluir) passavam da largura da tela.
+    <div className={cn('flex items-start justify-between gap-4 mb-6 max-sm:flex-col max-sm:gap-3', className)}>
+      <div className="flex items-start gap-3 min-w-0">
         {backTo && (
           <Button
             variant="ghost"
@@ -28,14 +30,14 @@ export function PageHeader({ title, description, backTo, action, className }: Pa
             <ArrowLeft size={18} />
           </Button>
         )}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-start gap-2.5">
             <span
               className="mt-1.5 h-8 w-0.5 shrink-0 rounded-full bg-brand-purple"
               aria-hidden
             />
-            <div>
-              <h1 className="text-2xl font-black text-foreground leading-tight">{title}</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black text-foreground leading-tight break-words">{title}</h1>
               {description && (
                 <p className="text-sm text-muted-foreground mt-1">{description}</p>
               )}
@@ -43,7 +45,7 @@ export function PageHeader({ title, description, backTo, action, className }: Pa
           </div>
         </div>
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="shrink-0 max-sm:w-full">{action}</div>}
     </div>
   )
 }

@@ -456,7 +456,7 @@ export default function AlunoProfilePage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0flex-wrap">
+                      <div className="flex flex-wrap items-center gap-2">
                         {podeCriarPaee && (
                           <Button
                             size="sm"
