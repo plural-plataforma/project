@@ -2,6 +2,8 @@ using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
+using System.IO.Compression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -45,9 +47,14 @@ builder.Services.AddCors(options =>
                 "178.63.129.220:443",
                 "https://app-web-dev.vercel.app",
                 "https://app.pluralplataforma.com")
-            .AllowAnyHeader() 
+            .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); 
+            .AllowCredentials()
+            // Sem Access-Control-Max-Age o Chrome guarda o preflight por só 5s, então quase
+            // toda chamada autenticada vira OPTIONS + requisição. Em conexão com perda/latência
+            // alta (ex.: incidente de login com timeout de 17/09) isso dobra as idas e voltas.
+            // 2h é o teto que o Chromium respeita.
+            .SetPreflightMaxAge(TimeSpan.FromHours(2));
     });
 
     // Política separada (sem AllowCredentials) para endpoints públicos consumidos
@@ -225,6 +232,21 @@ builder.Services.AddScoped<TermoService>();
 builder.Services.AddHttpClient<api.Services.IA.IGeradorTextoIA, api.Services.IA.GeminiGeradorTextoIA>()
     .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(120));
 
+// Listagens como Planejamento/buscar devolvem JSON grande (textos de encontros, habilidades etc.)
+// e chegaram a levar 20s+ só para trafegar até clientes com conexão ruim. JSON comprime bem.
+// EnableForHttps: o risco BREACH exige segredo no corpo + conteúdo injetado pelo atacante +
+// credencial enviada automaticamente pelo navegador; aqui a autenticação é Bearer em header,
+// que não é anexado em requisição cross-site. Downloads (PDF/DOCX/imagens) ficam fora do
+// MimeTypes padrão, então não são recomprimidos.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(x =>
@@ -249,6 +271,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+
+app.UseResponseCompression();
 
 // Pipeline
 if (!app.Environment.IsDevelopment())
