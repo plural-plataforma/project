@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { useQuery } from '@tanstack/react-query'
 import { buscarProfessor } from '@/services/professorService'
@@ -14,6 +14,11 @@ export function AppShell() {
 
   const professorNome = data?.objeto?.nomeCompleto
 
+  // Botões flutuantes cobriam rodapés de ação (ex.: "Criar avaliação") no mobile;
+  // ficam restritos ao dashboard, que não tem ação fixa no fim da página.
+  const { pathname } = useLocation()
+  const exibirBotoesFlutuantes = pathname === '/dashboard'
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar professorNome={professorNome} />
@@ -22,8 +27,12 @@ export function AppShell() {
           <Outlet />
         </div>
       </main>
-      <TutorialVideoButton />
-      <SupportWhatsAppButton />
+      {exibirBotoesFlutuantes && (
+        <>
+          <TutorialVideoButton />
+          <SupportWhatsAppButton />
+        </>
+      )}
     </div>
   )
 }

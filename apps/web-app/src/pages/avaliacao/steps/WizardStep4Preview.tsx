@@ -35,6 +35,9 @@ export function WizardStep4Preview() {
   const escola = escolas.find((e) => e.id === wizardData.escolaId)
   const selectedAlunos = alunos.filter((a) => wizardData.alunoIds?.includes(a.id!))
 
+  // Word/PDF dependem de uma avaliação já salva no servidor
+  const podeBaixarDocumentos = isEditing && !!avaliacaoId
+
   const selectedAtividadesCount = useMemo(
     () => wizardData.blocos?.reduce((acc, bloco) => acc + bloco.atividadeIds.length, 0) ?? 0,
     [wizardData.blocos]
@@ -241,47 +244,50 @@ export function WizardStep4Preview() {
             </CardContent>
           </Card>
 
-          <div className="flex justify-between pt-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              navigate(isEditing && avaliacaoId ? `/avaliacoes/editar/${avaliacaoId}/areas` : '/avaliacoes/nova/areas')
-            }
-          >
+          {/* Mobile: ação principal no topo, downloads lado a lado, Voltar por último */}
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() =>
+                navigate(isEditing && avaliacaoId ? `/avaliacoes/editar/${avaliacaoId}/areas` : '/avaliacoes/nova/areas')
+              }
+            >
               <ArrowLeft size={16} />
               Voltar
             </Button>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => wordMutation.mutate()}
-              loading={wordMutation.isPending}
-              disabled={!isEditing || !avaliacaoId}
-              title={!isEditing ? 'Salve a avaliação para gerar o Word' : undefined}
-            >
-              <DownloadSimple size={16} />
-              Baixar Word
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => pdfMutation.mutate()}
-              loading={pdfMutation.isPending}
-              disabled={!isEditing || !avaliacaoId}
-              title={!isEditing ? 'Salve a avaliação para gerar o PDF' : undefined}
-            >
-              <DownloadSimple size={16} />
-              Baixar PDF
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              loading={createMutation.isPending}
-            >
-              <CheckCircle size={16} weight="bold" />
-              {isEditing ? 'Salvar alterações' : 'Criar avaliação'}
-            </Button>
-          </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+              {podeBaixarDocumentos && (
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => wordMutation.mutate()}
+                    loading={wordMutation.isPending}
+                  >
+                    <DownloadSimple size={16} />
+                    Baixar Word
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => pdfMutation.mutate()}
+                    loading={pdfMutation.isPending}
+                  >
+                    <DownloadSimple size={16} />
+                    Baixar PDF
+                  </Button>
+                </div>
+              )}
+              <Button
+                className="w-full sm:w-auto"
+                onClick={() => createMutation.mutate()}
+                loading={createMutation.isPending}
+              >
+                <CheckCircle size={16} weight="bold" />
+                {isEditing ? 'Salvar alterações' : 'Criar avaliação'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

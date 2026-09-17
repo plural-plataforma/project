@@ -544,14 +544,14 @@ export default function PlanejamentosPage() {
             </div>
 
             <DialogFooter className="pt-3 border-t border-border mt-2">
-              <div className="flex items-center justify-between w-full">
+              <div className="flex items-center justify-between gap-3 w-full max-sm:flex-col max-sm:items-stretch">
                 <div className="text-xs text-muted-foreground">
                   {selectedAlunos.length === 0
                     ? <span className="text-danger">Nenhum aluno selecionado*</span>
                     : <span className="text-success">{selectedAlunos.length} aluno{selectedAlunos.length > 1 ? 's' : ''} selecionado{selectedAlunos.length > 1 ? 's' : ''}</span>
                   }
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-end">
                   <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
                   {step !== 'avaliacoes' ? (
                     <Button
