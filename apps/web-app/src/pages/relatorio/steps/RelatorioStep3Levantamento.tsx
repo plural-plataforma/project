@@ -3,12 +3,29 @@ import { useNavigate } from 'react-router-dom'
 import { MagnifyingGlass } from '@phosphor-icons/react'
 import { previewInsumosRelatorio } from '@/services/relatorioService'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/common/SkeletonCard'
 import {
   useRelatorioWizardStore,
   relatorioStepIndex,
   RELATORIO_WIZARD_STEPS,
 } from '@/stores/relatorioWizardStore'
 import { RelatorioDadosEncontrados } from './RelatorioDadosEncontrados'
+
+const LEVANTAMENTO_SKELETON_LARGURAS = ['w-3/5', 'w-4/5', 'w-3/4', 'w-2/3', 'w-4/5']
+
+function LevantamentoSkeleton() {
+  return (
+    <div className="space-y-3" role="status" aria-label="Verificando dados disponíveis">
+      {LEVANTAMENTO_SKELETON_LARGURAS.map((largura, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <Skeleton className="h-[18px] w-[18px] shrink-0 rounded-full" />
+          <Skeleton className={`h-4 ${largura}`} />
+        </div>
+      ))}
+      <span className="sr-only">Verificando dados disponíveis…</span>
+    </div>
+  )
+}
 
 export function RelatorioStep3Levantamento() {
   const navigate = useNavigate()
@@ -41,7 +58,7 @@ export function RelatorioStep3Levantamento() {
 
       <div className="rounded-lg border border-border p-4">
         {isFetching || !preview ? (
-          <p className="text-sm text-muted-foreground">Verificando dados disponíveis…</p>
+          <LevantamentoSkeleton />
         ) : (
           <RelatorioDadosEncontrados preview={preview} />
         )}
