@@ -7,8 +7,9 @@ namespace api.Models
         AvaliacaoDiagnostica = 2,
         RelatoAtendimento = 3,
         RelatorioPedagogico = 4,
-        // Reescrita de uma única seção do Relatório Pedagógico, incorporando as notas
-        // manuais da professora ao texto — não gera documento inteiro.
-        RelatorioSecaoReescrita = 5,
+        // Revisão final do texto que a professora editou no Relatório Pedagógico, aplicando
+        // vocabulário técnico e o formato escolhido (tópicos ou texto corrido) — não gera
+        // conteúdo novo, só melhora a redação do que já foi escrito.
+        RelatorioTextoFinal = 5,
     }
 }

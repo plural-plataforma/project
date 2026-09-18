@@ -47,8 +47,10 @@ namespace api.Models
         [Column(TypeName = "text")]
         public string? TextoEditado { get; set; }
 
+        // Texto revisado pela IA a partir de TextoEditado, gerado durante o processamento de
+        // RevisaoFinal — só é preenchido para seções que a professora editou (ver Task 6).
         [Column(TypeName = "text")]
-        public string? NotasManuais { get; set; }
+        public string? TextoRevisado { get; set; }
 
         public DateTime? GeradoEm { get; set; }
         public DateTime? EditadoEm { get; set; }

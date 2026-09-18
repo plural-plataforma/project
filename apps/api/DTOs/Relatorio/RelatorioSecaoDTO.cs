@@ -10,7 +10,7 @@ public class RelatorioSecaoDTO
 
     public string? TextoEditado { get; set; }
 
-    public string? NotasManuais { get; set; }
+    public string? TextoRevisado { get; set; }
 
     public DateTime? GeradoEm { get; set; }
 

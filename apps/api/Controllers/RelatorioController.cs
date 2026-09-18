@@ -111,8 +111,8 @@ public class RelatorioController : ControllerBase
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
-    [HttpPost("{id:int}/secoes/reescrever")]
-    public async Task<IActionResult> ReescreverSecao(int id, [FromBody] RelatorioSecaoReescreverDTO dto)
+    [HttpPost("{id:int}/finalizar")]
+    public async Task<IActionResult> Finalizar(int id, [FromBody] RelatorioFinalizarDTO dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -121,18 +121,29 @@ public class RelatorioController : ControllerBase
         if (usuario == null)
             return Unauthorized();
 
-        var resposta = await _service.ReescreverSecaoAsync(id, dto, usuario);
+        var resposta = await _service.SolicitarRevisaoFinalAsync(id, dto, usuario);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 
-    [HttpPost("{id:int}/finalizar")]
-    public async Task<IActionResult> Finalizar(int id)
+    [HttpPost("{id:int}/revisao-final/aceitar")]
+    public async Task<IActionResult> AceitarRevisaoFinal(int id)
     {
         var usuario = await _usuario.GetUserAsync(User);
         if (usuario == null)
             return Unauthorized();
 
-        var resposta = await _service.FinalizarAsync(id, usuario);
+        var resposta = await _service.AceitarRevisaoFinalAsync(id, usuario);
+        return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
+    }
+
+    [HttpPost("{id:int}/revisao-final/descartar")]
+    public async Task<IActionResult> DescartarRevisaoFinal(int id)
+    {
+        var usuario = await _usuario.GetUserAsync(User);
+        if (usuario == null)
+            return Unauthorized();
+
+        var resposta = await _service.DescartarRevisaoFinalAsync(id, usuario);
         return resposta.Sucesso ? Ok(resposta) : BadRequest(resposta);
     }
 

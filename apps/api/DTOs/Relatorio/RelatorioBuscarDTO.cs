@@ -27,6 +27,12 @@ public class RelatorioBuscarDTO
 
     public RelatorioStatus Status { get; set; }
 
+    public RelatorioFormatoFinal? FormatoFinal { get; set; }
+
+    public string? TextoFinal { get; set; }
+
+    public DateTime? TextoFinalGeradoEm { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
