@@ -9,13 +9,14 @@ export const RELATORIO_TIPO_PERIODO_LABELS: Record<RelatorioTipoPeriodoCodigo, s
 }
 
 /** Alinhado ao enum `RelatorioStatus` da API. */
-export type RelatorioStatusCodigo = 0 | 1 | 2 | 3
+export type RelatorioStatusCodigo = 0 | 1 | 2 | 3 | 4
 
 export const RELATORIO_STATUS_LABELS: Record<RelatorioStatusCodigo, string> = {
   0: 'Rascunho',
   1: 'Finalizado',
   2: 'Gerando',
   3: 'Erro na geração',
+  4: 'Revisão final',
 }
 
 export const RELATORIO_STATUS_BADGE_VARIANT: Record<RelatorioStatusCodigo, 'amber' | 'success' | 'default' | 'danger'> = {
@@ -23,6 +24,15 @@ export const RELATORIO_STATUS_BADGE_VARIANT: Record<RelatorioStatusCodigo, 'ambe
   1: 'success',
   2: 'default',
   3: 'danger',
+  4: 'default',
+}
+
+/** Alinhado ao enum `RelatorioFormatoFinal` da API. */
+export type RelatorioFormatoFinalCodigo = 0 | 1
+
+export const RELATORIO_FORMATO_FINAL_LABELS: Record<RelatorioFormatoFinalCodigo, string> = {
+  0: 'Em tópicos',
+  1: 'Texto corrido',
 }
 
 /** Alinhado ao enum `RelatorioSecaoChave` da API — Identificação fica de fora (vem do cadastro do aluno). */
@@ -73,7 +83,7 @@ export interface RelatorioSecao {
   secaoChave: RelatorioSecaoChaveCodigo
   textoGerado: string | null
   textoEditado: string | null
-  notasManuais: string | null
+  textoRevisado: string | null
   geradoEm: string | null
   editadoEm: string | null
   informacaoInsuficiente: boolean
@@ -96,21 +106,12 @@ export interface Relatorio {
   dataFim: string
   tipoPeriodo: RelatorioTipoPeriodoCodigo
   status: RelatorioStatusCodigo
+  formatoFinal: RelatorioFormatoFinalCodigo | null
+  textoFinal: string | null
+  textoFinalGeradoEm: string | null
   createdAt: string
   updatedAt: string
   secoes: RelatorioSecao[]
-}
-
-/** Sugestão da IA pra uma seção — não fica gravada até a professora aceitar e salvar. */
-export interface RelatorioSecaoReescrita {
-  secaoChave: RelatorioSecaoChaveCodigo
-  textoSugerido: string
-}
-
-export interface RelatorioSecaoReescritaResponse {
-  sucesso: boolean
-  mensagens: string[]
-  objeto: RelatorioSecaoReescrita | null
 }
 
 export interface RelatorioResponse {

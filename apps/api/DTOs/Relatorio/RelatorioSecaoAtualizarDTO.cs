@@ -9,6 +9,4 @@ public class RelatorioSecaoAtualizarDTO
     public RelatorioSecaoChave SecaoChave { get; set; }
 
     public string? TextoEditado { get; set; }
-
-    public string? NotasManuais { get; set; }
 }

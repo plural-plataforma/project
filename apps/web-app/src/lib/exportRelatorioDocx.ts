@@ -7,7 +7,7 @@ import {
   convertInchesToTwip,
 } from 'docx'
 import { montarCamposIdentificacaoRelatorio, type RelatorioMetadadosInput } from '@/lib/relatorioMetadados'
-import { montarSecoesRelatorioParaExport } from '@/lib/relatorioSecoesExport'
+import { montarParagrafosTextoFinal, montarSecoesRelatorioParaExport } from '@/lib/relatorioSecoesExport'
 import { type Relatorio } from '@/types/relatorio'
 
 const COR_AZUL = '1D3557'
@@ -86,11 +86,16 @@ export async function downloadRelatorioDocx(relatorio: Relatorio): Promise<void>
     ),
   ]
 
-  // Demais seções — as vazias não entram no documento
-  montarSecoesRelatorioParaExport(relatorio.secoes).forEach((secao) => {
-    children.push(paragrafoTituloSecao(secao.titulo))
-    children.push(paragrafoCorpo(secao.corpo))
-  })
+  // Texto corrido: documento único revisado pela IA, sem títulos de seção
+  if (relatorio.formatoFinal === 1 && relatorio.textoFinal) {
+    montarParagrafosTextoFinal(relatorio.textoFinal).forEach((paragrafo) => children.push(paragrafoCorpo(paragrafo)))
+  } else {
+    // Demais seções — as vazias não entram no documento
+    montarSecoesRelatorioParaExport(relatorio.secoes).forEach((secao) => {
+      children.push(paragrafoTituloSecao(secao.titulo))
+      children.push(paragrafoCorpo(secao.corpo))
+    })
+  }
 
   children.push(
     paragrafoTituloSecao('Local e data, assinatura'),

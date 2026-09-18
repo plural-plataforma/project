@@ -21,17 +21,25 @@ public class RelatorioGeracaoWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var relatorioId in _queue.ConsumirAsync(stoppingToken))
+        await foreach (var item in _queue.ConsumirAsync(stoppingToken))
         {
             try
             {
                 using var scope = _scopeFactory.CreateScope();
                 var relatorioService = scope.ServiceProvider.GetRequiredService<RelatorioService>();
-                await relatorioService.ProcessarGeracaoAsync(relatorioId);
+
+                if (item.Tipo == RelatorioProcessamento.RevisaoFinal)
+                {
+                    await relatorioService.ProcessarRevisaoFinalAsync(item.RelatorioId);
+                }
+                else
+                {
+                    await relatorioService.ProcessarGeracaoAsync(item.RelatorioId);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Falha ao processar geração em background do relatório {RelatorioId}", relatorioId);
+                _logger.LogError(ex, "Falha ao processar {Tipo} em background do relatório {RelatorioId}", item.Tipo, item.RelatorioId);
             }
         }
     }

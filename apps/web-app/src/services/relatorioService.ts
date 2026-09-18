@@ -6,9 +6,8 @@ import type {
   RelatorioResumoResponse,
   RelatorioPreviewInsumos,
   RelatorioPreviewInsumosResponse,
+  RelatorioFormatoFinalCodigo,
   RelatorioSecaoChaveCodigo,
-  RelatorioSecaoReescrita,
-  RelatorioSecaoReescritaResponse,
   RelatorioStatusCodigo,
   RelatorioTipoPeriodoCodigo,
 } from '@/types/relatorio'
@@ -84,29 +83,32 @@ export const buscarRelatorioPorId = async (id: number): Promise<Relatorio> => {
 
 export const atualizarSecaoRelatorio = async (
   id: number,
-  payload: { secaoChave: RelatorioSecaoChaveCodigo; textoEditado?: string | null; notasManuais?: string | null }
+  payload: { secaoChave: RelatorioSecaoChaveCodigo; textoEditado?: string | null }
 ): Promise<Relatorio> => {
   const response = await api.patch<RelatorioResponse>(`/Relatorio/${id}/secoes`, payload)
   if (response.data.sucesso && response.data.objeto) return response.data.objeto
   throw new Error(response.data.mensagens?.join(', ') || 'Falha ao salvar a seção')
 }
 
-// Pede à IA a seção reescrita já com as notas manuais incorporadas ao texto. Manda o
-// rascunho em tela, não o que está salvo, e devolve só a sugestão — gravar é decisão da
-// professora, via `atualizarSecaoRelatorio`.
-export const reescreverSecaoRelatorio = async (
+export const finalizarRelatorio = async (
   id: number,
-  payload: { secaoChave: RelatorioSecaoChaveCodigo; textoAtual: string; notasManuais: string }
-): Promise<RelatorioSecaoReescrita> => {
-  const response = await api.post<RelatorioSecaoReescritaResponse>(`/Relatorio/${id}/secoes/reescrever`, payload)
-  if (response.data.sucesso && response.data.objeto) return response.data.objeto
-  throw new Error(response.data.mensagens?.join(', ') || 'Falha ao reescrever a seção com IA')
-}
-
-export const finalizarRelatorio = async (id: number): Promise<Relatorio> => {
-  const response = await api.post<RelatorioResponse>(`/Relatorio/${id}/finalizar`)
+  formato: RelatorioFormatoFinalCodigo
+): Promise<Relatorio> => {
+  const response = await api.post<RelatorioResponse>(`/Relatorio/${id}/finalizar`, { formato })
   if (response.data.sucesso && response.data.objeto) return response.data.objeto
   throw new Error(response.data.mensagens?.join(', ') || 'Falha ao finalizar o relatório')
+}
+
+export const aceitarRevisaoFinal = async (id: number): Promise<Relatorio> => {
+  const response = await api.post<RelatorioResponse>(`/Relatorio/${id}/revisao-final/aceitar`)
+  if (response.data.sucesso && response.data.objeto) return response.data.objeto
+  throw new Error(response.data.mensagens?.join(', ') || 'Falha ao aceitar a revisão final')
+}
+
+export const descartarRevisaoFinal = async (id: number): Promise<Relatorio> => {
+  const response = await api.post<RelatorioResponse>(`/Relatorio/${id}/revisao-final/descartar`)
+  if (response.data.sucesso && response.data.objeto) return response.data.objeto
+  throw new Error(response.data.mensagens?.join(', ') || 'Falha ao descartar a revisão final')
 }
 
 export const reabrirRelatorio = async (id: number): Promise<Relatorio> => {

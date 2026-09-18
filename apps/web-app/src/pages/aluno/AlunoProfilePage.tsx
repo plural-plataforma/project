@@ -542,6 +542,7 @@ export default function AlunoProfilePage() {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="0">{RELATORIO_STATUS_LABELS[0]}</SelectItem>
                   <SelectItem value="1">{RELATORIO_STATUS_LABELS[1]}</SelectItem>
+                  <SelectItem value="4">{RELATORIO_STATUS_LABELS[4]}</SelectItem>
                 </SelectContent>
               </Select>
               <Button size="sm" variant="outline" onClick={() => navigate(`/relatorios/novo/aluno?alunoId=${alunoId}`)}>

@@ -11,15 +11,25 @@ namespace api.Models
         Semestral = 1,
     }
 
+    public enum RelatorioFormatoFinal
+    {
+        Topicos = 0,
+        TextoCorrido = 1,
+    }
+
     // Gerando: aguardando o worker de background processar a IA (ver RelatorioGeracaoWorker).
     // ErroGeracao: o worker tentou e falhou (IA fora do ar, resposta inesperada, etc.) —
     // a professora pode tentar de novo pelo botão "Gerar novamente".
+    // RevisaoFinal: cobre tanto a revisão das seções editadas rodando na fila em background
+    // quanto a proposta de texto final já pronta aguardando decisão da professora — os dois
+    // momentos são distinguidos por TextoFinalGeradoEm (null enquanto a IA ainda não terminou).
     public enum RelatorioStatus
     {
         Rascunho = 0,
         Finalizado = 1,
         Gerando = 2,
         ErroGeracao = 3,
+        RevisaoFinal = 4,
     }
 
     // Documento consolidado por período (fotografia): uma vez finalizado, não recalcula
@@ -50,6 +60,13 @@ namespace api.Models
 
         [Required]
         public RelatorioStatus Status { get; set; } = RelatorioStatus.Rascunho;
+
+        public RelatorioFormatoFinal? FormatoFinal { get; set; }
+
+        [Column(TypeName = "text")]
+        public string? TextoFinal { get; set; }
+
+        public DateTime? TextoFinalGeradoEm { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

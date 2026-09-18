@@ -6,6 +6,8 @@ import {
   buscarRelatorioPorId,
   atualizarSecaoRelatorio,
   finalizarRelatorio,
+  aceitarRevisaoFinal,
+  descartarRevisaoFinal,
   reabrirRelatorio,
   duplicarRelatorio,
   gerarNovamenteRelatorio,
@@ -201,15 +203,10 @@ describe('relatorioService', () => {
       const result = await atualizarSecaoRelatorio(5, {
         secaoChave: 0,
         textoEditado: 'Texto revisado',
-        notasManuais: 'Nota',
       })
 
       expect(result.id).toBe(5)
-      expect(api.patch).toHaveBeenCalledWith('/Relatorio/5/secoes', {
-        secaoChave: 0,
-        textoEditado: 'Texto revisado',
-        notasManuais: 'Nota',
-      })
+      expect(api.patch).toHaveBeenCalledWith('/Relatorio/5/secoes', { secaoChave: 0, textoEditado: 'Texto revisado' })
     })
 
     it('lança erro quando relatório está finalizado', async () => {
@@ -218,21 +215,21 @@ describe('relatorioService', () => {
       })
 
       await expect(
-        atualizarSecaoRelatorio(5, { secaoChave: 0, textoEditado: 'X', notasManuais: null })
+        atualizarSecaoRelatorio(5, { secaoChave: 0, textoEditado: 'X' })
       ).rejects.toThrow('Relatório finalizado — reabra para editar.')
     })
   })
 
   describe('finalizarRelatorio', () => {
-    it('retorna relatório finalizado', async () => {
+    it('envia o formato escolhido e retorna relatório finalizado', async () => {
       vi.mocked(api.post).mockResolvedValue({
         data: { sucesso: true, objeto: { id: 5, status: 1, secoes: [] } },
       })
 
-      const result = await finalizarRelatorio(5)
+      const result = await finalizarRelatorio(5, 1)
 
       expect(result.status).toBe(1)
-      expect(api.post).toHaveBeenCalledWith('/Relatorio/5/finalizar')
+      expect(api.post).toHaveBeenCalledWith('/Relatorio/5/finalizar', { formato: 1 })
     })
 
     it('lança erro quando relatório ainda não foi gerado', async () => {
@@ -240,7 +237,49 @@ describe('relatorioService', () => {
         data: { sucesso: false, mensagens: ['Este relatório ainda não foi gerado.'] },
       })
 
-      await expect(finalizarRelatorio(5)).rejects.toThrow('Este relatório ainda não foi gerado.')
+      await expect(finalizarRelatorio(5, 0)).rejects.toThrow('Este relatório ainda não foi gerado.')
+    })
+  })
+
+  describe('aceitarRevisaoFinal', () => {
+    it('retorna relatório com a proposta da IA aceita', async () => {
+      vi.mocked(api.post).mockResolvedValue({
+        data: { sucesso: true, objeto: { id: 5, status: 1, secoes: [] } },
+      })
+
+      const result = await aceitarRevisaoFinal(5)
+
+      expect(result.status).toBe(1)
+      expect(api.post).toHaveBeenCalledWith('/Relatorio/5/revisao-final/aceitar')
+    })
+
+    it('lança erro quando não há proposta de revisão pendente', async () => {
+      vi.mocked(api.post).mockResolvedValue({
+        data: { sucesso: false, mensagens: ['Não há proposta de revisão final pendente.'] },
+      })
+
+      await expect(aceitarRevisaoFinal(5)).rejects.toThrow('Não há proposta de revisão final pendente.')
+    })
+  })
+
+  describe('descartarRevisaoFinal', () => {
+    it('retorna relatório com a proposta da IA descartada', async () => {
+      vi.mocked(api.post).mockResolvedValue({
+        data: { sucesso: true, objeto: { id: 5, status: 0, secoes: [] } },
+      })
+
+      const result = await descartarRevisaoFinal(5)
+
+      expect(result.status).toBe(0)
+      expect(api.post).toHaveBeenCalledWith('/Relatorio/5/revisao-final/descartar')
+    })
+
+    it('lança erro quando não há proposta de revisão pendente', async () => {
+      vi.mocked(api.post).mockResolvedValue({
+        data: { sucesso: false, mensagens: ['Não há proposta de revisão final pendente.'] },
+      })
+
+      await expect(descartarRevisaoFinal(5)).rejects.toThrow('Não há proposta de revisão final pendente.')
     })
   })
 
