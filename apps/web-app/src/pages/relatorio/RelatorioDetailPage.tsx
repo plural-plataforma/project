@@ -357,7 +357,7 @@ export default function RelatorioDetailPage() {
 
             return (
               <Card key={chave}>
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                   <CardTitle className="text-base">
                     {RELATORIO_SECAO_NUMERO[chave]}. {RELATORIO_SECAO_LABELS[chave]}
                   </CardTitle>
