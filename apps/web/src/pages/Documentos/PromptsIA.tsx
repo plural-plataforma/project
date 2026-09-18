@@ -11,7 +11,7 @@ const ROTULOS: Record<string, string> = {
   AvaliacaoDiagnostica: 'Avaliação Diagnóstica',
   RelatoAtendimento: 'Relato de Atendimento',
   RelatorioPedagogico: 'Relatório Pedagógico',
-  RelatorioSecaoReescrita: 'Relatório Pedagógico — reescrita de seção com notas manuais',
+  RelatorioTextoFinal: 'Relatório Pedagógico — revisão final do texto',
 }
 
 function PromptCard({ prompt }: { prompt: PromptSistemaIA }) {
