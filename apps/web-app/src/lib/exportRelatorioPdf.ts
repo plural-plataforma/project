@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf'
 import { montarCamposIdentificacaoRelatorio, type RelatorioMetadadosInput } from '@/lib/relatorioMetadados'
-import { montarSecoesRelatorioParaExport } from '@/lib/relatorioSecoesExport'
+import { montarParagrafosTextoFinal, montarSecoesRelatorioParaExport } from '@/lib/relatorioSecoesExport'
 import { type Relatorio } from '@/types/relatorio'
 
 const AZUL: [number, number, number] = [29, 53, 87]
@@ -114,11 +114,16 @@ export function downloadRelatorioPdf(relatorio: Relatorio): void {
   }
   novaLinha(2)
 
-  // Demais seções — as vazias não entram no documento
-  montarSecoesRelatorioParaExport(relatorio.secoes).forEach((secao) => {
-    escreverTituloSecao(secao.titulo)
-    escreverParagrafoCorpo(secao.corpo)
-  })
+  // Texto corrido: documento único revisado pela IA, sem títulos de seção
+  if (relatorio.formatoFinal === 1 && relatorio.textoFinal) {
+    montarParagrafosTextoFinal(relatorio.textoFinal).forEach((paragrafo) => escreverParagrafoCorpo(paragrafo))
+  } else {
+    // Demais seções — as vazias não entram no documento
+    montarSecoesRelatorioParaExport(relatorio.secoes).forEach((secao) => {
+      escreverTituloSecao(secao.titulo)
+      escreverParagrafoCorpo(secao.corpo)
+    })
+  }
 
   // Local e data, assinatura (mesmo padrão de export usado no PAEE)
   escreverTituloSecao('Local e data, assinatura')

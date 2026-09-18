@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { montarSecoesRelatorioParaExport } from './relatorioSecoesExport'
+import { montarParagrafosTextoFinal, montarSecoesRelatorioParaExport } from './relatorioSecoesExport'
 import type { RelatorioSecao, RelatorioSecaoChaveCodigo } from '@/types/relatorio'
 
 function secao(
@@ -10,7 +10,7 @@ function secao(
     secaoChave,
     textoGerado: null,
     textoEditado: null,
-    notasManuais: null,
+    textoRevisado: null,
     geradoEm: null,
     editadoEm: null,
     informacaoInsuficiente: false,
@@ -19,7 +19,7 @@ function secao(
 }
 
 describe('montarSecoesRelatorioParaExport', () => {
-  it('omite seção sem texto e sem notas manuais', () => {
+  it('omite seção sem texto', () => {
     const resultado = montarSecoesRelatorioParaExport([
       secao(0, { textoGerado: 'Contextualização.' }),
       secao(2),
@@ -32,33 +32,55 @@ describe('montarSecoesRelatorioParaExport', () => {
     ])
   })
 
-  it('incorpora notas manuais ao texto da seção', () => {
+  it('usa o texto editado quando existe, ignorando o gerado', () => {
     const resultado = montarSecoesRelatorioParaExport([
-      secao(1, { textoGerado: 'Leo demonstra bom aproveitamento.', notasManuais: 'Gosta muito de quadrinhos.' }),
+      secao(1, { textoGerado: 'Texto da IA.', textoEditado: 'Texto da professora.' }),
     ])
 
-    expect(resultado[0].corpo).toBe('Leo demonstra bom aproveitamento. Gosta muito de quadrinhos.')
+    expect(resultado).toHaveLength(1)
+    expect(resultado[0].corpo).toBe('Texto da professora.')
   })
 
-  it('fecha o texto com ponto antes de emendar a nota manual', () => {
+  it('cai no texto gerado quando a professora não editou', () => {
+    const resultado = montarSecoesRelatorioParaExport([secao(1, { textoGerado: 'Texto da IA.' })])
+
+    expect(resultado[0].corpo).toBe('Texto da IA.')
+  })
+
+  it('omite seção sem nenhum texto', () => {
+    const resultado = montarSecoesRelatorioParaExport([secao(1, {}), secao(2, { textoGerado: 'Tem texto.' })])
+
+    expect(resultado).toHaveLength(1)
+    expect(resultado[0].titulo).toBe('2. Comunicação e linguagem')
+  })
+
+  it('prioriza o texto revisado pela IA', () => {
     const resultado = montarSecoesRelatorioParaExport([
-      secao(1, { textoGerado: 'Leo demonstra bom aproveitamento', notasManuais: 'Gosta de quadrinhos.' }),
+      secao(1, { textoGerado: 'IA.', textoEditado: 'Professora.', textoRevisado: 'Revisado.' }),
     ])
 
-    expect(resultado[0].corpo).toBe('Leo demonstra bom aproveitamento. Gosta de quadrinhos.')
+    expect(resultado[0].corpo).toBe('Revisado.')
   })
 
-  it('mantém seção que só tem notas manuais', () => {
-    const resultado = montarSecoesRelatorioParaExport([secao(2, { notasManuais: 'Faltou algumas vezes.' })])
-
-    expect(resultado).toEqual([{ titulo: '2. Comunicação e linguagem', corpo: 'Faltou algumas vezes.' }])
-  })
-
-  it('prioriza o texto editado sobre o gerado', () => {
+  it('mantém relatórios antigos, sem revisão, funcionando', () => {
     const resultado = montarSecoesRelatorioParaExport([
-      secao(0, { textoGerado: 'Gerado.', textoEditado: 'Editado pela professora.' }),
+      secao(1, { textoGerado: 'IA.', textoEditado: 'Professora.' }),
     ])
 
-    expect(resultado[0].corpo).toBe('Editado pela professora.')
+    expect(resultado[0].corpo).toBe('Professora.')
+  })
+})
+
+describe('montarParagrafosTextoFinal', () => {
+  it('quebra o texto final em parágrafos por linha em branco', () => {
+    const resultado = montarParagrafosTextoFinal('Primeiro parágrafo.\n\nSegundo parágrafo.')
+
+    expect(resultado).toEqual(['Primeiro parágrafo.', 'Segundo parágrafo.'])
+  })
+
+  it('descarta parágrafos vazios vindos de quebras extras', () => {
+    const resultado = montarParagrafosTextoFinal('\n\nPrimeiro.\n\n\n\nSegundo.\n\n')
+
+    expect(resultado).toEqual(['Primeiro.', 'Segundo.'])
   })
 })
