@@ -20,6 +20,7 @@ import {
   Stack,
   Tooltip,
   CircularProgress,
+  LinearProgress,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
@@ -80,6 +81,8 @@ function corAvatarPorNome(nome: string) {
 interface Props {
   filteredUsuarios: Usuario[];
   loading: boolean;
+  /** Refetch em andamento (ex.: troca de filtro/busca) com dados antigos ainda na tela. */
+  refetching?: boolean;
   error: string | null;
   /** Total de itens no servidor (para o contador de paginação). */
   totalCount: number;
@@ -102,6 +105,7 @@ interface Props {
 export function UsersListLayout({
   filteredUsuarios,
   loading,
+  refetching = false,
   error,
   totalCount,
   page,
@@ -175,6 +179,8 @@ export function UsersListLayout({
 
   return (
     <Paper elevation={0} sx={{ overflow: 'hidden', mt: 4 }}>
+      {refetching && <LinearProgress />}
+
       {/* Cabeçalho */}
       <Box
         sx={{

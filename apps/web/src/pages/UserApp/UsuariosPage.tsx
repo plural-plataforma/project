@@ -102,6 +102,7 @@ export default function UsuariosPage() {
   const {
     data,
     isLoading,
+    isFetching,
     isError,
     error,
     refetch,
@@ -393,6 +394,7 @@ export default function UsuariosPage() {
         <UsersListLayout
           filteredUsuarios={filteredUsuarios}
           loading={isLoading}
+          refetching={isFetching && !isLoading}
           error={isError ? errorMessage : null}
           totalCount={
             filtroExpiracao === 'todos' && filtroStatusCadastro !== 'bloqueado'
