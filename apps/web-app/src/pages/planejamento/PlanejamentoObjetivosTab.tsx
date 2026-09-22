@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowClockwise } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
+import { AvisoLimiteUsoIA } from '@/components/common/AvisoLimiteUsoIA'
+import { useLimiteUsoIA } from '@/hooks/useLimiteUsoIA'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buscarObjetivosPaeeCatalogo } from '@/services/planejamentoService'
 import type { PaeeObjetivoCatalogo } from '@/types/planejamento'
@@ -112,6 +114,7 @@ export function PlanejamentoObjetivosTab({
     queryKey: ['paee-objetivos-catalogo'],
     queryFn: buscarObjetivosPaeeCatalogo,
   })
+  const { limiteDiarioAtingido } = useLimiteUsoIA()
 
   return (
     <Card>
@@ -123,8 +126,16 @@ export function PlanejamentoObjetivosTab({
           Gere com IA a partir do Estudo de Caso e das habilidades/estratégias vinculadas, ou selecione um modelo do
           catálogo pedagógico e refine o texto conforme a necessidade do estudante.
         </p>
+        <AvisoLimiteUsoIA className="mb-0" />
         <div>
-          <Button type="button" variant="outline" size="sm" loading={gerandoIA} onClick={onGerarIA}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={limiteDiarioAtingido}
+            loading={gerandoIA}
+            onClick={onGerarIA}
+          >
             <ArrowClockwise size={14} />
             Gerar com IA
           </Button>

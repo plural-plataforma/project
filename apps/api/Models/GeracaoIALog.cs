@@ -27,6 +27,11 @@ namespace api.Models
         [Required]
         public bool Sucesso { get; set; }
 
+        // Tentativa recusada pelo limite diário (LimiteUsoIAService) antes de chamar a IA —
+        // sempre com Sucesso = false. Fica separada das falhas da IA pra não distorcer a taxa
+        // de sucesso e pra mostrar no painel admin quem esbarra no limite.
+        public bool BloqueadoPorLimite { get; set; }
+
         public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     }
 }

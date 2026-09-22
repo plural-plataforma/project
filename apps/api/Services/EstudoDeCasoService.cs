@@ -14,17 +14,20 @@ public class EstudoDeCasoService
     private readonly PromptSistemaIAService _promptService;
     private readonly IGeradorTextoIA _geradorTextoIA;
     private readonly GeracaoIALogService _geracaoLog;
+    private readonly LimiteUsoIAService _limiteUsoIA;
 
     public EstudoDeCasoService(
         AppDbContext db,
         PromptSistemaIAService promptService,
         IGeradorTextoIA geradorTextoIA,
-        GeracaoIALogService geracaoLog)
+        GeracaoIALogService geracaoLog,
+        LimiteUsoIAService limiteUsoIA)
     {
         _db = db;
         _promptService = promptService;
         _geradorTextoIA = geradorTextoIA;
         _geracaoLog = geracaoLog;
+        _limiteUsoIA = limiteUsoIA;
     }
 
     public async Task<ServiceResponse<EstudoDeCasoEixoCatalogoDTO>> ListarEixosCatalogoAsync()
@@ -484,6 +487,13 @@ public class EstudoDeCasoService
             }
 
             var promptUsuario = MontarPromptEstudoCaso(entity, diagnosticoRecente);
+
+            var bloqueioLimite = await _limiteUsoIA.VerificarLimiteDiarioAsync(pid, TipoDocumentoIA.EstudoCaso, id, entity.AlunoId);
+            if (bloqueioLimite != null)
+            {
+                r.SetFalha(bloqueioLimite);
+                return r;
+            }
 
             string textoGerado;
             try

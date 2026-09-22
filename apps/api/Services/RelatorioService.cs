@@ -22,6 +22,7 @@ public class RelatorioService
     private readonly PromptSistemaIAService _promptService;
     private readonly IGeradorTextoIA _geradorTextoIA;
     private readonly GeracaoIALogService _geracaoLog;
+    private readonly LimiteUsoIAService _limiteUsoIA;
     private readonly IRelatorioGeracaoQueue _geracaoQueue;
     private readonly NotificacaoService _notificacaoService;
 
@@ -30,6 +31,7 @@ public class RelatorioService
         PromptSistemaIAService promptService,
         IGeradorTextoIA geradorTextoIA,
         GeracaoIALogService geracaoLog,
+        LimiteUsoIAService limiteUsoIA,
         IRelatorioGeracaoQueue geracaoQueue,
         NotificacaoService notificacaoService)
     {
@@ -37,6 +39,7 @@ public class RelatorioService
         _promptService = promptService;
         _geradorTextoIA = geradorTextoIA;
         _geracaoLog = geracaoLog;
+        _limiteUsoIA = limiteUsoIA;
         _geracaoQueue = geracaoQueue;
         _notificacaoService = notificacaoService;
     }
@@ -773,6 +776,15 @@ public class RelatorioService
                 return resposta;
             }
 
+            // Relatório ainda não existe — o bloqueio fica registrado com DocumentoId 0.
+            var bloqueioLimite = await _limiteUsoIA.VerificarLimiteDiarioAsync(
+                professorId, TipoDocumentoIA.RelatorioPedagogico, 0, dto.AlunoId);
+            if (bloqueioLimite != null)
+            {
+                resposta.SetFalha(bloqueioLimite);
+                return resposta;
+            }
+
             var relatorio = new Relatorio
             {
                 AlunoId = dto.AlunoId,
@@ -827,6 +839,14 @@ public class RelatorioService
         if (relatorio.Status == RelatorioStatus.Gerando && relatorio.UpdatedAt > DateTime.UtcNow.AddMinutes(-10))
         {
             resposta.SetFalha("Este relatório já está sendo gerado.");
+            return resposta;
+        }
+
+        var bloqueioLimite = await _limiteUsoIA.VerificarLimiteDiarioAsync(
+            professorId, TipoDocumentoIA.RelatorioPedagogico, id, relatorio.AlunoId);
+        if (bloqueioLimite != null)
+        {
+            resposta.SetFalha(bloqueioLimite);
             return resposta;
         }
 
@@ -972,6 +992,22 @@ public class RelatorioService
             return resposta;
         }
 
+        var temEdicao = secoes.Any(FoiEditada);
+        var vaiUsarIA = dto.Formato != RelatorioFormatoFinal.Topicos || temEdicao;
+
+        // Antes de qualquer alteração nas entidades rastreadas: o registro do bloqueio salva
+        // no mesmo DbContext e persistiria a limpeza abaixo.
+        if (vaiUsarIA)
+        {
+            var bloqueioLimite = await _limiteUsoIA.VerificarLimiteDiarioAsync(
+                professorId, TipoDocumentoIA.RelatorioTextoFinal, id, relatorio.AlunoId);
+            if (bloqueioLimite != null)
+            {
+                resposta.SetFalha(bloqueioLimite);
+                return resposta;
+            }
+        }
+
         // Limpa qualquer proposta pendente de uma revisão final anterior (aceita e depois
         // reaberta, ou interrompida) antes de decidir o novo caminho — sem isso, TextoRevisado/
         // TextoFinal de uma execução antiga sobrevivem e têm precedência na exportação mesmo
@@ -981,12 +1017,10 @@ public class RelatorioService
         relatorio.TextoFinal = null;
         relatorio.TextoFinalGeradoEm = null;
 
-        var temEdicao = secoes.Any(FoiEditada);
-
         relatorio.FormatoFinal = dto.Formato;
         relatorio.UpdatedAt = DateTime.UtcNow;
 
-        if (dto.Formato == RelatorioFormatoFinal.Topicos && !temEdicao)
+        if (!vaiUsarIA)
         {
             relatorio.Status = RelatorioStatus.Finalizado;
             await _db.SaveChangesAsync();

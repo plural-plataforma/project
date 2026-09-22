@@ -4,6 +4,8 @@ import { useMutation } from '@tanstack/react-query'
 import { ArrowClockwise, CheckCircle, DownloadSimple, FilePdf, ListChecks } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/useToast'
+import { useAtualizarLimiteUsoIA, useLimiteUsoIA } from '@/hooks/useLimiteUsoIA'
+import { AvisoLimiteUsoIA } from '@/components/common/AvisoLimiteUsoIA'
 import { EstudoCasoTextoIAViewer } from '@/components/estudo-caso/EstudoCasoTextoIAViewer'
 import { baixarEstudoCasoWord, baixarEstudoCasoPdf } from '@/lib/baixarEstudoCaso'
 import { gerarTextoIAEstudoCaso } from '@/services/estudoCasoService'
@@ -27,6 +29,8 @@ export function EstudoCasoStep4Resultado() {
   const reset = useEstudoCasoWizardStore((s) => s.reset)
 
   const setCasoSalvo = useEstudoCasoWizardStore((s) => s.setCasoSalvo)
+  const { limiteDiarioAtingido } = useLimiteUsoIA()
+  const atualizarLimiteUsoIA = useAtualizarLimiteUsoIA()
 
   const gerarIAMutation = useMutation({
     mutationFn: () => gerarTextoIAEstudoCaso(casoIdSalvo!),
@@ -39,6 +43,7 @@ export function EstudoCasoStep4Resultado() {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: atualizarLimiteUsoIA,
   })
 
   function voltar() {
@@ -114,10 +119,12 @@ export function EstudoCasoStep4Resultado() {
           </motion.div>
 
           <div className="pt-2">
+            <AvisoLimiteUsoIA />
             <Button
               type="button"
               variant="outline"
               size="sm"
+              disabled={limiteDiarioAtingido}
               loading={gerarIAMutation.isPending}
               onClick={() => gerarIAMutation.mutate()}
             >

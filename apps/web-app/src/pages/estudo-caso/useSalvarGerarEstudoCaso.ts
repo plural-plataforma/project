@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { cadastrarEstudoCaso, gerarTextoIAEstudoCaso } from '@/services/estudoCasoService'
 import { useEstudoCasoWizardStore } from '@/stores/estudoCasoWizardStore'
 import { useToast } from '@/hooks/useToast'
+import { LIMITE_USO_IA_QUERY_KEY } from '@/hooks/useLimiteUsoIA'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 
 /**
@@ -52,5 +53,6 @@ export function useSalvarGerarEstudoCaso() {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: LIMITE_USO_IA_QUERY_KEY }),
   })
 }

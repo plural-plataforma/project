@@ -1,15 +1,19 @@
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowClockwise, Sparkle } from '@phosphor-icons/react'
 import { cadastrarRelatorio, previewInsumosRelatorio } from '@/services/relatorioService'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/useToast'
+import { LIMITE_USO_IA_QUERY_KEY, useLimiteUsoIA } from '@/hooks/useLimiteUsoIA'
+import { AvisoLimiteUsoIA } from '@/components/common/AvisoLimiteUsoIA'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { useRelatorioWizardStore } from '@/stores/relatorioWizardStore'
 import { RelatorioDadosEncontrados } from './RelatorioDadosEncontrados'
 
 export function RelatorioStep4Geracao() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
+  const { limiteDiarioAtingido } = useLimiteUsoIA()
   const { success, error: showError } = useToast()
   const alunoId = useRelatorioWizardStore((s) => s.alunoId)
   const dataInicio = useRelatorioWizardStore((s) => s.dataInicio)
@@ -38,6 +42,7 @@ export function RelatorioStep4Geracao() {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: LIMITE_USO_IA_QUERY_KEY }),
   })
 
   return (
@@ -65,6 +70,8 @@ export function RelatorioStep4Geracao() {
             )}
           </div>
 
+          <AvisoLimiteUsoIA className="mb-0" />
+
           {gerarMutation.isError && <p className="text-sm text-danger">Não foi possível gerar o relatório. Tente novamente.</p>}
 
           <div className="flex justify-between pt-2">
@@ -78,7 +85,7 @@ export function RelatorioStep4Geracao() {
             >
               Voltar
             </Button>
-            <Button type="button" onClick={() => gerarMutation.mutate()} disabled={!preview}>
+            <Button type="button" onClick={() => gerarMutation.mutate()} disabled={!preview || limiteDiarioAtingido}>
               {gerarMutation.isError ? (
                 <>
                   <ArrowClockwise size={14} />

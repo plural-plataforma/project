@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Rows, Star } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
+import { AvisoLimiteUsoIA } from '@/components/common/AvisoLimiteUsoIA'
+import { useLimiteUsoIA } from '@/hooks/useLimiteUsoIA'
 import { buscarEixosEstudoCasoCatalogo } from '@/services/estudoCasoService'
 import {
   useEstudoCasoWizardStore,
@@ -23,6 +25,7 @@ export function EstudoCasoStep3Eixos() {
   const setStep = useEstudoCasoWizardStore((s) => s.setStep)
 
   const salvarMutation = useSalvarGerarEstudoCaso()
+  const { limiteDiarioAtingido } = useLimiteUsoIA()
 
   const { data: eixos = [], isLoading } = useQuery({
     queryKey: ['estudo-caso-eixos-catalogo'],
@@ -114,11 +117,13 @@ export function EstudoCasoStep3Eixos() {
           />
         </div>
 
+        <AvisoLimiteUsoIA className="mb-0" />
+
         <div className="flex justify-between pt-2">
           <Button type="button" variant="outline" onClick={voltar} disabled={salvarMutation.isPending}>
             Voltar
           </Button>
-          <Button type="button" onClick={gerarEstudo} disabled={!okGerar || salvarMutation.isPending} loading={salvarMutation.isPending}>
+          <Button type="button" onClick={gerarEstudo} disabled={!okGerar || limiteDiarioAtingido || salvarMutation.isPending} loading={salvarMutation.isPending}>
             Gerar estudo de caso
           </Button>
         </div>
