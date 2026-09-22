@@ -198,6 +198,7 @@ namespace api.Services
             int tamanhoPagina = 50,
             bool? ativo = null,
             bool? isEmbaixadora = null,
+            bool? semDataExpiracao = null,
             string? search = null,
             string? nivelEnsino = null)
         {
@@ -215,6 +216,11 @@ namespace api.Services
 
                 if (isEmbaixadora.HasValue)
                     query = query.Where(p => p.Usuario!.IsEmbaixadora == isEmbaixadora.Value);
+
+                if (semDataExpiracao.HasValue)
+                    query = semDataExpiracao.Value
+                        ? query.Where(p => p.Usuario!.ExpirationDate == null)
+                        : query.Where(p => p.Usuario!.ExpirationDate != null);
 
                 if (!string.IsNullOrWhiteSpace(nivelEnsino))
                     query = query.Where(p => p.NivelEnsino != null && p.NivelEnsino.Contains(nivelEnsino.Trim()));
@@ -298,6 +304,69 @@ namespace api.Services
                 return resposta;
             }
         }
+
+        /// <summary>
+        /// Visão geral (não paginada) de todos os usuários cadastrados — usada pelos
+        /// cards e gráficos de distribuição da tela de Usuários do admin.
+        /// </summary>
+        public async Task<ServiceResponse<EstatisticasUsuariosDTO>> ObterEstatisticasUsuariosAsync()
+        {
+            var resposta = new ServiceResponse<EstatisticasUsuariosDTO>();
+
+            try
+            {
+                var query = _contexto.Professores
+                    .Include(p => p.Usuario)
+                    .AsNoTracking()
+                    .Where(p => p.Usuario != null);
+
+                var agora = DateTimeOffset.UtcNow;
+                var agoraUtc = DateTime.UtcNow;
+
+                var totalUsuarios = await query.CountAsync();
+                var totalAtivos = await query.CountAsync(p => p.Usuario!.IsActive);
+                var totalEmbaixadoras = await query.CountAsync(p => p.Usuario!.IsEmbaixadora);
+                var totalSemExpiracao = await query.CountAsync(p => p.Usuario!.ExpirationDate == null);
+                var totalBloqueados = await query.CountAsync(p =>
+                    p.Usuario!.LockoutEnd.HasValue && p.Usuario!.LockoutEnd > agora);
+                var totalExpirados = await query.CountAsync(p =>
+                    p.Usuario!.ExpirationDate.HasValue && p.Usuario!.ExpirationDate < agoraUtc);
+
+                var distribuicaoPorNivelEnsino = await query
+                    .GroupBy(p => p.NivelEnsino ?? "Não informado")
+                    .Select(g => new DistribuicaoItemDTO { Chave = g.Key, Valor = g.Count() })
+                    .OrderByDescending(item => item.Valor)
+                    .ToListAsync();
+
+                var distribuicaoPorStatus = new List<DistribuicaoItemDTO>
+                {
+                    new() { Chave = "Ativa", Valor = totalAtivos - totalBloqueados - totalExpirados },
+                    new() { Chave = "Bloqueada", Valor = totalBloqueados },
+                    new() { Chave = "Expirada", Valor = totalExpirados },
+                    new() { Chave = "Inativa", Valor = totalUsuarios - totalAtivos },
+                };
+
+                resposta.AdicionaObjeto(new EstatisticasUsuariosDTO
+                {
+                    TotalUsuarios = totalUsuarios,
+                    TotalAtivos = totalAtivos,
+                    TotalEmbaixadoras = totalEmbaixadoras,
+                    TotalSemExpiracao = totalSemExpiracao,
+                    TotalBloqueados = totalBloqueados,
+                    TotalExpirados = totalExpirados,
+                    DistribuicaoPorNivelEnsino = distribuicaoPorNivelEnsino,
+                    DistribuicaoPorStatus = distribuicaoPorStatus,
+                });
+                resposta.Sucesso = true;
+                return resposta;
+            }
+            catch (Exception ex)
+            {
+                resposta.SetFalha($"Erro ao obter estatísticas de usuários: {ex.Message}");
+                return resposta;
+            }
+        }
+
         public async Task<ServiceResponse<ResetarSenhaResponseDTO>> ResetarSenhaAsync(int idUsuario)
         {
             var resposta = new ServiceResponse<ResetarSenhaResponseDTO>();

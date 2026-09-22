@@ -19,6 +19,7 @@ import {
   TablePagination,
   Stack,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
@@ -87,7 +88,12 @@ interface Props {
   rowsPerPage: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  /** Exporta só os usuários selecionados na tabela (síncrono, dados já em memória). */
   onExportar?: (usuarios: Usuario[]) => void;
+  /** Exporta todo o resultado do filtro atual, buscando todas as páginas no servidor. */
+  onExportarTudo?: () => void | Promise<void>;
+  /** Desabilita e mostra spinner no botão "Exportar tudo" enquanto o CSV é gerado. */
+  exportando?: boolean;
   onVerPerfil: (user: Usuario) => void;
   onMaisAcoes?: (user: Usuario) => void;
   onNovoUsuarioClick?: () => void;
@@ -103,6 +109,8 @@ export function UsersListLayout({
   onPageChange,
   onRowsPerPageChange,
   onExportar,
+  onExportarTudo,
+  exportando = false,
   onVerPerfil,
   onMaisAcoes,
   onNovoUsuarioClick,
@@ -204,20 +212,26 @@ export function UsersListLayout({
             <Button
               variant="outlined"
               color="primary"
-              startIcon={<DownloadIcon />}
+              disabled={exportando}
+              startIcon={exportando ? <CircularProgress size={16} /> : <DownloadIcon />}
               onClick={() => onExportar?.(usuariosSelecionados)}
             >
               Exportar selecionados ({selecionados.length})
             </Button>
           )}
 
-          <Button
-            variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={() => onExportar?.(displayedUsuarios)}
-          >
-            Exportar
-          </Button>
+          <Tooltip title="Exporta todos os usuários que batem com os filtros atuais, não só a página exibida">
+            <span>
+              <Button
+                variant="outlined"
+                disabled={exportando}
+                startIcon={exportando ? <CircularProgress size={16} /> : <DownloadIcon />}
+                onClick={() => onExportarTudo?.()}
+              >
+                {exportando ? 'Exportando...' : 'Exportar tudo'}
+              </Button>
+            </span>
+          </Tooltip>
 
           <Button variant="contained" startIcon={<AddIcon />} onClick={onNovoUsuarioClick}>
             Novo Usuário

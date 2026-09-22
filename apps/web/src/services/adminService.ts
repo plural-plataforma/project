@@ -6,6 +6,7 @@ interface FetchUsuariosParams {
   tamanhoPagina?: number;
   ativo?: boolean | null;
   isEmbaixadora?: boolean | null;
+  semDataExpiracao?: boolean | null;
   search?: string;
   nivelEnsino?: string;
 }
@@ -16,6 +17,22 @@ export interface PaginatedUsuarios {
   tamanhoPagina: number;
   totalItens: number;
   totalPaginas: number;
+}
+
+export interface DistribuicaoItem {
+  chave: string;
+  valor: number;
+}
+
+export interface EstatisticasUsuarios {
+  totalUsuarios: number;
+  totalAtivos: number;
+  totalEmbaixadoras: number;
+  totalSemExpiracao: number;
+  totalBloqueados: number;
+  totalExpirados: number;
+  distribuicaoPorNivelEnsino: DistribuicaoItem[];
+  distribuicaoPorStatus: DistribuicaoItem[];
 }
 
 /**
@@ -61,6 +78,26 @@ export const fetchUsuariosAdmin = async (
       error.response?.data?.message ||
       error.message ||
       'Erro desconhecido ao carregar usuários';
+
+    throw new Error(mensagemErro);
+  }
+};
+
+/**
+ * Busca a visão geral (não paginada) de usuários — usada pelos cards de
+ * estatística e pelos gráficos de distribuição da tela de Usuários.
+ */
+export const fetchEstatisticasUsuarios = async (): Promise<EstatisticasUsuarios> => {
+  try {
+    const response = await api.get('/admin/usuarios/estatisticas');
+    return response.data?.objeto ?? response.data;
+  } catch (error: any) {
+    const mensagemErro =
+      error.response?.data?.detalhe ||
+      error.response?.data?.erro ||
+      error.response?.data?.message ||
+      error.message ||
+      'Erro desconhecido ao carregar estatísticas de usuários';
 
     throw new Error(mensagemErro);
   }
