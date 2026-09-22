@@ -32,7 +32,16 @@ export default function DistribuicaoCard({ titulo, itens, total }: DistribuicaoC
           {titulo}
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            maxHeight: 340,
+            overflowY: 'auto',
+            pr: 1,
+          }}
+        >
           {itens.map((item) => {
             const percentual = totalCalculado > 0 ? (item.valor / totalCalculado) * 100 : 0;
             return (
