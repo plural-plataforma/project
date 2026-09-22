@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/useToast'
+import { LIMITE_USO_IA_QUERY_KEY, useLimiteUsoIA } from '@/hooks/useLimiteUsoIA'
+import { AvisoLimiteUsoIA } from '@/components/common/AvisoLimiteUsoIA'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { downloadRelatorioDocx } from '@/lib/exportRelatorioDocx'
 import { downloadRelatorioPdf } from '@/lib/exportRelatorioPdf'
@@ -74,6 +76,7 @@ export default function RelatorioDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { limiteDiarioAtingido } = useLimiteUsoIA()
   const { success, error: showError } = useToast()
 
   const [drafts, setDrafts] = useState<Record<number, SecaoDraft>>({})
@@ -131,6 +134,7 @@ export default function RelatorioDetailPage() {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: LIMITE_USO_IA_QUERY_KEY }),
   })
 
   const finalizarMutation = useMutation({
@@ -148,6 +152,7 @@ export default function RelatorioDetailPage() {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: LIMITE_USO_IA_QUERY_KEY }),
   })
 
   const aceitarRevisaoFinalMutation = useMutation({
@@ -299,6 +304,7 @@ export default function RelatorioDetailPage() {
               <Button
                 variant="ghost"
                 size="sm"
+                disabled={limiteDiarioAtingido}
                 loading={gerarNovamenteMutation.isPending}
                 onClick={() => gerarNovamenteMutation.mutate()}
               >
@@ -327,9 +333,11 @@ export default function RelatorioDetailPage() {
                   : 'A geração por IA ainda não foi concluída para este relatório.'}
               </p>
             </div>
+            <AvisoLimiteUsoIA className="mb-0" />
             <Button
               variant="outline"
               size="sm"
+              disabled={limiteDiarioAtingido}
               loading={gerarNovamenteMutation.isPending}
               onClick={() => gerarNovamenteMutation.mutate()}
             >

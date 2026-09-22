@@ -24,6 +24,7 @@ namespace api.Services
         private readonly PromptSistemaIAService _promptService;
         private readonly IGeradorTextoIA _geradorTextoIA;
         private readonly GeracaoIALogService _geracaoLog;
+        private readonly LimiteUsoIAService _limiteUsoIA;
         private static readonly HashSet<string> NiveisPermitidos = new(StringComparer.OrdinalIgnoreCase)
         {
             "Autonomia",
@@ -37,13 +38,15 @@ namespace api.Services
             UserManager<Usuario> userManager,
             PromptSistemaIAService promptService,
             IGeradorTextoIA geradorTextoIA,
-            GeracaoIALogService geracaoLog)
+            GeracaoIALogService geracaoLog,
+            LimiteUsoIAService limiteUsoIA)
         {
             _contexto = contexto;
             _userManager = userManager;
             _promptService = promptService;
             _geradorTextoIA = geradorTextoIA;
             _geracaoLog = geracaoLog;
+            _limiteUsoIA = limiteUsoIA;
         }
 
         // Resumo agregado para o dashboard do Admin — sem filtro por professor
@@ -606,6 +609,13 @@ namespace api.Services
                 }
 
                 var promptUsuario = MontarPromptDiagnostico(avaliacao, aluno, stats);
+
+                var bloqueioLimite = await _limiteUsoIA.VerificarLimiteDiarioAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.AvaliacaoDiagnostica, avaliacaoId, alunoId);
+                if (bloqueioLimite != null)
+                {
+                    r.SetFalha(bloqueioLimite);
+                    return r;
+                }
 
                 string textoGerado;
                 try

@@ -8,9 +8,17 @@ import {
   MenuItem,
   FormControl,
   SelectChangeEvent,
+  Chip,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+
+export interface ToggleFiltro {
+  key: string;
+  label: string;
+  active: boolean;
+  onToggle: () => void;
+}
 
 export type FiltroExpiracao = 'todos' | 'expirado' | '30' | '60' | '90'
 
@@ -31,6 +39,8 @@ interface SearchFilterBarProps<TStatus extends string> {
   placeholder?: string;
   expirationFilter?: FiltroExpiracao;
   setExpirationFilter?: (value: FiltroExpiracao) => void;
+  /** Filtros do tipo "liga/desliga" (ex.: Embaixadora, Sem expiração), exibidos como chips. */
+  toggleFiltros?: ToggleFiltro[];
 }
 
 export default function SearchFilterBar<TStatus extends string>({
@@ -42,6 +52,7 @@ export default function SearchFilterBar<TStatus extends string>({
   placeholder = 'Buscar por nome ou e-mail...',
   expirationFilter,
   setExpirationFilter,
+  toggleFiltros,
 }: SearchFilterBarProps<TStatus>) {
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -147,6 +158,18 @@ export default function SearchFilterBar<TStatus extends string>({
             </Select>
           </FormControl>
         )}
+
+        {/* Filtros liga/desliga */}
+        {toggleFiltros?.map((filtro) => (
+          <Chip
+            key={filtro.key}
+            label={filtro.label}
+            onClick={filtro.onToggle}
+            color={filtro.active ? 'primary' : 'default'}
+            variant={filtro.active ? 'filled' : 'outlined'}
+            sx={{ height: 44, borderRadius: '10px', fontWeight: 600, px: 0.5 }}
+          />
+        ))}
       </Box>
     </Box>
   );

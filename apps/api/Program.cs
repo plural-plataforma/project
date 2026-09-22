@@ -223,6 +223,7 @@ builder.Services.AddHostedService<HotmartReconciliacaoAssinaturasJob>();
 builder.Services.AddScoped<DocumentoBibliotecaService>();
 builder.Services.AddScoped<PromptSistemaIAService>();
 builder.Services.AddScoped<GeracaoIALogService>();
+builder.Services.AddScoped<LimiteUsoIAService>();
 builder.Services.AddScoped<NotificacaoService>();
 builder.Services.AddScoped<ArtigoService>();
 builder.Services.AddScoped<TermoService>();

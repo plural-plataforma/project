@@ -185,6 +185,11 @@ namespace Data
                 .HasIndex(e => new { e.PlanejamentoId, e.DataEnc })
                 .HasDatabaseName("ix_planejamento_encontros_planejamentoid_dataenc");
 
+            // Contagem de uso por professora no dia/mês (LimiteUsoIAService) roda a cada geração.
+            modelBuilder.Entity<GeracaoIALog>()
+                .HasIndex(g => new { g.ProfessorId, g.CriadoEm })
+                .HasDatabaseName("ix_geracao_ia_log_professorid_criadoem");
+
             // Bloco ↔ Atividade (1:N)
             modelBuilder.Entity<Bloco>()
               .HasMany(b => b.Atividades)           // Um Bloco tem muitas Atividades

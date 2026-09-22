@@ -20,17 +20,20 @@ public class RelatoAtendimentoService
     private readonly PromptSistemaIAService _promptService;
     private readonly IGeradorTextoIA _geradorTextoIA;
     private readonly GeracaoIALogService _geracaoLog;
+    private readonly LimiteUsoIAService _limiteUsoIA;
 
     public RelatoAtendimentoService(
         AppDbContext db,
         PromptSistemaIAService promptService,
         IGeradorTextoIA geradorTextoIA,
-        GeracaoIALogService geracaoLog)
+        GeracaoIALogService geracaoLog,
+        LimiteUsoIAService limiteUsoIA)
     {
         _db = db;
         _promptService = promptService;
         _geradorTextoIA = geradorTextoIA;
         _geracaoLog = geracaoLog;
+        _limiteUsoIA = limiteUsoIA;
     }
 
     private static string SerializarLista(IReadOnlyCollection<string>? itens)
@@ -319,6 +322,13 @@ public class RelatoAtendimentoService
             }
 
             var promptUsuario = MontarPromptRelato(ent);
+
+            var bloqueioLimite = await _limiteUsoIA.VerificarLimiteDiarioAsync(professorId, TipoDocumentoIA.RelatoAtendimento, id, ent.AlunoId);
+            if (bloqueioLimite != null)
+            {
+                r.SetFalha(bloqueioLimite);
+                return r;
+            }
 
             string textoGerado;
             try

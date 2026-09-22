@@ -39,6 +39,8 @@ import {
   listDangerIconButtonClass,
 } from '@/components/lists'
 import { useToast } from '@/hooks/useToast'
+import { LIMITE_USO_IA_QUERY_KEY, useLimiteUsoIA } from '@/hooks/useLimiteUsoIA'
+import { AvisoLimiteUsoIA } from '@/components/common/AvisoLimiteUsoIA'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { sortByField } from '@/lib/utils'
 import { buscarAlunos } from '@/services/alunoService'
@@ -70,6 +72,7 @@ function montarDetalhesEdicao(r: RelatoAtendimento): string {
 
 export default function RelatosPage() {
   const qc = useQueryClient()
+  const { limiteDiarioAtingido } = useLimiteUsoIA()
   const { success, error: showError } = useToast()
 
   const hoje = dayjs()
@@ -228,6 +231,7 @@ export default function RelatosPage() {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: LIMITE_USO_IA_QUERY_KEY }),
   })
 
   const excluirMutation = useMutation({
@@ -509,6 +513,7 @@ export default function RelatosPage() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={limiteDiarioAtingido}
                     loading={gerarIAMutation.isPending}
                     onClick={() => gerarIAMutation.mutate()}
                   >
@@ -516,6 +521,7 @@ export default function RelatosPage() {
                     Gerar com IA
                   </Button>
                 </div>
+                <AvisoLimiteUsoIA className="mb-0" />
                 {editando.textoGeradoIA?.trim() || formTextoIA.trim() ? (
                   <textarea
                     rows={6}

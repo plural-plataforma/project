@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/useToast'
+import { LIMITE_USO_IA_QUERY_KEY, useLimiteUsoIA } from '@/hooks/useLimiteUsoIA'
+import { AvisoLimiteUsoIA } from '@/components/common/AvisoLimiteUsoIA'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { downloadEstudoCasoDocx } from '@/lib/exportEstudoCasoDocx'
 import { downloadEstudoCasoPdf } from '@/lib/exportEstudoCasoPdf'
@@ -46,6 +48,7 @@ export function EstudoCasoDetalheDialog({
 }: EstudoCasoDetalheDialogProps) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { limiteDiarioAtingido } = useLimiteUsoIA()
   const { success, error: showError } = useToast()
   const [editando, setEditando] = useState(false)
   const [excluirOpen, setExcluirOpen] = useState(false)
@@ -166,6 +169,7 @@ export function EstudoCasoDetalheDialog({
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: LIMITE_USO_IA_QUERY_KEY }),
   })
 
   async function copiarTexto() {
@@ -405,6 +409,7 @@ export function EstudoCasoDetalheDialog({
               </div>
 
               <div>
+                <AvisoLimiteUsoIA />
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Documento
@@ -430,6 +435,7 @@ export function EstudoCasoDetalheDialog({
                       type="button"
                       size="sm"
                       variant="secondary"
+                      disabled={limiteDiarioAtingido}
                       loading={gerarIAMutation.isPending}
                       onClick={() => gerarIAMutation.mutate()}
                     >

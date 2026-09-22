@@ -20,19 +20,22 @@ namespace api.Services
         private readonly PromptSistemaIAService _promptService;
         private readonly IGeradorTextoIA _geradorTextoIA;
         private readonly GeracaoIALogService _geracaoLog;
+        private readonly LimiteUsoIAService _limiteUsoIA;
 
         public PlanejamentoService(
             AppDbContext contexto,
             UserManager<Usuario> usuario,
             PromptSistemaIAService promptService,
             IGeradorTextoIA geradorTextoIA,
-            GeracaoIALogService geracaoLog)
+            GeracaoIALogService geracaoLog,
+            LimiteUsoIAService limiteUsoIA)
         {
             _contexto = contexto;
             _usuario = usuario;
             _promptService = promptService;
             _geradorTextoIA = geradorTextoIA;
             _geracaoLog = geracaoLog;
+            _limiteUsoIA = limiteUsoIA;
         }
 
         /// <returns>Mensagem de erro ou null quando não há conflito.</returns>
@@ -406,6 +409,13 @@ namespace api.Services
                 }
 
                 var promptUsuario = MontarPromptObjetivosPaee(planejamento, aluno, estudoCaso);
+
+                var bloqueioLimite = await _limiteUsoIA.VerificarLimiteDiarioAsync(usuario.ProfessorId ?? 0, TipoDocumentoIA.PAEE, planejamentoId, aluno.Id);
+                if (bloqueioLimite != null)
+                {
+                    r.SetFalha(bloqueioLimite);
+                    return r;
+                }
 
                 string textoGerado;
                 try

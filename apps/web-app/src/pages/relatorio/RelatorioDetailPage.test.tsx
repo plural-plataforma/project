@@ -32,6 +32,11 @@ configure({
  */
 vi.mock('@/services/relatorioService')
 
+vi.mock('@/hooks/useLimiteUsoIA', () => ({
+  LIMITE_USO_IA_QUERY_KEY: ['limite-uso-ia'],
+  useLimiteUsoIA: () => ({ limite: undefined, limiteDiarioAtingido: false }),
+}))
+
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ id: '1' }),
   useNavigate: () => vi.fn(),

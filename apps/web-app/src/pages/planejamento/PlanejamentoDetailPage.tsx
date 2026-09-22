@@ -36,6 +36,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/useToast'
+import { LIMITE_USO_IA_QUERY_KEY } from '@/hooks/useLimiteUsoIA'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -260,6 +261,7 @@ export default function PlanejamentoDetailPage() {
       const fb = getApiErrorFeedback(err)
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: LIMITE_USO_IA_QUERY_KEY }),
   })
 
   const salvarEncontrosMutation = useMutation({

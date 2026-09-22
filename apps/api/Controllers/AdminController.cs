@@ -71,6 +71,7 @@ namespace api.Controllers
             [FromQuery] int tamanhoPagina = 50,
             [FromQuery] bool? ativo = null,
             [FromQuery] bool? isEmbaixadora = null,
+            [FromQuery] bool? semDataExpiracao = null,
             [FromQuery] string? search = null,
             [FromQuery] string? nivelEnsino = null)
         {
@@ -79,6 +80,7 @@ namespace api.Controllers
                 tamanhoPagina: tamanhoPagina,
                 ativo: ativo,
                 isEmbaixadora: isEmbaixadora,
+                semDataExpiracao: semDataExpiracao,
                 search: search,
                 nivelEnsino: nivelEnsino
             );
@@ -92,6 +94,27 @@ namespace api.Controllers
             return StatusCode(500, new
             {
                 erro = "Falha ao listar professores",
+                detalhe = resposta.Mensagens.FirstOrDefault() ?? "Erro interno"
+            });
+        }
+
+        /// <summary>
+        /// Visão geral (não paginada) de todos os usuários — cards e gráficos de
+        /// distribuição da tela de Usuários do admin.
+        /// </summary>
+        [HttpGet("usuarios/estatisticas")]
+        public async Task<IActionResult> EstatisticasUsuarios()
+        {
+            var resposta = await _adminService.ObterEstatisticasUsuariosAsync();
+
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta.Objeto);
+            }
+
+            return StatusCode(500, new
+            {
+                erro = "Falha ao obter estatísticas de usuários",
                 detalhe = resposta.Mensagens.FirstOrDefault() ?? "Erro interno"
             });
         }
