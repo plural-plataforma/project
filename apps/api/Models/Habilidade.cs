@@ -17,6 +17,13 @@ public class Habilidade
     public string? Resumo { get; set; }
 
     public bool Ativo { get; set; }
+
+    /// <summary>Dona da habilidade. Nulo = catálogo global, visível a todas.</summary>
+    public int? IdProfessor { get; set; }
+
+    [ForeignKey("IdProfessor")]
+    public Professor? Professor { get; set; }
+
     public ICollection<HabilidadesXPlanejamento> HabilidadesXPlanejamentos { get; set; }
 
     public ICollection<Atividade> Atividades { get; set; }

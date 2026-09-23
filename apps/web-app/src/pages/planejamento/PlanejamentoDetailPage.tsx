@@ -7,6 +7,8 @@ import {
   X,
   MagnifyingGlass,
   DownloadSimple,
+  PencilSimple,
+  EyeSlash,
 } from '@phosphor-icons/react'
 import {
   buscarPlanejamentoPorId,
@@ -22,7 +24,7 @@ import {
   obterSugestaoDatasEncontros,
 } from '@/services/planejamentoService'
 import { buscarAlunos } from '@/services/alunoService'
-import { buscarHabilidades } from '@/services/habilidadeService'
+import { atualizarHabilidade, buscarHabilidades } from '@/services/habilidadeService'
 import { buscarEstrategias } from '@/services/estrategiasService'
 import { buscarAvaliacoesCriterios } from '@/services/avaliacaoService'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -41,19 +43,15 @@ import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyE
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { PaeeEncontroEntrada, Planejamento } from '@/types/planejamento'
+import type { Habilidade } from '@/types/habilidade'
+import { NIVEL_ENSINO_MAP } from '@/config/nivelEnsino'
 import { sortByField } from '@/lib/utils'
 import { baixarPlanejamentoWord, baixarPlanejamentoPdf } from '@/lib/baixarPlanejamento'
 import { PlanejamentoObjetivosTab } from './PlanejamentoObjetivosTab'
 import { PlanejamentoRevisaoTab } from './PlanejamentoRevisaoTab'
 import { PlanejamentoVisaoGeralTab } from './PlanejamentoVisaoGeralTab'
 import { PlanejamentoEncontrosTab, type LinhaPaeeEnc } from './PlanejamentoEncontrosTab'
-
-const NIVEL_ENSINO_MAP: Record<number, string> = {
-  1: 'Ed. Infantil',
-  2: 'Fundamental I',
-  3: 'Fundamental II',
-  4: 'Ensino Médio',
-}
+import { HabilidadeFormDialog } from './HabilidadeFormDialog'
 
 const novaLinhaEncKey = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -79,6 +77,8 @@ export default function PlanejamentoDetailPage() {
   const [vincModal, setVincModal] = useState<VincModal>(null)
   const [searchVinc, setSearchVinc] = useState('')
   const [filterNivel, setFilterNivel] = useState('')
+  const [habilidadeDialogAberto, setHabilidadeDialogAberto] = useState(false)
+  const [habilidadeEmEdicao, setHabilidadeEmEdicao] = useState<Habilidade | null>(null)
 
   const [objCurto, setObjCurto] = useState('')
   const [objMedio, setObjMedio] = useState('')
@@ -159,6 +159,33 @@ export default function PlanejamentoDetailPage() {
       showError(fb.title, formatFriendlyErrorBody(fb))
     },
   })
+
+  const desativarHabilidadeMutation = useMutation({
+    mutationFn: (habilidadeId: number) => atualizarHabilidade({ id: habilidadeId, ativo: false }),
+    onSuccess: () => {
+      success('Habilidade desativada')
+      qc.invalidateQueries({ queryKey: ['habilidades'] })
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  function abrirNovaHabilidade() {
+    setHabilidadeEmEdicao(null)
+    setHabilidadeDialogAberto(true)
+  }
+
+  function abrirEdicaoHabilidade(habilidade: Habilidade) {
+    setHabilidadeEmEdicao(habilidade)
+    setHabilidadeDialogAberto(true)
+  }
+
+  async function aoSalvarHabilidade(habilidade: Habilidade, criada: boolean) {
+    await qc.invalidateQueries({ queryKey: ['habilidades'] })
+    if (criada) vincularMutation.mutate({ type: 'habilidades', itemId: habilidade.id })
+  }
 
   const deleteMutation = useMutation({
     mutationFn: () => excluirPlanejamento(Number(id)),
@@ -358,9 +385,10 @@ export default function PlanejamentoDetailPage() {
   const habsDisponiveis = sortByField(
     todasHabs.filter((h) => {
       const notVinc = !habsVinculadasIds.has(h.id)
+      const ativa = h.ativo !== false
       const matchNivel = !filterNivel || String(h.idNivelEnsino) === filterNivel
       const matchSearch = !searchVinc || (h.descricao ?? '').toLowerCase().includes(searchVinc.toLowerCase())
-      return notVinc && matchNivel && matchSearch
+      return notVinc && ativa && matchNivel && matchSearch
     }),
     'descricao'
   )
@@ -572,6 +600,12 @@ export default function PlanejamentoDetailPage() {
             )}
           </div>
 
+          {vincModal === 'habilidades' && (
+            <Button variant="outline" size="sm" onClick={abrirNovaHabilidade}>
+              <Plus size={14} /> Nova habilidade
+            </Button>
+          )}
+
           <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
             {vincModal === 'alunos' && alunosDisponiveis.map((a) => (
               <button
@@ -587,19 +621,44 @@ export default function PlanejamentoDetailPage() {
             ))}
 
             {vincModal === 'habilidades' && habsDisponiveis.map((h) => (
-              <button
-                key={h.id}
-                type="button"
-                onClick={() => vincularMutation.mutate({ type: 'habilidades', itemId: h.id })}
-                disabled={vincularMutation.isPending}
-                className="w-full flex items-start justify-between gap-2 px-3 py-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary-light text-sm text-foreground text-left transition-colors disabled:opacity-50"
-              >
-                <span className="flex-1 leading-snug">{h.descricao}</span>
-                <div className="flex items-center gap-1 shrink-0">
-                  {h.idNivelEnsino && <Badge variant="muted" className="text-[10px]">{NIVEL_ENSINO_MAP[h.idNivelEnsino]}</Badge>}
-                  <Plus size={14} className="text-primary" />
-                </div>
-              </button>
+              <div key={h.id} className="flex items-stretch gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => vincularMutation.mutate({ type: 'habilidades', itemId: h.id })}
+                  disabled={vincularMutation.isPending}
+                  className="flex-1 flex items-start justify-between gap-2 px-3 py-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary-light text-sm text-foreground text-left transition-colors disabled:opacity-50"
+                >
+                  <span className="flex-1 leading-snug">{h.descricao}</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {h.ehPropria && <Badge variant="default" className="text-[10px]">Minha</Badge>}
+                    {h.idNivelEnsino && <Badge variant="muted" className="text-[10px]">{NIVEL_ENSINO_MAP[h.idNivelEnsino]}</Badge>}
+                    <Plus size={14} className="text-primary" />
+                  </div>
+                </button>
+                {h.ehPropria && (
+                  <div className="flex flex-col justify-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Editar habilidade"
+                      title="Editar habilidade"
+                      onClick={() => abrirEdicaoHabilidade(h)}
+                      className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                    >
+                      <PencilSimple size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Desativar habilidade"
+                      title="Desativar habilidade"
+                      onClick={() => desativarHabilidadeMutation.mutate(h.id)}
+                      disabled={desativarHabilidadeMutation.isPending}
+                      className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-danger hover:border-danger transition-colors disabled:opacity-50"
+                    >
+                      <EyeSlash size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
 
             {vincModal === 'estrategias' && estsDisponiveis.map((e) => (
@@ -645,6 +704,13 @@ export default function PlanejamentoDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <HabilidadeFormDialog
+        open={habilidadeDialogAberto}
+        habilidade={habilidadeEmEdicao}
+        onClose={() => setHabilidadeDialogAberto(false)}
+        onSaved={(habilidade, criada) => void aoSalvarHabilidade(habilidade, criada)}
+      />
 
       <PlanejamentoExcluirDialog
         open={deleteDialogOpen}

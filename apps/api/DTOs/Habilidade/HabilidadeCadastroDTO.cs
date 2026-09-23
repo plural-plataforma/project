@@ -4,7 +4,6 @@ namespace api.DTOs
 {
     public class HabilidadeCadastroDTO
     {
-        [Required]
         public int Id { get; set; }
 
         [Required]

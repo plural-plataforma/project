@@ -551,7 +551,9 @@ namespace api.Services
                     .Select(e => e.HabilidadeId!.Value).Distinct().ToList();
                 if (habIdsComChave.Count > 0)
                 {
-                    var countH = await _contexto.Habilidades.CountAsync(h => habIdsComChave.Contains(h.Id));
+                    var countH = await _contexto.Habilidades
+                        .VisiveisParaProfessor(professorId)
+                        .CountAsync(h => habIdsComChave.Contains(h.Id));
                     if (countH != habIdsComChave.Count)
                     {
                         await transacao.RollbackAsync();
@@ -783,6 +785,7 @@ namespace api.Services
                     p.ID == planejamentoVincularHabilidadeDTO.IdPlanejamento &&
                     p.IdProfessor == usuario.ProfessorId);
             var habilidade = await _contexto.Habilidades
+                .VisiveisParaProfessor(usuario.ProfessorId)
                 .FirstOrDefaultAsync(a =>
                     a.Id == planejamentoVincularHabilidadeDTO.IdHabilidade);
             var resposta = new ServiceResponse<bool>();
@@ -1023,6 +1026,7 @@ namespace api.Services
             }
 
             var encontradas = await _contexto.Habilidades
+                .VisiveisParaProfessor(usuario.ProfessorId)
                 .Where(h => distinctIds.Contains(h.Id))
                 .Select(h => h.Id)
                 .ToListAsync();

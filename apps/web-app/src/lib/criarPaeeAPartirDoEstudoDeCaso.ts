@@ -46,16 +46,18 @@ async function habilidadesSugeridasParaAluno(alunoId: number): Promise<number[]>
       const texto = perfil?.habilidadesAReenforcar?.trim()
       if (!texto) continue
 
-      const todas = await buscarHabilidades()
+      const todas = (await buscarHabilidades()).filter((h) => h.ativo !== false)
       const partes = texto.split(/[,;\n]+/).map((s) => s.trim().toLowerCase()).filter(Boolean)
       const ids: number[] = []
       for (const parte of partes) {
-        const match = todas.find(
-          (h) =>
+        const match = todas.find((h) => {
+          const resumo = (h.resumo ?? '').toLowerCase()
+          return (
             (h.descricao ?? '').toLowerCase().includes(parte) ||
-            (h.resumo ?? '').toLowerCase().includes(parte) ||
-            parte.includes((h.resumo ?? '').toLowerCase()),
-        )
+            resumo.includes(parte) ||
+            (resumo !== '' && parte.includes(resumo))
+          )
+        })
         if (match && !ids.includes(match.id)) ids.push(match.id)
       }
       if (ids.length > 0) return ids

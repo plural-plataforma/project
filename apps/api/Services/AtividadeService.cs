@@ -362,8 +362,9 @@ namespace api.Services
                 atividade.Habilidades.Clear();
 
                 // Adiciona novas
+                // Atividade é do catálogo: só habilidades globais, para não vazar habilidade privada.
                 var habilidades = await _contexto.Habilidades
-                    .Where(h => habilidadeIds.Contains(h.Id))
+                    .Where(h => habilidadeIds.Contains(h.Id) && h.IdProfessor == null)
                     .ToListAsync();
 
                 foreach (var hab in habilidades)

@@ -118,6 +118,17 @@ namespace Data
                 .WithMany(h => h.HabilidadesXPlanejamentos)
                 .HasForeignKey(ph => ph.HabilidadeId);
 
+            // Habilidade privada da professora (IdProfessor nulo = catálogo global)
+            modelBuilder.Entity<Habilidade>()
+                .HasOne(h => h.Professor)
+                .WithMany()
+                .HasForeignKey(h => h.IdProfessor)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+
+            modelBuilder.Entity<Habilidade>()
+                .HasIndex(h => h.IdProfessor);
+
             // Planejamento ↔ Estrategia (N:N)
             modelBuilder.Entity<EstrategiasXPlanejamento>()
                 .HasKey(ph => new { ph.PlanejamentoId, ph.EstrategiaId });

@@ -1,4 +1,4 @@
-﻿using api.DTOs;
+using api.DTOs;
 using api.DTOs.Habilidade;
 using api.Models;
 using api.Services;
@@ -27,7 +27,13 @@ namespace api.Controllers
         {
             if (ModelState.IsValid)
             {
-                var resposta = await _habilidadeService.Cadastro(habilidadeDTO);
+                var usuario = await _usuario.GetUserAsync(User);
+                if (usuario == null)
+                {
+                    return Unauthorized();
+                }
+
+                var resposta = await _habilidadeService.Cadastro(habilidadeDTO, usuario);
                 if (resposta.Sucesso)
                 {
                     return Ok(resposta);
@@ -43,14 +49,18 @@ namespace api.Controllers
             }
         }
 
-
-        
         [HttpPatch("atualizar")]
         public async Task<IActionResult> Atualizar([FromBody] HabilidadeAtualizarDTO habilidadeDTO)
         {
             if (ModelState.IsValid)
             {
-                var resposta = await _habilidadeService.Atualizar(habilidadeDTO);
+                var usuario = await _usuario.GetUserAsync(User);
+                if (usuario == null)
+                {
+                    return Unauthorized();
+                }
+
+                var resposta = await _habilidadeService.Atualizar(habilidadeDTO, usuario);
                 if (resposta.Sucesso)
                 {
                     return Ok(resposta);
@@ -66,11 +76,16 @@ namespace api.Controllers
             }
         }
 
-        
         [HttpGet("buscar")]
         public async Task<IActionResult> Buscar()
         {
-            var resposta = await _habilidadeService.Buscar();
+            var usuario = await _usuario.GetUserAsync(User);
+            if (usuario == null)
+            {
+                return Unauthorized();
+            }
+
+            var resposta = await _habilidadeService.Buscar(usuario);
             if (resposta.Sucesso)
             {
                 return Ok(resposta);
@@ -80,6 +95,5 @@ namespace api.Controllers
                 return BadRequest(resposta);
             }
         }
-
     }
 }

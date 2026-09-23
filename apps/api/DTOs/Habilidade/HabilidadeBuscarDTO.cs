@@ -19,6 +19,8 @@ namespace api.DTOs.Habilidade
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? Ativo { get; set; }
+
+        public bool EhPropria { get; set; }
     }
     
 }

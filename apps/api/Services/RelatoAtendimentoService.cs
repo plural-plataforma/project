@@ -1,5 +1,6 @@
 using System.Text.Json;
 using api.DTOs.RelatoAtendimento;
+using api.Helpers;
 using api.Models;
 using api.Responses;
 using api.Services.IA;
@@ -108,7 +109,9 @@ public class RelatoAtendimentoService
         {
             if (habilidadeId.HasValue)
             {
-                var existeH = await _db.Habilidades.AnyAsync(h => h.Id == habilidadeId.Value);
+                var existeH = await _db.Habilidades
+                    .VisiveisParaProfessor(professorId)
+                    .AnyAsync(h => h.Id == habilidadeId.Value);
                 if (!existeH)
                     return "Habilidade não encontrada.";
             }

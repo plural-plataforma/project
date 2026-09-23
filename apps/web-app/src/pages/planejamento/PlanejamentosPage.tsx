@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, BookOpen, MagnifyingGlass, CalendarBlank, Trash } from '@phosphor-icons/react'
+import { Plus, BookOpen, MagnifyingGlass, CalendarBlank, Trash, PencilSimple, EyeSlash } from '@phosphor-icons/react'
 import {
   buscarPlanejamento,
   cadastrarPlanejamento,
@@ -13,7 +13,7 @@ import {
   vincularAvaliacoesPlanoLote,
 } from '@/services/planejamentoService'
 import { buscarAlunos } from '@/services/alunoService'
-import { buscarHabilidades } from '@/services/habilidadeService'
+import { atualizarHabilidade, buscarHabilidades } from '@/services/habilidadeService'
 import { buscarEstrategias } from '@/services/estrategiasService'
 import { buscarAvaliacoesCriterios } from '@/services/avaliacaoService'
 import { buscarEscolasProfessor } from '@/services/professorService'
@@ -49,6 +49,8 @@ import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyE
 import { sortByField } from '@/lib/utils'
 import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
+import { HabilidadeFormDialog } from './HabilidadeFormDialog'
+import { NIVEL_ENSINO_MAP } from '@/config/nivelEnsino'
 import { baixarPlanejamentoPdf, baixarPlanejamentoWord } from '@/lib/baixarPlanejamento'
 import { avaliarCompletudePaee } from '@/lib/paeeCompletude'
 import type { Aluno } from '@/types/aluno'
@@ -79,13 +81,6 @@ const STEPS: { id: Step; label: string }[] = [
   { id: 'avaliacoes', label: 'Critérios' },
 ]
 
-const NIVEL_ENSINO_MAP: Record<number, string> = {
-  1: 'Ed. Infantil',
-  2: 'Fundamental I',
-  3: 'Fundamental II',
-  4: 'Ensino Médio',
-}
-
 export default function PlanejamentosPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -107,6 +102,8 @@ export default function PlanejamentosPage() {
   const [filterNivel, setFilterNivel] = useState<string>('')
   const [searchEsts, setSearchEsts] = useState('')
   const [searchAvals, setSearchAvals] = useState('')
+  const [habilidadeDialogAberto, setHabilidadeDialogAberto] = useState(false)
+  const [habilidadeEmEdicao, setHabilidadeEmEdicao] = useState<Habilidade | null>(null)
 
   const { data: planejamentos = [], isLoading } = useQuery({
     queryKey: ['planejamentos'],
@@ -166,6 +163,38 @@ export default function PlanejamentosPage() {
       showError('Não foi possível excluir', formatFriendlyErrorBody(fb))
     },
   })
+
+  const desativarHabilidadeMutation = useMutation({
+    mutationFn: (habilidadeId: number) => atualizarHabilidade({ id: habilidadeId, ativo: false }),
+    onSuccess: (_data, habilidadeId) => {
+      success('Habilidade desativada')
+      setSelectedHabilidades((prev) => prev.filter((h) => h.id !== habilidadeId))
+      qc.invalidateQueries({ queryKey: ['habilidades'] })
+    },
+    onError: (err: unknown) => {
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
+  function abrirNovaHabilidade() {
+    setHabilidadeEmEdicao(null)
+    setHabilidadeDialogAberto(true)
+  }
+
+  function abrirEdicaoHabilidade(habilidade: Habilidade) {
+    setHabilidadeEmEdicao(habilidade)
+    setHabilidadeDialogAberto(true)
+  }
+
+  async function aoSalvarHabilidade(habilidade: Habilidade, criada: boolean) {
+    await qc.invalidateQueries({ queryKey: ['habilidades'] })
+    if (criada) {
+      setSelectedHabilidades((prev) => (prev.some((h) => h.id === habilidade.id) ? prev : [...prev, habilidade]))
+    } else {
+      setSelectedHabilidades((prev) => prev.map((h) => (h.id === habilidade.id ? habilidade : h)))
+    }
+  }
 
   const {
     register,
@@ -228,9 +257,10 @@ export default function PlanejamentosPage() {
   )
   const habsFiltradas = sortByField(
     habilidades.filter((h) => {
+      const ativa = h.ativo !== false
       const matchNivel = !filterNivel || String(h.idNivelEnsino) === filterNivel
       const matchSearch = !searchHabs || (h.descricao ?? '').toLowerCase().includes(searchHabs.toLowerCase())
-      return matchNivel && matchSearch
+      return ativa && matchNivel && matchSearch
     }),
     'descricao'
   )
@@ -452,25 +482,55 @@ export default function PlanejamentosPage() {
                       ))}
                     </select>
                   </div>
+                  <Button type="button" variant="outline" size="sm" onClick={abrirNovaHabilidade}>
+                    <Plus size={14} /> Nova habilidade
+                  </Button>
                   <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                     {habsFiltradas.map((h) => {
                       const sel = selectedHabilidades.some((s) => s.id === h.id)
                       return (
-                        <button
-                          key={h.id}
-                          type="button"
-                          onClick={() => toggleItem(h, selectedHabilidades, setSelectedHabilidades)}
-                          className={`w-full flex items-start gap-2 px-3 py-2.5 rounded-lg border text-sm text-left transition-colors ${
-                            sel ? 'border-primary bg-primary-light text-primary font-semibold' : 'border-border hover:bg-muted text-foreground'
-                          }`}
-                        >
-                          <span className="flex-1 leading-snug">{h.descricao}</span>
-                          {h.idNivelEnsino && (
-                            <Badge variant="muted" className="shrink-0 text-[10px]">
-                              {NIVEL_ENSINO_MAP[h.idNivelEnsino] ?? h.idNivelEnsino}
-                            </Badge>
+                        <div key={h.id} className="flex items-stretch gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => toggleItem(h, selectedHabilidades, setSelectedHabilidades)}
+                            className={`flex-1 flex items-start gap-2 px-3 py-2.5 rounded-lg border text-sm text-left transition-colors ${
+                              sel ? 'border-primary bg-primary-light text-primary font-semibold' : 'border-border hover:bg-muted text-foreground'
+                            }`}
+                          >
+                            <span className="flex-1 leading-snug">{h.descricao}</span>
+                            {h.ehPropria && (
+                              <Badge variant="default" className="shrink-0 text-[10px]">Minha</Badge>
+                            )}
+                            {h.idNivelEnsino && (
+                              <Badge variant="muted" className="shrink-0 text-[10px]">
+                                {NIVEL_ENSINO_MAP[h.idNivelEnsino] ?? h.idNivelEnsino}
+                              </Badge>
+                            )}
+                          </button>
+                          {h.ehPropria && (
+                            <div className="flex flex-col justify-center gap-1">
+                              <button
+                                type="button"
+                                aria-label="Editar habilidade"
+                                title="Editar habilidade"
+                                onClick={() => abrirEdicaoHabilidade(h)}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                              >
+                                <PencilSimple size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Desativar habilidade"
+                                title="Desativar habilidade"
+                                onClick={() => desativarHabilidadeMutation.mutate(h.id)}
+                                disabled={desativarHabilidadeMutation.isPending}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-danger hover:border-danger transition-colors disabled:opacity-50"
+                              >
+                                <EyeSlash size={14} />
+                              </button>
+                            </div>
                           )}
-                        </button>
+                        </div>
                       )
                     })}
                     {habsFiltradas.length === 0 && (
@@ -584,6 +644,13 @@ export default function PlanejamentosPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <HabilidadeFormDialog
+        open={habilidadeDialogAberto}
+        habilidade={habilidadeEmEdicao}
+        onClose={() => setHabilidadeDialogAberto(false)}
+        onSaved={(habilidade, criada) => void aoSalvarHabilidade(habilidade, criada)}
+      />
 
       <PlanejamentoExcluirDialog
         open={!!pdiParaExcluir}
