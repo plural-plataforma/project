@@ -17,6 +17,7 @@ import type { Aluno } from '@/types/aluno'
 import {
   calcularIdade,
   formatCargaHorariaSemanal,
+  formatDiagnosticoMedicoAluno,
   formatFrequenciaAtendimentos,
   formatOrganizacaoCheckbox,
 } from '@/lib/paeeExportHelpers'
@@ -133,6 +134,8 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
             campoParagraph('Carga horária', aluno ? formatCargaHorariaSemanal(aluno) : 'conferir cadastro do aluno'),
           ]
 
+  const diagnosticoMedico = aluno ? formatDiagnosticoMedicoAluno(aluno) : ''
+
   const encontrosSorted = [...(p.encontros ?? [])].sort((a, b) => {
     const c = String(a.dataEnc).localeCompare(String(b.dataEnc))
     return c !== 0 ? c : a.id - b.id
@@ -171,6 +174,17 @@ export async function downloadPaeePlanejamentoDocx(params: ExportPaeePlanejament
       spacing: { after: 200 },
     }),
     ...identificacaoParagraphs,
+    ...(diagnosticoMedico
+      ? [
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Diagnóstico médico (resumo): ', bold: true, size: 22 }),
+              new TextRun({ text: diagnosticoMedico, size: 22 }),
+            ],
+            spacing: { after: 200 },
+          }),
+        ]
+      : []),
     new Paragraph({
       children: [
         new TextRun({ text: '2. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO:', bold: true, size: 26 }),

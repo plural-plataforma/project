@@ -4,6 +4,7 @@ import type { Aluno } from '@/types/aluno'
 import {
   calcularIdade,
   formatCargaHorariaSemanal,
+  formatDiagnosticoMedicoAluno,
   formatFrequenciaAtendimentos,
   formatOrganizacaoCheckbox,
 } from '@/lib/paeeExportHelpers'
@@ -121,6 +122,11 @@ export function downloadPaeePlanejamentoPdf(params: ExportPaeePlanejamentoPdfPar
       `Carga horária: ${aluno ? formatCargaHorariaSemanal(aluno) : 'conferir cadastro do aluno'}`,
     ]
     y = addParagraph(doc, campos.join('\n'), y, margin, maxW)
+
+    const diagnosticoMedico = aluno ? formatDiagnosticoMedicoAluno(aluno) : ''
+    if (diagnosticoMedico) {
+      y = addParagraph(doc, `Diagnóstico médico (resumo): ${diagnosticoMedico}`, y, margin, maxW)
+    }
   }
   y = addSection(doc, '2. OBJETIVOS CURTO / MÉDIO / LONGO PRAZO', y, margin, maxW)
   y = addParagraph(doc, `Curto prazo: ${textoObj(p.objetivoCurtoPrazo)}`, y, margin, maxW)
