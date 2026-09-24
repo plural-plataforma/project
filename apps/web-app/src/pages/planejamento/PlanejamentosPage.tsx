@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
@@ -93,6 +93,7 @@ export default function PlanejamentosPage() {
   // Seleções
   const [selectedAlunos, setSelectedAlunos] = useState<Aluno[]>([])
   const [selectedHabilidades, setSelectedHabilidades] = useState<Habilidade[]>([])
+  const listaHabilidadesRef = useRef<HTMLDivElement>(null)
   const [selectedEstrategias, setSelectedEstrategias] = useState<Estrategia[]>([])
   const [selectedAvaliacoes, setSelectedAvaliacoes] = useState<Avaliacao[]>([])
 
@@ -188,10 +189,12 @@ export default function PlanejamentosPage() {
   }
 
   async function aoSalvarHabilidade(habilidade: Habilidade, criada: boolean) {
-    await qc.invalidateQueries({ queryKey: ['habilidades'] })
     if (criada) {
       setSelectedHabilidades((prev) => (prev.some((h) => h.id === habilidade.id) ? prev : [...prev, habilidade]))
+      listaHabilidadesRef.current?.scrollTo({ top: 0 })
+      await qc.refetchQueries({ queryKey: ['habilidades'] })
     } else {
+      await qc.invalidateQueries({ queryKey: ['habilidades'] })
       setSelectedHabilidades((prev) => prev.map((h) => (h.id === habilidade.id ? habilidade : h)))
     }
   }
@@ -255,15 +258,27 @@ export default function PlanejamentosPage() {
     alunos.filter((a) => a.nomeCompleto.toLowerCase().includes(searchAlunos.toLowerCase())),
     'nomeCompleto'
   )
-  const habsFiltradas = sortByField(
+  const habilidadesSelecionadasIds = new Set(selectedHabilidades.map((h) => h.id))
+  // Selecionadas ficam sempre no topo, independente da busca/filtro; a mais recente primeiro.
+  // Depois vêm as próprias da professora, e por fim as globais.
+  const habsSelecionadas = [...selectedHabilidades]
+    .reverse()
+    .map((s) => habilidades.find((h) => h.id === s.id) ?? s)
+  const habsNaoSelecionadas = sortByField(
     habilidades.filter((h) => {
       const ativa = h.ativo !== false
       const matchNivel = !filterNivel || String(h.idNivelEnsino) === filterNivel
       const matchSearch = !searchHabs || (h.descricao ?? '').toLowerCase().includes(searchHabs.toLowerCase())
-      return ativa && matchNivel && matchSearch
+      return ativa && matchNivel && matchSearch && !habilidadesSelecionadasIds.has(h.id)
     }),
     'descricao'
   )
+  const totalHabilidadesDisponiveis = habilidades.filter((h) => h.ativo !== false).length
+  const habsFiltradas = [
+    ...habsSelecionadas,
+    ...habsNaoSelecionadas.filter((h) => h.ehPropria),
+    ...habsNaoSelecionadas.filter((h) => !h.ehPropria),
+  ]
   const estsFiltradas = sortByField(
     estrategias.filter((e) => e.descricao.toLowerCase().includes(searchEsts.toLowerCase())),
     'descricao'
@@ -482,10 +497,17 @@ export default function PlanejamentosPage() {
                       ))}
                     </select>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={abrirNovaHabilidade}>
-                    <Plus size={14} /> Nova habilidade
-                  </Button>
-                  <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={abrirNovaHabilidade}>
+                      <Plus size={14} /> Nova habilidade
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      {habsFiltradas.length !== totalHabilidadesDisponiveis
+                        ? `${habsFiltradas.length} de ${totalHabilidadesDisponiveis} disponíveis`
+                        : `${totalHabilidadesDisponiveis} disponíveis`}
+                    </span>
+                  </div>
+                  <div ref={listaHabilidadesRef} className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                     {habsFiltradas.map((h) => {
                       const sel = selectedHabilidades.some((s) => s.id === h.id)
                       return (

@@ -183,8 +183,12 @@ export default function PlanejamentoDetailPage() {
   }
 
   async function aoSalvarHabilidade(habilidade: Habilidade, criada: boolean) {
+    if (criada) {
+      vincularMutation.mutate({ type: 'habilidades', itemId: habilidade.id })
+      await qc.refetchQueries({ queryKey: ['habilidades'] })
+      return
+    }
     await qc.invalidateQueries({ queryKey: ['habilidades'] })
-    if (criada) vincularMutation.mutate({ type: 'habilidades', itemId: habilidade.id })
   }
 
   const deleteMutation = useMutation({
@@ -382,7 +386,7 @@ export default function PlanejamentoDetailPage() {
     todosAlunos.filter((a) => !alunosVinculadosIds.has(a.id) && a.nomeCompleto.toLowerCase().includes(searchVinc.toLowerCase())),
     'nomeCompleto'
   )
-  const habsDisponiveis = sortByField(
+  const habsFiltradas = sortByField(
     todasHabs.filter((h) => {
       const notVinc = !habsVinculadasIds.has(h.id)
       const ativa = h.ativo !== false
@@ -392,6 +396,14 @@ export default function PlanejamentoDetailPage() {
     }),
     'descricao'
   )
+  const totalHabilidadesDisponiveis = todasHabs.filter(
+    (h) => h.ativo !== false && !habsVinculadasIds.has(h.id)
+  ).length
+  // Habilidades próprias da professora aparecem em evidência, acima das globais.
+  const habsDisponiveis = [
+    ...habsFiltradas.filter((h) => h.ehPropria),
+    ...habsFiltradas.filter((h) => !h.ehPropria),
+  ]
   const estsDisponiveis = sortByField(
     todasEsts.filter(
       (e) =>
@@ -601,9 +613,16 @@ export default function PlanejamentoDetailPage() {
           </div>
 
           {vincModal === 'habilidades' && (
-            <Button variant="outline" size="sm" onClick={abrirNovaHabilidade}>
-              <Plus size={14} /> Nova habilidade
-            </Button>
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="outline" size="sm" onClick={abrirNovaHabilidade}>
+                <Plus size={14} /> Nova habilidade
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {habsDisponiveis.length !== totalHabilidadesDisponiveis
+                  ? `${habsDisponiveis.length} de ${totalHabilidadesDisponiveis} disponíveis`
+                  : `${totalHabilidadesDisponiveis} disponíveis`}
+              </span>
+            </div>
           )}
 
           <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
