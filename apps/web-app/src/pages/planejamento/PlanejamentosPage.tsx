@@ -93,7 +93,7 @@ export default function PlanejamentosPage() {
   // Seleções
   const [selectedAlunos, setSelectedAlunos] = useState<Aluno[]>([])
   const [selectedHabilidades, setSelectedHabilidades] = useState<Habilidade[]>([])
-  const listaHabilidadesRef = useRef<HTMLDivElement>(null)
+  const listaMinhasHabilidadesRef = useRef<HTMLDivElement>(null)
   const [selectedEstrategias, setSelectedEstrategias] = useState<Estrategia[]>([])
   const [selectedAvaliacoes, setSelectedAvaliacoes] = useState<Avaliacao[]>([])
 
@@ -191,7 +191,7 @@ export default function PlanejamentosPage() {
   async function aoSalvarHabilidade(habilidade: Habilidade, criada: boolean) {
     if (criada) {
       setSelectedHabilidades((prev) => (prev.some((h) => h.id === habilidade.id) ? prev : [...prev, habilidade]))
-      listaHabilidadesRef.current?.scrollTo({ top: 0 })
+      listaMinhasHabilidadesRef.current?.scrollTo({ top: 0 })
       await qc.refetchQueries({ queryKey: ['habilidades'] })
     } else {
       await qc.invalidateQueries({ queryKey: ['habilidades'] })
@@ -235,6 +235,54 @@ export default function PlanejamentosPage() {
     )
   }
 
+  function renderHabilidade(h: Habilidade) {
+    const sel = selectedHabilidades.some((s) => s.id === h.id)
+    return (
+      <div key={h.id} className="flex items-stretch gap-1.5">
+        <button
+          type="button"
+          onClick={() => toggleItem(h, selectedHabilidades, setSelectedHabilidades)}
+          className={`flex-1 flex items-start gap-2 px-3 py-2.5 rounded-lg border text-sm text-left transition-colors ${
+            sel ? 'border-primary bg-primary-light text-primary font-semibold' : 'border-border hover:bg-muted text-foreground'
+          }`}
+        >
+          <span className="flex-1 leading-snug">{h.descricao}</span>
+          {h.ehPropria && (
+            <Badge variant="default" className="shrink-0 text-[10px]">Minha</Badge>
+          )}
+          {h.idNivelEnsino && (
+            <Badge variant="muted" className="shrink-0 text-[10px]">
+              {NIVEL_ENSINO_MAP[h.idNivelEnsino] ?? h.idNivelEnsino}
+            </Badge>
+          )}
+        </button>
+        {h.ehPropria && (
+          <div className="flex flex-col justify-center gap-1">
+            <button
+              type="button"
+              aria-label="Editar habilidade"
+              title="Editar habilidade"
+              onClick={() => abrirEdicaoHabilidade(h)}
+              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+            >
+              <PencilSimple size={14} />
+            </button>
+            <button
+              type="button"
+              aria-label="Desativar habilidade"
+              title="Desativar habilidade"
+              onClick={() => desativarHabilidadeMutation.mutate(h.id)}
+              disabled={desativarHabilidadeMutation.isPending}
+              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-danger hover:border-danger transition-colors disabled:opacity-50"
+            >
+              <EyeSlash size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const filtered = sortByField(
     planejamentos.filter((p) => p.apelido.toLowerCase().includes(search.toLowerCase())),
     'apelido'
@@ -259,8 +307,7 @@ export default function PlanejamentosPage() {
     'nomeCompleto'
   )
   const habilidadesSelecionadasIds = new Set(selectedHabilidades.map((h) => h.id))
-  // Selecionadas ficam sempre no topo, independente da busca/filtro; a mais recente primeiro.
-  // Depois vêm as próprias da professora, e por fim as globais.
+  // Selecionadas ficam sempre no topo de cada bloco, independente da busca/filtro; a mais recente primeiro.
   const habsSelecionadas = [...selectedHabilidades]
     .reverse()
     .map((s) => habilidades.find((h) => h.id === s.id) ?? s)
@@ -274,11 +321,19 @@ export default function PlanejamentosPage() {
     'descricao'
   )
   const totalHabilidadesDisponiveis = habilidades.filter((h) => h.ativo !== false).length
-  const habsFiltradas = [
-    ...habsSelecionadas,
+  const habsMinhas = [
+    ...habsSelecionadas.filter((h) => h.ehPropria),
     ...habsNaoSelecionadas.filter((h) => h.ehPropria),
+  ]
+  const totalMinhasHabilidades = new Set([
+    ...habilidades.filter((h) => h.ativo !== false && h.ehPropria).map((h) => h.id),
+    ...habsSelecionadas.filter((h) => h.ehPropria).map((h) => h.id),
+  ]).size
+  const habsGlobais = [
+    ...habsSelecionadas.filter((h) => !h.ehPropria),
     ...habsNaoSelecionadas.filter((h) => !h.ehPropria),
   ]
+  const totalHabilidadesExibidas = habsMinhas.length + habsGlobais.length
   const estsFiltradas = sortByField(
     estrategias.filter((e) => e.descricao.toLowerCase().includes(searchEsts.toLowerCase())),
     'descricao'
@@ -502,60 +557,29 @@ export default function PlanejamentosPage() {
                       <Plus size={14} /> Nova habilidade
                     </Button>
                     <span className="text-xs text-muted-foreground">
-                      {habsFiltradas.length !== totalHabilidadesDisponiveis
-                        ? `${habsFiltradas.length} de ${totalHabilidadesDisponiveis} disponíveis`
+                      {totalHabilidadesExibidas !== totalHabilidadesDisponiveis
+                        ? `${totalHabilidadesExibidas} de ${totalHabilidadesDisponiveis} disponíveis`
                         : `${totalHabilidadesDisponiveis} disponíveis`}
                     </span>
                   </div>
-                  <div ref={listaHabilidadesRef} className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                    {habsFiltradas.map((h) => {
-                      const sel = selectedHabilidades.some((s) => s.id === h.id)
-                      return (
-                        <div key={h.id} className="flex items-stretch gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => toggleItem(h, selectedHabilidades, setSelectedHabilidades)}
-                            className={`flex-1 flex items-start gap-2 px-3 py-2.5 rounded-lg border text-sm text-left transition-colors ${
-                              sel ? 'border-primary bg-primary-light text-primary font-semibold' : 'border-border hover:bg-muted text-foreground'
-                            }`}
-                          >
-                            <span className="flex-1 leading-snug">{h.descricao}</span>
-                            {h.ehPropria && (
-                              <Badge variant="default" className="shrink-0 text-[10px]">Minha</Badge>
-                            )}
-                            {h.idNivelEnsino && (
-                              <Badge variant="muted" className="shrink-0 text-[10px]">
-                                {NIVEL_ENSINO_MAP[h.idNivelEnsino] ?? h.idNivelEnsino}
-                              </Badge>
-                            )}
-                          </button>
-                          {h.ehPropria && (
-                            <div className="flex flex-col justify-center gap-1">
-                              <button
-                                type="button"
-                                aria-label="Editar habilidade"
-                                title="Editar habilidade"
-                                onClick={() => abrirEdicaoHabilidade(h)}
-                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
-                              >
-                                <PencilSimple size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                aria-label="Desativar habilidade"
-                                title="Desativar habilidade"
-                                onClick={() => desativarHabilidadeMutation.mutate(h.id)}
-                                disabled={desativarHabilidadeMutation.isPending}
-                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-danger hover:border-danger transition-colors disabled:opacity-50"
-                              >
-                                <EyeSlash size={14} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                    {habsFiltradas.length === 0 && (
+                  {totalMinhasHabilidades > 0 && (
+                    <div className="rounded-lg border border-primary/30 bg-primary-light/40 p-2 space-y-1.5">
+                      <p className="text-xs font-semibold text-primary px-1">
+                        Minhas habilidades ({totalMinhasHabilidades})
+                      </p>
+                      <div ref={listaMinhasHabilidadesRef} className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                        {habsMinhas.map(renderHabilidade)}
+                        {habsMinhas.length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-2">
+                            Nenhuma das suas habilidades corresponde à busca
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                    {habsGlobais.map(renderHabilidade)}
+                    {habsGlobais.length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-4">Nenhuma habilidade encontrada</p>
                     )}
                   </div>
