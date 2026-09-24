@@ -21,7 +21,14 @@ export const criarHabilidade = async (payload: HabilidadeCadastroPayload): Promi
   return response.data.objeto
 }
 
-export const atualizarHabilidade = async (payload: HabilidadeAtualizarPayload): Promise<void> => {
+export const excluirHabilidade = async (id: number): Promise<void> => {
+  const response = await api.delete<{ sucesso: boolean; mensagens?: string[] }>(`/Habilidade/excluir/${id}`)
+  if (!response.data.sucesso) {
+    throw new Error(response.data.mensagens?.join(', ') || 'Falha ao excluir habilidade')
+  }
+}
+
+export const atualizarHabilidade =async (payload: HabilidadeAtualizarPayload): Promise<void> => {
   const response = await api.patch<{ sucesso: boolean; mensagens?: string[] }>('/Habilidade/atualizar', payload)
   if (!response.data.sucesso) {
     throw new Error(response.data.mensagens?.join(', ') || 'Falha ao atualizar habilidade')

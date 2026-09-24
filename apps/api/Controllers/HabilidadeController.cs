@@ -76,6 +76,23 @@ namespace api.Controllers
             }
         }
 
+        [HttpDelete("excluir/{id}")]
+        public async Task<IActionResult> Excluir(int id)
+        {
+            var usuario = await _usuario.GetUserAsync(User);
+            if (usuario == null)
+            {
+                return Unauthorized();
+            }
+
+            var resposta = await _habilidadeService.Excluir(id, usuario);
+            if (resposta.Sucesso)
+            {
+                return Ok(resposta);
+            }
+            return BadRequest(resposta);
+        }
+
         [HttpGet("buscar")]
         public async Task<IActionResult> Buscar()
         {

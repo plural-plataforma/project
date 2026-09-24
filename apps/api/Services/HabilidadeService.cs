@@ -132,6 +132,52 @@ namespace api.Services
             return resposta;
         }
 
+        public async Task<ServiceResponse<bool>> Excluir(int id, Usuario usuario)
+        {
+            var resposta = new ServiceResponse<bool>();
+
+            // Somente a dona exclui a própria habilidade. Global não é excluível por ninguém (nem Admin)
+            // e a privada de outra professora se comporta como inexistente.
+            var professorId = usuario.ProfessorId;
+            if (professorId == null)
+            {
+                resposta.SetFalha("Habilidade não encontrada.");
+                return resposta;
+            }
+
+            var habilidade = await _contexto.Habilidades
+                .FirstOrDefaultAsync(h => h.Id == id && h.IdProfessor != null && h.IdProfessor == professorId);
+            if (habilidade == null)
+            {
+                resposta.SetFalha("Habilidade não encontrada.");
+                return resposta;
+            }
+
+            var emUso = await _contexto.HabilidadesXPlanejamentos.AnyAsync(x => x.HabilidadeId == id)
+                || await _contexto.PlanejamentoEncontros.AnyAsync(e => e.HabilidadeId == id)
+                || await _contexto.RelatosAtendimento.AnyAsync(r => r.HabilidadeId == id);
+            if (emUso)
+            {
+                resposta.SetFalha("Esta habilidade está em uso em PAEE ou relato de atendimento. Desative-a em vez de excluir.");
+                return resposta;
+            }
+
+            try
+            {
+                _contexto.Habilidades.Remove(habilidade);
+                await _contexto.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                resposta.SetFalha("Erro ao excluir habilidade.");
+                return resposta;
+            }
+
+            resposta.Sucesso = true;
+            resposta.AdicionaMensagem("Habilidade excluída com sucesso.");
+            return resposta;
+        }
+
         public async Task<ServiceResponse<List<HabilidadeBuscarDTO>>> Buscar(Usuario usuario)
         {
             var resposta = new ServiceResponse<List<HabilidadeBuscarDTO>>();

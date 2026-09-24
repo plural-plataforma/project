@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, BookOpen, MagnifyingGlass, CalendarBlank, Trash, PencilSimple, EyeSlash } from '@phosphor-icons/react'
+import { Plus, BookOpen, MagnifyingGlass, CalendarBlank, Trash, PencilSimple, EyeSlash, ListBullets } from '@phosphor-icons/react'
 import {
   buscarPlanejamento,
   cadastrarPlanejamento,
@@ -50,6 +50,7 @@ import { sortByField } from '@/lib/utils'
 import { DocGeracaoLoadingScreen } from '@/components/common/DocGeracaoAnimation'
 import { PlanejamentoExcluirDialog } from './PlanejamentoExcluirDialog'
 import { HabilidadeFormDialog } from './HabilidadeFormDialog'
+import { MinhasHabilidadesDialog } from './MinhasHabilidadesDialog'
 import { NIVEL_ENSINO_MAP } from '@/config/nivelEnsino'
 import { baixarPlanejamentoPdf, baixarPlanejamentoWord } from '@/lib/baixarPlanejamento'
 import { avaliarCompletudePaee } from '@/lib/paeeCompletude'
@@ -104,6 +105,7 @@ export default function PlanejamentosPage() {
   const [searchEsts, setSearchEsts] = useState('')
   const [searchAvals, setSearchAvals] = useState('')
   const [habilidadeDialogAberto, setHabilidadeDialogAberto] = useState(false)
+  const [minhasHabilidadesAberto, setMinhasHabilidadesAberto] = useState(false)
   const [habilidadeEmEdicao, setHabilidadeEmEdicao] = useState<Habilidade | null>(null)
 
   const { data: planejamentos = [], isLoading } = useQuery({
@@ -189,7 +191,7 @@ export default function PlanejamentosPage() {
   }
 
   async function aoSalvarHabilidade(habilidade: Habilidade, criada: boolean) {
-    if (criada) {
+    if (criada && dialogOpen) {
       setSelectedHabilidades((prev) => (prev.some((h) => h.id === habilidade.id) ? prev : [...prev, habilidade]))
       listaMinhasHabilidadesRef.current?.scrollTo({ top: 0 })
       await qc.refetchQueries({ queryKey: ['habilidades'] })
@@ -359,10 +361,16 @@ export default function PlanejamentosPage() {
         title="PAEE"
         description="Gerencie os planos de desenvolvimento individual"
         action={
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus size={16} weight="bold" />
-            Novo PAEE
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setMinhasHabilidadesAberto(true)}>
+              <ListBullets size={16} />
+              Minhas habilidades
+            </Button>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus size={16} weight="bold" />
+              Novo PAEE
+            </Button>
+          </div>
         }
       />
 
@@ -691,11 +699,22 @@ export default function PlanejamentosPage() {
         </DialogContent>
       </Dialog>
 
+      <MinhasHabilidadesDialog
+        open={minhasHabilidadesAberto}
+        onClose={() => setMinhasHabilidadesAberto(false)}
+        onNova={abrirNovaHabilidade}
+        onEditar={abrirEdicaoHabilidade}
+      />
+
       <HabilidadeFormDialog
         open={habilidadeDialogAberto}
         habilidade={habilidadeEmEdicao}
         onClose={() => setHabilidadeDialogAberto(false)}
         onSaved={(habilidade, criada) => void aoSalvarHabilidade(habilidade, criada)}
+        onDeleted={(habilidadeId) => {
+          setSelectedHabilidades((prev) => prev.filter((h) => h.id !== habilidadeId))
+          void qc.invalidateQueries({ queryKey: ['habilidades'] })
+        }}
       />
 
       <PlanejamentoExcluirDialog

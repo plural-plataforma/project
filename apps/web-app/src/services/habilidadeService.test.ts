@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buscarHabilidades, criarHabilidade, atualizarHabilidade } from './habilidadeService'
+import { buscarHabilidades, criarHabilidade, atualizarHabilidade, excluirHabilidade } from './habilidadeService'
 import { api } from '@/api/http'
 
 vi.mock('@/api/http', () => ({
@@ -7,6 +7,7 @@ vi.mock('@/api/http', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -65,6 +66,24 @@ describe('habilidadeService', () => {
       await expect(
         criarHabilidade({ idNivelEnsino: 2, tipo: ' ', descricao: ' ' }),
       ).rejects.toThrow('Tipo e descrição são obrigatórios.')
+    })
+  })
+
+  describe('excluirHabilidade', () => {
+    it('envia DELETE para a habilidade', async () => {
+      vi.mocked(api.delete).mockResolvedValue({ data: { sucesso: true, mensagens: [] } })
+
+      await excluirHabilidade(7)
+
+      expect(api.delete).toHaveBeenCalledWith('/Habilidade/excluir/7')
+    })
+
+    it('lança erro com a mensagem quando sucesso é falso', async () => {
+      vi.mocked(api.delete).mockResolvedValue({
+        data: { sucesso: false, mensagens: ['Habilidade não encontrada.'] },
+      })
+
+      await expect(excluirHabilidade(7)).rejects.toThrow('Habilidade não encontrada.')
     })
   })
 

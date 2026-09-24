@@ -720,6 +720,7 @@ export default function PlanejamentoDetailPage() {
         habilidade={habilidadeEmEdicao}
         onClose={() => setHabilidadeDialogAberto(false)}
         onSaved={(habilidade, criada) => void aoSalvarHabilidade(habilidade, criada)}
+        onDeleted={() => void qc.invalidateQueries({ queryKey: ['habilidades'] })}
       />
 
       <PlanejamentoExcluirDialog

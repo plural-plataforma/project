@@ -9,8 +9,11 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 
 // Resolve local node_modules to guarantee a single React instance
 // in the monorepo (prevents "Invalid hook call" caused by duplicate React)
-const localReact = path.resolve(__dirname, 'node_modules/react')
-const localReactDom = path.resolve(__dirname, 'node_modules/react-dom')
+// No Vitest, o @testing-library/react (CJS) carrega o react-dom hoisted da raiz; o código
+// precisa usar o React dessa mesma raiz, senão o dispatcher de hooks fica nulo.
+const reactBase = process.env.VITEST ? path.resolve(__dirname, '../../node_modules') : path.resolve(__dirname, 'node_modules')
+const localReact = path.join(reactBase, 'react')
+const localReactDom = path.join(reactBase, 'react-dom')
 
 const API_TARGET = process.env.VITE_API_URL?.replace(/\/+$/, '') ?? 'https://dev-api.runasp.net/api'
 
@@ -40,8 +43,8 @@ export default defineConfig({
       // to use this app's local React installation
       'react': localReact,
       'react-dom': localReactDom,
-      'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
-      'react/jsx-dev-runtime': path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime'),
+      'react/jsx-runtime': path.join(localReact, 'jsx-runtime'),
+      'react/jsx-dev-runtime': path.join(localReact, 'jsx-dev-runtime'),
     },
     dedupe: [
       'react',

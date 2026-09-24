@@ -3,11 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PageWrapper } from '@/test/page-test-utils'
 import { HabilidadeFormDialog } from './HabilidadeFormDialog'
-import { criarHabilidade, atualizarHabilidade } from '@/services/habilidadeService'
+import { criarHabilidade, atualizarHabilidade, excluirHabilidade } from '@/services/habilidadeService'
 
 vi.mock('@/services/habilidadeService', () => ({
   criarHabilidade: vi.fn(),
   atualizarHabilidade: vi.fn(),
+  excluirHabilidade: vi.fn(),
 }))
 
 function renderDialog(props: Partial<React.ComponentProps<typeof HabilidadeFormDialog>> = {}) {
@@ -74,5 +75,28 @@ describe('HabilidadeFormDialog', () => {
     await waitFor(() => expect(atualizarHabilidade).toHaveBeenCalled())
     expect(atualizarHabilidade).toHaveBeenCalledWith(expect.objectContaining({ id: 5, descricao: 'Nova' }))
     expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 5, descricao: 'Nova' }), false)
+  })
+
+  it('não oferece exclusão ao criar', () => {
+    renderDialog()
+
+    expect(screen.queryByRole('button', { name: /^excluir$/i })).not.toBeInTheDocument()
+  })
+
+  it('exclui a habilidade só após confirmar', async () => {
+    const user = userEvent.setup()
+    vi.mocked(excluirHabilidade).mockResolvedValue(undefined)
+    const existente = { id: 5, idNivelEnsino: 1, tipo: 'Habilidade', descricao: 'Antiga', ehPropria: true }
+    const onDeleted = vi.fn()
+    const { onClose } = renderDialog({ habilidade: existente, onDeleted })
+
+    await user.click(screen.getByRole('button', { name: /^excluir$/i }))
+    expect(excluirHabilidade).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /confirmar exclusão/i }))
+
+    await waitFor(() => expect(excluirHabilidade).toHaveBeenCalledWith(5))
+    expect(onDeleted).toHaveBeenCalledWith(5)
+    expect(onClose).toHaveBeenCalled()
   })
 })

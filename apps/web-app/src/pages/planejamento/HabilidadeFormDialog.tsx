@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { NIVEL_ENSINO_MAP } from '@/config/nivelEnsino'
-import { atualizarHabilidade, criarHabilidade } from '@/services/habilidadeService'
+import { atualizarHabilidade, criarHabilidade, excluirHabilidade } from '@/services/habilidadeService'
 import { useToast } from '@/hooks/useToast'
 import { formatFriendlyErrorBody, getApiErrorFeedback } from '@/lib/apiFriendlyError'
 import type { Habilidade } from '@/types/habilidade'
@@ -34,10 +35,17 @@ interface HabilidadeFormDialogProps {
   habilidade?: Habilidade | null
   onClose: () => void
   onSaved: (habilidade: Habilidade, criada: boolean) => void
+  onDeleted?: (habilidadeId: number) => void
 }
 
-export function HabilidadeFormDialog({ open, habilidade, onClose, onSaved }: HabilidadeFormDialogProps) {
+export function HabilidadeFormDialog({ open, habilidade, onClose, onSaved, onDeleted }: HabilidadeFormDialogProps) {
   const { success, error: showError } = useToast()
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
+
+  function fechar() {
+    setConfirmandoExclusao(false)
+    onClose()
+  }
   const {
     register,
     handleSubmit,
@@ -76,7 +84,7 @@ export function HabilidadeFormDialog({ open, habilidade, onClose, onSaved }: Hab
     onSuccess: ({ salva, criada }) => {
       success(criada ? 'Habilidade criada!' : 'Habilidade atualizada!')
       onSaved(salva, criada)
-      onClose()
+      fechar()
     },
     onError: (err: unknown) => {
       const fb = getApiErrorFeedback(err)
@@ -84,11 +92,26 @@ export function HabilidadeFormDialog({ open, habilidade, onClose, onSaved }: Hab
     },
   })
 
+  const excluirMutation = useMutation({
+    mutationFn: (habilidadeId: number) => excluirHabilidade(habilidadeId),
+    onSuccess: (_data, habilidadeId) => {
+      success('Habilidade excluída')
+      onDeleted?.(habilidadeId)
+      fechar()
+    },
+    onError: (err: unknown) => {
+      setConfirmandoExclusao(false)
+      const fb = getApiErrorFeedback(err)
+      showError(fb.title, formatFriendlyErrorBody(fb))
+    },
+  })
+
   return (
-    <Dialog open={open} onOpenChange={(aberto) => { if (!aberto) onClose() }}>
+    <Dialog open={open} onOpenChange={(aberto) => { if (!aberto) fechar() }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{habilidade ? 'Editar habilidade' : 'Nova habilidade'}</DialogTitle>
+          <DialogDescription>Só você vê e usa esta habilidade nos seus PAEEs.</DialogDescription>
         </DialogHeader>
 
         <form
@@ -132,8 +155,41 @@ export function HabilidadeFormDialog({ open, habilidade, onClose, onSaved }: Hab
             />
           </div>
 
+          {habilidade && confirmandoExclusao && (
+            <div className="rounded-lg border border-danger/40 bg-danger/5 p-3 space-y-2">
+              <p className="text-sm text-foreground">
+                Excluir esta habilidade? Essa ação não pode ser desfeita.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setConfirmandoExclusao(false)}>
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  loading={excluirMutation.isPending}
+                  onClick={() => excluirMutation.mutate(habilidade.id)}
+                >
+                  Confirmar exclusão
+                </Button>
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            {habilidade && !confirmandoExclusao && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-danger hover:bg-danger/10 sm:mr-auto"
+                onClick={() => setConfirmandoExclusao(true)}
+              >
+                Excluir
+              </Button>
+            )}
+            <Button type="button" variant="outline" size="sm" onClick={fechar}>
               Cancelar
             </Button>
             <Button type="submit" size="sm" loading={salvarMutation.isPending}>
