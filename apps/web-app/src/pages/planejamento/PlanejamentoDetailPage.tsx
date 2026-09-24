@@ -183,12 +183,8 @@ export default function PlanejamentoDetailPage() {
   }
 
   async function aoSalvarHabilidade(habilidade: Habilidade, criada: boolean) {
-    if (criada) {
-      vincularMutation.mutate({ type: 'habilidades', itemId: habilidade.id })
-      await qc.refetchQueries({ queryKey: ['habilidades'] })
-      return
-    }
     await qc.invalidateQueries({ queryKey: ['habilidades'] })
+    if (criada) vincularMutation.mutate({ type: 'habilidades', itemId: habilidade.id })
   }
 
   const deleteMutation = useMutation({
@@ -386,7 +382,7 @@ export default function PlanejamentoDetailPage() {
     todosAlunos.filter((a) => !alunosVinculadosIds.has(a.id) && a.nomeCompleto.toLowerCase().includes(searchVinc.toLowerCase())),
     'nomeCompleto'
   )
-  const habsFiltradas = sortByField(
+  const habsDisponiveis = sortByField(
     todasHabs.filter((h) => {
       const notVinc = !habsVinculadasIds.has(h.id)
       const ativa = h.ativo !== false
@@ -399,11 +395,6 @@ export default function PlanejamentoDetailPage() {
   const totalHabilidadesDisponiveis = todasHabs.filter(
     (h) => h.ativo !== false && !habsVinculadasIds.has(h.id)
   ).length
-  // Habilidades próprias da professora aparecem em evidência, acima das globais.
-  const habsDisponiveis = [
-    ...habsFiltradas.filter((h) => h.ehPropria),
-    ...habsFiltradas.filter((h) => !h.ehPropria),
-  ]
   const estsDisponiveis = sortByField(
     todasEsts.filter(
       (e) =>
