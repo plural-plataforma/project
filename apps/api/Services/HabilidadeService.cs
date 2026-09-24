@@ -31,7 +31,9 @@ namespace api.Services
             }
 
             var ehAdmin = await _usuario.IsInRoleAsync(usuario, "Admin");
-            if (!ehAdmin && usuario.ProfessorId == null)
+            // Privada é o padrão (plataforma da professora); global só quando o sistema ADM pede e o usuário é Admin.
+            var privada = !(ehAdmin && habilidadeDTO.Global);
+            if (privada && usuario.ProfessorId == null)
             {
                 resposta.SetFalha("Professor não identificado.");
                 return resposta;
@@ -48,7 +50,7 @@ namespace api.Services
                         Descricao = habilidadeDTO.Descricao.Trim(),
                         Resumo = string.IsNullOrWhiteSpace(habilidadeDTO.Resumo) ? "" : habilidadeDTO.Resumo.Trim(),
                         Ativo = true,
-                        IdProfessor = ehAdmin ? null : usuario.ProfessorId
+                        IdProfessor = privada ? usuario.ProfessorId : null
                     };
                     _contexto.Habilidades.Add(habilidade);
                     await _contexto.SaveChangesAsync();

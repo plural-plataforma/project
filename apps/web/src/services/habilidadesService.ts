@@ -70,6 +70,7 @@ export const habilidadesService = {
         tipo: String(data.tipo),
         descricao: data.descricao.trim(),
         resumo: data.resumo.trim(),
+        global: true,
       };
       const response = await api.post('/Habilidade/cadastro', payload);
       return response.data;

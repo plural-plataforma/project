@@ -17,6 +17,7 @@ namespace api.DTOs
 
         public string? Resumo { get; set; }
 
+        public bool Global { get; set; }
 
     } 
 }
